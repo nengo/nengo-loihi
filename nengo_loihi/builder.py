@@ -3,35 +3,36 @@ import warnings
 
 import numpy as np
 
-from nengo import Ensemble, Connection
+import nengo
+from nengo import Network, Ensemble, Connection, Node, Probe
+from nengo.dists import Distribution, get_samples
+from nengo.connection import LearningRule
+from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
+from nengo.neurons import Direct, LIF
+from nengo.processes import Process
+from nengo.solvers import NoSolver, Solver
+from nengo.utils.builder import default_n_eval_points
+from nengo.utils.compat import is_array_like, iteritems
+import nengo.utils.numpy as npext
+
+from nengo_loihi.loihi_cx import (
+    CxModel, CxGroup, CxSynapses, CxAxons, CxCpuTarget)
 
 
-class Model(object):
-    def __init__(self, dt=0.001, label=None, decoder_cache=None, builder=None):
+class Model(CxModel):
+    def __init__(self, dt=0.001, label=None, builder=None):
+        super(Model, self).__init__()
+
         self.dt = dt
         self.label = label
-        self.decoder_cache = (NoDecoderCache() if decoder_cache is None
-                              else decoder_cache)
 
-        # Will be filled in by the network builder
-        self.toplevel = None
-        self.config = None
-
-        # Resources used by the build process
-        self.operators = []
+        self.objs = collections.defaultdict(dict)
         self.params = {}
         self.probes = []
+
         self.seeds = {}
         self.seeded = {}
-
-        self.sig = collections.defaultdict(dict)
-        self.sig['common'][0] = Signal(0., readonly=True, name='ZERO')
-        self.sig['common'][1] = Signal(1., readonly=True, name='ONE')
-
-        self.step = Signal(np.array(0, dtype=np.int64), name='step')
-        self.time = Signal(np.array(0, dtype=np.float64), name='time')
-        self.add_op(TimeUpdate(self.step, self.time))
 
         self.builder = Builder() if builder is None else builder
         self.build_callback = None
@@ -39,53 +40,13 @@ class Model(object):
     def __str__(self):
         return "Model: %s" % self.label
 
-    def add_op(self, op):
-        """Add an operator to the model.
-
-        In addition to adding the operator, this method performs additional
-        error checking by calling the operator's ``make_step`` function.
-        Calling ``make_step`` catches errors early, such as when signals are
-        not properly initialized, which aids debugging. For that reason,
-        we recommend calling this method over directly accessing
-        the ``operators`` attribute.
-        """
-        self.operators.append(op)
-        # Fail fast by trying make_step with a temporary sigdict
-        signals = SignalDict()
-        op.init_signals(signals)
-        op.make_step(signals, self.dt, np.random)
-
     def build(self, obj, *args, **kwargs):
-        """Build an object into this model.
-
-        See `.Builder.build` for more details.
-
-        Parameters
-        ----------
-        obj : object
-            The object to build into this model.
-        """
         built = self.builder.build(self, obj, *args, **kwargs)
         if self.build_callback is not None:
             self.build_callback(obj)
         return built
 
     def has_built(self, obj):
-        """Returns true if the object has already been built in this model.
-
-        .. note:: Some objects (e.g. synapses) can be built multiple times,
-                  and therefore will always result in this method returning
-                  ``False`` even though they have been built.
-
-        This check is implemented by checking if the object is in the
-        ``params`` dictionary. Build function should therefore add themselves
-        to ``model.params`` if they cannot be built multiple times.
-
-        Parameters
-        ----------
-        obj : object
-            The object to query.
-        """
         return obj in self.params
 
 
@@ -129,6 +90,52 @@ class Builder(object):
         return register_builder
 
 
+@Builder.register(Network)
+def build_network(model, network):
+    def get_seed(obj, rng):
+        return (rng.randint(npext.maxint)
+                if not hasattr(obj, 'seed') or obj.seed is None else obj.seed)
+
+    if network not in model.seeds:
+        model.seeded[network] = getattr(network, 'seed', None) is not None
+        model.seeds[network] = get_seed(network, np.random)
+
+    # # Set config
+    # old_config = model.config
+    # model.config = network.config
+
+    # assign seeds to children
+    rng = np.random.RandomState(model.seeds[network])
+    # Put probes last so that they don't influence other seeds
+    sorted_types = (Connection, Ensemble, Network, Node, Probe)
+    assert all(tp in sorted_types for tp in network.objects)
+    for obj_type in sorted_types:
+        for obj in network.objects[obj_type]:
+            model.seeded[obj] = (model.seeded[network] or
+                                 getattr(obj, 'seed', None) is not None)
+            model.seeds[obj] = get_seed(obj, rng)
+
+    # logger.debug("Network step 1: Building ensembles and nodes")
+    for obj in network.ensembles + network.nodes:
+        model.build(obj)
+
+    # logger.debug("Network step 2: Building subnetworks")
+    for subnetwork in network.networks:
+        model.build(subnetwork)
+
+    # logger.debug("Network step 3: Building connections")
+    for conn in network.connections:
+        model.build(conn)
+
+    # logger.debug("Network step 4: Building probes")
+    for probe in network.probes:
+        model.build(probe)
+
+    # # Unset config
+    # model.config = old_config
+    model.params[network] = None
+
+
 def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
     if isinstance(eval_points, Distribution):
         n_points = ens.n_eval_points
@@ -146,6 +153,44 @@ def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
     if scale_eval_points:
         eval_points *= ens.radius  # scale by ensemble radius
     return eval_points
+
+
+def get_gain_bias(ens, rng=np.random):
+    if ens.gain is not None and ens.bias is not None:
+        gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
+        bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
+        max_rates, intercepts = ens.neuron_type.max_rates_intercepts(
+            gain, bias)
+    elif ens.gain is not None or ens.bias is not None:
+        # TODO: handle this instead of error
+        raise NotImplementedError("gain or bias set for %s, but not both. "
+                                  "Solving for one given the other is not "
+                                  "implemented yet." % ens)
+    else:
+        max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
+        intercepts = get_samples(ens.intercepts, ens.n_neurons, rng=rng)
+        gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
+        if gain is not None and (
+                not np.all(np.isfinite(gain)) or np.any(gain <= 0.)):
+            raise BuildError(
+                "The specified intercepts for %s lead to neurons with "
+                "negative or non-finite gain. Please adjust the intercepts so "
+                "that all gains are positive. For most neuron types (e.g., "
+                "LIF neurons) this is achieved by reducing the maximum "
+                "intercept value to below 1." % ens)
+
+    return gain, bias, max_rates, intercepts
+
+
+BuiltEnsemble = collections.namedtuple(
+    'BuiltEnsemble',
+    ('eval_points',
+     'encoders',
+     'intercepts',
+     'max_rates',
+     'scaled_encoders',
+     'gain',
+     'bias'))
 
 
 @Builder.register(Ensemble)
@@ -172,9 +217,20 @@ def build_ensemble(model, ens):
 
     if isinstance(ens.neuron_type, Direct):
         raise NotImplementedError()
-    else:
-        group = CxGroup(ens.n_neurons)
+    elif isinstance(ens.neuron_type, LIF):
+        group = CxGroup(ens.n_neurons, label='%s' % ens)
+        group.configure_lif(
+            tau_rc=ens.neuron_type.tau_rc,
+            tau_ref=ens.neuron_type.tau_ref,
+            dt=model.dt,
+            )
         group.bias = bias
+    else:
+        raise NotImplementedError()
+
+    # default filter
+    tau_s = 0.002
+    group.configure_filter(tau_s, dt=model.dt)
 
     # Scale the encoders
     if isinstance(ens.neuron_type, Direct):
@@ -182,27 +238,169 @@ def build_ensemble(model, ens):
     else:
         scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
 
-    synapses = CxSynapses(scaled_encoders.shape[0])
-    synapses.set_weights(scaled_encoders)
-    group.add_synapses(synapses)
+    # scaled_encoders = scaled_encoders / model.dt
+
+    synapses = CxSynapses(scaled_encoders.shape[1])
+    synapses.set_full_weights(scaled_encoders.T)
+    group.add_synapses(synapses, name='encoders')
+
+    synapses2 = CxSynapses(2*scaled_encoders.shape[1])
+    synapses2.set_full_weights(
+        0.5 * np.vstack([scaled_encoders.T, -scaled_encoders.T]))
+    group.add_synapses(synapses2, name='encoders2')
 
     model.add_group(group)
 
-    # # Inject noise if specified
-    # if ens.noise is not None:
-    #     model.build(ens.noise, sig_out=model.sig[ens.neurons]['in'], inc=True)
+    model.objs[ens]['in'] = group
+    model.objs[ens]['out'] = group
+    model.params[ens] = BuiltEnsemble(
+        eval_points=eval_points,
+        encoders=encoders,
+        intercepts=intercepts,
+        max_rates=max_rates,
+        scaled_encoders=scaled_encoders,
+        gain=gain,
+        bias=bias)
 
 
-    # Output is neural output
-    # model.sig[ens]['out'] = model.sig[ens.neurons]['out']
+@Builder.register(Node)
+def build_node(model, node):
+    # input signal
+    # if not is_array_like(node.output) and node.size_in > 0:
+    if node.size_in > 0:
+        raise NotImplementedError()
 
-    # model.params[ens] = BuiltEnsemble(eval_points=eval_points,
-    #                                   encoders=encoders,
-    #                                   intercepts=intercepts,
-    #                                   max_rates=max_rates,
-    #                                   scaled_encoders=scaled_encoders,
-    #                                   gain=gain,
-    #                                   bias=bias)
+    # Provide output
+    if node.output is None:
+        raise NotImplementedError()
+        # sig_out = sig_in
+    elif isinstance(node.output, Process):
+        raise NotImplementedError()
+        # sig_out = Signal(np.zeros(node.size_out), name="%s.out" % node)
+        # model.build(node.output, sig_in, sig_out)
+    elif callable(node.output):
+        raise NotImplementedError()
+        # sig_out = (Signal(np.zeros(node.size_out), name="%s.out" % node)
+        #            if node.size_out > 0 else None)
+        # model.add_op(SimPyFunc(
+        #     output=sig_out, fn=node.output, t=model.time, x=sig_in))
+    elif is_array_like(node.output):
+        sig_out = np.asarray(node.output)
+    else:
+        raise BuildError(
+            "Invalid node output type %r" % type(node.output).__name__)
+
+    # on/off neuron coding for decoded values
+    d = node.size_out
+
+    dec_cx = CxGroup(2*d, label='%s' % node)
+    dec_cx.configure_relu(dt=model.dt)
+    enc = 0.5 * np.array([1., -1.]).repeat(d)
+    bias0 = 0.5 * np.array([1., 1.]).repeat(d)
+    dec_cx.bias = bias0 + enc*np.tile(sig_out, 2)
+    model.add_group(dec_cx)
+
+    model.objs[node]['out'] = dec_cx
+    model.params[node] = None
+
+
+BuiltConnection = collections.namedtuple(
+        'BuiltConnection',
+        ('eval_points', 'solver_info', 'weights', 'transform'))
+
+
+def get_eval_points(model, conn, rng):
+    if conn.eval_points is None:
+        view = model.params[conn.pre_obj].eval_points.view()
+        view.setflags(write=False)
+        return view
+    else:
+        return gen_eval_points(
+            conn.pre_obj, conn.eval_points, rng, conn.scale_eval_points)
+
+
+def get_targets(conn, eval_points):
+    if conn.function is None:
+        targets = eval_points[:, conn.pre_slice]
+    elif isinstance(conn.function, np.ndarray):
+        targets = conn.function
+    else:
+        targets = np.zeros((len(eval_points), conn.size_mid))
+        for i, ep in enumerate(eval_points[:, conn.pre_slice]):
+            out = conn.function(ep)
+            if out is None:
+                raise BuildError("Building %s: Connection function returned "
+                                 "None. Cannot solve for decoders." % (conn,))
+            targets[i] = out
+
+    return targets
+
+
+def build_decoders(model, conn, rng, transform):
+    encoders = model.params[conn.pre_obj].encoders
+    gain = model.params[conn.pre_obj].gain
+    bias = model.params[conn.pre_obj].bias
+
+    eval_points = get_eval_points(model, conn, rng)
+    targets = get_targets(conn, eval_points)
+
+    x = np.dot(eval_points, encoders.T / conn.pre_obj.radius)
+    E = None
+    if conn.solver.weights:
+        E = model.params[conn.post_obj].scaled_encoders.T[conn.post_slice]
+        # include transform in solved weights
+        targets = multiply(targets, transform.T)
+
+    # wrapped_solver = (model.decoder_cache.wrap_solver(solve_for_decoders)
+    #                   if model.seeded[conn] else solve_for_decoders)
+    # decoders, solver_info = wrapped_solver(
+    decoders, solver_info = solve_for_decoders(
+        conn, gain, bias, x, targets, rng=rng, E=E)
+
+    weights = (decoders.T if conn.solver.weights else
+               multiply(transform, decoders.T))
+    return eval_points, weights, solver_info
+
+
+def solve_for_decoders(conn, gain, bias, x, targets, rng, E=None):
+    activities = conn.pre_obj.neuron_type.rates(x, gain, bias)
+    if np.count_nonzero(activities) == 0:
+        raise BuildError(
+            "Building %s: 'activities' matrix is all zero for %s. "
+            "This is because no evaluation points fall in the firing "
+            "ranges of any neurons." % (conn, conn.pre_obj))
+
+    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
+    return decoders, solver_info
+
+
+def multiply(x, y):
+    if x.ndim <= 2 and y.ndim < 2:
+        return x * y
+    elif x.ndim < 2 and y.ndim == 2:
+        return x.reshape(-1, 1) * y
+    elif x.ndim == 2 and y.ndim == 2:
+        return np.dot(x, y)
+    else:
+        raise BuildError("Tensors not supported (x.ndim = %d, y.ndim = %d)"
+                         % (x.ndim, y.ndim))
+
+
+@Builder.register(Solver)
+def build_solver(model, solver, conn, rng, transform):
+    return build_decoders(model, conn, rng, transform)
+
+
+@Builder.register(NoSolver)
+def build_no_solver(model, solver, conn, rng, transform):
+    activities = np.zeros((1, conn.pre_obj.n_neurons))
+    targets = np.zeros((1, conn.size_mid))
+    E = np.zeros((1, conn.post_obj.n_neurons)) if solver.weights else None
+    # No need to invoke the cache for NoSolver
+    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
+    weights = (decoders.T if conn.solver.weights else
+               multiply(transform, decoders.T))
+    return None, weights, solver_info
 
 
 @Builder.register(Connection)
@@ -211,85 +409,210 @@ def build_connection(model, conn):
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
 
-    pre_cx = model.cx_map[conn.pre_obj]
-    post_cx = model.cx_map[conn.post_obj]
+    pre_cx = model.objs[conn.pre_obj]['out']
+    post_cx = model.objs[conn.post_obj]['in']
 
     weights = None
     eval_points = None
     solver_info = None
     signal_size = conn.size_out
     post_slice = conn.post_slice
+    if post_slice != slice(None):
+        raise NotImplementedError()
 
     # Sample transform if given a distribution
     transform = get_samples(
         conn.transform, conn.size_out, d=conn.size_mid, rng=rng)
 
-    if (isinstance(conn.pre_obj, Node) or
-            (isinstance(conn.pre_obj, Ensemble) and
-             isinstance(conn.pre_obj.neuron_type, Direct))):
+    tau_s = 0.0
+    if isinstance(conn.synapse, nengo.synapses.Lowpass):
+        tau_s = conn.synapse.tau
+    elif conn.synapse is not None:
+        raise NotImplementedError("Cannot handle non-Lowpass synapses")
+
+    # post_cx.configure_filter(tau_s, dt=model.dt)
+    # ^ TODO: check that all conns into post use same filter
+
+    if isinstance(conn.pre_obj, Node):
+        # node is using on/off neuron coding
+        assert np.array_equal(conn.transform, np.array(1.))
+        if tau_s != 0.0:
+            raise NotImplementedError()
+
+        d = signal_size
+        ax = CxAxons(2*d)
+        ax.target = post_cx.named_synapses['encoders2']
+        pre_cx.add_axons(ax)
+
+        model.objs[conn]['encode_axons'] = ax
+    elif (isinstance(conn.pre_obj, Ensemble) and
+          isinstance(conn.pre_obj.neuron_type, Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
             conn.solver, conn, rng, transform)
         if conn.solver.weights:
-            model.sig[conn]['out'] = model.sig[conn.post_obj.neurons]['in']
-            signal_size = conn.post_obj.neurons.size_in
-            post_slice = None  # don't apply slice later
+            raise NotImplementedError()
+            # model.sig[conn]['out'] = model.sig[conn.post_obj.neurons]['in']
+            # signal_size = conn.post_obj.neurons.size_in
+            # post_slice = None  # don't apply slice later
+
+        # on/off neuron coding for decoded values
+        assert weights.ndim == 2
+        d, n = weights.shape
+
+        dec_cx = CxGroup(2*d, label='%s' % conn)
+        dec_cx.configure_relu(dt=model.dt)
+        dec_cx.configure_filter(tau_s, dt=model.dt)
+        dec_cx.biases = np.array([1., -1.]).repeat(d)
+        model.add_group(dec_cx)
+
+        dec_syn = CxSynapses(n)
+        weights2 = np.vstack([weights, -weights]).T
+        dec_syn.set_full_weights(weights2)
+        dec_cx.add_synapses(dec_syn)
+
+        dec_ax0 = CxAxons(n)
+        dec_ax0.target = dec_syn
+        pre_cx.add_axons(dec_ax0)
+
+        dec_ax1 = CxAxons(2*d)
+        dec_ax1.target = post_cx.named_synapses['encoders2']
+        dec_cx.add_axons(dec_ax1)
+
+        model.objs[conn]['decoded'] = dec_cx
+        model.objs[conn]['decoders'] = dec_syn
+        model.objs[conn]['decode_axons'] = dec_ax0
+        model.objs[conn]['encode_axons'] = dec_ax1
     else:
-        weights = transform
-        in_signal = slice_signal(model, in_signal, conn.pre_slice)
+        raise NotImplementedError()
+        # weights = transform
+        # in_signal = slice_signal(model, in_signal, conn.pre_slice)
 
-    # Add operator for applying weights
-    model.sig[conn]['weights'] = Signal(
-        weights, name="%s.weights" % conn, readonly=True)
-    signal = Signal(np.zeros(signal_size), name="%s.weighted" % conn)
-    model.add_op(Reset(signal))
-    op = ElementwiseInc if weights.ndim < 2 else DotInc
-    model.add_op(op(model.sig[conn]['weights'],
-                    in_signal,
-                    signal,
-                    tag="%s.weights_elementwiseinc" % conn))
+    # tau_s = 0.0
+    # if isinstance(conn.synapse, nengo.synapses.Lowpass):
+    #     tau_s = conn.synapse.tau
+    # elif conn.synapse is not None:
+    #     raise NotImplementedError("Cannot handle non-Lowpass synapses")
 
-    # Add operator for filtering
-    if conn.synapse is not None:
-        signal = model.build(conn.synapse, signal)
-
-    # Store the weighted-filtered output in case we want to probe it
-    model.sig[conn]['weighted'] = signal
+    # post_cx.configure_filter(tau_s, dt=model.dt)
+    # ^ TODO: check that all conns into post use same filter
 
     if isinstance(conn.post_obj, Neurons):
-        # Apply neuron gains (we don't need to do this if we're connecting to
-        # an Ensemble, because the gains are rolled into the encoders)
-        gains = Signal(model.params[conn.post_obj.ensemble].gain[post_slice],
-                       name="%s.gains" % conn)
-        model.add_op(ElementwiseInc(
-            gains, signal, model.sig[conn]['out'][post_slice],
-            tag="%s.gains_elementwiseinc" % conn))
+        raise NotImplementedError()
+        # # Apply neuron gains (we don't need to do this if we're connecting to
+        # # an Ensemble, because the gains are rolled into the encoders)
+        # gains = Signal(model.params[conn.post_obj.ensemble].gain[post_slice],
+        #                name="%s.gains" % conn)
+        # model.add_op(ElementwiseInc(
+        #     gains, signal, model.sig[conn]['out'][post_slice],
+        #     tag="%s.gains_elementwiseinc" % conn))
     else:
-        # Copy to the proper slice
-        model.add_op(Copy(
-            signal, model.sig[conn]['out'], dst_slice=post_slice,
-            inc=True, tag="%s" % conn))
+        pass
+        # if post_slice is not None:
+        #     raise NotImplementedError()
 
     # Build learning rules
     if conn.learning_rule is not None:
-        rule = conn.learning_rule
-        rule = [rule] if not is_iterable(rule) else rule
-        targets = []
-        for r in itervalues(rule) if isinstance(rule, dict) else rule:
-            model.build(r)
-            targets.append(r.modifies)
+        raise NotImplementedError()
 
-        if 'encoders' in targets:
-            encoder_sig = model.sig[conn.post_obj]['encoders']
-            encoder_sig.readonly = False
-        if 'decoders' in targets or 'weights' in targets:
-            if weights.ndim < 2:
-                raise BuildError(
-                    "'transform' must be a 2-dimensional array for learning")
-            model.sig[conn]['weights'].readonly = False
+    model.params[conn] = BuiltConnection(
+        eval_points=eval_points,
+        solver_info=solver_info,
+        transform=transform,
+        weights=weights)
 
-    model.params[conn] = BuiltConnection(eval_points=eval_points,
-                                         solver_info=solver_info,
-                                         transform=transform,
-                                         weights=weights)
+
+def conn_probe(model, probe):
+    # Connection probes create a connection from the target, and probe
+    # the resulting signal (used when you want to probe the default
+    # output of an object, which may not have a predefined signal)
+    conn = Connection(probe.target, probe, synapse=probe.synapse,
+                      solver=probe.solver, add_to_container=False)
+
+    # Set connection's seed to probe's (which isn't used elsewhere)
+    model.seeded[conn] = model.seeded[probe]
+    model.seeds[conn] = model.seeds[probe]
+
+    # Make a sink for the connection
+    d = conn.size_out
+    sink = CxCpuTarget(d)
+    syn = CxSynapses(2*d)
+    syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
+    sink.add_synapses(syn, name='encoders2')
+
+    model.add_target(sink)
+    model.objs[probe]['in'] = sink
+
+    # Build the connection
+    model.build(conn)
+
+
+def signal_probe(model, key, probe):
+    # Signal probes directly probe a target signal
+    raise NotImplementedError()
+
+
+probemap = {
+    Ensemble: {'decoded_output': None,
+               'input': 'in',
+               'scaled_encoders': 'encoders'},
+    Neurons: {'output': None,
+              'spikes': None,
+              'rates': None,
+              'input': 'in'},
+    Node: {'output': None},
+    Connection: {'output': 'weighted',
+                 'input': 'in'},
+    LearningRule: {},  # make LR signals probeable, but no mapping required
+}
+
+
+@Builder.register(Probe)
+def build_probe(model, probe):
+    """Builds a `.Probe` object into a model.
+
+    Under the hood, there are two types of probes:
+    connection probes and signal probes.
+
+    Connection probes are those that are built by creating a new `.Connection`
+    object from the probe's target to the probe, and calling that connection's
+    build function. Creating and building a connection ensure that the result
+    of probing the target's attribute is the same as would result from that
+    target being connected to another object.
+
+    Signal probes are those that are built by finding the correct `.Signal`
+    in the model and calling the build function corresponding to the probe's
+    synapse.
+
+    Parameters
+    ----------
+    model : Model
+        The model to build into.
+    probe : Probe
+        The connection to build.
+
+    Notes
+    -----
+    Sets ``model.params[probe]`` to a list.
+    `.Simulator` appends to that list when running a simulation.
+    """
+
+    # find the right parent class in `objtypes`, using `isinstance`
+    for nengotype, probeables in iteritems(probemap):
+        if isinstance(probe.obj, nengotype):
+            break
+    else:
+        raise BuildError(
+            "Type %r is not probeable" % type(probe.obj).__name__)
+
+    key = probeables[probe.attr] if probe.attr in probeables else probe.attr
+    if key is None:
+        conn_probe(model, probe)
+    else:
+        signal_probe(model, key, probe)
+
+    model.probes.append(probe)
+
+    # Simulator will fill this list with probe data during simulation
+    model.params[probe] = []

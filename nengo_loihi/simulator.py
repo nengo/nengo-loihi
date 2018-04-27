@@ -1,14 +1,57 @@
+import collections
 import logging
 import warnings
-from collections import Mapping
 
 import numpy as np
 
-# import nengo.utils.numpy as npext
+import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import range, ResourceWarning
 
+from nengo_loihi.builder import Model
+from nengo_loihi.loihi_cx import CxSimulator
+
 logger = logging.getLogger(__name__)
+
+
+class ProbeDict(collections.Mapping):
+    """Map from Probe -> ndarray
+
+    This is more like a view on the dict that the simulator manipulates.
+    However, for speed reasons, the simulator uses Python lists,
+    and we want to return NumPy arrays. Additionally, this mapping
+    is readonly, which is more appropriate for its purpose.
+    """
+
+    def __init__(self, raw):
+        super(ProbeDict, self).__init__()
+        self.raw = raw
+        self._cache = {}
+
+    def __getitem__(self, key):
+        if (key not in self._cache or
+                len(self._cache[key]) != len(self.raw[key])):
+            rval = self.raw[key]
+            if isinstance(rval, list):
+                rval = np.asarray(rval)
+                rval.setflags(write=False)
+            self._cache[key] = rval
+        return self._cache[key]
+
+    def __iter__(self):
+        return iter(self.raw)
+
+    def __len__(self):
+        return len(self.raw)
+
+    def __repr__(self):
+        return repr(self.raw)
+
+    def __str__(self):
+        return str(self.raw)
+
+    def reset(self):
+        self._cache.clear()
 
 
 class Simulator(object):
@@ -22,7 +65,8 @@ class Simulator(object):
     # would skip all test whose names start with 'test_pes'.
     unsupported = []
 
-    def __init__(self, network, dt=0.001, seed=None, model=None):
+    def __init__(self, network, dt=0.001, seed=None, model=None,
+                 target='loihi'):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
@@ -34,13 +78,23 @@ class Simulator(object):
             # Build the network into the model
             self.model.build(network)
 
-        self.model.to_loihi()
+        # self.model.to_loihi()
+
+        self._probe_outputs = self.model.params
+        self.data = ProbeDict(self._probe_outputs)
 
         if seed is None:
             if network is not None and network.seed is not None:
                 seed = network.seed + 1
             else:
                 seed = np.random.randint(npext.maxint)
+
+        if target == 'loihi':
+            raise NotImplementedError()
+        elif target == 'sim':
+            self.simulator = CxSimulator(self.model)
+        else:
+            raise ValueError("Unrecognized target")
 
         self.closed = False
         self.reset(seed=seed)
@@ -96,12 +150,14 @@ class Simulator(object):
             period = (1 if probe.sample_every is None else
                       probe.sample_every / self.dt)
             if self.n_steps % period < 1:
-                tmp = self.signals[self.model.sig[probe]['in']].copy()
+                # tmp = self.signals[self.model.sig[probe]['in']].copy()
+                tmp = self.simulator.get_probe_value(probe)
                 self._probe_outputs[probe].append(tmp)
 
     def _probe_step_time(self):
-        self._n_steps = self.signals[self.model.step].item()
-        self._time = self.signals[self.model.time].item()
+        # self._n_steps = self.signals[self.model.step].item()
+        # self._time = self.signals[self.model.time].item()
+        self._time = self._n_steps * self.dt
 
     def reset(self, seed=None):
         """Reset the simulator state.
@@ -120,6 +176,8 @@ class Simulator(object):
         if seed is not None:
             self.seed = seed
 
+        self._n_steps = 0
+
         # reset signals
         # for key in self.signals:
         #     self.signals.reset(key)
@@ -130,42 +188,40 @@ class Simulator(object):
         #                for op in self._step_order]
 
         # clear probe data
-        # for probe in self.model.probes:
-        #     self._probe_outputs[probe] = []
-        # self.data.reset()
+        for probe in self.model.probes:
+            self._probe_outputs[probe] = []
+        self.data.reset()
 
         # self._probe_step_time()
 
     def run(self, time_in_seconds):
-        pass
+        if time_in_seconds < 0:
+            raise ValidationError("Must be positive (got %g)"
+                                  % (time_in_seconds,), attr="time_in_seconds")
 
-        # if time_in_seconds < 0:
-        #     raise ValidationError("Must be positive (got %g)"
-        #                           % (time_in_seconds,), attr="time_in_seconds")
+        steps = int(np.round(float(time_in_seconds) / self.dt))
 
-        # steps = int(np.round(float(time_in_seconds) / self.dt))
+        if steps == 0:
+            warnings.warn("%g results in running for 0 timesteps. Simulator "
+                          "still at time %g." % (time_in_seconds, self.time))
+        else:
+            logger.info("Running %s for %f seconds, or %d steps",
+                        self.model.label, time_in_seconds, steps)
+            self.run_steps(steps)
 
-        # if steps == 0:
-        #     warnings.warn("%g results in running for 0 timesteps. Simulator "
-        #                   "still at time %g." % (time_in_seconds, self.time))
-        # else:
-        #     logger.info("Running %s for %f seconds, or %d steps",
-        #                 self.model.label, time_in_seconds, steps)
-        #     self.run_steps(steps, progress_bar=progress_bar)
-
-    # def run_steps(self, steps):
-    #     for i in range(steps):
-    #         self.step()
-    #         progress.step()
+    def run_steps(self, steps):
+        for i in range(steps):
+            self.step()
 
     def step(self):
         """Advance the simulator by 1 step (``dt`` seconds)."""
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
-        self.model.cxSimulator.step()
+        self.simulator.step()
+        self._n_steps += 1
 
-        # self._probe()
+        self._probe()
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.
