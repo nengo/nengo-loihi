@@ -17,7 +17,7 @@ from nengo.utils.compat import is_array_like, iteritems
 import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
-    CxModel, CxGroup, CxSynapses, CxAxons, CxCpuTarget)
+    CxModel, CxGroup, CxSynapses, CxAxons)
 
 
 class Model(CxModel):
@@ -57,7 +57,6 @@ class Builder(object):
     @classmethod
     def build(cls, model, obj, *args, **kwargs):
         if model.has_built(obj):
-            # TODO: Prevent this at pre-build validation time.
             warnings.warn("Object %s has already been built." % obj)
             return None
 
@@ -72,15 +71,6 @@ class Builder(object):
 
     @classmethod
     def register(cls, nengo_class):
-        """A decorator for adding a class to the build function registry.
-
-        Raises a warning if a build function already exists for the class.
-
-        Parameters
-        ----------
-        nengo_class : Class
-            The type associated with the build function being decorated.
-        """
         def register_builder(build_fn):
             if nengo_class in cls.builders:
                 warnings.warn("Type '%s' already has a builder. Overwriting."
@@ -224,12 +214,17 @@ def build_ensemble(model, ens):
             tau_ref=ens.neuron_type.tau_ref,
             dt=model.dt,
             )
-        group.bias = bias
+        group.bias[:] = bias
     else:
         raise NotImplementedError()
 
     # default filter
-    tau_s = 0.002
+    # tau_s = 0.0
+    # tau_s = 0.002
+    tau_s = 0.005
+    # tau_s = 0.05
+    # ^TODO: how to choose this filter? Need it since all input will be spikes,
+    #   but maybe don't want double filtering if connection has a filter
     group.configure_filter(tau_s, dt=model.dt)
 
     # Scale the encoders
@@ -238,15 +233,13 @@ def build_ensemble(model, ens):
     else:
         scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
 
-    # scaled_encoders = scaled_encoders / model.dt
-
     synapses = CxSynapses(scaled_encoders.shape[1])
     synapses.set_full_weights(scaled_encoders.T)
     group.add_synapses(synapses, name='encoders')
 
     synapses2 = CxSynapses(2*scaled_encoders.shape[1])
     synapses2.set_full_weights(
-        0.5 * np.vstack([scaled_encoders.T, -scaled_encoders.T]))
+        np.vstack([scaled_encoders.T, -scaled_encoders.T]))
     group.add_synapses(synapses2, name='encoders2')
 
     model.add_group(group)
@@ -293,11 +286,11 @@ def build_node(model, node):
     # on/off neuron coding for decoded values
     d = node.size_out
 
-    dec_cx = CxGroup(2*d, label='%s' % node)
+    dec_cx = CxGroup(2*d, label='%s' % node, location='cpu')
     dec_cx.configure_relu(dt=model.dt)
     enc = 0.5 * np.array([1., -1.]).repeat(d)
     bias0 = 0.5 * np.array([1., 1.]).repeat(d)
-    dec_cx.bias = bias0 + enc*np.tile(sig_out, 2)
+    dec_cx.bias[:] = bias0 + enc*np.tile(sig_out, 2)
     model.add_group(dec_cx)
 
     model.objs[node]['out'] = dec_cx
@@ -417,6 +410,8 @@ def build_connection(model, conn):
     solver_info = None
     signal_size = conn.size_out
     post_slice = conn.post_slice
+    if conn.pre_slice != slice(None):
+        raise NotImplementedError()
     if post_slice != slice(None):
         raise NotImplementedError()
 
@@ -438,6 +433,8 @@ def build_connection(model, conn):
         assert np.array_equal(conn.transform, np.array(1.))
         if tau_s != 0.0:
             raise NotImplementedError()
+        # TODO: these connections have no filtering, even though spikes are
+        #   being used to transmit decoded values
 
         d = signal_size
         ax = CxAxons(2*d)
@@ -451,43 +448,69 @@ def build_connection(model, conn):
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
             conn.solver, conn, rng, transform)
+
+        weights = weights / model.dt
+        # ^ scale, since nengo spikes have 1/dt scaling
+
         if conn.solver.weights:
-            raise NotImplementedError()
-            # model.sig[conn]['out'] = model.sig[conn.post_obj.neurons]['in']
-            # signal_size = conn.post_obj.neurons.size_in
+            assert post_slice == slice(None)
             # post_slice = None  # don't apply slice later
 
-        # on/off neuron coding for decoded values
-        assert weights.ndim == 2
-        d, n = weights.shape
+            assert weights.ndim == 2
+            n2, n1 = weights.shape
+            assert post_cx.n == n2
 
-        dec_cx = CxGroup(2*d, label='%s' % conn)
-        dec_cx.configure_relu(dt=model.dt)
-        dec_cx.configure_filter(tau_s, dt=model.dt)
-        dec_cx.biases = np.array([1., -1.]).repeat(d)
-        model.add_group(dec_cx)
+            syn = CxSynapses(n1)
+            syn.set_full_weights(weights.T)
+            post_cx.add_synapses(syn)
 
-        dec_syn = CxSynapses(n)
-        weights2 = np.vstack([weights, -weights]).T
-        dec_syn.set_full_weights(weights2)
-        dec_cx.add_synapses(dec_syn)
+            ax = CxAxons(n1)
+            ax.target = syn
+            pre_cx.add_axons(ax)
+        else:
+            # on/off neuron coding for decoded values
+            assert weights.ndim == 2
+            d, n = weights.shape
 
-        dec_ax0 = CxAxons(n)
-        dec_ax0.target = dec_syn
-        pre_cx.add_axons(dec_ax0)
+            dec_cx = CxGroup(2*d, label='%s' % conn, location='cpu')
+            dec_cx.configure_relu(dt=model.dt)
+            dec_cx.configure_filter(tau_s, dt=model.dt)
+            dec_cx.bias[:] = 0.5 * np.array([1., 1.]).repeat(d)
+            model.add_group(dec_cx)
 
-        dec_ax1 = CxAxons(2*d)
-        dec_ax1.target = post_cx.named_synapses['encoders2']
-        dec_cx.add_axons(dec_ax1)
+            dec_syn = CxSynapses(n)
+            weights2 = 0.5 * np.vstack([weights, -weights]).T
+            dec_syn.set_full_weights(weights2)
+            dec_cx.add_synapses(dec_syn)
 
-        model.objs[conn]['decoded'] = dec_cx
-        model.objs[conn]['decoders'] = dec_syn
-        model.objs[conn]['decode_axons'] = dec_ax0
-        model.objs[conn]['encode_axons'] = dec_ax1
+            dec_ax0 = CxAxons(n)
+            dec_ax0.target = dec_syn
+            pre_cx.add_axons(dec_ax0)
+
+            dec_ax1 = CxAxons(2*d)
+            dec_ax1.target = post_cx.named_synapses['encoders2']
+            dec_cx.add_axons(dec_ax1)
+
+            model.objs[conn]['decoded'] = dec_cx
+            model.objs[conn]['decoders'] = dec_syn
+            model.objs[conn]['decode_axons'] = dec_ax0
+            model.objs[conn]['encode_axons'] = dec_ax1
     else:
-        raise NotImplementedError()
-        # weights = transform
-        # in_signal = slice_signal(model, in_signal, conn.pre_slice)
+        assert conn.pre_slice == slice(None)
+        assert post_slice == slice(None)
+        weights = transform
+
+        assert weights.ndim == 2
+        n2, n1 = weights.shape
+        assert post_cx.n == n2
+
+        syn = CxSynapses(n1)
+        syn.set_full_weights(weights.T)
+        post_cx.add_synapses(syn)
+
+        ax = CxAxons(n1)
+        ax.target = syn
+        pre_cx.add_axons(ax)
 
     # tau_s = 0.0
     # if isinstance(conn.synapse, nengo.synapses.Lowpass):
@@ -536,13 +559,15 @@ def conn_probe(model, probe):
 
     # Make a sink for the connection
     d = conn.size_out
-    sink = CxCpuTarget(d)
+    sink = CxGroup(d, location='cpu')
+    sink.configure_relu(dt=model.dt)
     syn = CxSynapses(2*d)
     syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
     sink.add_synapses(syn, name='encoders2')
 
-    model.add_target(sink)
+    model.add_group(sink)
     model.objs[probe]['in'] = sink
+    # model.objs[probe]['in'] = syn
 
     # Build the connection
     model.build(conn)
@@ -570,34 +595,6 @@ probemap = {
 
 @Builder.register(Probe)
 def build_probe(model, probe):
-    """Builds a `.Probe` object into a model.
-
-    Under the hood, there are two types of probes:
-    connection probes and signal probes.
-
-    Connection probes are those that are built by creating a new `.Connection`
-    object from the probe's target to the probe, and calling that connection's
-    build function. Creating and building a connection ensure that the result
-    of probing the target's attribute is the same as would result from that
-    target being connected to another object.
-
-    Signal probes are those that are built by finding the correct `.Signal`
-    in the model and calling the build function corresponding to the probe's
-    synapse.
-
-    Parameters
-    ----------
-    model : Model
-        The model to build into.
-    probe : Probe
-        The connection to build.
-
-    Notes
-    -----
-    Sets ``model.params[probe]`` to a list.
-    `.Simulator` appends to that list when running a simulation.
-    """
-
     # find the right parent class in `objtypes`, using `isinstance`
     for nengotype, probeables in iteritems(probemap):
         if isinstance(probe.obj, nengotype):

@@ -78,7 +78,7 @@ class Simulator(object):
             # Build the network into the model
             self.model.build(network)
 
-        # self.model.to_loihi()
+        self.model.discretize()
 
         self._probe_outputs = self.model.params
         self.data = ProbeDict(self._probe_outputs)
