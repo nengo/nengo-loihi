@@ -2,8 +2,8 @@ import collections
 
 import numpy as np
 
-from .allocators import SynapseFmt
-from .loihi_api import VTH_MAN_MAX, BIAS_MAX
+from .loihi_api import (VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp,
+                        SynapseFmt)
 
 
 def decay12_scale(decay_x):
@@ -36,6 +36,7 @@ class CxGroup(object):
         self.named_synapses = {}
         self.axons = []
         self.named_axons = {}
+        self.probes = []
 
         assert location in ('core', 'cpu')
         self.location = location
@@ -51,7 +52,7 @@ class CxGroup(object):
         AXONS_MAX = 4096
         MAX_MEM_LEN = 16384
         assert sum(s.n_axons for s in self.synapses) < AXONS_MAX
-        assert sum(s.weights.size for s in self.synapses) < 4*(
+        assert sum(s.size() for s in self.synapses) < 4*(
             MAX_MEM_LEN - len(self.synapses))
 
     def add_axons(self, axons, name=None):
@@ -59,6 +60,12 @@ class CxGroup(object):
         if name is not None:
             assert name not in self.named_axons
             self.named_axons[name] = axons
+
+    def add_probe(self, probe):
+        if probe.target is None:
+            probe.target = self
+        assert probe.target is self
+        self.probes.append(probe)
 
     def configure_filter(self, tau_s, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
@@ -109,6 +116,8 @@ class CxGroup(object):
             self.decayV.copy() if self.scaleV else np.ones_like(self.decayV))
         discretize(self.decayU, self.decayU * (2**12 - 1))
         discretize(self.decayV, self.decayV * (2**12 - 1))
+        self.scaleU = False
+        self.scaleV = False
 
         # --- vmin and vmax
         vmine = np.clip(np.round(np.log2(-self.vmin + 1)), 0, 2**5-1)
@@ -119,30 +128,24 @@ class CxGroup(object):
         # --- discretize weights and vth
         w_maxs = [np.abs(s.weights).max() for s in self.synapses]
         b_max = np.abs(self.bias).max()
-        # dt = 0.001
 
         if len(w_maxs) > 0:
             w_maxi = np.argmax(w_maxs)
             w_max = w_maxs[w_maxi]
             w_scale = (127. / w_max)
 
-            self.synapses[w_maxi].format(wgtExp=0)
+            self.synapses[w_maxi].format(WgtExp=0)
             synapse_fmt = self.synapses[w_maxi].synapse_fmt
-            # wgtExpBase = self.synapses[w_maxi].synapse_fmt.Wscale
 
-            # s_scale = decay12_scale(self.decayU)
             s_scale = 1. / (u_scale * v_scale)
 
-            # for wgtExp in range(0, -8, -1):
             for wgtExp in range(7, -8, -1):
-                synapse_fmt.set(wgtExp=wgtExp)
+                synapse_fmt.set(WgtExp=wgtExp)
                 x_scale = s_scale * w_scale * 2**synapse_fmt.Wscale
                 b_scale = x_scale * v_scale
-                vth = self.vth * x_scale
-                vth2 = np.round(vth / 2**6)
+                vth = np.round(self.vth * x_scale)
                 bias = np.round(self.bias * b_scale)
-                if np.all(vth2 <= VTH_MAN_MAX) and np.all(bias <= BIAS_MAX):
-                    vth = vth2 * 2**6
+                if (vth <= VTH_MAX).all() and (np.abs(bias) <= BIAS_MAX).all():
                     break
             else:
                 raise ValueError("Could not find appropriate wgtExp")
@@ -152,28 +155,29 @@ class CxGroup(object):
             b_scale = BIAS_MAX / b_max
             while b_scale*b_max > 1:
                 x_scale = s_scale * b_scale
-                vth = self.vth * x_scale
-                vth2 = np.round(vth / 2**6)
+                vth = np.round(self.vth * x_scale)
                 bias = np.round(self.bias * b_scale * v_scale)
-                if np.all(vth2 <= VTH_MAN_MAX):
-                    vth = vth2 * 2**6
+                if np.all(vth <= VTH_MAX):
                     break
 
                 b_scale /= 2.
             else:
                 raise ValueError("Could not find appropriate bias scaling")
 
-        discretize(self.vth, vth)
-        discretize(self.bias, bias)  # TODO: round bias to fit mant/exp
+        vth_man, vth_exp = vth_to_manexp(vth)
+        discretize(self.vth, vth_man * 2**vth_exp)
+
+        bias_man, bias_exp = bias_to_manexp(bias)
+        discretize(self.bias, bias_man * 2**bias_exp)
+
         for i, synapse in enumerate(self.synapses):
-            dWgtExp = np.floor(np.log2(w_max / w_maxs[i]))
+            dWgtExp = int(np.floor(np.log2(w_max / w_maxs[i])))
             assert dWgtExp >= 0
             wgtExp2 = max(wgtExp - dWgtExp, -7)
             dWgtExp = wgtExp - wgtExp2
             synapse.format(WgtExp=wgtExp2)
-            discretize(
-                synapse.weights,
-                synapse.weights * w_scale * 2**synapse.synapse_fmt.Wscale)
+            for w in synapse.weights:
+                discretize(w, w * w_scale * 2**synapse.synapse_fmt.Wscale)
 
 
 class CxSynapses(object):
@@ -221,19 +225,35 @@ class CxAxons(object):
 #             self.named_synapses[name] = synapses
 
 
+class CxProbe(object):
+    _slice = slice
+
+    def __init__(self, target=None, key=None, slice=None):
+        self.target = target
+        self.key = key
+        self.slice = slice if slice is not None else self._slice(None)
+
+
 class CxModel(object):
 
     def __init__(self):
-        self.groups = collections.OrderedDict()
+        self.cx_groups = collections.OrderedDict()
 
     def add_group(self, group):
         assert isinstance(group, CxGroup)
-        assert group not in self.groups
-        self.groups[group] = len(self.groups)
+        assert group not in self.cx_groups
+        self.cx_groups[group] = len(self.cx_groups)
 
     def discretize(self):
-        for group in self.groups:
+        for group in self.cx_groups:
             group.discretize()
+
+    def get_loihi(self):
+        from .loihi_interface import LoihiSimulator
+        return LoihiSimulator(self)
+
+    def get_simulator(self):
+        return CxSimulator(self)
 
 
 class CxSimulator(object):
@@ -248,9 +268,11 @@ class CxSimulator(object):
 
     def build(self, model):
         self.model = model
-        # self.groups = list(self.model.groups)
-        self.groups = sorted(self.model.groups,
+        # self.groups = list(self.model.cx_groups)
+        self.groups = sorted(self.model.cx_groups,
                              key=lambda g: g.location == 'cpu')
+        self.probes = list(self.model.probes)
+        self.probe_outputs = collections.defaultdict(list)
 
         self.n_cx = sum(group.n for group in self.groups)
         self.group_slices = {}
@@ -281,12 +303,14 @@ class CxSimulator(object):
             assert group.vth.dtype == group_dtype
             assert group.bias.dtype == group_dtype
 
+        print("Simulator dtype: %s" % group_dtype)
+
         MAX_DELAY = 1  # don't do delay yet
         self.q = np.zeros((MAX_DELAY, self.n_cx), dtype=group_dtype)
-        self.U = np.zeros(self.n_cx, dtype=group_dtype)
-        self.V = np.zeros(self.n_cx, dtype=group_dtype)
-        self.S = np.zeros(self.n_cx, dtype=bool)  # spiked
-        self.C = np.zeros(self.n_cx, dtype=np.int32)  # spike counter
+        self.u = np.zeros(self.n_cx, dtype=group_dtype)
+        self.v = np.zeros(self.n_cx, dtype=group_dtype)
+        self.s = np.zeros(self.n_cx, dtype=bool)  # spiked
+        self.c = np.zeros(self.n_cx, dtype=np.int32)  # spike counter
         self.w = np.zeros(self.n_cx, dtype=np.int32)  # ref period counter
 
         # --- allocate weights
@@ -308,6 +332,8 @@ class CxSimulator(object):
             return x + u  # no scaling on u
 
         if group_dtype == np.int32:
+            assert (self.scaleU == 1).all()
+            assert (self.scaleV == 1).all()
             self.decayU_fn = (
                 lambda x, u: decay_int(x, u, d=self.decayU, s=self.scaleU))
             self.decayV_fn = (
@@ -341,7 +367,7 @@ class CxSimulator(object):
             for axon in group.axons:
                 synapse = axon.target
                 a_slice = self.axon_slices[axon]
-                Sa = self.S[a_slice]
+                sa = self.s[a_slice]
 
                 b_slice = self.synapse_slices[synapse]
                 weights = synapse.weights
@@ -349,35 +375,64 @@ class CxSimulator(object):
                 qb = self.q[:, b_slice]
                 delays = np.zeros(qb.shape[1], dtype=np.int32)
 
-                for i in Sa.nonzero()[0]:
+                for i in sa.nonzero()[0]:
                     qb[delays, indices[i]] += weights[i]
 
         # --- updates
         q0 = self.q[0, :]
 
         # self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)
-        self.U[:] = self.decayU_fn(self.U[:], q0)
-        u2 = self.U[:] + self.bias
+        self.u[:] = self.decayU_fn(self.u[:], q0)
+        u2 = self.u[:] + self.bias
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
-        self.V[:] = self.decayV_fn(self.V, u2)
-        np.clip(self.V, self.vmin, self.vmax, out=self.V)
-        self.V[self.w > 0] = 0
+        self.v[:] = self.decayV_fn(self.v, u2)
+        np.clip(self.v, self.vmin, self.vmax, out=self.v)
+        self.v[self.w > 0] = 0
+        # TODO^: don't zero voltage in case neuron is saving overshoot
 
-        self.S[:] = (self.V > self.vth)
+        self.s[:] = (self.v > self.vth)
 
         cx = self.cx_slice
         cpu = self.cpu_slice
-        self.V[cx][self.S[cx]] = 0
-        self.V[cpu][self.S[cpu]] -= self.vth[cpu][self.S[cpu]]
+        self.v[cx][self.s[cx]] = 0
+        self.v[cpu][self.s[cpu]] -= self.vth[cpu][self.s[cpu]]
 
-        self.w[self.S] = self.ref[self.S]
+        self.w[self.s] = self.ref[self.s]
         np.clip(self.w - 1, 0, None, out=self.w)  # decrement w
 
-        self.C[self.S] += 1
+        self.c[self.s] += 1
 
-    def get_probe_value(self, probe):
-        target = self.model.objs[probe]['in'].named_synapses['encoders2']
-        b_slice = self.synapse_slices[target]
-        qb = self.q[0, b_slice] / self.vth[b_slice].astype(float)
-        return qb.copy()
+        # --- probes
+        for group in self.groups:
+            for probe in group.probes:
+                x_slice = self.group_slices[probe.target]
+                p_slice = probe.slice
+                if probe.key == 'x':
+                    x = (self.u[x_slice][p_slice] /
+                         self.vth[x_slice][p_slice].astype(np.float32))
+                else:
+                    assert hasattr(self, probe.key)
+                    x = getattr(self, probe.key)[x_slice][p_slice].copy()
+                self.probe_outputs[probe].append(x)
+
+    def run_steps(self, steps):
+        for _ in range(steps):
+            self.step()
+
+    def get_probe_output(self, probe):
+        target = self.model.objs[probe]['out']
+        assert isinstance(target, CxProbe)
+        return self.probe_outputs[target]
+        # if isinstance(target, CxGroup):
+        #     synapses = target.named_synapses['encoders2']
+        #     b_slice = self.synapse_slices[synapses]
+        #     qb = self.q[0, b_slice] / self.vth[b_slice].astype(float)
+        #     return qb.copy()
+        # elif isinstance(target, CxProbe):
+
+        #     x_slice = self.group_slices[target.target]
+        #     x = getattr(self, target.key)[x_slice]
+        #     return x.copy()
+        # else:
+        #     raise NotImplementedError()

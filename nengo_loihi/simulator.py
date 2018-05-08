@@ -89,10 +89,12 @@ class Simulator(object):
             else:
                 seed = np.random.randint(npext.maxint)
 
+        self.loihi = None
+        self.simulator = None
         if target == 'loihi':
-            raise NotImplementedError()
+            self.loihi = self.model.get_loihi()
         elif target == 'sim':
-            self.simulator = CxSimulator(self.model)
+            self.simulator = self.model.get_simulator()
         else:
             raise ValueError("Unrecognized target")
 
@@ -147,12 +149,14 @@ class Simulator(object):
         self._probe_step_time()
 
         for probe in self.model.probes:
-            period = (1 if probe.sample_every is None else
-                      probe.sample_every / self.dt)
-            if self.n_steps % period < 1:
-                # tmp = self.signals[self.model.sig[probe]['in']].copy()
-                tmp = self.simulator.get_probe_value(probe)
-                self._probe_outputs[probe].append(tmp)
+            assert probe.sample_every is None
+            assert self.loihi is None or self.simulator is None
+            if self.loihi is not None:
+                data = self.loihi.get_probe_output(probe)
+            elif self.simulator is not None:
+                data = self.simulator.get_probe_output(probe)
+            self._probe_outputs[probe].extend(data)
+            assert len(self._probe_outputs[probe]) == self.n_steps
 
     def _probe_step_time(self):
         # self._n_steps = self.signals[self.model.step].item()
@@ -210,18 +214,24 @@ class Simulator(object):
             self.run_steps(steps)
 
     def run_steps(self, steps):
-        for i in range(steps):
-            self.step()
-
-    def step(self):
-        """Advance the simulator by 1 step (``dt`` seconds)."""
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
-        self.simulator.step()
-        self._n_steps += 1
+        if self.simulator is not None:
+            self.simulator.run_steps(steps)
+        if self.loihi is not None:
+            self.loihi.run_steps(steps)
 
+        self._n_steps += steps
         self._probe()
+
+    # def step(self):
+    #     """Advance the simulator by 1 step (``dt`` seconds)."""
+
+    #     self.simulator.step()
+    #     self._n_steps += 1
+
+    #     self._probe()
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.

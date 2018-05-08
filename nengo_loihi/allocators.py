@@ -1,6 +1,7 @@
 import numpy as np
 
-from .loihi_api import Board, Chip, Core, CxProfile, VthProfile
+from .loihi_api import (
+    Board, Chip, Core, CxProfile, VthProfile, vth_to_manexp)
 
 
 def compute_profiles(core, list_profiles):
@@ -38,9 +39,10 @@ def core_vth_profiles(core):
     """Compute all vthProfiles needed for a core"""
     def list_vth_profiles(group):
         profiles = []
+        vth, _ = vth_to_manexp(group.vth)
         for i in range(group.n):
             profiles.append(VthProfile(
-                vth=group.vth[i],
+                vth=vth[i],
             ))
 
         return profiles
@@ -56,7 +58,7 @@ def one_to_one_allocator(cx_model):
     board = Board()
     chip = board.new_chip()
 
-    for group in cx_model.groups:
+    for group in cx_model.cx_groups:
         core = chip.new_core()
         core.add_group(group)
 
@@ -69,7 +71,9 @@ def one_to_one_allocator(cx_model):
         core.vthProfileIdxs = vth_profile_idxs
 
         for syn in group.synapses:
-            core.add_synapses(chip, core, syn)
+            core.add_synapses(syn)
 
+        for axons in group.axons:
+            core.add_axons(axons)
 
     return board

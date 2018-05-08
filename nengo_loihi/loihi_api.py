@@ -1,14 +1,34 @@
+import collections
+
+import numpy as np
+
 CX_PROFILES_MAX = 32
 VTH_PROFILES_MAX = 8
 SYNAPSE_FMTS_MAX = 16
 
 VTH_MAN_MAX = 2**17 - 1
-VTH_EXP = 2**6
-VTH_MAX = VTH_MAN_MAX * VTH_EXP
+VTH_EXP = 6
+VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
 
 BIAS_MAN_MAX = 2**12 - 1
 BIAS_EXP_MAX = 2**3 - 1
-BIAS_MAX = BIAS_MAN_MAX * BIAS_EXP_MAX
+BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
+
+
+def vth_to_manexp(vth):
+    exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
+    man = np.round(vth / 2**exp).astype(np.int32)
+    assert ((man >= 0) & (man <= VTH_MAN_MAX)).all()
+    return man, exp
+
+
+def bias_to_manexp(bias):
+    r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
+    exp = np.ceil(np.log2(r)).astype(np.int32)
+    man = np.round(bias / 2**exp).astype(np.int32)
+    assert ((exp >= 0) & (exp <= BIAS_EXP_MAX)).all()
+    assert (np.abs(man) <= BIAS_MAN_MAX).all()
+    return man, exp
 
 
 class CxSlice(object):
@@ -23,14 +43,18 @@ class CxSlice(object):
 class Board(object):
     def __init__(self, board_id=1):
         self.board_id = board_id
-        self.chips = collections.OrderedDict()
+
+        self.chips = []
+        self.chip_idxs = {}
 
         self.synapses_index = {}
 
+        self.probe_map = {}
+
     def _add_chip(self, chip):
         assert chip not in self.chips
-        index = len(self.chips)
-        self.chips[chip] = index
+        self.chip_idxs[chip] = len(self.chips)
+        self.chips.append(chip)
 
     def new_chip(self):
         chip = Chip(board=self)
@@ -38,7 +62,11 @@ class Board(object):
         return chip
 
     def chip_index(self, chip):
-        return self.chips.index(chip)
+        return self.chip_idxs[chip]
+
+    def map_probe(self, cx_probe, n2probe):
+        assert cx_probe not in self.probe_map
+        self.probe_map[cx_probe] = n2probe
 
     def index_synapses(self, synapses, chip, core, a0, a1):
         chip_idx = self.chip_index(chip)
@@ -87,17 +115,22 @@ class Board(object):
 class Chip(object):
     def __init__(self, board):
         self.board = board
-        self.cores = collections.OrderedDict()
+
+        self.cores = []
+        self.core_idxs = {}
 
     def _add_core(self, core):
         assert core not in self.cores
-        index = len(self.cores)
-        self.cores[core] = index
+        self.core_idxs[core] = len(self.cores)
+        self.cores.append(core)
 
     def new_core(self):
         core = Core(chip=self)
         self._add_core(core)
         return core
+
+    def core_index(self, core):
+        return self.core_idxs[core]
 
     def n_cores(self):
         return len(self.cores)
@@ -115,6 +148,8 @@ class Core(object):
         self.synapse_fmt_idxs = {}  # one synfmt per CxSynapses, for now
         self.synapse_axons = collections.OrderedDict()
         self.synapse_entries = collections.OrderedDict()
+
+        self.axon_axons = collections.OrderedDict()
 
     @property
     def board(self):
@@ -154,7 +189,7 @@ class Core(object):
         return len(self.synapseFmts) - 1  # index
 
     def n_synapses(self):
-        return sum(synapses.weights.size for group in self.groups
+        return sum(synapses.size() for group in self.groups
                    for synapses in group.synapses)
 
     def add_synapses(self, synapses):
@@ -162,36 +197,58 @@ class Core(object):
         synapse_fmt_idx = self.add_synapse_fmt(synapse_fmt)
         self.synapse_fmt_idxs[synapses] = synapse_fmt_idx
 
-        last = next(reversed(self.synapse_axons))
-        a0 = self.synapse_axons[last][1]
+        a0 = 0
+        if len(self.synapse_axons) > 0:
+            last = next(reversed(self.synapse_axons))
+            a0 = self.synapse_axons[last][1]
         a1 = a0 + synapses.n_axons
         self.synapse_axons[synapses] = (a0, a1)
-        self.board.index_synapses(synapses, self.core, self, a0, a1)
+        self.board.index_synapses(synapses, self.chip, self, a0, a1)
 
-        last = next(reversed(self.synapse_entries))
-        s0 = self.synapse_entries[last][1]
+        s0 = 0
+        if len(self.synapse_entries) > 0:
+            last = next(reversed(self.synapse_entries))
+            s0 = self.synapse_entries[last][1]
         s1 = s0 + synapses.size()
         self.synapse_entries[synapses] = (s0, s1)
 
+    def add_axons(self, axons):
+        a0 = 0
+        if len(self.axon_axons) > 0:
+            last = next(reversed(self.axon_axons))
+            a0 = self.axon_axons[last][1]
+        a1 = a0 + axons.n_axons
+        self.axon_axons[axons] = (a0, a1)
+
 
 class CxProfile(object):
+    params = ('decayU', 'decayV', 'refDelay')
+
     def __init__(self, decayV, decayU, refDelay):
         self.decayV = decayV
         self.decayU = decayU
         self.refDelay = refDelay
 
-    def __eq__(self, cxProfile):
-        return all(self.__dict__[key] == cxProfile.__dict__[key]
-                   for key in self.__dict__)
+    def __eq__(self, obj):
+        return isinstance(obj, type(self)) and all(
+            self.__dict__[key] == obj.__dict__[key] for key in self.params)
+
+    def __hash__(self):
+        return hash(tuple(self.__dict__[key] for key in self.params))
 
 
 class VthProfile(object):
+    params = ('vth',)
+
     def __init__(self, vth):
         self.vth = vth
 
-    def __eq__(self, cxProfile):
-        return all(self.__dict__[key] == cxProfile.__dict__[key]
-                   for key in self.__dict__)
+    def __eq__(self, obj):
+        return isinstance(obj, type(self)) and all(
+            self.__dict__[key] == obj.__dict__[key] for key in self.params)
+
+    def __hash__(self):
+        return hash(tuple(self.__dict__[key] for key in self.params))
 
 
 class SynapseFmt(object):
@@ -224,6 +281,7 @@ class SynapseFmt(object):
 
     def set(self, **kwargs):
         for key, value in kwargs.items():
+            assert hasattr(self, key)
             setattr(self, key, value)
 
     def validate(self, core=None):

@@ -17,7 +17,7 @@ from nengo.utils.compat import is_array_like, iteritems
 import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
-    CxModel, CxGroup, CxSynapses, CxAxons)
+    CxModel, CxGroup, CxSynapses, CxAxons, CxProbe)
 
 
 class Model(CxModel):
@@ -246,6 +246,8 @@ def build_ensemble(model, ens):
 
     model.objs[ens]['in'] = group
     model.objs[ens]['out'] = group
+    model.objs[ens.neurons]['in'] = group
+    model.objs[ens.neurons]['out'] = group
     model.params[ens] = BuiltEnsemble(
         eval_points=eval_points,
         encoders=encoders,
@@ -472,7 +474,7 @@ def build_connection(model, conn):
             assert weights.ndim == 2
             d, n = weights.shape
 
-            dec_cx = CxGroup(2*d, label='%s' % conn, location='cpu')
+            dec_cx = CxGroup(2*d, label='%s' % conn, location='core')
             dec_cx.configure_relu(dt=model.dt)
             dec_cx.configure_filter(tau_s, dt=model.dt)
             dec_cx.bias[:] = 0.5 * np.array([1., 1.]).repeat(d)
@@ -559,15 +561,20 @@ def conn_probe(model, probe):
 
     # Make a sink for the connection
     d = conn.size_out
-    sink = CxGroup(d, location='cpu')
+    sink = CxGroup(d, location='core')
     sink.configure_relu(dt=model.dt)
     syn = CxSynapses(2*d)
     syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
     sink.add_synapses(syn, name='encoders2')
 
     model.add_group(sink)
-    model.objs[probe]['in'] = sink
+    # model.objs[probe]['in'] = sink
     # model.objs[probe]['in'] = syn
+
+    cx_probe = CxProbe(target=sink, key='x')
+    sink.add_probe(cx_probe)
+    model.objs[probe]['in'] = sink
+    model.objs[probe]['out'] = cx_probe
 
     # Build the connection
     model.build(conn)
@@ -575,17 +582,22 @@ def conn_probe(model, probe):
 
 def signal_probe(model, key, probe):
     # Signal probes directly probe a target signal
-    raise NotImplementedError()
+    target = model.objs[probe.obj]['out']
+    cx_probe = CxProbe(target=target, key=key, slice=probe.slice)
+    target.add_probe(cx_probe)
+    model.objs[probe]['in'] = target
+    model.objs[probe]['out'] = cx_probe
 
 
 probemap = {
     Ensemble: {'decoded_output': None,
-               'input': 'in',
-               'scaled_encoders': 'encoders'},
-    Neurons: {'output': None,
-              'spikes': None,
-              'rates': None,
-              'input': 'in'},
+               'input': 'q'},
+               # 'scaled_encoders': 'encoders'},
+    Neurons: {'output': 's',
+              'spikes': 's',
+              # 'rates': None,
+              'voltage': 'v',
+              'input': 'u'},
     Node: {'output': None},
     Connection: {'output': 'weighted',
                  'input': 'in'},
