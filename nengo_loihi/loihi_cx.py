@@ -1,19 +1,14 @@
+from __future__ import division
+
 import collections
 
 import numpy as np
 
-from .loihi_api import (VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp,
-                        SynapseFmt)
-
-
-def decay12_scale(decay_x):
-    """The amount of effective scaling applied to a spike"""
-    mult = float(2**12 - decay_x) / 2**12
-    return 1. / (1 - mult)  # sum of infinite geometric series
+from nengo_loihi.loihi_api import (
+    VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt)
 
 
 class CxGroup(object):
-
     def __init__(self, n, label=None, location='core'):
         self.n = n
         self.label = label
@@ -249,7 +244,7 @@ class CxModel(object):
             group.discretize()
 
     def get_loihi(self):
-        from .loihi_interface import LoihiSimulator
+        from nengo_loihi.loihi_interface import LoihiSimulator
         return LoihiSimulator(self)
 
     def get_simulator(self):

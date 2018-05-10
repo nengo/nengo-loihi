@@ -1,14 +1,18 @@
+from __future__ import division
+
 import numpy as np
 
 from nxsdk.arch.n2a.graph.graph import N2Board
 # from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
 
-from .loihi_api import (
+from nengo_loihi.allocators import one_to_one_allocator
+from nengo_loihi.loihi_api import (
     CX_PROFILES_MAX, VTH_PROFILES_MAX, bias_to_manexp)
-from .allocators import one_to_one_allocator
 
 
 def build_board(board):
+    # from nxsdk.arch.n2a.graph.graph import N2Board
+
     n_chips = board.n_chips()
     n_cores_per_chip = board.n_cores_per_chip()
     n_synapses_per_core = board.n_synapses_per_core()
@@ -85,7 +89,8 @@ def build_group(n2core, core, group, i0, i1):
     assert group.scaleV is False
 
     # for i in range(256):
-    #     n2core.cxMetaState[i].configure(phase0=2, phase1=2, phase2=2, phase3=2)
+    #     n2core.cxMetaState[i].configure(
+    #         phase0=2, phase1=2, phase2=2, phase3=2)
 
     for i, bias in enumerate(group.bias):
         bman, bexp = bias_to_manexp(bias)
@@ -159,8 +164,7 @@ def build_axons(n2core, core, group, i0, i1, axons):
 
 def build_probe(n2core, core, group, i0, i1, probe):
     assert probe.key in ('u', 'v', 's', 'x')
-    # key_map = {'s': 'sSoma', 'x': 'u'}
-    key_map = {'x': 'u'}
+    key_map = {'s': 'spike', 'x': 'u'}
     key = key_map.get(probe.key, probe.key)
 
     n2board = n2core.parent.parent

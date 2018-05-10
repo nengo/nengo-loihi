@@ -300,8 +300,8 @@ def build_node(model, node):
 
 
 BuiltConnection = collections.namedtuple(
-        'BuiltConnection',
-        ('eval_points', 'solver_info', 'weights', 'transform'))
+    'BuiltConnection',
+    ('eval_points', 'solver_info', 'weights', 'transform'))
 
 
 def get_eval_points(model, conn, rng):
@@ -398,7 +398,7 @@ def build_no_solver(model, solver, conn, rng, transform):
     return None, weights, solver_info
 
 
-@Builder.register(Connection)
+@Builder.register(Connection)  # noqa: C901
 def build_connection(model, conn):
 
     # Create random number generator
@@ -592,10 +592,8 @@ def signal_probe(model, key, probe):
 probemap = {
     Ensemble: {'decoded_output': None,
                'input': 'q'},
-               # 'scaled_encoders': 'encoders'},
     Neurons: {'output': 's',
               'spikes': 's',
-              # 'rates': None,
               'voltage': 'v',
               'input': 'u'},
     Node: {'output': None},

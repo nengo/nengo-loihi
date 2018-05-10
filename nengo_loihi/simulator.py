@@ -6,10 +6,9 @@ import numpy as np
 
 import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
-from nengo.utils.compat import range, ResourceWarning
+from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model
-from nengo_loihi.loihi_cx import CxSimulator
 
 logger = logging.getLogger(__name__)
 

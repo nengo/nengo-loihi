@@ -1,7 +1,6 @@
 import numpy as np
 
-from .loihi_api import (
-    Board, Chip, Core, CxProfile, VthProfile, vth_to_manexp)
+from nengo_loihi.loihi_api import Board, CxProfile, VthProfile, vth_to_manexp
 
 
 def compute_profiles(core, list_profiles):
@@ -48,10 +47,6 @@ def core_vth_profiles(core):
         return profiles
 
     return compute_profiles(core, list_vth_profiles)
-
-
-# def single_synapse_fmt(synapses):
-    # return
 
 
 def one_to_one_allocator(cx_model):

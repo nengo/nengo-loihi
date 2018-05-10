@@ -1,0 +1,41 @@
+[MASTER]
+
+ignore = _vendor, compat.py
+
+
+[MESSAGES CONTROL]
+
+disable = all,
+          broad-except,
+          import-error,
+          reimported,
+enable = anomalous-backslash-in-string,
+         bad-mcs-classmethod-argument,
+         bad-super-call,
+         bad-whitespace,
+         bare-except,
+         cyclic-import,
+         dangerous-default-value,
+         function-redefined,
+         line-too-long,
+         super-init-not-called,
+         ungrouped-imports,
+         unnecessary-lambda,
+         unused-import,
+         wrong-import-order,
+
+
+[FORMAT]
+
+max-line-length = 79
+
+
+[CLASSES]
+
+valid-metaclass-classmethod-first-arg = metacls
+
+
+[REPORTS]
+
+reports = no
+score = no
