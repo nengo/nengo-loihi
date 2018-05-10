@@ -172,11 +172,12 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
 
 def build_axons(n2core, core, group, axons, ax_idxs):
     tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axons.target)
+    taxon_idxs = np.arange(t0, t1, dtype=np.int32)[axons.target_inds]
     n2board = n2core.parent.parent
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
     for i in range(axons.n_axons):
         n2core.axonCfg[ax_idxs[i]].discrete.configure(
-            coreId=tcore_id, axonId=t0+i)
+            coreId=tcore_id, axonId=taxon_idxs[i])
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):

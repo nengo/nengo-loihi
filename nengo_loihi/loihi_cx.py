@@ -41,8 +41,8 @@ class CxGroup(object):
             type(self).__name__, self.label if self.label else '')
 
     def add_synapses(self, synapses, name=None):
-        assert synapses.parent is None
-        synapses.parent = self
+        assert synapses.group is None
+        synapses.group = self
         self.synapses.append(synapses)
         if name is not None:
             assert name not in self.named_synapses
@@ -62,6 +62,8 @@ class CxGroup(object):
                 n_synapses, max_synapses))
 
     def add_axons(self, axons, name=None):
+        assert axons.group is None
+        axons.group = self
         self.axons.append(axons)
         if name is not None:
             assert name not in self.named_axons
@@ -134,8 +136,7 @@ class CxGroup(object):
         self.vmax = 2**(9 + 2*vmaxe) - 1
 
         # --- discretize weights and vth
-        w_maxs = [max(np.abs(w).max() for w in s.weights)
-                  for s in self.synapses]
+        w_maxs = [s.max_abs_weight() for s in self.synapses]
         w_max = max(w_maxs) if len(w_maxs) > 0 else 0
         b_max = np.abs(self.bias).max()
         wgtExp = -7
@@ -197,7 +198,7 @@ class CxGroup(object):
 class CxSynapses(object):
     def __init__(self, n_axons):
         self.n_axons = n_axons
-        self.parent = None
+        self.group = None
         self.synapse_fmt = None
         self.weights = None
         self.indices = None
@@ -205,12 +206,19 @@ class CxSynapses(object):
     def size(self):
         return sum(len(w) for w in self.weights)
 
+    def max_abs_weight(self):
+        return max(np.abs(w).max() if len(w) > 0 else -np.inf
+                   for w in self.weights)
+
+    def max_ind(self):
+        return max(i.max() if len(i) > 0 else -1 for i in self.indices)
+
     def set_full_weights(self, weights):
         self.weights = [w.astype(np.float32) for w in weights]
         self.indices = [np.arange(w.size) for w in weights]
         assert weights.shape[0] == self.n_axons
 
-        idxBits = int(np.ceil(np.log2(max(i.max() for i in self.indices) + 1)))
+        idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
         idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
                        if v >= idxBits)
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
@@ -225,8 +233,11 @@ class CxSynapses(object):
 class CxAxons(object):
     def __init__(self, n_axons):
         self.n_axons = n_axons
+        self.group = None
 
         self.target = None
+        self.target_inds = slice(None)  # which synapse inputs are targeted
+        # ^ TODO: this does not allow multiple pre-cx per axon, loihi does
 
 
 class CxProbe(object):
@@ -280,9 +291,7 @@ class CxSimulator(object):
         self.probe_outputs = collections.defaultdict(list)
 
         self.n_cx = sum(group.n for group in self.groups)
-        self.group_slices = {}
-        self.synapse_slices = {}
-        self.axon_slices = {}
+        self.group_cxs = {}
         cx_slice = None
         i0 = 0
         for group in self.groups:
@@ -290,12 +299,7 @@ class CxSimulator(object):
                 cx_slice = slice(0, i0)
 
             i1 = i0 + group.n
-            self.group_slices[group] = slice(i0, i1)
-            for synapse in group.synapses:
-                self.synapse_slices[synapse] = slice(i0, i1)
-            for axon in group.axons:
-                self.axon_slices[axon] = slice(i0, i1)
-                # ^TODO: allow non one-to-one axons
+            self.group_cxs[group] = slice(i0, i1)
             i0 = i1
 
         self.cx_slice = slice(0, i0) if cx_slice is None else cx_slice
@@ -365,19 +369,24 @@ class CxSimulator(object):
         self.q[-1] = 0
 
         for group in self.groups:
-            for axon in group.axons:
-                synapse = axon.target
-                a_slice = self.axon_slices[axon]
+            for axons in group.axons:
+                synapses = axons.target
+                s_in = np.zeros(synapses.n_axons, dtype=np.int32)
+
+                a_slice = self.group_cxs[axons.group]
                 sa = self.s[a_slice]
+                np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
 
-                b_slice = self.synapse_slices[synapse]
-                weights = synapse.weights
-                indices = synapse.indices
+                b_slice = self.group_cxs[synapses.group]
+                weights = synapses.weights
+                indices = synapses.indices
                 qb = self.q[:, b_slice]
-                delays = np.zeros(qb.shape[1], dtype=np.int32)
+                # delays = np.zeros(qb.shape[1], dtype=np.int32)
 
-                for i in sa.nonzero()[0]:
-                    qb[delays, indices[i]] += weights[i]
+                for i in s_in.nonzero()[0]:
+                    for _ in range(s_in[i]):  # faster than mult since likely 1
+                        qb[0, indices[i]] += weights[i]
+                    # qb[delays[indices[i]], indices[i]] += weights[i]
 
         # --- updates
         q0 = self.q[0, :]
@@ -407,7 +416,7 @@ class CxSimulator(object):
         # --- probes
         for group in self.groups:
             for probe in group.probes:
-                x_slice = self.group_slices[probe.target]
+                x_slice = self.group_cxs[probe.target]
                 p_slice = probe.slice
                 assert hasattr(self, probe.key)
                 x = getattr(self, probe.key)[x_slice][p_slice].copy()

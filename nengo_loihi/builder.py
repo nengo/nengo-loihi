@@ -405,7 +405,6 @@ def build_no_solver(model, solver, conn, rng, transform):
 
 @Builder.register(Connection)  # noqa: C901
 def build_connection(model, conn):
-
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
 
@@ -417,12 +416,6 @@ def build_connection(model, conn):
     weights = None
     eval_points = None
     solver_info = None
-    signal_size = conn.size_out
-    post_slice = conn.post_slice
-    if conn.pre_slice != slice(None):
-        raise NotImplementedError()
-    if post_slice != slice(None):
-        raise NotImplementedError()
 
     # Sample transform if given a distribution
     transform = get_samples(
@@ -438,6 +431,9 @@ def build_connection(model, conn):
     # ^ TODO: check that all conns into post use same filter
 
     if isinstance(conn.pre_obj, Node):
+        assert conn.pre_slice == slice(None)
+        assert conn.post_slice == slice(None)
+
         # node is using on/off neuron coding
         assert np.array_equal(conn.transform, np.array(1.))
         if tau_s != 0.0:
@@ -445,7 +441,7 @@ def build_connection(model, conn):
         # TODO: these connections have no filtering, even though spikes are
         #   being used to transmit decoded values
 
-        d = signal_size
+        d = conn.size_out
         ax = CxAxons(2*d)
         ax.target = post_cx.named_synapses['encoders2']
         pre_cx.add_axons(ax)
@@ -463,7 +459,6 @@ def build_connection(model, conn):
 
         if conn.solver.weights:
             assert isinstance(post_cx, CxGroup)
-            assert post_slice == slice(None)
             # post_slice = None  # don't apply slice later
 
             assert weights.ndim == 2
@@ -486,6 +481,10 @@ def build_connection(model, conn):
             assert weights.ndim == 2
             d, n = weights.shape
 
+            post_d = conn.post_obj.size_in
+            post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
+            assert len(post_inds) == d
+
             dec_cx = CxGroup(2*d, label='%s' % conn, location='core')
             dec_cx.configure_relu(dt=model.dt)
             dec_cx.configure_filter(tau_s, dt=model.dt)
@@ -506,16 +505,18 @@ def build_connection(model, conn):
 
             if isinstance(post_cx, CxProbe):
                 assert post_cx.target is None
+                assert conn.post_slice == slice(None)
                 post_cx.target = dec_cx
                 dec_cx.add_probe(post_cx)
             else:
                 dec_ax1 = CxAxons(2*d)
                 dec_ax1.target = post_cx.named_synapses['encoders2']
+                dec_ax1.target_inds = np.hstack([post_inds, post_d+post_inds])
                 dec_cx.add_axons(dec_ax1)
                 model.objs[conn]['encode_axons'] = dec_ax1
     else:
         assert conn.pre_slice == slice(None)
-        assert post_slice == slice(None)
+        assert conn.post_slice == slice(None)
         weights = transform
 
         assert weights.ndim == 2

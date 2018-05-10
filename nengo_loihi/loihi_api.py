@@ -80,7 +80,7 @@ class Board(object):
         self.synapses_index[synapses] = (chip_idx, core_idx, a0, a1)
 
     def find_synapses(self, synapses):
-        group = synapses.parent
+        group = synapses.group
         if group.location == 'core':
             return self.synapses_index[synapses]
         elif group.location == 'cpu':
