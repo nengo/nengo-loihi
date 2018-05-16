@@ -41,7 +41,7 @@ def build_core(n2core, core):
         n2core.cxProfileCfg[i].configure(
             decayV=cxProfile.decayV,
             decayU=cxProfile.decayU,
-            refractDelay=cxProfile.refDelay,
+            refractDelay=cxProfile.refractDelay,
             bapAction=1,
         )
 

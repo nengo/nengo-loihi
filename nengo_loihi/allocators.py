@@ -26,7 +26,7 @@ def core_cx_profiles(core):
             profiles.append(CxProfile(
                 decayU=group.decayU[i],
                 decayV=group.decayV[i],
-                refDelay=group.refDelay[i],
+                refractDelay=group.refractDelay[i],
             ))
 
         return profiles

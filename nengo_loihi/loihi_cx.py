@@ -21,7 +21,7 @@ class CxGroup(object):
 
         self.decayU = np.zeros(n, dtype=np.float32)
         self.decayV = np.zeros(n, dtype=np.float32)
-        self.refDelay = np.zeros(n, dtype=np.float32)
+        self.refractDelay = np.zeros(n, dtype=np.int32)
         self.vth = np.zeros(n, dtype=np.float32)
         self.vmin = 0
         self.vmax = np.inf
@@ -68,7 +68,7 @@ class CxGroup(object):
     # def configure_linear(self, tau_s=0.0, dt=0.001):
     #     self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
     #     self.decayV[:] = 0.
-    #     self.refDelay[:] = 0.
+    #     self.refractDelay[:] = 0.
     #     self.vth[:] = np.inf
     #     self.vmin = -np.inf
     #     self.vmax = np.inf
@@ -79,7 +79,7 @@ class CxGroup(object):
             self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
-        self.refDelay[:] = np.round(tau_ref / dt)
+        self.refractDelay[:] = np.maximum(np.round(tau_ref / dt), 1)
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
@@ -89,7 +89,7 @@ class CxGroup(object):
     def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = 0.
-        self.refDelay[:] = np.round(tau_ref / dt)
+        self.refractDelay[:] = np.maximum(np.round(tau_ref / dt), 1)
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
@@ -335,15 +335,15 @@ class CxSimulator(object):
         if group_dtype == np.int32:
             assert (self.scaleU == 1).all()
             assert (self.scaleV == 1).all()
-            self.decayU_fn = (
-                lambda x, u: decay_int(x, u, d=self.decayU, s=self.scaleU, b=1))
-            self.decayV_fn = (
-                lambda x, u: decay_int(x, u, d=self.decayV, s=self.scaleV))
+            self.decayU_fn = lambda x, u: decay_int(
+                x, u, d=self.decayU, s=self.scaleU, b=1)
+            self.decayV_fn = lambda x, u: decay_int(
+                x, u, d=self.decayV, s=self.scaleV)
         elif group_dtype == np.float32:
-            self.decayU_fn = (
-                lambda x, u: decay_float(x, u, d=self.decayU, s=self.scaleU))
-            self.decayV_fn = (
-                lambda x, u: decay_float(x, u, d=self.decayV, s=self.scaleV))
+            self.decayU_fn = lambda x, u: decay_float(
+                x, u, d=self.decayU, s=self.scaleU)
+            self.decayV_fn = lambda x, u: decay_float(
+                x, u, d=self.decayV, s=self.scaleV)
 
         ones = lambda n: np.ones(n, dtype=group_dtype)
         self.vth = np.hstack([group.vth for group in self.groups])
@@ -353,11 +353,7 @@ class CxSimulator(object):
             group.vmax*ones(group.n) for group in self.groups])
 
         self.bias = np.hstack([group.bias for group in self.groups])
-
-        # self.ref = np.hstack([group.refDelay for group in self.groups])
-        self.ref = np.hstack([
-            np.round(group.refDelay).astype(np.int32)
-            for group in self.groups])
+        self.ref = np.hstack([group.refractDelay for group in self.groups])
 
     def step(self):
         # --- connections
