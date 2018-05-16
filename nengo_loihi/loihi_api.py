@@ -53,6 +53,10 @@ class Board(object):
 
         self.probe_map = {}
 
+    def validate(self):
+        for chip in self.chips:
+            chip.validate()
+
     def _add_chip(self, chip):
         assert chip not in self.chips
         self.chip_idxs[chip] = len(self.chips)
@@ -121,6 +125,10 @@ class Chip(object):
         self.cores = []
         self.core_idxs = {}
 
+    def validate(self):
+        for core in self.cores:
+            core.validate()
+
     def _add_core(self, core):
         assert core not in self.cores
         self.core_idxs[core] = len(self.cores)
@@ -156,6 +164,21 @@ class Core(object):
     @property
     def board(self):
         return self.chip.board
+
+    def validate(self):
+        for cxProfile in self.cxProfiles:
+            cxProfile.validate(core=self)
+        for vthProfile in self.vthProfiles:
+            vthProfile.validate(core=self)
+        for synapseFmt in self.synapseFmts:
+            if synapseFmt is not None:
+                synapseFmt.validate(core=self)
+        for synapses in self.synapse_axons:
+            synapseFmt = self.get_synapse_fmt(synapses)
+            idxbits = synapseFmt.realIdxBits
+            for i in synapses.indices:
+                assert np.all(i >= 0)
+                assert np.all(i < 2**idxbits)
 
     def iterate_groups(self):
         i0 = 0
@@ -222,8 +245,15 @@ class Core(object):
         a1 = a0 + axons.n_axons
         self.axon_axons[axons] = (a0, a1)
 
+    def get_synapse_fmt(self, synapses):
+        return self.synapseFmts[self.synapse_fmt_idxs[synapses]]
+
 
 class CxProfile(object):
+    DECAY_U_MAX = 2**12 - 1
+    DECAY_V_MAX = 2**12 - 1
+    REFRACT_DELAY_MAX = 2**6 - 1
+
     params = ('decayU', 'decayV', 'refDelay')
 
     def __init__(self, decayV, decayU, refDelay):
@@ -238,8 +268,15 @@ class CxProfile(object):
     def __hash__(self):
         return hash(tuple(self.__dict__[key] for key in self.params))
 
+    def validate(self, core=None):
+        assert 0 <= self.decayU <= self.DECAY_U_MAX
+        assert 0 <= self.decayV <= self.DECAY_V_MAX
+        assert 0 <= self.refDelay <= self.REFRACT_DELAY_MAX
+
 
 class VthProfile(object):
+    VTH_MAX = 2**17 - 1
+
     params = ('vth',)
 
     def __init__(self, vth):
@@ -252,34 +289,39 @@ class VthProfile(object):
     def __hash__(self):
         return hash(tuple(self.__dict__[key] for key in self.params))
 
+    def validate(self, core=None):
+        assert 0 < self.vth <= self.VTH_MAX
+        # if core is not None:
+        #     assert self.realVth < core.dendrite_shared_cfg.v_max
+
 
 class SynapseFmt(object):
     INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
 
-    def __init__(self, WgtLimitMant=0, WgtLimitExp=0, WgtExp=0, DiscMaxWgt=0,
-                 LearningCfg=3, TagBits=0, DlyBits=0, WgtBits=7,
-                 ReuseSynData=0, NumSynapses=63, CIdxOffset=0, CIdxMult=0,
-                 SkipBits=0, IdxBits=5, SynType=0, FanoutType=0,
-                 Compression=0, StdpProfile=0, IgnoreDly=0):
-        self.WgtLimitMant = WgtLimitMant
-        self.WgtLimitExp = WgtLimitExp
-        self.WgtExp = WgtExp
-        self.DiscMaxWgt = DiscMaxWgt
-        self.LearningCfg = LearningCfg
-        self.TagBits = TagBits
-        self.DlyBits = DlyBits
-        self.WgtBits = WgtBits
-        self.ReuseSynData = ReuseSynData
-        self.NumSynapses = NumSynapses
-        self.CIdxOffset = CIdxOffset
-        self.CIdxMult = CIdxMult
-        self.SkipBits = SkipBits
-        self.IdxBits = IdxBits
-        self.SynType = SynType
-        self.FanoutType = FanoutType
-        self.Compression = Compression
-        self.StdpProfile = StdpProfile
-        self.IgnoreDly = IgnoreDly
+    def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
+                 learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
+                 reuseSynData=0, numSynapses=0, cIdxOffset=0, cIdxMult=0,
+                 skipBits=0, idxBits=0, synType=0, fanoutType=0,
+                 compression=0, stdpProfile=0, ignoreDly=0):
+        self.wgtLimitMant = wgtLimitMant
+        self.wgtLimitExp = wgtLimitExp
+        self.wgtExp = wgtExp
+        self.discMaxWgt = discMaxWgt
+        self.learningCfg = learningCfg
+        self.tagBits = tagBits
+        self.dlyBits = dlyBits
+        self.wgtBits = wgtBits
+        self.reuseSynData = reuseSynData
+        self.numSynapses = numSynapses
+        self.cIdxOffset = cIdxOffset
+        self.cIdxMult = cIdxMult
+        self.skipBits = skipBits
+        self.idxBits = idxBits
+        self.synType = synType
+        self.fanoutType = fanoutType
+        self.compression = compression
+        self.stdpProfile = stdpProfile
+        self.ignoreDly = ignoreDly
 
     def set(self, **kwargs):
         for key, value in kwargs.items():
@@ -287,28 +329,33 @@ class SynapseFmt(object):
             setattr(self, key, value)
 
     def validate(self, core=None):
-        assert -7 <= self.WgtExp <= 7
-        assert 0 <= self.TagBits < 4
-        assert 0 <= self.DlyBits < 8
-        assert 0 <= self.WgtBits < 8
-        assert 0 <= self.CIdxOffset < 16
-        assert 0 <= self.CIdxMult < 16
-        assert 0 <= self.IdxBits < 8
+        assert -7 <= self.wgtExp <= 7
+        assert 0 <= self.tagBits < 4
+        assert 0 <= self.dlyBits < 8
+        assert 1 <= self.wgtBits < 8
+        assert 0 <= self.cIdxOffset < 16
+        assert 0 <= self.cIdxMult < 16
+        assert 0 <= self.idxBits < 8
 
     @property
     def width(self):
-        return 1 + self.WgtBits
+        return 1 + self.wgtBits
 
     @property
     def isMixed(self):
-        # return 0
-        return self.FanoutType == 1
+        return self.fanoutType == 1
 
     @property
     def Wscale(self):
-        return 14 - self.width + self.WgtExp + self.isMixed
-        # ^ = 8 - width(SYN_l) + 6 + wgtExp(SYN_l) + isMixed(SYN_l)
+        return 6 + self.wgtExp
 
     @property
     def realIdxBits(self):
-        return self.INDEX_BITS_MAP[self.IdxBits]
+        return self.INDEX_BITS_MAP[self.idxBits]
+
+    def discretize_weights(self, w, dtype=np.int32):
+        s = 8 - self.width + self.isMixed
+        m = 2**(8 - s) - 1
+        w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
+        np.left_shift(w, self.Wscale + s, out=w)
+        return w

@@ -41,8 +41,8 @@ def build_core(n2core, core):
         n2core.cxProfileCfg[i].configure(
             decayV=cxProfile.decayV,
             decayU=cxProfile.decayU,
-            bapAction=1,
             refractDelay=cxProfile.refDelay,
+            bapAction=1,
         )
 
     for i, vthProfile in enumerate(core.vthProfiles):
@@ -54,13 +54,25 @@ def build_core(n2core, core):
         if synapseFmt is None:
             continue
 
-        n2core.synapseFmt[i].wgtExp = synapseFmt.WgtExp
-        n2core.synapseFmt[i].wgtBits = synapseFmt.WgtBits
-        n2core.synapseFmt[i].numSynapses = synapseFmt.NumSynapses
-        n2core.synapseFmt[i].idxBits = synapseFmt.IdxBits
-        n2core.synapseFmt[i].compression = synapseFmt.Compression
-        n2core.synapseFmt[i].fanoutType = synapseFmt.FanoutType
-        # ^ TODO: other parameters
+        n2core.synapseFmt[i].wgtLimitMant = synapseFmt.wgtLimitMant
+        n2core.synapseFmt[i].wgtLimitExp = synapseFmt.wgtLimitExp
+        n2core.synapseFmt[i].wgtExp = synapseFmt.wgtExp
+        n2core.synapseFmt[i].discMaxWgt = synapseFmt.discMaxWgt
+        n2core.synapseFmt[i].learningCfg = synapseFmt.learningCfg
+        n2core.synapseFmt[i].tagBits = synapseFmt.tagBits
+        n2core.synapseFmt[i].dlyBits = synapseFmt.dlyBits
+        n2core.synapseFmt[i].wgtBits = synapseFmt.wgtBits
+        n2core.synapseFmt[i].reuseSynData = synapseFmt.reuseSynData
+        n2core.synapseFmt[i].numSynapses = synapseFmt.numSynapses
+        n2core.synapseFmt[i].cIdxOffset = synapseFmt.cIdxOffset
+        n2core.synapseFmt[i].cIdxMult = synapseFmt.cIdxMult
+        n2core.synapseFmt[i].skipBits = synapseFmt.skipBits
+        n2core.synapseFmt[i].idxBits = synapseFmt.idxBits
+        n2core.synapseFmt[i].synType = synapseFmt.synType
+        n2core.synapseFmt[i].fanoutType = synapseFmt.fanoutType
+        n2core.synapseFmt[i].compression = synapseFmt.compression
+        n2core.synapseFmt[i].stdpProfile = synapseFmt.stdpProfile
+        n2core.synapseFmt[i].ignoreDly = synapseFmt.ignoreDly
 
     # TODO: allocator should be checking that vmin, vmax are the same
     #   for all groups on a core
@@ -80,17 +92,17 @@ def build_core(n2core, core):
         delayBits=3)
     # ^ DelayBits=3 allows 1024 Cxs per core
 
+    n_cx = 0
     for group, (i0, i1) in core.iterate_groups():
         build_group(n2core, core, group, i0, i1)
+        n_cx = max(n_cx, i1)
+
+    n2core.numUpdates.configure(numUpdates=n_cx//4 + 1)
 
 
 def build_group(n2core, core, group, i0, i1):
     assert group.scaleU is False
     assert group.scaleV is False
-
-    # for i in range(256):
-    #     n2core.cxMetaState[i].configure(
-    #         phase0=2, phase1=2, phase2=2, phase3=2)
 
     for i, bias in enumerate(group.bias):
         bman, bexp = bias_to_manexp(bias)
@@ -103,14 +115,6 @@ def build_group(n2core, core, group, i0, i1):
 
         phasex = 'phase%d' % (ii % 4,)
         n2core.cxMetaState[ii//4].configure(**{phasex: 2})
-        # if ii % 4 == 0:
-        #     n2core.cxMetaState[ii//4].configure(phase0=2)
-        # elif ii % 4 == 2:
-        #     n2core.cxMetaState[ii//4].configure(phase1=2)
-        # elif ii % 4 == 3:
-        #     n2core.cxMetaState[ii//4].configure(phase2=2)
-        # else:
-        #     n2core.cxMetaState[ii//4].configure(phase3=2)
 
     for synapses in group.synapses:
         build_synapses(n2core, core, group, i0, i1, synapses)
@@ -121,8 +125,6 @@ def build_group(n2core, core, group, i0, i1):
     for probe in group.probes:
         build_probe(n2core, core, group, i0, i1, probe)
 
-    n2core.numUpdates.configure(numUpdates=1)
-
 
 def build_synapses(n2core, core, group, i0, i1, synapses):
     a0, a1 = core.synapse_axons[synapses]
@@ -132,9 +134,11 @@ def build_synapses(n2core, core, group, i0, i1, synapses):
 
     s0 = core.synapse_entries[synapses][0]
     for a in range(a1 - a0):
-        wa = synapses.weights[a]
+        wa = synapses.weights[a] // 2**synapses.synapse_fmt.Wscale
         ia = synapses.indices[a]
+        assert len(wa) == len(ia)
 
+        assert np.all(wa <= 255) and np.all(wa >= -255), str(wa)
         for k, (w, i) in enumerate(zip(wa, ia)):
             n2core.synapses[s0+k].CIdx = i0 + i
             assert n2core.synapses[s0+k].CIdx < i1
@@ -150,8 +154,10 @@ def build_synapses(n2core, core, group, i0, i1, synapses):
 
 def build_axons(n2core, core, group, i0, i1, axons):
     a0, a1 = core.axon_axons[axons]
+    assert a1 - a0 == axons.n_axons
 
     # for now, all axons are one compartment to one axon
+    assert group.n == axons.n_axons
     for i in range(group.n):
         n2core.axonMap[i0+i].configure(ptr=a0+i, len=1)
 

@@ -127,15 +127,15 @@ class CxGroup(object):
         if len(w_maxs) > 0:
             w_maxi = np.argmax(w_maxs)
             w_max = w_maxs[w_maxi]
-            w_scale = (127. / w_max)
+            w_scale = (255. / w_max)
 
-            self.synapses[w_maxi].format(WgtExp=0)
+            self.synapses[w_maxi].format(wgtExp=0)
             synapse_fmt = self.synapses[w_maxi].synapse_fmt
 
             s_scale = 1. / (u_scale * v_scale)
 
             for wgtExp in range(7, -8, -1):
-                synapse_fmt.set(WgtExp=wgtExp)
+                synapse_fmt.set(wgtExp=wgtExp)
                 x_scale = s_scale * w_scale * 2**synapse_fmt.Wscale
                 b_scale = x_scale * v_scale
                 vth = np.round(self.vth * x_scale)
@@ -170,9 +170,9 @@ class CxGroup(object):
             assert dWgtExp >= 0
             wgtExp2 = max(wgtExp - dWgtExp, -7)
             dWgtExp = wgtExp - wgtExp2
-            synapse.format(WgtExp=wgtExp2)
+            synapse.format(wgtExp=wgtExp2)
             for w in synapse.weights:
-                discretize(w, w * w_scale * 2**synapse.synapse_fmt.Wscale)
+                discretize(w, synapse_fmt.discretize_weights(w * w_scale))
 
 
 class CxSynapses(object):
@@ -190,6 +190,12 @@ class CxSynapses(object):
         self.weights = [w.astype(np.float32) for w in weights]
         self.indices = [np.arange(w.size) for w in weights]
         assert weights.shape[0] == self.n_axons
+
+        idxBits = int(np.ceil(np.log2(max(i.max() for i in self.indices) + 1)))
+        idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
+                       if v >= idxBits)
+        self.format(compression=3, idxBits=idxBits, fanoutType=1,
+                    numSynapses=63, wgtBits=7)
 
     def format(self, **kwargs):
         if self.synapse_fmt is None:
@@ -330,7 +336,7 @@ class CxSimulator(object):
             assert (self.scaleU == 1).all()
             assert (self.scaleV == 1).all()
             self.decayU_fn = (
-                lambda x, u: decay_int(x, u, d=self.decayU, s=self.scaleU))
+                lambda x, u: decay_int(x, u, d=self.decayU, s=self.scaleU, b=1))
             self.decayV_fn = (
                 lambda x, u: decay_int(x, u, d=self.decayV, s=self.scaleV))
         elif group_dtype == np.float32:

@@ -71,4 +71,5 @@ def one_to_one_allocator(cx_model):
         for axons in group.axons:
             core.add_axons(axons)
 
+    board.validate()
     return board
