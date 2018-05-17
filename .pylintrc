@@ -1,6 +1,6 @@
 [MASTER]
 
-ignore = _vendor, compat.py
+ignore = _vendor, compat.py, conftest.py
 
 
 [MESSAGES CONTROL]

@@ -7,9 +7,6 @@ dist
 *~
 *.bak
 *.swp
-nengo.simulator.logs/
-nengo.simulator.analytics/
-nengo.simulator.plots/
 log.txt
 .ipynb_checkpoints/
 .cache
@@ -24,3 +21,7 @@ htmlcov
 *.dist-info/
 .vscode
 .idea
+
+*.analytics/
+*.logs/
+*.plots/
