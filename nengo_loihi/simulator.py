@@ -247,3 +247,10 @@ class Simulator(object):
         dt = self.dt if dt is None else dt
         n_steps = int(self.n_steps * (self.dt / dt))
         return dt * np.arange(1, n_steps + 1)
+
+
+class NumpySimulator(Simulator):
+    def __init__(self, *args, **kwargs):
+        assert 'target' not in kwargs
+        kwargs['target'] = 'sim'
+        super(NumpySimulator, self).__init__(*args, **kwargs)

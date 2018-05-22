@@ -9,7 +9,7 @@ from . import builder
 from . import allocators
 from . import loihi_interface
 
-from .simulator import Simulator
+from .simulator import Simulator, NumpySimulator
 
 logger = logging.getLogger(__name__)
 try:
