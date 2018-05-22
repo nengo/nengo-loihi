@@ -36,6 +36,10 @@ class CxGroup(object):
         assert location in ('core', 'cpu')
         self.location = location
 
+    def __str__(self):
+        return "%s(%s)" % (
+            type(self).__name__, self.label if self.label else '')
+
     def add_synapses(self, synapses, name=None):
         assert synapses.parent is None
         synapses.parent = self
@@ -46,9 +50,16 @@ class CxGroup(object):
 
         AXONS_MAX = 4096
         MAX_MEM_LEN = 16384
-        assert sum(s.n_axons for s in self.synapses) < AXONS_MAX
-        assert sum(s.size() for s in self.synapses) < 4*(
-            MAX_MEM_LEN - len(self.synapses))
+        n_axons = sum(s.n_axons for s in self.synapses)
+        if n_axons > AXONS_MAX:
+            raise ValueError("Total axons (%d) exceeded max (%d)" % (
+                n_axons, AXONS_MAX))
+
+        n_synapses = sum(s.size() for s in self.synapses)
+        max_synapses = 4*(MAX_MEM_LEN - len(self.synapses))
+        if n_synapses > max_synapses:
+            raise ValueError("Total synapses (%d) exceeded max (%d)" % (
+                n_synapses, max_synapses))
 
     def add_axons(self, axons, name=None):
         self.axons.append(axons)
@@ -79,7 +90,7 @@ class CxGroup(object):
             self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
-        self.refractDelay[:] = np.maximum(np.round(tau_ref / dt), 1)
+        self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
@@ -89,14 +100,14 @@ class CxGroup(object):
     def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = 0.
-        self.refractDelay[:] = np.maximum(np.round(tau_ref / dt), 1)
+        self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
         self.scaleU = True
         self.scaleV = False
 
-    def discretize(self):
+    def discretize(self):  # noqa C901
         def discretize(target, value):
             assert target.dtype == np.float32
             # new = np.round(target * scale).astype(np.int32)

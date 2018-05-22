@@ -474,6 +474,9 @@ def build_connection(model, conn):
             ax = CxAxons(n1)
             ax.target = syn
             pre_cx.add_axons(ax)
+
+            post_cx.configure_filter(tau_s, dt=model.dt)
+            # ^ TODO: check that all conns into post use same filter
         else:
             # on/off neuron coding for decoded values
             assert weights.ndim == 2
@@ -566,7 +569,7 @@ def conn_probe(model, probe):
 
     # Make a sink for the connection
     d = conn.size_out
-    sink = CxGroup(d, location='core')
+    sink = CxGroup(d, label=str(probe), location='core')
     sink.configure_relu(dt=model.dt)
     syn = CxSynapses(2*d)
     syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
