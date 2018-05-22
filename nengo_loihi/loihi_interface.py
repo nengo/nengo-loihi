@@ -174,7 +174,7 @@ def build_probe(n2core, core, group, i0, i1, probe):
     key = key_map.get(probe.key, probe.key)
 
     n2board = n2core.parent.parent
-    r = list(np.arange(i0, i1)[probe.slice])
+    r = range(i0, i1)[probe.slice]
     p = n2board.monitor.probe(n2core.cxState, r, key)
     core.board.map_probe(probe, p)
 
