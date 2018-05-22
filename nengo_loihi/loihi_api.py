@@ -323,6 +323,22 @@ class SynapseFmt(object):
         self.stdpProfile = stdpProfile
         self.ignoreDly = ignoreDly
 
+    @classmethod
+    def get_realWgtExp(cls, wgtExp):
+        return 6 + wgtExp
+
+    @classmethod
+    def get_scale(cls, wgtExp):
+        return 2**cls.get_realWgtExp(wgtExp)
+
+    @property
+    def realWgtExp(self):
+        return self.get_realWgtExp(self.wgtExp)
+
+    @property
+    def scale(self):
+        return self.get_scale(self.wgtExp)
+
     def set(self, **kwargs):
         for key, value in kwargs.items():
             assert hasattr(self, key)
@@ -346,10 +362,6 @@ class SynapseFmt(object):
         return self.fanoutType == 1
 
     @property
-    def Wscale(self):
-        return 6 + self.wgtExp
-
-    @property
     def realIdxBits(self):
         return self.INDEX_BITS_MAP[self.idxBits]
 
@@ -357,5 +369,5 @@ class SynapseFmt(object):
         s = 8 - self.width + self.isMixed
         m = 2**(8 - s) - 1
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
-        np.left_shift(w, self.Wscale + s, out=w)
+        np.left_shift(w, self.realWgtExp + s, out=w)
         return w

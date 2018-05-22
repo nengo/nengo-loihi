@@ -116,9 +116,9 @@ class CxGroup(object):
             target[:] = new
 
         # --- discretize decayU and decayV
-        u_scale = (
+        u_infactor = (
             self.decayU.copy() if self.scaleU else np.ones_like(self.decayU))
-        v_scale = (
+        v_infactor = (
             self.decayV.copy() if self.scaleV else np.ones_like(self.decayV))
         discretize(self.decayU, self.decayU * (2**12 - 1))
         discretize(self.decayV, self.decayV * (2**12 - 1))
@@ -132,43 +132,45 @@ class CxGroup(object):
         self.vmax = 2**(9 + 2*vmaxe) - 1
 
         # --- discretize weights and vth
-        w_maxs = [np.abs(s.weights).max() for s in self.synapses]
+        w_maxs = [max(np.abs(w).max() for w in s.weights)
+                  for s in self.synapses]
+        w_max = max(w_maxs) if len(w_maxs) > 0 else 0
         b_max = np.abs(self.bias).max()
+        wgtExp = -7
 
-        if len(w_maxs) > 0:
-            w_maxi = np.argmax(w_maxs)
-            w_max = w_maxs[w_maxi]
+        if w_max > 1e-8:
             w_scale = (255. / w_max)
-
-            self.synapses[w_maxi].format(wgtExp=0)
-            synapse_fmt = self.synapses[w_maxi].synapse_fmt
-
-            s_scale = 1. / (u_scale * v_scale)
+            s_scale = 1. / (u_infactor * v_infactor)
 
             for wgtExp in range(7, -8, -1):
-                synapse_fmt.set(wgtExp=wgtExp)
-                x_scale = s_scale * w_scale * 2**synapse_fmt.Wscale
-                b_scale = x_scale * v_scale
-                vth = np.round(self.vth * x_scale)
+                v_scale = s_scale * w_scale * SynapseFmt.get_scale(wgtExp)
+                b_scale = v_scale * v_infactor
+                vth = np.round(self.vth * v_scale)
                 bias = np.round(self.bias * b_scale)
                 if (vth <= VTH_MAX).all() and (np.abs(bias) <= BIAS_MAX).all():
                     break
             else:
                 raise ValueError("Could not find appropriate wgtExp")
-
-        else:
-            s_scale = 1. / v_scale
+        elif b_max > 1e-8:
             b_scale = BIAS_MAX / b_max
             while b_scale*b_max > 1:
-                x_scale = s_scale * b_scale
-                vth = np.round(self.vth * x_scale)
-                bias = np.round(self.bias * b_scale * v_scale)
+                v_scale = b_scale / v_infactor
+                w_scale = b_scale * u_infactor / SynapseFmt.get_scale(wgtExp)
+                vth = np.round(self.vth * v_scale)
+                bias = np.round(self.bias * b_scale)
                 if np.all(vth <= VTH_MAX):
                     break
 
                 b_scale /= 2.
             else:
                 raise ValueError("Could not find appropriate bias scaling")
+        else:
+            v_scale = VTH_MAX / (self.vth.max() + 1)
+            vth = np.round(self.vth * v_scale)
+            b_scale = v_scale * v_infactor
+            bias = np.round(self.bias * b_scale)
+            w_scale = (v_scale * v_infactor * u_infactor
+                       / SynapseFmt.get_scale(wgtExp))
 
         vth_man, vth_exp = vth_to_manexp(vth)
         discretize(self.vth, vth_man * 2**vth_exp)
@@ -177,13 +179,17 @@ class CxGroup(object):
         discretize(self.bias, bias_man * 2**bias_exp)
 
         for i, synapse in enumerate(self.synapses):
-            dWgtExp = int(np.floor(np.log2(w_max / w_maxs[i])))
-            assert dWgtExp >= 0
-            wgtExp2 = max(wgtExp - dWgtExp, -7)
-            dWgtExp = wgtExp - wgtExp2
+            if w_maxs[i] > 1e-16:
+                dWgtExp = int(np.floor(np.log2(w_max / w_maxs[i])))
+                assert dWgtExp >= 0
+                wgtExp2 = max(wgtExp - dWgtExp, -6)
+            else:
+                wgtExp2 = -6
+                dWgtExp = wgtExp - wgtExp2
             synapse.format(wgtExp=wgtExp2)
             for w in synapse.weights:
-                discretize(w, synapse_fmt.discretize_weights(w * w_scale))
+                discretize(w, synapse.synapse_fmt.discretize_weights(
+                    w * w_scale * 2**dWgtExp))
 
 
 class CxSynapses(object):

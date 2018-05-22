@@ -134,7 +134,7 @@ def build_synapses(n2core, core, group, i0, i1, synapses):
 
     s0 = core.synapse_entries[synapses][0]
     for a in range(a1 - a0):
-        wa = synapses.weights[a] // 2**synapses.synapse_fmt.Wscale
+        wa = synapses.weights[a] // synapses.synapse_fmt.scale
         ia = synapses.indices[a]
         assert len(wa) == len(ia)
 
