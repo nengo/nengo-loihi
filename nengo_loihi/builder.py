@@ -9,7 +9,7 @@ from nengo.dists import Distribution, get_samples
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
-from nengo.neurons import Direct, LIF
+from nengo.neurons import Direct, LIF, RectifiedLinear
 from nengo.processes import Process
 from nengo.solvers import NoSolver, Solver
 from nengo.utils.builder import default_n_eval_points
@@ -214,6 +214,11 @@ def build_ensemble(model, ens):
             tau_ref=ens.neuron_type.tau_ref,
             dt=model.dt,
             )
+        group.bias[:] = bias
+    elif isinstance(ens.neuron_type, RectifiedLinear):
+        assert ens.neuron_type.amplitude == 1
+        group = CxGroup(ens.n_neurons, label='%s' % ens)
+        group.configure_relu(dt=model.dt)
         group.bias[:] = bias
     else:
         raise NotImplementedError()
