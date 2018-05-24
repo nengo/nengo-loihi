@@ -412,7 +412,7 @@ def build_connection(model, conn):
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
     assert isinstance(pre_cx, CxGroup)
-    assert isinstance(post_cx, CxGroup)
+    assert isinstance(post_cx, (CxGroup, CxProbe))
 
     weights = None
     eval_points = None
@@ -462,6 +462,7 @@ def build_connection(model, conn):
         # ^ scale, since nengo spikes have 1/dt scaling
 
         if conn.solver.weights:
+            assert isinstance(post_cx, CxGroup)
             assert post_slice == slice(None)
             # post_slice = None  # don't apply slice later
 
@@ -502,10 +503,15 @@ def build_connection(model, conn):
             pre_cx.add_axons(dec_ax0)
             model.objs[conn]['decode_axons'] = dec_ax0
 
-            dec_ax1 = CxAxons(2*d)
-            dec_ax1.target = post_cx.named_synapses['encoders2']
-            dec_cx.add_axons(dec_ax1)
-            model.objs[conn]['encode_axons'] = dec_ax1
+            if isinstance(post_cx, CxProbe):
+                assert post_cx.target is None
+                post_cx.target = dec_cx
+                dec_cx.add_probe(post_cx)
+            else:
+                dec_ax1 = CxAxons(2*d)
+                dec_ax1.target = post_cx.named_synapses['encoders2']
+                dec_cx.add_axons(dec_ax1)
+                model.objs[conn]['encode_axons'] = dec_ax1
     else:
         assert conn.pre_slice == slice(None)
         assert post_slice == slice(None)
@@ -568,18 +574,10 @@ def conn_probe(model, probe):
     model.seeded[conn] = model.seeded[probe]
     model.seeds[conn] = model.seeds[probe]
 
-    # Make a sink for the connection
     d = conn.size_out
-    sink = CxGroup(d, label=str(probe), location='core')
-    sink.configure_relu(dt=model.dt)
-    syn = CxSynapses(2*d)
-    syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
-    sink.add_synapses(syn, name='encoders2')
-    model.add_group(sink)
-
-    cx_probe = CxProbe(target=sink, key='x')
-    sink.add_probe(cx_probe)
-    model.objs[probe]['in'] = sink
+    weights = np.vstack([np.eye(d), -np.eye(d)])
+    cx_probe = CxProbe(key='s', weights=weights)
+    model.objs[probe]['in'] = cx_probe
     model.objs[probe]['out'] = cx_probe
 
     # Build the connection

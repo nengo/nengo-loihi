@@ -232,10 +232,11 @@ class CxAxons(object):
 class CxProbe(object):
     _slice = slice
 
-    def __init__(self, target=None, key=None, slice=None):
+    def __init__(self, target=None, key=None, slice=None, weights=None):
         self.target = target
         self.key = key
         self.slice = slice if slice is not None else self._slice(None)
+        self.weights = weights
 
 
 class CxModel(object):
@@ -408,12 +409,8 @@ class CxSimulator(object):
             for probe in group.probes:
                 x_slice = self.group_slices[probe.target]
                 p_slice = probe.slice
-                if probe.key == 'x':
-                    x = (self.u[x_slice][p_slice] /
-                         self.vth[x_slice][p_slice].astype(np.float32))
-                else:
-                    assert hasattr(self, probe.key)
-                    x = getattr(self, probe.key)[x_slice][p_slice].copy()
+                assert hasattr(self, probe.key)
+                x = getattr(self, probe.key)[x_slice][p_slice].copy()
                 self.probe_outputs[probe].append(x)
 
     def run_steps(self, steps):
@@ -421,6 +418,7 @@ class CxSimulator(object):
             self.step()
 
     def get_probe_output(self, probe):
-        target = self.model.objs[probe]['out']
-        assert isinstance(target, CxProbe)
-        return self.probe_outputs[target]
+        cx_probe = self.model.objs[probe]['out']
+        assert isinstance(cx_probe, CxProbe)
+        x = self.probe_outputs[cx_probe]
+        return x if cx_probe.weights is None else np.dot(x, cx_probe.weights)

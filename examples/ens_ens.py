@@ -36,7 +36,7 @@ with nengo.Network(seed=1) as model:
     # ab_conn = nengo.Connection(a, b, function=a_fn)
     ab_conn = nengo.Connection(a, b, function=a_fn, solver=nengo.solvers.LstsqL2(weights=True))
     bp = nengo.Probe(b)
-    bnp = nengo.Probe(b.neurons)
+    # bnp = nengo.Probe(b.neurons)
     bup = nengo.Probe(b.neurons[:5], 'input')
     bvp = nengo.Probe(b.neurons[:5], 'voltage')
 

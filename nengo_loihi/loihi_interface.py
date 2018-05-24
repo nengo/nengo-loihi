@@ -104,6 +104,8 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
     assert group.scaleU is False
     assert group.scaleV is False
 
+    print("Building %s on core.id=%d" % (group, n2core.id))
+
     for i, bias in enumerate(group.bias):
         bman, bexp = bias_to_manexp(bias)
         icx = core.cxProfileIdxs[group][i]
@@ -177,8 +179,8 @@ def build_axons(n2core, core, group, axons, ax_idxs):
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):
-    assert probe.key in ('u', 'v', 's', 'x')
-    key_map = {'s': 'spike', 'x': 'u'}
+    assert probe.key in ('u', 'v', 's')
+    key_map = {'s': 'spike'}
     key = key_map.get(probe.key, probe.key)
 
     n2board = n2core.parent.parent
@@ -201,10 +203,17 @@ class LoihiSimulator(object):
         # --- build
         self.n2board = build_board(self.board)
 
+    def print_cores(self):
+        for j, n2chip in enumerate(self.n2board.n2Chips):
+            print("Chip %d, id=%d" % (j, n2chip.id))
+            for k, n2core in enumerate(n2chip.n2Cores):
+                print("  Core %d, id=%d" % (k, n2core.id))
+
     def run_steps(self, steps):
         self.n2board.run(steps)
 
     def get_probe_output(self, probe):
         cx_probe = self.model.objs[probe]['out']
         n2probe = self.board.probe_map[cx_probe]
-        return np.column_stack([p.timeSeries.data for p in n2probe])
+        x = np.column_stack([p.timeSeries.data for p in n2probe])
+        return x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
