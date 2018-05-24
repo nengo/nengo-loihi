@@ -67,6 +67,8 @@ class CxGroup(object):
             assert name not in self.named_axons
             self.named_axons[name] = axons
 
+        assert axons.n_axons == self.n, "Axons currently only one-to-one"
+
     def add_probe(self, probe):
         if probe.target is None:
             probe.target = self
@@ -225,22 +227,6 @@ class CxAxons(object):
         self.n_axons = n_axons
 
         self.target = None
-
-
-# class CxCpuTarget(object):
-#     def __init__(self, n):
-#         self.n = n
-
-#         self.synapses = []
-#         self.named_synapses = {}
-
-#     def add_synapses(self, synapses, name=None):
-#         assert synapses.parent is None
-#         synapses.parent = self
-#         self.synapses.append(synapses)
-#         if name is not None:
-#             assert name not in self.named_synapses
-#             self.named_synapses[name] = synapses
 
 
 class CxProbe(object):
@@ -438,15 +424,3 @@ class CxSimulator(object):
         target = self.model.objs[probe]['out']
         assert isinstance(target, CxProbe)
         return self.probe_outputs[target]
-        # if isinstance(target, CxGroup):
-        #     synapses = target.named_synapses['encoders2']
-        #     b_slice = self.synapse_slices[synapses]
-        #     qb = self.q[0, b_slice] / self.vth[b_slice].astype(float)
-        #     return qb.copy()
-        # elif isinstance(target, CxProbe):
-
-        #     x_slice = self.group_slices[target.target]
-        #     x = getattr(self, target.key)[x_slice]
-        #     return x.copy()
-        # else:
-        #     raise NotImplementedError()

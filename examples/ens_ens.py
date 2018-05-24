@@ -27,7 +27,7 @@ with nengo.Network(seed=1) as model:
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-0.5, 0.5))
     ap = nengo.Probe(a)
-    anp = nengo.Probe(a.neurons)
+    # anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
 
     b = nengo.Ensemble(101, 1, label='b',
@@ -62,6 +62,7 @@ print(sim.data[bvp][-10:])
 
 plt.figure()
 output_filter = nengo.synapses.Alpha(0.02)
+print(output_filter.filtfilt(sim.data[bp])[::100])
 # plt.plot(sim.trange(), output_filter.filt(sim.data[ap]))
 # plt.plot(sim.trange(), output_filter.filt(sim.data[bp]))
 plt.plot(sim.trange(), output_filter.filtfilt(sim.data[ap]))
@@ -70,4 +71,5 @@ plt.plot(sim.trange(), output_filter.filtfilt(sim.data[bp]))
 plt.figure()
 plt.plot(sim.trange(), sim.data[avp][:, :10])
 
+plt.savefig('ens_ens.png')
 plt.show()

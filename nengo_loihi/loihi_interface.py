@@ -93,14 +93,14 @@ def build_core(n2core, core):
     # ^ DelayBits=3 allows 1024 Cxs per core
 
     n_cx = 0
-    for group, (i0, i1) in core.iterate_groups():
-        build_group(n2core, core, group, i0, i1)
-        n_cx = max(n_cx, i1)
+    for group, cx_idxs, ax_range in core.iterate_groups():
+        build_group(n2core, core, group, cx_idxs, ax_range)
+        n_cx = max(max(cx_idxs), n_cx)
 
     n2core.numUpdates.configure(numUpdates=n_cx//4 + 1)
 
 
-def build_group(n2core, core, group, i0, i1):
+def build_group(n2core, core, group, cx_idxs, ax_range):
     assert group.scaleU is False
     assert group.scaleV is False
 
@@ -109,7 +109,7 @@ def build_group(n2core, core, group, i0, i1):
         icx = core.cxProfileIdxs[group][i]
         ivth = core.vthProfileIdxs[group][i]
 
-        ii = i0 + i
+        ii = cx_idxs[i]
         n2core.cxCfg[ii].configure(
             bias=bman, biasExp=bexp, vthProfile=ivth, cxProfile=icx)
 
@@ -117,16 +117,32 @@ def build_group(n2core, core, group, i0, i1):
         n2core.cxMetaState[ii//4].configure(**{phasex: 2})
 
     for synapses in group.synapses:
-        build_synapses(n2core, core, group, i0, i1, synapses)
+        build_synapses(n2core, core, group, synapses, cx_idxs)
 
-    for axons in group.axons:
-        build_axons(n2core, core, group, i0, i1, axons)
+    cx_axongroup_map = [[] for _ in range(group.n)]
+    for i, axons in enumerate(group.axons):
+        assert group.n == axons.n_axons
+        for j in range(group.n):
+            cx_axongroup_map[j].append(i)
+
+    ptr = ax_range[0]
+    for i in range(group.n):
+        n = len(cx_axongroup_map[i])
+        n2core.axonMap[cx_idxs[i]].configure(ptr=ptr, len=n)
+        ptr += n
+    assert ptr == ax_range[1]
+
+    axon_axongroup_map = np.array([v for vv in cx_axongroup_map for v in vv])
+    for k, axons in enumerate(group.axons):
+        ax_idxs = ax_range[0] + (axon_axongroup_map == k).nonzero()[0]
+        ax_idxs = [int(a) for a in ax_idxs]
+        build_axons(n2core, core, group, axons, ax_idxs)
 
     for probe in group.probes:
-        build_probe(n2core, core, group, i0, i1, probe)
+        build_probe(n2core, core, group, probe, cx_idxs)
 
 
-def build_synapses(n2core, core, group, i0, i1, synapses):
+def build_synapses(n2core, core, group, synapses, cx_idxs):
     a0, a1 = core.synapse_axons[synapses]
     assert (a1 - a0) == len(synapses.weights)
 
@@ -140,8 +156,7 @@ def build_synapses(n2core, core, group, i0, i1, synapses):
 
         assert np.all(wa <= 255) and np.all(wa >= -255), str(wa)
         for k, (w, i) in enumerate(zip(wa, ia)):
-            n2core.synapses[s0+k].CIdx = i0 + i
-            assert n2core.synapses[s0+k].CIdx < i1
+            n2core.synapses[s0+k].CIdx = cx_idxs[i]
             n2core.synapses[s0+k].Wgt = w
             n2core.synapses[s0+k].synFmtId = synapse_fmt_idx
 
@@ -152,29 +167,22 @@ def build_synapses(n2core, core, group, i0, i1, synapses):
         s0 += len(wa)
 
 
-def build_axons(n2core, core, group, i0, i1, axons):
-    a0, a1 = core.axon_axons[axons]
-    assert a1 - a0 == axons.n_axons
-
-    # for now, all axons are one compartment to one axon
-    assert group.n == axons.n_axons
-    for i in range(group.n):
-        n2core.axonMap[i0+i].configure(ptr=a0+i, len=1)
-
+def build_axons(n2core, core, group, axons, ax_idxs):
     tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axons.target)
     n2board = n2core.parent.parent
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
     for i in range(axons.n_axons):
-        n2core.axonCfg[a0+i].discrete.configure(coreId=tcore_id, axonId=t0+i)
+        n2core.axonCfg[ax_idxs[i]].discrete.configure(
+            coreId=tcore_id, axonId=t0+i)
 
 
-def build_probe(n2core, core, group, i0, i1, probe):
+def build_probe(n2core, core, group, probe, cx_idxs):
     assert probe.key in ('u', 'v', 's', 'x')
     key_map = {'s': 'spike', 'x': 'u'}
     key = key_map.get(probe.key, probe.key)
 
     n2board = n2core.parent.parent
-    r = range(i0, i1)[probe.slice]
+    r = cx_idxs[probe.slice]
     p = n2board.monitor.probe(n2core.cxState, r, key)
     core.board.map_probe(probe, p)
 
@@ -200,12 +208,3 @@ class LoihiSimulator(object):
         cx_probe = self.model.objs[probe]['out']
         n2probe = self.board.probe_map[cx_probe]
         return np.column_stack([p.timeSeries.data for p in n2probe])
-
-        # target = self.model.objs[probe]['in']
-        # if isinstance(target, CxGroup):
-        #     raise NotImplementedError("Need some way to get this off chip")
-        # elif isinstance(target, CxProbe):
-        #     n2probe = self.board.probe_map[target]
-        #     return n2probe.timeSeries.data
-        # else:
-        #     raise NotImplementedError()

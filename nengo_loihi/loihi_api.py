@@ -88,22 +88,6 @@ class Board(object):
         else:
             raise NotImplementedError()
 
-    # def find_group(self, group):
-    #     if group.location == 'core':
-    #         for chip_idx, chip in enumerate(self.chips):
-    #             for core_idx, core in enumerate(chip.cores):
-    #                 result = core.find_group(group)
-    #                 if result:
-    #                     group_idx, (i0, i1) = result
-    #                     return CxSlice(
-    #                         self.board_id, chip_idx, core_idx, i0, i1)
-
-    #         raise KeyError("Could not find group %r" % group)
-    #     elif group.location == 'cpu':
-    #         raise NotImplementedError()
-    #     else:
-    #         raise NotImplementedError()
-
     def cores(self):
         return (core for chip in self.chips for core in chip.cores)
 
@@ -159,8 +143,6 @@ class Core(object):
         self.synapse_axons = collections.OrderedDict()
         self.synapse_entries = collections.OrderedDict()
 
-        self.axon_axons = collections.OrderedDict()
-
     @property
     def board(self):
         return self.chip.board
@@ -182,21 +164,15 @@ class Core(object):
 
     def iterate_groups(self):
         i0 = 0
+        a0 = 0
         for group in self.groups:
             i1 = i0 + group.n
-            yield group, (i0, i1)
+            a1 = a0 + sum(ax.n_axons for ax in group.axons)
+            cx_idxs = list(range(i0, i1))
+            ax_range = (a0, a1)
+            yield group, cx_idxs, ax_range
             i0 = i1
-
-    # def iterate_synapses(self):
-    #     for group in self.groups:
-    #         for synapses in self.synapses:
-
-    # def find_group(self, target_group):
-    #     for i, (group, inds) in enumerate(self.groups):
-    #         if group is target_group:
-    #             return i, inds
-
-    #     return None
+            a0 = a1
 
     def add_group(self, group):
         self.groups.append(group)
@@ -238,12 +214,7 @@ class Core(object):
         self.synapse_entries[synapses] = (s0, s1)
 
     def add_axons(self, axons):
-        a0 = 0
-        if len(self.axon_axons) > 0:
-            last = next(reversed(self.axon_axons))
-            a0 = self.axon_axons[last][1]
-        a1 = a0 + axons.n_axons
-        self.axon_axons[axons] = (a0, a1)
+        pass
 
     def get_synapse_fmt(self, synapses):
         return self.synapseFmts[self.synapse_fmt_idxs[synapses]]

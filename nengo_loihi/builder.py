@@ -411,6 +411,8 @@ def build_connection(model, conn):
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
+    assert isinstance(pre_cx, CxGroup)
+    assert isinstance(post_cx, CxGroup)
 
     weights = None
     eval_points = None
@@ -487,23 +489,22 @@ def build_connection(model, conn):
             dec_cx.configure_filter(tau_s, dt=model.dt)
             dec_cx.bias[:] = 0.5 * np.array([1., 1.]).repeat(d)
             model.add_group(dec_cx)
+            model.objs[conn]['decoded'] = dec_cx
 
             dec_syn = CxSynapses(n)
             weights2 = 0.5 * np.vstack([weights, -weights]).T
             dec_syn.set_full_weights(weights2)
             dec_cx.add_synapses(dec_syn)
+            model.objs[conn]['decoders'] = dec_syn
 
             dec_ax0 = CxAxons(n)
             dec_ax0.target = dec_syn
             pre_cx.add_axons(dec_ax0)
+            model.objs[conn]['decode_axons'] = dec_ax0
 
             dec_ax1 = CxAxons(2*d)
             dec_ax1.target = post_cx.named_synapses['encoders2']
             dec_cx.add_axons(dec_ax1)
-
-            model.objs[conn]['decoded'] = dec_cx
-            model.objs[conn]['decoders'] = dec_syn
-            model.objs[conn]['decode_axons'] = dec_ax0
             model.objs[conn]['encode_axons'] = dec_ax1
     else:
         assert conn.pre_slice == slice(None)
@@ -574,10 +575,7 @@ def conn_probe(model, probe):
     syn = CxSynapses(2*d)
     syn.set_full_weights(np.vstack([np.eye(d), -np.eye(d)]))
     sink.add_synapses(syn, name='encoders2')
-
     model.add_group(sink)
-    # model.objs[probe]['in'] = sink
-    # model.objs[probe]['in'] = syn
 
     cx_probe = CxProbe(target=sink, key='x')
     sink.add_probe(cx_probe)
