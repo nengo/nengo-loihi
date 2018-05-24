@@ -130,7 +130,8 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
     ptr = ax_range[0]
     for i in range(group.n):
         n = len(cx_axongroup_map[i])
-        n2core.axonMap[cx_idxs[i]].configure(ptr=ptr, len=n)
+        if n > 0:
+            n2core.axonMap[cx_idxs[i]].configure(ptr=ptr, len=n)
         ptr += n
     assert ptr == ax_range[1]
 

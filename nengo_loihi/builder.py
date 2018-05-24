@@ -473,6 +473,7 @@ def build_connection(model, conn):
             syn = CxSynapses(n1)
             syn.set_full_weights(weights.T)
             post_cx.add_synapses(syn)
+            model.objs[conn]['weights'] = syn
 
             ax = CxAxons(n1)
             ax.target = syn

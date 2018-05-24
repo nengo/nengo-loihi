@@ -268,6 +268,7 @@ class VthProfile(object):
 
 class SynapseFmt(object):
     INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
+    WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
 
     def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
                  learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
@@ -323,10 +324,11 @@ class SynapseFmt(object):
         assert 0 <= self.cIdxOffset < 16
         assert 0 <= self.cIdxMult < 16
         assert 0 <= self.idxBits < 8
+        assert 1 <= self.fanoutType < 4
 
     @property
     def width(self):
-        return 1 + self.wgtBits
+        return self.WEIGHT_BITS_MAP[self.wgtBits]
 
     @property
     def isMixed(self):
