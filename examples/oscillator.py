@@ -52,8 +52,8 @@ with nengo.Network(seed=1) as model:
                        max_rates=max_rates, intercepts=intercepts, seed=4)
     ap = nengo.Probe(a, synapse=0.01)
     # anp = nengo.Probe(a.neurons)
-    aup = nengo.Probe(a.neurons, 'input')
-    avp = nengo.Probe(a.neurons, 'voltage')
+    aup = nengo.Probe(a.neurons[:8], 'input')
+    avp = nengo.Probe(a.neurons[:8], 'voltage')
 
     # nengo.Connection(a, a, function=f, synapse=tau, seed=3)
     c = nengo.Connection(a, a, function=f, synapse=tau, seed=3,
@@ -66,16 +66,17 @@ with nengo.Network(seed=1) as model:
 with Simulator(model) as sim:
     sim.run(10.)
 
+
 synapse = nengo.synapses.Alpha(0.01)
 x = synapse.filtfilt(sim.data[ap])
 
 nshow = 8
 
-u = sim.data[aup][:25, :nshow]
+u = sim.data[aup][:25]
 u = np.round(u*1000) if str(u.dtype).startswith('float') else u
 print(np.column_stack((np.arange(u.shape[0]), u)))
 
-v = sim.data[avp][:25, :nshow]
+v = sim.data[avp][:25]
 v = np.round(v*1000) if str(v.dtype).startswith('float') else v
 print(np.column_stack((np.arange(v.shape[0]), v)))
 
