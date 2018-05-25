@@ -84,9 +84,9 @@ class Board(object):
         if group.location == 'core':
             return self.synapses_index[synapses]
         elif group.location == 'cpu':
-            raise NotImplementedError()
+            raise NotImplementedError("CPU neurons not implemented")
         else:
-            raise NotImplementedError()
+            raise ValueError("Unrecognized location %r" % group.location)
 
     def cores(self):
         return (core for chip in self.chips for core in chip.cores)
