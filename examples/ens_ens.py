@@ -7,21 +7,22 @@ if not haveDisplay:
 import nengo
 import nengo_loihi
 import numpy as np
-
 import matplotlib.pyplot as plt
 
 try:
     import nxsdk
-    target = 'loihi'
+    Simulator = nengo_loihi.Simulator
     print("Running on Loihi")
 except ImportError:
-    target = 'sim'
+    Simulator = nengo_loihi.NumpySimulator
     print("Running in simulation")
 
 
 a_fn = lambda x: x + 0.5
+solver = nengo.solvers.LstsqL2(weights=False)
+# solver = nengo.solvers.LstsqL2(weights=True)
 
-
+bnp = None
 with nengo.Network(seed=1) as model:
     a = nengo.Ensemble(100, 1, label='b',
                        max_rates=nengo.dists.Uniform(100, 120),
@@ -33,43 +34,34 @@ with nengo.Network(seed=1) as model:
     b = nengo.Ensemble(101, 1, label='b',
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-0.5, 0.5))
-    # ab_conn = nengo.Connection(a, b, function=a_fn)
-    ab_conn = nengo.Connection(a, b, function=a_fn, solver=nengo.solvers.LstsqL2(weights=True))
+    ab_conn = nengo.Connection(a, b, function=a_fn, solver=solver)
     bp = nengo.Probe(b)
-    # bnp = nengo.Probe(b.neurons)
+    bnp = nengo.Probe(b.neurons)
     bup = nengo.Probe(b.neurons[:5], 'input')
     bvp = nengo.Probe(b.neurons[:5], 'voltage')
 
+    c = nengo.Ensemble(1, 1, label='c')
+    bc_conn = nengo.Connection(b, c)
 
-# with nengo.Simulator(model) as sim:
-# with nengo_loihi.Simulator(model, target='sim') as sim:
-# with nengo_loihi.Simulator(model, target='loihi') as sim:
-with nengo_loihi.Simulator(model, target=target) as sim:
-    # sim.run(0.1)
-    # sim.run(0.5)
-    # sim.run(1.5)
+
+with Simulator(model) as sim:
     sim.run(1.0)
 
 print(sim.data[avp][-10:])
 print(sim.data[bup][-10:])
 print(sim.data[bvp][-10:])
 
-# ac = sim.data[anp].sum(axis=0)
-# bc = sim.data[bnp].sum(axis=0)
-# a_decoders = sim.data[ab_conn].weights
-# print(ac)
-# print(np.dot(a_decoders, ac) * sim.dt)
+if bnp is not None:
+    bcount = sim.data[bnp].sum(axis=0)
+    b_decoders = sim.data[bc_conn].weights
+    print(bcount)
+    print("Spike decoded value: %s" % (np.dot(b_decoders, bcount) * sim.dt,))
 
 plt.figure()
 output_filter = nengo.synapses.Alpha(0.02)
 print(output_filter.filtfilt(sim.data[bp])[::100])
-# plt.plot(sim.trange(), output_filter.filt(sim.data[ap]))
-# plt.plot(sim.trange(), output_filter.filt(sim.data[bp]))
 plt.plot(sim.trange(), output_filter.filtfilt(sim.data[ap]))
 plt.plot(sim.trange(), output_filter.filtfilt(sim.data[bp]))
-
-plt.figure()
-plt.plot(sim.trange(), sim.data[avp][:, :10])
 
 plt.savefig('ens_ens.png')
 plt.show()
