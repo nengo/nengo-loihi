@@ -34,6 +34,8 @@ def f(x):
 
 
 n = 200
+# solver = nengo.solvers.LstsqL2(weights=False)
+solver = nengo.solvers.LstsqL2(weights=True)
 
 if 1:
     # for some reason this works:
@@ -56,8 +58,7 @@ with nengo.Network(seed=1) as model:
     avp = nengo.Probe(a.neurons[:8], 'voltage')
 
     # nengo.Connection(a, a, function=f, synapse=tau, seed=3)
-    c = nengo.Connection(a, a, function=f, synapse=tau, seed=3,
-                         solver=nengo.solvers.LstsqL2(weights=True))
+    c = nengo.Connection(a, a, function=f, synapse=tau, seed=3, solver=solver)
 
     b = nengo.Ensemble(100, 2, label='b')
     ab = nengo.Connection(a, b, synapse=None)
