@@ -21,6 +21,7 @@ except ImportError:
 tau = 0.1
 alpha = 1.0
 
+
 def f(x):
     x0, x1 = x
     r = np.sqrt(x0**2 + x1**2)
