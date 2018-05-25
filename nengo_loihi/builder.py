@@ -20,6 +20,12 @@ from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe)
 
 
+# Filter on intermediary neurons
+INTER_TAU = 0.005
+# ^TODO: how to choose this filter? Need it since all input will be spikes,
+#   but maybe don't want double filtering if connection has a filter
+
+
 class Model(CxModel):
     def __init__(self, dt=0.001, label=None, builder=None):
         super(Model, self).__init__()
@@ -223,14 +229,7 @@ def build_ensemble(model, ens):
     else:
         raise NotImplementedError()
 
-    # default filter
-    # tau_s = 0.0
-    # tau_s = 0.002
-    tau_s = 0.005
-    # tau_s = 0.05
-    # ^TODO: how to choose this filter? Need it since all input will be spikes,
-    #   but maybe don't want double filtering if connection has a filter
-    group.configure_filter(tau_s, dt=model.dt)
+    group.configure_filter(INTER_TAU, dt=model.dt)
 
     # Scale the encoders
     if isinstance(ens.neuron_type, Direct):
@@ -569,7 +568,7 @@ def conn_probe(model, probe):
     # Connection probes create a connection from the target, and probe
     # the resulting signal (used when you want to probe the default
     # output of an object, which may not have a predefined signal)
-    conn = Connection(probe.target, probe, synapse=probe.synapse,
+    conn = Connection(probe.target, probe, synapse=INTER_TAU,
                       solver=probe.solver, add_to_container=False)
 
     # Set connection's seed to probe's (which isn't used elsewhere)
@@ -578,7 +577,7 @@ def conn_probe(model, probe):
 
     d = conn.size_out
     weights = np.vstack([np.eye(d), -np.eye(d)])
-    cx_probe = CxProbe(key='s', weights=weights)
+    cx_probe = CxProbe(key='s', weights=weights, synapse=probe.synapse)
     model.objs[probe]['in'] = cx_probe
     model.objs[probe]['out'] = cx_probe
 
@@ -589,7 +588,8 @@ def conn_probe(model, probe):
 def signal_probe(model, key, probe):
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']
-    cx_probe = CxProbe(target=target, key=key, slice=probe.slice)
+    cx_probe = CxProbe(
+        target=target, key=key, slice=probe.slice, synapse=probe.synapse)
     target.add_probe(cx_probe)
     model.objs[probe]['in'] = target
     model.objs[probe]['out'] = cx_probe

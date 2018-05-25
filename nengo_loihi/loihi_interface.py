@@ -195,6 +195,9 @@ class LoihiSimulator(object):
     def __init__(self, cx_model):
         self.build(cx_model)
 
+        self._probe_filters = {}
+        self._probe_filter_pos = {}
+
     def build(self, cx_model):
         self.model = cx_model
 
@@ -214,8 +217,33 @@ class LoihiSimulator(object):
     def run_steps(self, steps):
         self.n2board.run(steps)
 
+    def _filter_probe(self, cx_probe, data):
+        dt = self.model.dt
+        i = self._probe_filter_pos.get(cx_probe, 0)
+        if i == 0:
+            shape = data[0].shape
+            synapse = cx_probe.synapse
+            rng = None
+            step = (synapse.make_step(shape, shape, dt, rng, dtype=data.dtype)
+                    if synapse is not None else None)
+            self._probe_filters[cx_probe] = step
+        else:
+            step = self._probe_filters[cx_probe]
+
+        if step is None:
+            self._probe_filter_pos[cx_probe] = i + len(data)
+            return data
+        else:
+            filt_data = np.zeros_like(data)
+            for k, x in enumerate(data):
+                filt_data[k] = step((i + k) * dt, x)
+
+            self._probe_filter_pos[cx_probe] = i + k
+            return filt_data
+
     def get_probe_output(self, probe):
         cx_probe = self.model.objs[probe]['out']
         n2probe = self.board.probe_map[cx_probe]
         x = np.column_stack([p.timeSeries.data for p in n2probe])
-        return x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
+        x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
+        return self._filter_probe(cx_probe, x)
