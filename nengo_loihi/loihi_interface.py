@@ -121,25 +121,8 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
     for synapses in group.synapses:
         build_synapses(n2core, core, group, synapses, cx_idxs)
 
-    cx_axongroup_map = [[] for _ in range(group.n)]
-    for i, axons in enumerate(group.axons):
-        assert group.n == axons.n_axons
-        for j in range(group.n):
-            cx_axongroup_map[j].append(i)
-
-    ptr = ax_range[0]
-    for i in range(group.n):
-        n = len(cx_axongroup_map[i])
-        if n > 0:
-            n2core.axonMap[cx_idxs[i]].configure(ptr=ptr, len=n)
-        ptr += n
-    assert ptr == ax_range[1]
-
-    axon_axongroup_map = np.array([v for vv in cx_axongroup_map for v in vv])
-    for k, axons in enumerate(group.axons):
-        ax_idxs = ax_range[0] + (axon_axongroup_map == k).nonzero()[0]
-        ax_idxs = [int(a) for a in ax_idxs]
-        build_axons(n2core, core, group, axons, ax_idxs)
+    for axons in group.axons:
+        build_axons(n2core, core, group, axons, cx_idxs)
 
     for probe in group.probes:
         build_probe(n2core, core, group, probe, cx_idxs)
@@ -170,14 +153,16 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
         s0 += len(wa)
 
 
-def build_axons(n2core, core, group, axons, ax_idxs):
+def build_axons(n2core, core, group, axons, cx_idxs):
     tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axons.target)
     taxon_idxs = np.arange(t0, t1, dtype=np.int32)[axons.target_inds]
     n2board = n2core.parent.parent
+    tchip_id = n2board.n2Chips[tchip_idx].id
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
+    assert axons.n_axons == len(cx_idxs)
     for i in range(axons.n_axons):
-        n2core.axonCfg[ax_idxs[i]].discrete.configure(
-            coreId=tcore_id, axonId=taxon_idxs[i])
+        n2core.createDiscreteAxon(
+            cx_idxs[i], tchip_id, tcore_id, taxon_idxs[i])
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):

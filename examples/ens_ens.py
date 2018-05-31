@@ -19,8 +19,8 @@ except ImportError:
 
 
 a_fn = lambda x: x + 0.5
-solver = nengo.solvers.LstsqL2(weights=False)
-# solver = nengo.solvers.LstsqL2(weights=True)
+# solver = nengo.solvers.LstsqL2(weights=False)
+solver = nengo.solvers.LstsqL2(weights=True)
 
 bnp = None
 with nengo.Network(seed=1) as model:
@@ -28,7 +28,7 @@ with nengo.Network(seed=1) as model:
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-0.5, 0.5))
     ap = nengo.Probe(a)
-    # anp = nengo.Probe(a.neurons)
+    anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
 
     b = nengo.Ensemble(101, 1, label='b',
@@ -50,6 +50,9 @@ with Simulator(model) as sim:
 print(sim.data[avp][-10:])
 print(sim.data[bup][-10:])
 print(sim.data[bvp][-10:])
+
+acount = sim.data[anp].sum(axis=0)
+print(acount)
 
 if bnp is not None:
     bcount = sim.data[bnp].sum(axis=0)
