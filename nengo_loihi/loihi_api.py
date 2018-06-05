@@ -1,6 +1,7 @@
 from __future__ import division
 
 import collections
+import warnings
 
 import numpy as np
 
@@ -31,6 +32,13 @@ def bias_to_manexp(bias):
     assert ((exp >= 0) & (exp <= BIAS_EXP_MAX)).all()
     assert (np.abs(man) <= BIAS_MAN_MAX).all()
     return man, exp
+
+
+def shift(x, s, **kwargs):
+    if s < 0:
+        return np.right_shift(x, -s, **kwargs)
+    else:
+        return np.left_shift(x, s, **kwargs)
 
 
 class CxSlice(object):
@@ -341,6 +349,16 @@ class SynapseFmt(object):
     def discretize_weights(self, w, dtype=np.int32):
         s = 8 - self.width + self.isMixed
         m = 2**(8 - s) - 1
+
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
-        np.left_shift(w, self.realWgtExp + s, out=w)
+        s2 = s + self.wgtExp
+        shift(w, s2, out=w)
+        np.left_shift(w, 6, out=w)
+
+        if s2 < 0:
+            warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
+
+        ws = w // self.scale
+        assert np.all(ws <= 255) and np.all(ws >= -256)
+
         return w

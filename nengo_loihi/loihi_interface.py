@@ -140,7 +140,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
         ia = synapses.indices[a]
         assert len(wa) == len(ia)
 
-        assert np.all(wa <= 255) and np.all(wa >= -255), str(wa)
+        assert np.all(wa <= 255) and np.all(wa >= -256), str(wa)
         for k, (w, i) in enumerate(zip(wa, ia)):
             n2core.synapses[s0+k].CIdx = cx_idxs[i]
             n2core.synapses[s0+k].Wgt = w
