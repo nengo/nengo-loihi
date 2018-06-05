@@ -220,22 +220,10 @@ def build_ensemble(model, ens):
 
     if isinstance(ens.neuron_type, Direct):
         raise NotImplementedError()
-    elif isinstance(ens.neuron_type, LIF):
-        assert ens.neuron_type.amplitude == 1
-        group = CxGroup(ens.n_neurons, label='%s' % ens)
-        group.configure_lif(
-            tau_rc=ens.neuron_type.tau_rc,
-            tau_ref=ens.neuron_type.tau_ref,
-            dt=model.dt,
-            )
-        group.bias[:] = bias
-    elif isinstance(ens.neuron_type, RectifiedLinear):
-        assert ens.neuron_type.amplitude == 1
-        group = CxGroup(ens.n_neurons, label='%s' % ens)
-        group.configure_relu(dt=model.dt)
-        group.bias[:] = bias
     else:
-        raise NotImplementedError()
+        group = CxGroup(ens.n_neurons, label='%s' % ens)
+        group.bias[:] = bias
+        model.build(ens.neuron_type, ens.neurons, group)
 
     group.configure_filter(INTER_TAU, dt=model.dt)
 
@@ -272,6 +260,21 @@ def build_ensemble(model, ens):
         scaled_encoders=scaled_encoders,
         gain=gain,
         bias=bias)
+
+
+@Builder.register(LIF)
+def build_lif(model, lif, neurons, group):
+    assert lif.amplitude == 1
+    group.configure_lif(
+        tau_rc=lif.tau_rc,
+        tau_ref=lif.tau_ref,
+        dt=model.dt)
+
+
+@Builder.register(RectifiedLinear)
+def build_relu(model, relu, neurons, group):
+    assert relu.amplitude == 1
+    group.configure_relu(dt=model.dt)
 
 
 @Builder.register(Node)
