@@ -233,12 +233,13 @@ class CxProfile(object):
     DECAY_V_MAX = 2**12 - 1
     REFRACT_DELAY_MAX = 2**6 - 1
 
-    params = ('decayU', 'decayV', 'refractDelay')
+    params = ('decayU', 'decayV', 'refractDelay', 'enableNoise')
 
-    def __init__(self, decayV, decayU, refractDelay):
+    def __init__(self, decayV, decayU, refractDelay, enableNoise):
         self.decayV = decayV
         self.decayU = decayU
         self.refractDelay = refractDelay
+        self.enableNoise = enableNoise
 
     def __eq__(self, obj):
         return isinstance(obj, type(self)) and all(
@@ -251,6 +252,7 @@ class CxProfile(object):
         assert 0 <= self.decayU <= self.DECAY_U_MAX
         assert 0 <= self.decayV <= self.DECAY_V_MAX
         assert 1 <= self.refractDelay <= self.REFRACT_DELAY_MAX
+        assert 0 <= self.enableNoise <= 1
 
 
 class VthProfile(object):

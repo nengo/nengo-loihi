@@ -77,8 +77,6 @@ class Simulator(object):
             # Build the network into the model
             self.model.build(network)
 
-        self.model.discretize()
-
         self._probe_outputs = self.model.params
         self.data = ProbeDict(self._probe_outputs)
 
@@ -90,10 +88,14 @@ class Simulator(object):
 
         self.loihi = None
         self.simulator = None
-        if target == 'loihi':
-            self.loihi = self.model.get_loihi()
+        if target == 'simreal':
+            self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'sim':
-            self.simulator = self.model.get_simulator()
+            self.model.discretize()
+            self.simulator = self.model.get_simulator(seed=seed)
+        elif target == 'loihi':
+            self.model.discretize()
+            self.loihi = self.model.get_loihi(seed=seed)
         else:
             raise ValueError("Unrecognized target")
 

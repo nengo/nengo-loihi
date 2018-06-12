@@ -1,5 +1,7 @@
 from __future__ import division
 
+import warnings
+
 import numpy as np
 
 from nxsdk.arch.n2a.graph.graph import N2Board
@@ -42,6 +44,7 @@ def build_core(n2core, core):
             decayV=cxProfile.decayV,
             decayU=cxProfile.decayU,
             refractDelay=cxProfile.refractDelay,
+            enableNoise=cxProfile.enableNoise,
             bapAction=1,
         )
 
@@ -76,7 +79,8 @@ def build_core(n2core, core):
 
     # TODO: allocator should be checking that vmin, vmax are the same
     #   for all groups on a core
-    vmin, vmax = core.groups[0].vmin, core.groups[0].vmax
+    group0 = core.groups[0]
+    vmin, vmax = group0.vmin, group0.vmax
     assert all(group.vmin == vmin for group in core.groups)
     assert all(group.vmax == vmax for group in core.groups)
     negVmLimit = np.log2(-vmin + 1)
@@ -84,9 +88,22 @@ def build_core(n2core, core):
     assert int(negVmLimit) == negVmLimit
     assert int(posVmLimit) == posVmLimit
 
+    noiseExp0 = group0.noiseExp0
+    noiseMantOffset0 = group0.noiseMantOffset0
+    noiseAtDendOrVm = group0.noiseAtDendOrVm
+    assert all(group.noiseExp0 == noiseExp0 for group in core.groups)
+    assert all(group.noiseMantOffset0 == noiseMantOffset0
+               for group in core.groups)
+    assert all(group.noiseAtDendOrVm == noiseAtDendOrVm
+               for group in core.groups)
+
     n2core.dendriteSharedCfg.configure(
         posVmLimit=int(posVmLimit),
-        negVmLimit=int(negVmLimit))
+        negVmLimit=int(negVmLimit),
+        noiseExp0=noiseExp0,
+        noiseMantOffset0=noiseMantOffset0,
+        noiseAtDendOrVm=noiseAtDendOrVm,
+    )
 
     n2core.dendriteAccumCfg.configure(
         delayBits=3)
@@ -177,13 +194,16 @@ def build_probe(n2core, core, group, probe, cx_idxs):
 
 
 class LoihiSimulator(object):
-    def __init__(self, cx_model):
-        self.build(cx_model)
+    def __init__(self, cx_model, seed=None):
+        if seed is not None:
+            warnings.warn("Seed will be ignored when running on Loihi")
+
+        self.build(cx_model, seed=seed)
 
         self._probe_filters = {}
         self._probe_filter_pos = {}
 
-    def build(self, cx_model):
+    def build(self, cx_model, seed=None):
         self.model = cx_model
 
         # --- allocate

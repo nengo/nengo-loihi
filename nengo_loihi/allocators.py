@@ -27,6 +27,7 @@ def core_cx_profiles(core):
                 decayU=group.decayU[i],
                 decayV=group.decayV[i],
                 refractDelay=group.refractDelay[i],
+                enableNoise=group.enableNoise[i],
             ))
 
         return profiles

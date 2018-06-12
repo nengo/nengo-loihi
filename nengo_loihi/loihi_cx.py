@@ -1,6 +1,7 @@
 from __future__ import division
 
 import collections
+import warnings
 
 import numpy as np
 
@@ -13,19 +14,19 @@ class CxGroup(object):
         self.n = n
         self.label = label
 
-        # self.cxProfiles = []
-        # self.vthProfiles = []
-
-        # self.outputAxonMap = None
-        # self.outputAxons = None
-
         self.decayU = np.zeros(n, dtype=np.float32)
         self.decayV = np.zeros(n, dtype=np.float32)
         self.refractDelay = np.zeros(n, dtype=np.int32)
         self.vth = np.zeros(n, dtype=np.float32)
+        self.bias = np.zeros(n, dtype=np.float32)
+        self.enableNoise = np.zeros(n, dtype=bool)
+
+        # parameters common to core
         self.vmin = 0
         self.vmax = np.inf
-        self.bias = np.zeros(n, dtype=np.float32)
+        self.noiseMantOffset0 = 0
+        self.noiseExp0 = 0
+        self.noiseAtDendOrVm = 0
 
         self.synapses = []
         self.named_synapses = {}
@@ -99,7 +100,7 @@ class CxGroup(object):
         self.vmin = 0
         self.vmax = np.inf
         self.scaleU = True
-        self.scaleV = True
+        self.scaleV = np.all(self.decayV > 1e-15)
 
     def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
@@ -194,6 +195,17 @@ class CxGroup(object):
                 discretize(w, synapse.synapse_fmt.discretize_weights(
                     w * w_scale * 2**dWgtExp))
 
+        # --- noise
+        assert (v_scale[0] == v_scale).all()
+        noiseExp0 = np.round(np.log2(10.**self.noiseExp0 * v_scale[0]))
+        if noiseExp0 < 0:
+            warnings.warn("Noise amplitude falls below lower limit")
+        if noiseExp0 > 23:
+            warnings.warn(
+                "Noise amplitude exceeds upper limit (%d > 23)" % (noiseExp0,))
+        self.noiseExp0 = int(np.clip(noiseExp0, 0, 23))
+        self.noiseMantOffset0 = int(np.round(2*self.noiseMantOffset0))
+
 
 class CxSynapses(object):
     def __init__(self, n_axons):
@@ -266,12 +278,12 @@ class CxModel(object):
         for group in self.cx_groups:
             group.discretize()
 
-    def get_loihi(self):
+    def get_loihi(self, seed=None):
         from nengo_loihi.loihi_interface import LoihiSimulator
-        return LoihiSimulator(self)
+        return LoihiSimulator(self, seed=seed)
 
-    def get_simulator(self):
-        return CxSimulator(self)
+    def get_simulator(self, seed=None):
+        return CxSimulator(self, seed=seed)
 
 
 class CxSimulator(object):
@@ -281,18 +293,22 @@ class CxSimulator(object):
     - compartment mixing (omega)
     """
 
-    def __init__(self, model):
-        self.build(model)
+    def __init__(self, model, seed=None):
+        self.build(model, seed=seed)
 
         self._probe_filters = {}
         self._probe_filter_pos = {}
 
-    def build(self, model):
+    def build(self, model, seed=None):  # noqa: C901
+        if seed is None:
+            seed = np.random.randint(2**31 - 1)
+        self.seed = seed
+        self.rng = np.random.RandomState(seed)
+
         self.model = model
         # self.groups = list(self.model.cx_groups)
         self.groups = sorted(self.model.cx_groups,
                              key=lambda g: g.location == 'cpu')
-        self.probes = list(self.model.probes)
         self.probe_outputs = collections.defaultdict(list)
 
         self.n_cx = sum(group.n for group in self.groups)
@@ -368,6 +384,31 @@ class CxSimulator(object):
         self.bias = np.hstack([group.bias for group in self.groups])
         self.ref = np.hstack([group.refractDelay for group in self.groups])
 
+        # --- noise
+        enableNoise = np.hstack([
+            group.enableNoise*ones(group.n) for group in self.groups])
+        noiseExp0 = np.hstack([
+            group.noiseExp0*ones(group.n) for group in self.groups])
+        noiseMantOffset0 = np.hstack([
+            group.noiseMantOffset0*ones(group.n) for group in self.groups])
+        noiseTarget = np.hstack([
+            group.noiseAtDendOrVm*ones(group.n) for group in self.groups])
+        if group_dtype == np.int32:
+            noiseMult = np.where(enableNoise, 2**(noiseExp0 - 7), 0)
+
+            def noiseGen(n=self.n_cx, rng=self.rng):
+                x = rng.randint(-128, 128, size=n)
+                return (x + 64*noiseMantOffset0) * noiseMult
+        elif group_dtype == np.float32:
+            noiseMult = np.where(enableNoise, 10.**noiseExp0, 0)
+
+            def noiseGen(n=self.n_cx, rng=self.rng):
+                x = rng.uniform(-1, 1, size=n)
+                return (x + noiseMantOffset0) * noiseMult
+
+        self.noiseGen = noiseGen
+        self.noiseTarget = noiseTarget
+
     def step(self):
         # --- connections
         self.q[:-1] = self.q[1:]  # advance delays
@@ -396,9 +437,13 @@ class CxSimulator(object):
         # --- updates
         q0 = self.q[0, :]
 
+        noise = self.noiseGen()
+        q0[self.noiseTarget == 0] += noise[self.noiseTarget == 0]
+
         # self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)
         self.u[:] = self.decayU_fn(self.u[:], q0)
         u2 = self.u[:] + self.bias
+        u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
