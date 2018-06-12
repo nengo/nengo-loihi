@@ -16,10 +16,14 @@ try:
     print("Running on Loihi")
 except ImportError:
     Simulator = nengo_loihi.NumpySimulator
+    # Simulator = lambda *args, **kwargs: nengo_loihi.Simulator(
+    #     *args, **kwargs, target='simreal')
+    # Simulator = nengo.Simulator
     print("Running in simulation")
 
 tau = 0.1
-alpha = 1.0
+# alpha = 1.0
+alpha = 3.0
 
 
 def f(x):
@@ -34,15 +38,15 @@ def f(x):
 
 
 n = 200
-# solver = nengo.solvers.LstsqL2(weights=False)
-solver = nengo.solvers.LstsqL2(weights=True)
+# n = 500
+solver = nengo.solvers.LstsqL2(weights=False)
+# solver = nengo.solvers.LstsqL2(weights=True)
 
 if 1:
     # for some reason this works:
     rng = np.random.RandomState(3)
     max_rates = nengo.dists.Uniform(100, 120).sample(n, rng=rng)
     intercepts = nengo.dists.Uniform(-0.5, 0.5).sample(n, rng=rng)
-    intercepts[0] = -1
 else:
     # but this doesn't:
     max_rates = nengo.dists.Uniform(100, 120)  # can't have this too high
@@ -96,5 +100,7 @@ plt.plot(sim.trange(), x)
 # decoders = sim.data[ab].weights
 # plt.plot(sim.trange(), np.dot(synapse.filtfilt(spikes), decoders.T))
 
-plt.savefig('oscillator.png')
-plt.show()
+if haveDisplay:
+    plt.show()
+else:
+    plt.savefig('oscillator.png')

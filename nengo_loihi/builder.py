@@ -25,12 +25,19 @@ INTER_TAU = 0.005
 # ^TODO: how to choose this filter? Need it since all input will be spikes,
 #   but maybe don't want double filtering if connection has a filter
 
-INTER_RATE = 1000
+# INTER_RATE = 1000
 # INTER_RATE = 500
 # INTER_RATE = 300
 # INTER_RATE = 250
 # INTER_RATE = 200
-# INTER_RATE = 100
+INTER_RATE = 100
+
+# INTER_N = 1
+# INTER_NOISE_EXP = -np.inf
+
+# INTER_N = 5
+INTER_N = 10
+INTER_NOISE_EXP = -2
 
 
 class Model(CxModel):
@@ -240,7 +247,7 @@ def build_ensemble(model, ens):
     # group.add_synapses(synapses, name='encoders')
 
     synapses2 = CxSynapses(2*scaled_encoders.shape[1])
-    inter_scale = 1. / (model.dt * INTER_RATE)
+    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     interscaled_encoders = scaled_encoders * inter_scale
     synapses2.set_full_weights(
         np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
@@ -307,6 +314,7 @@ def build_node(model, node):
     # on/off neuron coding for decoded values
     d = node.size_out
 
+    raise NotImplementedError("INTER_N not implemented for nodes")
     dec_cx = CxGroup(2*d, label='%s' % node, location='cpu')
     dec_cx.configure_relu(dt=model.dt)
     gain = model.dt * INTER_RATE
@@ -501,15 +509,19 @@ def build_connection(model, conn):
             assert len(post_inds) == d
 
             gain = model.dt * INTER_RATE
-            dec_cx = CxGroup(2*d, label='%s' % conn, location='core')
+            dec_cx = CxGroup(2*d*INTER_N, label='%s' % conn, location='core')
             dec_cx.configure_relu(dt=model.dt)
             dec_cx.configure_filter(tau_s, dt=model.dt)
-            dec_cx.bias[:] = (0.5 * gain) * np.array([1., 1.]).repeat(d)
+            dec_cx.bias[:] = 0.5 * gain * np.array(([1.]*d + [1.]*d)*INTER_N)
+            if INTER_NOISE_EXP > -30:
+                dec_cx.enableNoise[:] = 1
+                dec_cx.noiseExp0 = INTER_NOISE_EXP
+                dec_cx.noiseAtDendOrVm = 1
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
 
             dec_syn = CxSynapses(n)
-            weights2 = (0.5 * gain) * np.vstack([weights, -weights]).T
+            weights2 = 0.5 * gain * np.vstack([weights, -weights]*INTER_N).T
             dec_syn.set_full_weights(weights2)
             dec_cx.add_synapses(dec_syn)
             model.objs[conn]['decoders'] = dec_syn
@@ -525,9 +537,10 @@ def build_connection(model, conn):
                 post_cx.target = dec_cx
                 dec_cx.add_probe(post_cx)
             else:
-                dec_ax1 = CxAxons(2*d)
+                dec_ax1 = CxAxons(2*d*INTER_N)
                 dec_ax1.target = post_cx.named_synapses['encoders2']
-                dec_ax1.target_inds = np.hstack([post_inds, post_d+post_inds])
+                dec_ax1.target_inds = np.hstack(
+                    [post_inds, post_d+post_inds] * INTER_N)
                 dec_cx.add_axons(dec_ax1)
                 model.objs[conn]['encode_axons'] = dec_ax1
     else:
@@ -593,9 +606,9 @@ def conn_probe(model, probe):
     model.seeds[conn] = model.seeds[probe]
 
     d = conn.size_out
-    inter_scale = 1. / (model.dt * INTER_RATE)
+    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     w = np.diag(inter_scale * np.ones(d))
-    weights = np.vstack([w, -w])
+    weights = np.vstack([w, -w] * INTER_N)
     cx_probe = CxProbe(key='s', weights=weights, synapse=probe.synapse)
     model.objs[probe]['in'] = cx_probe
     model.objs[probe]['out'] = cx_probe
