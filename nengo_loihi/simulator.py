@@ -65,12 +65,14 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,
-                 target='loihi'):
+                 target='loihi', max_time=None):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
-            self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
+            self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt),
+                               max_time=max_time)
         else:
+            assert max_time is None or model.max_time == max_time
             self.model = model
 
         if network is not None:

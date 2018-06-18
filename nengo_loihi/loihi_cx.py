@@ -264,10 +264,38 @@ class CxProbe(object):
         self.synapse = synapse
 
 
+class CxSpikeInput(object):
+    def __init__(self, spikes):
+        assert spikes.ndim == 2
+        self.spikes = spikes
+        self.axons = []
+        self.probes = []
+
+    @property
+    def n_axons(self):
+        return self.spikes.shape[1]
+
+    def add_axons(self, axons):
+        assert axons.n_axons == self.n_axons
+        self.axons.append(axons)
+
+    def add_probe(self, probe):
+        if probe.target is None:
+            probe.target = self
+        assert probe.target is self
+        self.probes.append(probe)
+
+
 class CxModel(object):
 
     def __init__(self):
+        self.cx_inputs = collections.OrderedDict()
         self.cx_groups = collections.OrderedDict()
+
+    def add_input(self, input):
+        assert isinstance(input, CxSpikeInput)
+        assert input not in self.cx_inputs
+        self.cx_inputs[input] = len(self.cx_inputs)
 
     def add_group(self, group):
         assert isinstance(group, CxGroup)
@@ -305,7 +333,10 @@ class CxSimulator(object):
         self.seed = seed
         self.rng = np.random.RandomState(seed)
 
+        self.t = 0
+
         self.model = model
+        self.inputs = list(self.model.cx_inputs)
         # self.groups = list(self.model.cx_groups)
         self.groups = sorted(self.model.cx_groups,
                              key=lambda g: g.location == 'cpu')
@@ -343,7 +374,7 @@ class CxSimulator(object):
         self.c = np.zeros(self.n_cx, dtype=np.int32)  # spike counter
         self.w = np.zeros(self.n_cx, dtype=np.int32)  # ref period counter
 
-        # --- allocate weights
+        # --- allocate group parameters
         self.decayU = np.hstack([group.decayU for group in self.groups])
         self.decayV = np.hstack([group.decayV for group in self.groups])
         self.scaleU = np.hstack([
@@ -384,6 +415,10 @@ class CxSimulator(object):
         self.bias = np.hstack([group.bias for group in self.groups])
         self.ref = np.hstack([group.refractDelay for group in self.groups])
 
+        # --- allocate synapse memory
+        self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
+                     for group in self.groups for synapses in group.synapses}
+
         # --- noise
         enableNoise = np.hstack([
             group.enableNoise*ones(group.n) for group in self.groups])
@@ -409,19 +444,32 @@ class CxSimulator(object):
         self.noiseGen = noiseGen
         self.noiseTarget = noiseTarget
 
-    def step(self):
+    def step(self):  # noqa: C901
         # --- connections
         self.q[:-1] = self.q[1:]  # advance delays
         self.q[-1] = 0
 
+        for a_in in self.a_in.values():
+            a_in[:] = 0
+
+        for input in self.inputs:
+            for axons in input.axons:
+                synapses = axons.target
+                assert axons.target_inds == slice(None)
+                self.a_in[synapses] += input.spikes[self.t]
+
         for group in self.groups:
             for axons in group.axons:
                 synapses = axons.target
-                s_in = np.zeros(synapses.n_axons, dtype=np.int32)
+                s_in = self.a_in[synapses]
 
                 a_slice = self.group_cxs[axons.group]
                 sa = self.s[a_slice]
                 np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
+
+        for group in self.groups:
+            for synapses in group.synapses:
+                s_in = self.a_in[synapses]
 
                 b_slice = self.group_cxs[synapses.group]
                 weights = synapses.weights
@@ -464,6 +512,13 @@ class CxSimulator(object):
         self.c[self.s] += 1
 
         # --- probes
+        for input in self.inputs:
+            for probe in input.probes:
+                assert probe.key == 's'
+                p_slice = probe.slice
+                x = input.spikes[self.t][p_slice].copy()
+                self.probe_outputs[probe].append(x)
+
         for group in self.groups:
             for probe in group.probes:
                 x_slice = self.group_cxs[probe.target]
@@ -471,6 +526,8 @@ class CxSimulator(object):
                 assert hasattr(self, probe.key)
                 x = getattr(self, probe.key)[x_slice][p_slice].copy()
                 self.probe_outputs[probe].append(x)
+
+        self.t += 1
 
     def run_steps(self, steps):
         for _ in range(steps):

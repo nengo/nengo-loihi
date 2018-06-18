@@ -17,7 +17,7 @@ from nengo.utils.compat import is_array_like, iteritems
 import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
-    CxModel, CxGroup, CxSynapses, CxAxons, CxProbe)
+    CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
 
 
 # Filter on intermediary neurons
@@ -41,11 +41,12 @@ INTER_NOISE_EXP = -2
 
 
 class Model(CxModel):
-    def __init__(self, dt=0.001, label=None, builder=None):
+    def __init__(self, dt=0.001, label=None, builder=None, max_time=None):
         super(Model, self).__init__()
 
         self.dt = dt
         self.label = label
+        self.max_time = max_time
 
         self.objs = collections.defaultdict(dict)
         self.params = {}
@@ -286,9 +287,40 @@ def build_relu(model, relu, neurons, group):
 
 @Builder.register(Node)
 def build_node(model, node):
-    # input signal
-    # if not is_array_like(node.output) and node.size_in > 0:
-    if node.size_in > 0:
+    if node.size_in == 0:
+        from .neurons import NIF
+
+        # --- pre-compute node input spikes
+        assert model.max_time is not None
+
+        max_rate = INTER_RATE * INTER_N
+        assert max_rate <= 1000
+
+        # TODO: figure out seeds for this pre-compute simulation
+        network2 = nengo.Network()
+        with network2:
+            node2 = nengo.Node(output=node.output,
+                               size_in=node.size_in,
+                               size_out=node.size_out)
+            ens2 = nengo.Ensemble(
+                2, 1, neuron_type=NIF(tau_ref=0.0),
+                encoders=[[1], [-1]],
+                max_rates=[max_rate] * 2,
+                intercepts=[-1] * 2)
+            nengo.Connection(node2, ens2, synapse=None)
+            probe2 = nengo.Probe(ens2.neurons, synapse=None)
+
+        with nengo.Simulator(network2) as sim2:
+            sim2.run(model.max_time)
+
+        spikes = sim2.data[probe2] > 0
+
+        cx_spiker = CxSpikeInput(spikes)
+        model.add_input(cx_spiker)
+        model.objs[node]['out'] = cx_spiker
+
+        return
+    else:
         raise NotImplementedError()
 
     # Provide output
@@ -433,7 +465,7 @@ def build_connection(model, conn):
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, CxGroup)
+    assert isinstance(pre_cx, (CxGroup, CxSpikeInput))
     assert isinstance(post_cx, (CxGroup, CxProbe))
 
     weights = None
@@ -459,17 +491,20 @@ def build_connection(model, conn):
 
         # node is using on/off neuron coding
         assert np.array_equal(conn.transform, np.array(1.))
-        if tau_s != 0.0:
-            raise NotImplementedError()
-        # TODO: these connections have no filtering, even though spikes are
-        #   being used to transmit decoded values
+        # if tau_s != 0.0:
+        #     raise NotImplementedError()
 
-        d = conn.size_out
-        ax = CxAxons(2*d)
-        ax.target = post_cx.named_synapses['encoders2']
-        pre_cx.add_axons(ax)
-
-        model.objs[conn]['encode_axons'] = ax
+        if isinstance(post_cx, CxProbe):
+            assert post_cx.target is None
+            assert conn.post_slice == slice(None)
+            post_cx.target = pre_cx
+            pre_cx.add_probe(post_cx)
+        else:
+            d = conn.size_out
+            ax = CxAxons(2*d)
+            ax.target = post_cx.named_synapses['encoders2']
+            pre_cx.add_axons(ax)
+            model.objs[conn]['encode_axons'] = ax
     elif (isinstance(conn.pre_obj, Ensemble) and
           isinstance(conn.pre_obj.neuron_type, Direct)):
         raise NotImplementedError()
@@ -598,7 +633,8 @@ def conn_probe(model, probe):
     # Connection probes create a connection from the target, and probe
     # the resulting signal (used when you want to probe the default
     # output of an object, which may not have a predefined signal)
-    conn = Connection(probe.target, probe, synapse=INTER_TAU,
+    synapse = INTER_TAU if isinstance(probe.target, Ensemble) else 0
+    conn = Connection(probe.target, probe, synapse=synapse,
                       solver=probe.solver, add_to_container=False)
 
     # Set connection's seed to probe's (which isn't used elsewhere)
@@ -606,9 +642,14 @@ def conn_probe(model, probe):
     model.seeds[conn] = model.seeds[probe]
 
     d = conn.size_out
-    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
-    w = np.diag(inter_scale * np.ones(d))
-    weights = np.vstack([w, -w] * INTER_N)
+    if isinstance(probe.target, Node):
+        inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
+        w = np.diag(inter_scale * np.ones(d))
+        weights = np.vstack([w, -w])
+    else:
+        inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
+        w = np.diag(inter_scale * np.ones(d))
+        weights = np.vstack([w, -w] * INTER_N)
     cx_probe = CxProbe(key='s', weights=weights, synapse=probe.synapse)
     model.objs[probe]['in'] = cx_probe
     model.objs[probe]['out'] = cx_probe
