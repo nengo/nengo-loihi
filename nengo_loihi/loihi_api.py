@@ -142,6 +142,7 @@ class Core(object):
     def __init__(self, chip):
         self.chip = chip
         self.groups = []
+        self.inputs = []
 
         self.cxProfiles = []
         self.vthProfiles = []
@@ -182,8 +183,19 @@ class Core(object):
             i0 = i1
             a0 = a1
 
+    def iterate_inputs(self):
+        i0 = 0
+        for inp in self.inputs:
+            i1 = i0 + inp.n_axons
+            cx_idxs = list(range(i0, i1))
+            yield inp, cx_idxs
+            i0 = i1
+
     def add_group(self, group):
         self.groups.append(group)
+
+    def add_input(self, input):
+        self.inputs.append(input)
 
     def add_cx_profile(self, cx_profile):
         self.cxProfiles.append(cx_profile)

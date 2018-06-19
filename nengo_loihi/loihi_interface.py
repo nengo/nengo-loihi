@@ -79,42 +79,46 @@ def build_core(n2core, core):
 
     # TODO: allocator should be checking that vmin, vmax are the same
     #   for all groups on a core
-    group0 = core.groups[0]
-    vmin, vmax = group0.vmin, group0.vmax
-    assert all(group.vmin == vmin for group in core.groups)
-    assert all(group.vmax == vmax for group in core.groups)
-    negVmLimit = np.log2(-vmin + 1)
-    posVmLimit = (np.log2(vmax + 1) - 9) * 0.5
-    assert int(negVmLimit) == negVmLimit
-    assert int(posVmLimit) == posVmLimit
-
-    noiseExp0 = group0.noiseExp0
-    noiseMantOffset0 = group0.noiseMantOffset0
-    noiseAtDendOrVm = group0.noiseAtDendOrVm
-    assert all(group.noiseExp0 == noiseExp0 for group in core.groups)
-    assert all(group.noiseMantOffset0 == noiseMantOffset0
-               for group in core.groups)
-    assert all(group.noiseAtDendOrVm == noiseAtDendOrVm
-               for group in core.groups)
-
-    n2core.dendriteSharedCfg.configure(
-        posVmLimit=int(posVmLimit),
-        negVmLimit=int(negVmLimit),
-        noiseExp0=noiseExp0,
-        noiseMantOffset0=noiseMantOffset0,
-        noiseAtDendOrVm=noiseAtDendOrVm,
-    )
-
-    n2core.dendriteAccumCfg.configure(
-        delayBits=3)
-    # ^ DelayBits=3 allows 1024 Cxs per core
-
     n_cx = 0
-    for group, cx_idxs, ax_range in core.iterate_groups():
-        build_group(n2core, core, group, cx_idxs, ax_range)
-        n_cx = max(max(cx_idxs), n_cx)
+    if len(core.groups) > 0:
+        group0 = core.groups[0]
+        vmin, vmax = group0.vmin, group0.vmax
+        assert all(group.vmin == vmin for group in core.groups)
+        assert all(group.vmax == vmax for group in core.groups)
+        negVmLimit = np.log2(-vmin + 1)
+        posVmLimit = (np.log2(vmax + 1) - 9) * 0.5
+        assert int(negVmLimit) == negVmLimit
+        assert int(posVmLimit) == posVmLimit
 
-    n2core.numUpdates.configure(numUpdates=n_cx//4 + 1)
+        noiseExp0 = group0.noiseExp0
+        noiseMantOffset0 = group0.noiseMantOffset0
+        noiseAtDendOrVm = group0.noiseAtDendOrVm
+        assert all(group.noiseExp0 == noiseExp0 for group in core.groups)
+        assert all(group.noiseMantOffset0 == noiseMantOffset0
+                   for group in core.groups)
+        assert all(group.noiseAtDendOrVm == noiseAtDendOrVm
+                   for group in core.groups)
+
+        n2core.dendriteSharedCfg.configure(
+            posVmLimit=int(posVmLimit),
+            negVmLimit=int(negVmLimit),
+            noiseExp0=noiseExp0,
+            noiseMantOffset0=noiseMantOffset0,
+            noiseAtDendOrVm=noiseAtDendOrVm,
+        )
+
+        n2core.dendriteAccumCfg.configure(
+            delayBits=3)
+        # ^ DelayBits=3 allows 1024 Cxs per core
+
+        for group, cx_idxs, ax_range in core.iterate_groups():
+            build_group(n2core, core, group, cx_idxs, ax_range)
+            n_cx = max(max(cx_idxs), n_cx)
+
+    for inp, cx_idxs in core.iterate_inputs():
+        build_input(n2core, core, inp, cx_idxs)
+
+    n2core.numUpdates.configure(numUpdates=n_cx // 4 + 1)
 
 
 def build_group(n2core, core, group, cx_idxs, ax_range):
@@ -133,7 +137,7 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
             bias=bman, biasExp=bexp, vthProfile=ivth, cxProfile=icx)
 
         phasex = 'phase%d' % (ii % 4,)
-        n2core.cxMetaState[ii//4].configure(**{phasex: 2})
+        n2core.cxMetaState[ii // 4].configure(**{phasex: 2})
 
     for synapses in group.synapses:
         build_synapses(n2core, core, group, synapses, cx_idxs)
@@ -143,6 +147,39 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
 
     for probe in group.probes:
         build_probe(n2core, core, group, probe, cx_idxs)
+
+
+def build_input(n2core, core, spike_input, cx_idxs):
+    from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
+
+    assert len(spike_input.axons) > 0
+
+    for axon in spike_input.axons:
+        build_axons(n2core, core, spike_input, axon, cx_idxs)
+
+    for probe in spike_input.probes:
+        build_probe(n2core, core, spike_input, probe, cx_idxs)
+
+    n2board = n2core.parent.parent
+
+    spike_gen = BasicSpikeGenerator(n2board)
+
+    # get core/axon ids
+    axon_ids = []
+    for axon in spike_input.axons:
+        tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axon.target)
+        tchip = n2board.n2Chips[tchip_idx]
+        tcore = tchip.n2Cores[tcore_idx]
+
+        # TODO: what is the correct axonId? i? 2*i? taxon_idxs[i]? cx_idxs[i]?
+        axon_ids.append([(tchip.id, tcore.id, i)
+                         for i in range(axon.n_axons)])
+
+    for i, spiked in enumerate(spike_input.spikes):
+        for j, s in enumerate(spiked):
+            if s:
+                for output_axon in axon_ids:
+                    spike_gen.addSpike(i, *output_axon[j])
 
 
 def build_synapses(n2core, core, group, synapses, cx_idxs):
@@ -159,13 +196,13 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
 
         assert np.all(wa <= 255) and np.all(wa >= -256), str(wa)
         for k, (w, i) in enumerate(zip(wa, ia)):
-            n2core.synapses[s0+k].CIdx = cx_idxs[i]
-            n2core.synapses[s0+k].Wgt = w
-            n2core.synapses[s0+k].synFmtId = synapse_fmt_idx
+            n2core.synapses[s0 + k].CIdx = cx_idxs[i]
+            n2core.synapses[s0 + k].Wgt = w
+            n2core.synapses[s0 + k].synFmtId = synapse_fmt_idx
 
-        n2core.synapseMap[a0+a].synapsePtr = s0
-        n2core.synapseMap[a0+a].synapseLen = len(wa)
-        n2core.synapseMap[a0+a].discreteMapEntry.configure()
+        n2core.synapseMap[a0 + a].synapsePtr = s0
+        n2core.synapseMap[a0 + a].synapseLen = len(wa)
+        n2core.synapseMap[a0 + a].discreteMapEntry.configure()
 
         s0 += len(wa)
 

@@ -72,5 +72,12 @@ def one_to_one_allocator(cx_model):
         for axons in group.axons:
             core.add_axons(axons)
 
+    for input in cx_model.cx_inputs:
+        # TODO: how to allocate inputs?
+        core = chip.new_core()
+        core.add_input(input)
+        for axons in input.axons:
+            core.add_axons(axons)
+
     board.validate()
     return board
