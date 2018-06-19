@@ -56,6 +56,7 @@ class ChipReceiveNode(nengo.Node):
     """For receiving host->chip messages"""
 
     def __init__(self, dimensions, size_out):
+        self.raw_dimensions = dimensions
         self.cx_spike_input = loihi_cx.CxSpikeInput(
             np.zeros((0, dimensions), dtype=bool))
         self.last_time = None
@@ -71,6 +72,12 @@ class ChipReceiveNode(nengo.Node):
         self.cx_spike_input.spikes = np.vstack([self.cx_spike_input.spikes,
                                                 [x > 0]])
         self.last_time = t
+
+
+class ChipReceiveNeurons(ChipReceiveNode):
+    """Passes spikes directly (no on-off neuron encoding)"""
+    def __init__(self, dimensions):
+        super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)
 
 
 def split(model, inter_rate, inter_n):  # noqa: C901
@@ -117,7 +124,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 # send spikes over and do the rest of the connection on-chip
                 dim = c.size_in
                 with chip:
-                    receive = ChipReceiveNode(dim, size_out=dim)
+                    receive = ChipReceiveNeurons(dim)
                     nengo.Connection(receive, c.post,
                                      transform=c.transform, synapse=c.synapse)
                 with host:

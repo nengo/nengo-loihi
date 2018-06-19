@@ -4,6 +4,7 @@ import collections
 import warnings
 
 import numpy as np
+from nengo.utils.compat import is_iterable
 
 from nengo_loihi.loihi_api import (
     VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt)
@@ -216,9 +217,10 @@ class CxGroup(object):
                 wgtExp2 = -6
                 dWgtExp = wgtExp - wgtExp2
             synapse.format(wgtExp=wgtExp2)
-            for w in synapse.weights:
+            for w, idxs in zip(synapse.weights, synapse.indices):
+                ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
                 discretize(w, synapse.synapse_fmt.discretize_weights(
-                    w * w_scale * 2**dWgtExp))
+                    w * ws * 2**dWgtExp))
 
         # --- noise
         assert (v_scale[0] == v_scale).all()
@@ -264,6 +266,20 @@ class CxSynapses(object):
         assert weights.shape[0] == self.n_axons
 
         idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
+        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
+        idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
+                       if v >= idxBits)
+        self.format(compression=3, idxBits=idxBits, fanoutType=1,
+                    numSynapses=63, wgtBits=7)
+
+    def set_diagonal_weights(self, diag):
+        diag = diag.ravel()
+        self.weights = [d.reshape(1).astype(np.float32) for d in diag]
+        self.indices = [np.array([i]) for i in range(len(diag))]
+        assert len(self.weights) == self.n_axons
+
+        idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
+        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
         idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
                        if v >= idxBits)
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
@@ -307,11 +323,11 @@ class CxSpikeInput(object):
         self.probes = []
 
     @property
-    def n_axons(self):
+    def n(self):
         return self.spikes.shape[1]
 
     def add_axons(self, axons):
-        assert axons.n_axons == self.n_axons
+        assert axons.n_axons == self.n
         self.axons.append(axons)
 
     def add_probe(self, probe):

@@ -186,7 +186,7 @@ class Core(object):
     def iterate_inputs(self):
         i0 = 0
         for inp in self.inputs:
-            i1 = i0 + inp.n_axons
+            i1 = i0 + inp.n
             cx_idxs = list(range(i0, i1))
             yield inp, cx_idxs
             i0 = i1

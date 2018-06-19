@@ -44,3 +44,41 @@ def test_ens_ens_constant(weight_solver, target_value, Simulator, seed, plt):
     t_check = t > 0.5
     assert np.allclose(sim_output[t_check], target_output[t_check],
                        rtol=0.15, atol=0.15)
+
+
+@pytest.mark.parametrize('precompute', [True, False])
+def test_node_to_neurons(precompute, Simulator, plt):
+    tfinal = 1.0
+
+    x = np.array([0.7, 0.3])
+    A = np.array([[1, 1],
+                  [1, -1],
+                  [1, -0.5]])
+    y = np.dot(A, x)
+
+    gain = [3] * len(y)
+    bias = [0] * len(y)
+
+    neuron_type = nengo.LIF()
+    z = neuron_type.rates(y, gain, bias)
+
+    with nengo.Network() as model:
+        u = nengo.Node(x, label='u')
+        a = nengo.Ensemble(len(y), 1, label='a',
+                           neuron_type=neuron_type, gain=gain, bias=bias)
+        ap = nengo.Probe(a.neurons)
+        nengo.Connection(u, a.neurons, synapse=None, transform=A)
+
+    with Simulator(model, precompute=precompute) as sim:
+        sim.run(tfinal)
+
+    tsum = 0.5
+    t = sim.trange()
+    rates = (sim.data[ap][t > t[-1] - tsum] > 0).sum(axis=0) / tsum
+
+    bar_width = 0.35
+    plt.bar(np.arange(len(z)), z, bar_width, color='k', label='z')
+    plt.bar(np.arange(len(z)) + bar_width, rates, bar_width, label='rates')
+    plt.legend(loc='best')
+
+    assert np.allclose(rates, z, atol=3, rtol=0.1)

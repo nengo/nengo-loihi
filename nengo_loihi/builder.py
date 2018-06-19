@@ -248,10 +248,12 @@ def build_ensemble(model, ens):
         assert ens.radius == 1
         scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
 
+    # --- encoders
     # synapses = CxSynapses(scaled_encoders.shape[1])
     # synapses.set_full_weights(scaled_encoders.T)
     # group.add_synapses(synapses, name='encoders')
 
+    # --- encoders for interneurons
     synapses2 = CxSynapses(2*scaled_encoders.shape[1])
     inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     interscaled_encoders = scaled_encoders * inter_scale
@@ -424,131 +426,140 @@ def build_connection(model, conn):
     elif conn.synapse is not None:
         raise NotImplementedError("Cannot handle non-Lowpass synapses")
 
-    # post_cx.configure_filter(tau_s, dt=model.dt)
-    # ^ TODO: check that all conns into post use same filter
-
+    needs_interneurons = False
     if isinstance(conn.pre_obj, Node):
         assert conn.pre_slice == slice(None)
-        assert conn.post_slice == slice(None)
 
-        # node is using on/off neuron coding
-        assert np.array_equal(conn.transform, np.array(1.))
-        # if tau_s != 0.0:
-        #     raise NotImplementedError()
-
-        if isinstance(post_cx, CxProbe):
-            assert post_cx.target is None
-            assert conn.post_slice == slice(None)
-            post_cx.target = pre_cx
-            pre_cx.add_probe(post_cx)
+        if np.array_equal(transform, np.array(1.)):
+            # TODO: this identity transform may be avoidable
+            transform = np.eye(conn.pre.size_out)
         else:
-            d = conn.size_out
-            ax = CxAxons(2*d)
-            ax.target = post_cx.named_synapses['encoders2']
-            pre_cx.add_axons(ax)
-            model.objs[conn]['encode_axons'] = ax
+            assert transform.ndim == 2
+            assert transform.shape[1] == conn.pre.size_out
+
+        assert transform.shape[1] == conn.pre.size_out
+        if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
+            weights = transform
+        else:
+            weights = np.column_stack([transform, -transform])
+            # ^ input is on-off neuron encoded, so double/flip transform
+            weights = weights / (INTER_RATE * INTER_N)
+            # ^ remove rate factor added by pre-compute nodes
+
     elif (isinstance(conn.pre_obj, Ensemble) and
           isinstance(conn.pre_obj.neuron_type, Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
             conn.solver, conn, rng, transform)
-
         weights = weights / model.dt
         # ^ scale, since nengo spikes have 1/dt scaling
 
-        if conn.solver.weights:
-            assert isinstance(post_cx, CxGroup)
-            # post_slice = None  # don't apply slice later
+        if not conn.solver.weights:
+            needs_interneurons = True
+    else:
+        assert conn.pre_slice == slice(None)
+        # assert conn.post_slice == slice(None)
+        assert transform.ndim == 2
+        weights = transform
 
+    mid_cx = pre_cx
+    mid_axon_inds = slice(None)
+    if needs_interneurons and not isinstance(conn.post_obj, Neurons):
+        # --- add interneurons
+        assert weights.ndim == 2
+        d, n = weights.shape
+
+        if isinstance(post_cx, CxProbe):
+            # use non-spiking interneurons for voltage probing
+            assert post_cx.target is None
+            assert conn.post_slice == slice(None)
+
+            gain = 1  # model.dt * INTER_RATE(=1000)
+            dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
+            dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
+            dec_cx.configure_filter(tau_s, dt=model.dt)
+            dec_cx.bias[:] = 0
+            model.add_group(dec_cx)
+            model.objs[conn]['decoded'] = dec_cx
+
+            dec_syn = CxSynapses(n)
+            weights2 = gain * np.vstack([weights, -weights]).T
+            dec_syn.set_full_weights(weights2)
+            dec_cx.add_synapses(dec_syn)
+            model.objs[conn]['decoders'] = dec_syn
+
+            dec_ax0 = CxAxons(n)
+            dec_ax0.target = dec_syn
+            pre_cx.add_axons(dec_ax0)
+            model.objs[conn]['decode_axons'] = dec_ax0
+
+            mid_cx = dec_cx
+            mid_axon_inds = None  # not used since probe slices do not happen
+        else:
+            # use spiking interneurons for on-chip connection
+            post_d = conn.post_obj.size_in
+            post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
+            assert len(post_inds) == conn.size_out == d
+
+            gain = model.dt * INTER_RATE
+            dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
+                             location='core')
+            dec_cx.configure_relu(dt=model.dt)
+            dec_cx.configure_filter(tau_s, dt=model.dt)
+            dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
+                                                    [1.] * d) * INTER_N)
+            if INTER_NOISE_EXP > -30:
+                dec_cx.enableNoise[:] = 1
+                dec_cx.noiseExp0 = INTER_NOISE_EXP
+                dec_cx.noiseAtDendOrVm = 1
+            model.add_group(dec_cx)
+            model.objs[conn]['decoded'] = dec_cx
+
+            dec_syn = CxSynapses(n)
+            weights2 = 0.5 * gain * np.vstack([weights,
+                                               -weights] * INTER_N).T
+            dec_syn.set_full_weights(weights2)
+            dec_cx.add_synapses(dec_syn)
+            model.objs[conn]['decoders'] = dec_syn
+
+            dec_ax0 = CxAxons(n)
+            dec_ax0.target = dec_syn
+            pre_cx.add_axons(dec_ax0)
+            model.objs[conn]['decode_axons'] = dec_ax0
+
+            mid_cx = dec_cx
+            mid_axon_inds = np.hstack([post_inds, post_d+post_inds] * INTER_N)
+
+    if isinstance(post_cx, CxProbe):
+        assert post_cx.target is None
+        assert conn.post_slice == slice(None)
+        post_cx.target = mid_cx
+        mid_cx.add_probe(post_cx)
+    elif isinstance(conn.post_obj, Neurons):
+        assert isinstance(post_cx, CxGroup)
+        assert conn.post_slice == slice(None)
+        if weights is None:
+            raise NotImplementedError("Need weights for connection to neurons")
+        else:
             assert weights.ndim == 2
             n2, n1 = weights.shape
             assert post_cx.n == n2
 
             syn = CxSynapses(n1)
-            syn.set_full_weights(weights.T)
+            gain = model.params[conn.post_obj.ensemble].gain
+            syn.set_full_weights(weights.T * gain / model.dt)
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 
-            ax = CxAxons(n1)
-            ax.target = syn
-            pre_cx.add_axons(ax)
+        ax = CxAxons(pre_cx.n)
+        ax.target = syn
+        pre_cx.add_axons(ax)
 
-            post_cx.configure_filter(tau_s, dt=model.dt)
-            # ^ TODO: check that all conns into post use same filter
-        else:
-            # on/off neuron coding for decoded values
-            assert weights.ndim == 2
-            d, n = weights.shape
-
-            if isinstance(post_cx, CxProbe):
-                assert post_cx.target is None
-                assert conn.post_slice == slice(None)
-
-                gain = 1  # model.dt * INTER_RATE(=1000)
-                dec_cx = CxGroup(2*d, label='%s' % conn, location='core')
-                dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
-                dec_cx.configure_filter(tau_s, dt=model.dt)
-                dec_cx.bias[:] = 0
-                model.add_group(dec_cx)
-                model.objs[conn]['decoded'] = dec_cx
-
-                dec_syn = CxSynapses(n)
-                weights2 = gain * np.vstack([weights, -weights]).T
-                dec_syn.set_full_weights(weights2)
-                dec_cx.add_synapses(dec_syn)
-                model.objs[conn]['decoders'] = dec_syn
-
-                dec_ax0 = CxAxons(n)
-                dec_ax0.target = dec_syn
-                pre_cx.add_axons(dec_ax0)
-                model.objs[conn]['decode_axons'] = dec_ax0
-
-                post_cx.target = dec_cx
-                dec_cx.add_probe(post_cx)
-
-            else:
-                post_d = conn.post_obj.size_in
-                post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
-                assert len(post_inds) == d
-
-                gain = model.dt * INTER_RATE
-                dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
-                                 location='core')
-                dec_cx.configure_relu(dt=model.dt)
-                dec_cx.configure_filter(tau_s, dt=model.dt)
-                dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
-                                                        [1.] * d) * INTER_N)
-                if INTER_NOISE_EXP > -30:
-                    dec_cx.enableNoise[:] = 1
-                    dec_cx.noiseExp0 = INTER_NOISE_EXP
-                    dec_cx.noiseAtDendOrVm = 1
-                model.add_group(dec_cx)
-                model.objs[conn]['decoded'] = dec_cx
-
-                dec_syn = CxSynapses(n)
-                weights2 = 0.5 * gain * np.vstack([weights,
-                                                   -weights] * INTER_N).T
-                dec_syn.set_full_weights(weights2)
-                dec_cx.add_synapses(dec_syn)
-                model.objs[conn]['decoders'] = dec_syn
-
-                dec_ax0 = CxAxons(n)
-                dec_ax0.target = dec_syn
-                pre_cx.add_axons(dec_ax0)
-                model.objs[conn]['decode_axons'] = dec_ax0
-
-                dec_ax1 = CxAxons(2*d*INTER_N)
-                dec_ax1.target = post_cx.named_synapses['encoders2']
-                dec_ax1.target_inds = np.hstack(
-                    [post_inds, post_d+post_inds] * INTER_N)
-                dec_cx.add_axons(dec_ax1)
-                model.objs[conn]['encode_axons'] = dec_ax1
-    else:
-        assert conn.pre_slice == slice(None)
-        assert conn.post_slice == slice(None)
-        weights = transform
-
+        post_cx.configure_filter(tau_s, dt=model.dt)
+        # ^ TODO: check that all conns into post use same filter
+    elif isinstance(conn.pre_obj, Ensemble) and conn.solver.weights:
+        assert isinstance(post_cx, CxGroup)
         assert weights.ndim == 2
         n2, n1 = weights.shape
         assert post_cx.n == n2
@@ -556,33 +567,24 @@ def build_connection(model, conn):
         syn = CxSynapses(n1)
         syn.set_full_weights(weights.T)
         post_cx.add_synapses(syn)
+        model.objs[conn]['weights'] = syn
 
         ax = CxAxons(n1)
         ax.target = syn
         pre_cx.add_axons(ax)
 
-    # tau_s = 0.0
-    # if isinstance(conn.synapse, nengo.synapses.Lowpass):
-    #     tau_s = conn.synapse.tau
-    # elif conn.synapse is not None:
-    #     raise NotImplementedError("Cannot handle non-Lowpass synapses")
-
-    # post_cx.configure_filter(tau_s, dt=model.dt)
-    # ^ TODO: check that all conns into post use same filter
-
-    if isinstance(conn.post_obj, Neurons):
+        post_cx.configure_filter(tau_s, dt=model.dt)
+        # ^ TODO: check that all conns into post use same filter
+    elif isinstance(conn.post_obj, Ensemble):
+        mid_ax = CxAxons(mid_cx.n)
+        mid_ax.target = post_cx.named_synapses['encoders2']
+        mid_ax.target_inds = mid_axon_inds
+        mid_cx.add_axons(mid_ax)
+        model.objs[conn]['mid_axons'] = mid_ax
+    elif isinstance(conn.post_obj, Node):
         raise NotImplementedError()
-        # # Apply neuron gains (we don't need to do this if we're connecting to
-        # # an Ensemble, because the gains are rolled into the encoders)
-        # gains = Signal(model.params[conn.post_obj.ensemble].gain[post_slice],
-        #                name="%s.gains" % conn)
-        # model.add_op(ElementwiseInc(
-        #     gains, signal, model.sig[conn]['out'][post_slice],
-        #     tag="%s.gains_elementwiseinc" % conn))
     else:
-        pass
-        # if post_slice is not None:
-        #     raise NotImplementedError()
+        raise NotImplementedError()
 
     # Build learning rules
     if conn.learning_rule is not None:
@@ -665,14 +667,20 @@ def conn_probe(model, probe):
 
 
 def signal_probe(model, key, probe):
+    kwargs = model.chip2host_params.get(probe, None)
+    weights = None
+    if kwargs is not None:
+        if kwargs['function'] is not None:
+            raise ValueError("Functions not supported for signal probe")
+        weights = kwargs['transform'].T / model.dt
+
+    # spike probes should give values of 1/dt on spike events
+    if isinstance(probe.target, nengo.ensemble.Neurons):
+        if probe.attr == 'output' and weights is None:
+            weights = 1.0 / model.dt
+
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']
-
-    weights = None
-    # spike probes should give values of 1.0/dt on spike events
-    if isinstance(probe.target, nengo.ensemble.Neurons):
-        if probe.attr == 'output':
-            weights = 1.0 / model.dt
 
     cx_probe = CxProbe(
         target=target, key=key, slice=probe.slice,
