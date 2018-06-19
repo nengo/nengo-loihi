@@ -77,7 +77,7 @@ class Simulator(object):
     # test paths and names, and `reason` is a string describing why the feature
     # is not supported by the backend. For example:
     #     unsupported = [('test_pes*', 'PES rule not implemented')]
-    # would skip all test whose names start with 'test_pes'.
+    # would skip all tests whose names start with 'test_pes'.
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
@@ -88,6 +88,7 @@ class Simulator(object):
         assert not precompute or max_time is None
 
         if model is None:
+            # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt),
                                max_time=max_time)
         else:
@@ -145,10 +146,10 @@ class Simulator(object):
         if target == 'simreal':
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'sim':
-            self.model.discretize()
+            self.model.discretize()  # Make parameters fixed bit widths
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
-            self.model.discretize()
+            self.model.discretize()  # Make parameters fixed bit widths
             self.loihi = self.model.get_loihi(seed=seed)
         else:
             raise ValueError("Unrecognized target")

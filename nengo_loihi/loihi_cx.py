@@ -10,6 +10,12 @@ from nengo_loihi.loihi_api import (
 
 
 class CxGroup(object):
+    """Class holding Loihi objects that can be placed on the chip or Lakemont.
+
+    Typically an ensemble or node, can be a special decoding ensemble. Once
+    implemented, SNIPS might use this as well.
+    """
+
     def __init__(self, n, label=None, location='core'):
         self.n = n
         self.label = label
@@ -42,6 +48,8 @@ class CxGroup(object):
             type(self).__name__, self.label if self.label else '')
 
     def add_synapses(self, synapses, name=None):
+        """Add a CxSynapses object to ensemble."""
+
         assert synapses.group is None
         synapses.group = self
         self.synapses.append(synapses)
@@ -63,6 +71,8 @@ class CxGroup(object):
                 n_synapses, max_synapses))
 
     def add_axons(self, axons, name=None):
+        """Add a CxAxons object to ensemble."""
+
         assert axons.group is None
         axons.group = self
         self.axons.append(axons)
@@ -73,12 +83,15 @@ class CxGroup(object):
         assert axons.n_axons == self.n, "Axons currently only one-to-one"
 
     def add_probe(self, probe):
+        """Add a CxProbe object to ensemble."""
         if probe.target is None:
             probe.target = self
         assert probe.target is self
         self.probes.append(probe)
 
     def configure_filter(self, tau_s, dt=0.001):
+        """Synaptic input filter for Cx."""
+
         self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
 
     # def configure_linear(self, tau_s=0.0, dt=0.001):
@@ -315,11 +328,7 @@ class CxModel(object):
 
 
 class CxSimulator(object):
-    """
-    TODO:
-    - noise on u/v
-    - compartment mixing (omega)
-    """
+    """Numerical simulation of chip behaviour given a CxModel"""
 
     def __init__(self, model, seed=None):
         self.build(model, seed=seed)

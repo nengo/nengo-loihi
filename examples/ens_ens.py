@@ -14,6 +14,7 @@ try:
     Simulator = nengo_loihi.Simulator
     print("Running on Loihi")
 except ImportError:
+    # use the simulator if the chip isn't present
     Simulator = nengo_loihi.NumpySimulator
     print("Running in simulation")
 

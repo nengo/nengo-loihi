@@ -42,6 +42,10 @@ INTER_NOISE_EXP = -2
 
 
 class Model(CxModel):
+    """The data structure for the chip/simulator.
+
+    CxModel defines adding ensembles, discretizing, and tracks the simulator
+    """
     def __init__(self, dt=0.001, label=None, builder=None, max_time=None):
         super(Model, self).__init__()
 
@@ -50,7 +54,7 @@ class Model(CxModel):
         self.max_time = max_time
 
         self.objs = collections.defaultdict(dict)
-        self.params = {}
+        self.params = {}  # Holds data generated when building objects
         self.probes = []
         self.chip2host_params = {}
 
@@ -74,8 +78,9 @@ class Model(CxModel):
 
 
 class Builder(object):
+    """Fills in the Loihi Model object based on the Nengo Network."""
 
-    builders = {}
+    builders = {}  # Methods that build different components
 
     @classmethod
     def build(cls, model, obj, *args, **kwargs):
@@ -94,6 +99,8 @@ class Builder(object):
 
     @classmethod
     def register(cls, nengo_class):
+        """Register methods to build Nengo objects into Model."""
+
         def register_builder(build_fn):
             if nengo_class in cls.builders:
                 warnings.warn("Type '%s' already has a builder. Overwriting."

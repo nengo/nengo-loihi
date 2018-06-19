@@ -14,6 +14,7 @@ from nengo_loihi.loihi_api import (
 
 
 def build_board(board):
+    # Import the NxSDK defining Loihi API
     # from nxsdk.arch.n2a.graph.graph import N2Board
 
     n_chips = board.n_chips()
@@ -237,6 +238,9 @@ def build_probe(n2core, core, group, probe, cx_idxs):
 
 
 class LoihiSimulator(object):
+    """
+    Simulator to place CxModel onto board and run it.
+    """
     def __init__(self, cx_model, seed=None):
         self.n2board = None
         self._probe_filters = {}
@@ -257,8 +261,9 @@ class LoihiSimulator(object):
     def build(self, cx_model, seed=None):
         self.model = cx_model
 
-        # --- allocate
-        allocator = one_to_one_allocator
+        # --- allocate --
+        # maps CxModel to cores and chips
+        allocator = one_to_one_allocator  # one core per ensemble
         self.board = allocator(self.model)
 
         # --- build
