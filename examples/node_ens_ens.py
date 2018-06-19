@@ -25,15 +25,19 @@ a_fn = lambda x: x**2
 solver = nengo.solvers.LstsqL2(weights=False)
 # solver = nengo.solvers.LstsqL2(weights=True)
 
+# d = 1
+d = 2
+
 bnp = None
 with nengo.Network(seed=1) as model:
     # u = nengo.Node(output=0.0, label='u')
     # u = nengo.Node(output=0.5, label='u')
     # u = nengo.Node(output=1.0, label='u')
-    u = nengo.Node(output=nengo.processes.WhiteSignal(tend, high=5, seed=2))
+    u = nengo.Node(output=nengo.processes.WhiteSignal(tend, high=5, seed=2),
+                   size_out=d)
     up = nengo.Probe(u, synapse=None)
 
-    a = nengo.Ensemble(100, d, label='a',
+    a = nengo.Ensemble(100, d, label='b',
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-0.5, 0.5))
     nengo.Connection(u, a, synapse=None)
@@ -41,7 +45,7 @@ with nengo.Network(seed=1) as model:
     anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
 
-    b = nengo.Ensemble(101, 1, label='b',
+    b = nengo.Ensemble(101, d, label='b',
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-0.5, 0.5))
     ab_conn = nengo.Connection(a, b, function=a_fn, solver=solver)
@@ -50,7 +54,7 @@ with nengo.Network(seed=1) as model:
     bup = nengo.Probe(b.neurons[:5], 'input')
     bvp = nengo.Probe(b.neurons[:5], 'voltage')
 
-    c = nengo.Ensemble(1, 1, label='c')
+    c = nengo.Ensemble(1, d, label='c')
     bc_conn = nengo.Connection(b, c)
 
 with Simulator(model, max_time=tend) as sim:

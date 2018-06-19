@@ -296,17 +296,17 @@ def build_node(model, node):
         max_rate = INTER_RATE * INTER_N
         assert max_rate <= 1000
 
+        d = node.size_out
+
         # TODO: figure out seeds for this pre-compute simulation
         network2 = nengo.Network()
         with network2:
-            node2 = nengo.Node(output=node.output,
-                               size_in=node.size_in,
-                               size_out=node.size_out)
+            node2 = nengo.Node(output=node.output, size_in=0, size_out=d)
             ens2 = nengo.Ensemble(
-                2, 1, neuron_type=NIF(tau_ref=0.0),
-                encoders=[[1], [-1]],
-                max_rates=[max_rate] * 2,
-                intercepts=[-1] * 2)
+                2*d, d, neuron_type=NIF(tau_ref=0.0),
+                encoders=np.vstack([np.eye(d), -np.eye(d)]),
+                max_rates=[max_rate]*d + [max_rate]*d,
+                intercepts=[-1]*d + [-1]*d)
             nengo.Connection(node2, ens2, synapse=None)
             probe2 = nengo.Probe(ens2.neurons, synapse=None)
 
