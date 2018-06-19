@@ -4,11 +4,13 @@ import warnings
 
 import numpy as np
 
+import nengo
 import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
 
-from nengo_loihi.builder import Model
+from nengo_loihi.builder import Model, INTER_RATE, INTER_N
+from nengo_loihi.splitter import split
 
 logger = logging.getLogger(__name__)
 
@@ -22,34 +24,45 @@ class ProbeDict(collections.Mapping):
     is readonly, which is more appropriate for its purpose.
     """
 
-    def __init__(self, raw):
+    def __init__(self, raw, host_probe_dict=None):
         super(ProbeDict, self).__init__()
         self.raw = raw
+        self.host_probe_dict = host_probe_dict
         self._cache = {}
 
     def __getitem__(self, key):
         if (key not in self._cache or
                 len(self._cache[key]) != len(self.raw[key])):
-            rval = self.raw[key]
-            if isinstance(rval, list):
-                rval = np.asarray(rval)
-                rval.setflags(write=False)
-            self._cache[key] = rval
+            if key in self.raw:
+                rval = self.raw[key]
+                if isinstance(rval, list):
+                    rval = np.asarray(rval)
+                    rval.setflags(write=False)
+                self._cache[key] = rval
+            else:
+                # don't put this in the cache, as it's already cached
+                # by the host nengo.Simulator
+                return self.host_probe_dict[key]
         return self._cache[key]
 
     def __iter__(self):
+        # TODO: this should also include self.host_probe_dict
         return iter(self.raw)
 
     def __len__(self):
+        # TODO: this should also include self.host_probe_dict
         return len(self.raw)
 
     def __repr__(self):
+        # TODO: this should also include self.host_probe_dict
         return repr(self.raw)
 
     def __str__(self):
+        # TODO: this should also include self.host_probe_dict
         return str(self.raw)
 
     def reset(self):
+        # TODO: this should also include self.host_probe_dict
         self._cache.clear()
 
 
@@ -76,11 +89,26 @@ class Simulator(object):
             self.model = model
 
         if network is not None:
+            if max_time is None:
+                # we don't have a max_time, so we need online communication
+                host, chip, h2c, c2h_params, c2h = split(
+                    network, INTER_RATE, INTER_N)
+                self.host_network = host
+                network = chip
+                self.chip2host_receivers = c2h
+                self.host2chip_senders = h2c
+                self.model.chip2host_params.update(c2h_params)
+                self.host_sim = nengo.Simulator(host, progress_bar=False)
+            else:
+                self.host_sim = None
+                self.chip2host_receivers = {}
             # Build the network into the model
             self.model.build(network)
 
         self._probe_outputs = self.model.params
-        self.data = ProbeDict(self._probe_outputs)
+        self.data = ProbeDict(
+            self._probe_outputs, host_probe_dict=(
+                None if self.host_sim is None else self.host_sim.data))
 
         if seed is None:
             if network is not None and network.seed is not None:
@@ -152,12 +180,16 @@ class Simulator(object):
         self._probe_step_time()
 
         for probe in self.model.probes:
+            if probe in self.model.chip2host_params:
+                continue
             assert probe.sample_every is None
             assert self.loihi is None or self.simulator is None
             if self.loihi is not None:
                 data = self.loihi.get_probe_output(probe)
             elif self.simulator is not None:
                 data = self.simulator.get_probe_output(probe)
+            # TODO: stop recomputing this all the time
+            del self._probe_outputs[probe][:]
             self._probe_outputs[probe].extend(data)
             assert len(self._probe_outputs[probe]) == self.n_steps
 
@@ -216,25 +248,55 @@ class Simulator(object):
                         self.model.label, time_in_seconds, steps)
             self.run_steps(steps)
 
+    def step(self):
+        """Advance the simulator by 1 step (``dt`` seconds)."""
+
+        self.run_steps(1)
+
     def run_steps(self, steps):
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
         if self.simulator is not None:
-            self.simulator.run_steps(steps)
-        if self.loihi is not None:
-            self.loihi.run_steps(steps)
+            if self.host_sim is not None:
+                for i in range(steps):
+                    self.host_sim.step()
+                    self.handle_host2chip_communications()
+                    self.simulator.step()
+                    self.handle_chip2host_communications()
+            else:
+                self.simulator.run_steps(steps)
+        elif self.loihi is not None:
+            raise NotImplementedError
 
         self._n_steps += steps
         self._probe()
 
-    # def step(self):
-    #     """Advance the simulator by 1 step (``dt`` seconds)."""
+    def handle_host2chip_communications(self):
+        if self.simulator is not None:
+            if self.host_sim is not None:
+                # go through the list of host2chip connections
+                for sender, receiver in self.host2chip_senders.items():
+                    for t, x in sender.queue:
+                        receiver.receive(t, x)
+                    del sender.queue[:]
+        elif self.loihi is not None:
+            raise NotImplementedError('Loihi host2chip not implemented yet')
 
-    #     self.simulator.step()
-    #     self._n_steps += 1
-
-    #     self._probe()
+    def handle_chip2host_communications(self):
+        if self.simulator is not None:
+            if self.host_sim is not None:
+                # go through the list of chip2host connections
+                for probe, receiver in self.chip2host_receivers.items():
+                    # extract the probe data from the simulator
+                    cx_probe = self.simulator.model.objs[probe]['out']
+                    x = self.simulator.probe_outputs[cx_probe][-1]
+                    if cx_probe.weights is not None:
+                        x = np.dot(x, cx_probe.weights)
+                    # send the probe data to the correct host receiver
+                    receiver.receive(self.dt*self._n_steps, x)
+        elif self.loihi is not None:
+            raise NotImplementedError('Loihi chip2host not implemented yet')
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.

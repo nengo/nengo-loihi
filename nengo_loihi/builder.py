@@ -18,6 +18,7 @@ import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
+from . import splitter
 
 
 # Filter on intermediary neurons
@@ -51,6 +52,7 @@ class Model(CxModel):
         self.objs = collections.defaultdict(dict)
         self.params = {}
         self.probes = []
+        self.chip2host_params = {}
 
         self.seeds = {}
         self.seeded = {}
@@ -287,6 +289,12 @@ def build_relu(model, relu, neurons, group):
 
 @Builder.register(Node)
 def build_node(model, node):
+    if isinstance(node, splitter.ChipReceiveNode):
+        cx_spiker = node.cx_spike_input
+        model.add_input(cx_spiker)
+        model.objs[node]['out'] = cx_spiker
+        return
+
     if node.size_in == 0:
         from .neurons import NIF
 
@@ -634,8 +642,45 @@ def conn_probe(model, probe):
     # the resulting signal (used when you want to probe the default
     # output of an object, which may not have a predefined signal)
     synapse = INTER_TAU if isinstance(probe.target, Ensemble) else 0
-    conn = Connection(probe.target, probe, synapse=synapse,
-                      solver=probe.solver, add_to_container=False)
+
+    # get any extra arguments if this probe was created to send data
+    #  to an off-chip Node via the splitter
+
+    kwargs = model.chip2host_params.get(probe, None)
+    if kwargs is not None:
+        # this probe is for sending data to a Node
+
+        # determine the dimensionality
+        input_dim = probe.target.size_out
+        func = kwargs['function']
+        if func is not None:
+            if callable(func):
+                input_dim = np.asarray(
+                    func(np.zeros(input_dim, dtype=np.float64))).size
+            else:
+                input_dim = len(func[0])
+        transform = kwargs['transform']
+        transform = np.asarray(transform, dtype=np.float64)
+        if transform.ndim <= 1:
+            output_dim = input_dim
+        elif transform.ndim == 2:
+            assert transform.shape[1] == input_dim
+            output_dim = transform.shape[0]
+        else:
+            raise NotImplementedError
+
+        target = nengo.Node(None, size_in=output_dim,
+                            add_to_container=False)
+
+        conn = Connection(probe.target, target, synapse=synapse,
+                          solver=probe.solver, add_to_container=False,
+                          **kwargs
+                          )
+    else:
+        conn = Connection(probe.target, probe, synapse=synapse,
+                          solver=probe.solver, add_to_container=False,
+                          )
+        target = probe
 
     # Set connection's seed to probe's (which isn't used elsewhere)
     model.seeded[conn] = model.seeded[probe]
@@ -651,7 +696,10 @@ def conn_probe(model, probe):
         w = np.diag(inter_scale * np.ones(d))
         weights = np.vstack([w, -w] * INTER_N)
     cx_probe = CxProbe(key='s', weights=weights, synapse=probe.synapse)
-    model.objs[probe]['in'] = cx_probe
+    model.objs[target]['in'] = cx_probe
+    model.objs[target]['out'] = cx_probe
+
+    # add an extra entry for simulator.run_steps to read data out
     model.objs[probe]['out'] = cx_probe
 
     # Build the connection
