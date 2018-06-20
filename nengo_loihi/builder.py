@@ -53,6 +53,7 @@ class Model(CxModel):
         self.params = {}  # Holds data generated when building objects
         self.probes = []
         self.chip2host_params = {}
+        self.probe_conns = {}
 
         self.seeds = {}
         self.seeded = {}
@@ -485,22 +486,12 @@ def build_connection(model, conn):
 
             dec_syn = CxSynapses(n)
             weights2 = gain * np.vstack([weights, -weights]).T
-            dec_syn.set_full_weights(weights2)
-            dec_cx.add_synapses(dec_syn)
-            model.objs[conn]['decoders'] = dec_syn
-
-            dec_ax0 = CxAxons(n)
-            dec_ax0.target = dec_syn
-            pre_cx.add_axons(dec_ax0)
-            model.objs[conn]['decode_axons'] = dec_ax0
-
-            mid_cx = dec_cx
-            mid_axon_inds = None  # not used since probe slices do not happen
         else:
             # use spiking interneurons for on-chip connection
             post_d = conn.post_obj.size_in
             post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
             assert len(post_inds) == conn.size_out == d
+            mid_axon_inds = np.hstack([post_inds, post_d+post_inds] * INTER_N)
 
             gain = model.dt * INTER_RATE
             dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
@@ -519,17 +510,25 @@ def build_connection(model, conn):
             dec_syn = CxSynapses(n)
             weights2 = 0.5 * gain * np.vstack([weights,
                                                -weights] * INTER_N).T
-            dec_syn.set_full_weights(weights2)
-            dec_cx.add_synapses(dec_syn)
-            model.objs[conn]['decoders'] = dec_syn
 
-            dec_ax0 = CxAxons(n)
-            dec_ax0.target = dec_syn
-            pre_cx.add_axons(dec_ax0)
-            model.objs[conn]['decode_axons'] = dec_ax0
+        dec_syn.set_full_weights(weights2)
+        dec_cx.add_synapses(dec_syn)
+        model.objs[conn]['decoders'] = dec_syn
 
-            mid_cx = dec_cx
-            mid_axon_inds = np.hstack([post_inds, post_d+post_inds] * INTER_N)
+        dec_ax0 = CxAxons(n)
+        dec_ax0.target = dec_syn
+        pre_cx.add_axons(dec_ax0)
+        model.objs[conn]['decode_axons'] = dec_ax0
+
+        if conn.learning_rule_type is not None:
+            if isinstance(conn.learning_rule_type, nengo.PES):
+                dec_syn.tracing = True
+                dec_syn.tracing_tau = 10.0
+                dec_syn.tracing_mag = 100.0
+            else:
+                raise NotImplementedError()
+
+        mid_cx = dec_cx
 
     if isinstance(post_cx, CxProbe):
         assert post_cx.target is None
@@ -558,6 +557,9 @@ def build_connection(model, conn):
 
         post_cx.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
+
+        if conn.learning_rule_type is not None:
+            raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble) and conn.solver.weights:
         assert isinstance(post_cx, CxGroup)
         assert weights.ndim == 2
@@ -575,6 +577,9 @@ def build_connection(model, conn):
 
         post_cx.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
+
+        if conn.learning_rule_type is not None:
+            raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
         mid_ax = CxAxons(mid_cx.n)
         mid_ax.target = post_cx.named_synapses['encoders2']
@@ -584,10 +589,6 @@ def build_connection(model, conn):
     elif isinstance(conn.post_obj, Node):
         raise NotImplementedError()
     else:
-        raise NotImplementedError()
-
-    # Build learning rules
-    if conn.learning_rule is not None:
         raise NotImplementedError()
 
     model.params[conn] = BuiltConnection(
@@ -637,6 +638,7 @@ def conn_probe(model, probe):
                           solver=probe.solver, add_to_container=False,
                           **kwargs
                           )
+        model.probe_conns[probe] = conn
     else:
         conn = Connection(probe.target, probe, synapse=synapse,
                           solver=probe.solver, add_to_container=False,

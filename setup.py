@@ -38,7 +38,7 @@ setup(
         "nengo",
     ],
     install_requires=[
-        "nengo",
+        "nengo>=2.8.0",
     ],
     tests_require=[
         "pytest>=3.2",

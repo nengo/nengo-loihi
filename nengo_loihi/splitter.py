@@ -17,7 +17,14 @@ def is_on_chip(obj, config):
         return False
     elif isinstance(obj, nengo.ensemble.Neurons):
         return is_on_chip(obj.ensemble, config)
+    elif isinstance(obj, nengo.connection.LearningRule):
+        return is_on_chip(obj.connection.pre_obj, config)
     raise Exception('Unhandled object type: %s' % obj)
+
+
+class PESModulatoryTarget(object):
+    def __init__(self, target):
+        self.target = target
 
 
 class HostSendNode(nengo.Node):
@@ -112,16 +119,20 @@ def split(model, inter_rate, inter_n):  # noqa: C901
         else:
             host.probes.append(probe)
 
+    modulatory_nodes = {}
+    modulated_conns = {}
     for c in model.all_connections:
         pre_onchip = is_on_chip(c.pre_obj, model.config)
         post_onchip = is_on_chip(c.post_obj, model.config)
         if pre_onchip and post_onchip:
+            assert c.learning_rule_type is None
             chip.connections.append(c)
         elif not pre_onchip and not post_onchip:
             host.connections.append(c)
         elif post_onchip and not pre_onchip:
             if isinstance(c.pre_obj, nengo.ensemble.Neurons):
                 # send spikes over and do the rest of the connection on-chip
+                assert not isinstance(c.post, nengo.connection.LearningRule)
                 dim = c.size_in
                 with chip:
                     receive = ChipReceiveNeurons(dim)
@@ -131,6 +142,19 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                     send = HostSendNode(dim)
                     nengo.Connection(c.pre, send, synapse=None)
                 host2chip_senders[send] = receive
+
+            elif isinstance(c.post, nengo.connection.LearningRule):
+                dim = c.size_out
+                with host:
+                    send = HostSendNode(dim)
+                    modulatory_nodes[c] = send
+                    nengo.Connection(c.pre, send,
+                                     function=c.function,
+                                     solver=c.solver,
+                                     eval_points=c.eval_points,
+                                     scale_eval_points=c.scale_eval_points,
+                                     synapse=c.synapse,
+                                     transform=c.transform)
             else:
                 dim = c.size_out
                 with chip:
@@ -164,13 +188,25 @@ def split(model, inter_rate, inter_n):  # noqa: C901
             with chip:
                 probe = nengo.Probe(c.pre, synapse=None, solver=c.solver)
                 chip2host_params[probe] = dict(
+                    learning_rule_type=c.learning_rule_type,
                     function=c.function,
                     eval_points=c.eval_points,
                     scale_eval_points=c.scale_eval_points,
                     transform=c.transform)
                 chip2host_receivers[probe] = receive
+                if c.learning_rule_type is not None:
+                    modulated_conns[c] = probe
         else:
             raise Exception('Unhandled Connection %s' % c)
+
+    for conn, send in modulatory_nodes.items():
+        for conn2, probe in modulated_conns.items():
+            if conn.post_obj == conn2.learning_rule:
+                host2chip_senders[send] = PESModulatoryTarget(probe)
+                break
+        else:
+            raise Exception('Could not find Connection for %s' % conn)
+
     return host, chip, host2chip_senders, chip2host_params, chip2host_receivers
 
 

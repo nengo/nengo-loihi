@@ -367,8 +367,22 @@ class Simulator(object):
             if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
-                    for t, x in sender.queue:
-                        receiver.receive(t, x)
+                    if isinstance(receiver, splitter.PESModulatoryTarget):
+                        for t, x in sender.queue:
+                            probe = receiver.target
+                            conn = self.model.probe_conns[probe]
+                            dec_syn = self.model.objs[conn]['decoders']
+                            assert dec_syn.tracing
+
+                            z = self.simulator.z[dec_syn]
+                            x = np.hstack([-x, x])
+                            delta_w = np.outer(z, x)
+
+                            for i, w in enumerate(dec_syn.weights):
+                                w += delta_w[i].astype('int32')
+                    else:
+                        for t, x in sender.queue:
+                            receiver.receive(t, x)
                     del sender.queue[:]
         elif self.loihi is not None:
             if self.precompute:

@@ -195,7 +195,7 @@ class CxGroup(object):
             else:
                 raise ValueError("Could not find appropriate bias scaling")
         else:
-            v_scale = VTH_MAX / (self.vth.max() + 1)
+            v_scale = np.array([VTH_MAX / (self.vth.max() + 1)])
             vth = np.round(self.vth * v_scale)
             b_scale = v_scale * v_infactor
             bias = np.round(self.bias * b_scale)
@@ -245,6 +245,9 @@ class CxSynapses(object):
         self.synapse_fmt = None
         self.weights = None
         self.indices = None
+        self.tracing = False
+        self.tracing_tau = 2.0
+        self.tracing_magnitude = 1.0
 
     def size(self):
         return sum(len(w) for w in self.weights)
@@ -465,6 +468,9 @@ class CxSimulator(object):
         # --- allocate synapse memory
         self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
                      for group in self.groups for synapses in group.synapses}
+        self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
+                  for group in self.groups for synapses in group.synapses
+                  if synapses.tracing}
 
         # --- noise
         enableNoise = np.hstack([
@@ -528,6 +534,16 @@ class CxSimulator(object):
                     for _ in range(s_in[i]):  # faster than mult since likely 1
                         qb[0, indices[i]] += weights[i]
                     # qb[delays[indices[i]], indices[i]] += weights[i]
+
+                if synapses.tracing:
+                    z = self.z[synapses]
+                    tau = synapses.tracing_tau
+                    mag = synapses.tracing_mag
+
+                    decay = np.exp(-1.0 / tau)
+                    z *= decay
+
+                    z += mag * s_in
 
         # --- updates
         q0 = self.q[0, :]
