@@ -10,6 +10,7 @@ from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
+import nengo_loihi.config as config
 import nengo_loihi.splitter as splitter
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,7 @@ class Simulator(object):
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
             nengo.rc.set("decoder_cache", "enabled", "False")
+            config.add_params(network)
             if precompute:
                 # split the host into two networks, to allow precomputing
                 host, chip, h2c, c2h_params, c2h = splitter.split(

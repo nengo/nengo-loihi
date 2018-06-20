@@ -5,18 +5,18 @@ from . import loihi_cx
 from .neurons import NIF
 
 
-def is_on_chip(obj):
+def is_on_chip(obj, config):
     """Determine if a component should be placed on the chip or host"""
 
     if isinstance(obj, nengo.Ensemble):
         if isinstance(obj.neuron_type, nengo.Direct):
             return False
         else:
-            return True
+            return config[obj].on_chip
     elif isinstance(obj, nengo.Node):
         return False
     elif isinstance(obj, nengo.ensemble.Neurons):
-        return is_on_chip(obj.ensemble)
+        return is_on_chip(obj.ensemble, config)
     raise Exception('Unhandled object type: %s' % obj)
 
 
@@ -55,12 +55,12 @@ class HostReceiveNode(nengo.Node):
 class ChipReceiveNode(nengo.Node):
     """For receiving host->chip messages"""
 
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, size_out):
         self.cx_spike_input = loihi_cx.CxSpikeInput(
-            np.zeros((0, dimensions * 2), dtype=bool))
+            np.zeros((0, dimensions), dtype=bool))
         self.last_time = None
         super(ChipReceiveNode, self).__init__(self.update,
-                                              size_in=0, size_out=dimensions)
+                                              size_in=0, size_out=size_out)
 
     def update(self, t):
         raise Exception('ChipReceiveNodes should not acutally be run')
@@ -83,13 +83,13 @@ def split(model, inter_rate, inter_n):  # noqa: C901
     host2chip_senders = {}
 
     for ens in model.all_ensembles:
-        if is_on_chip(ens):
+        if is_on_chip(ens, model.config):
             chip.ensembles.append(ens)
         else:
             host.ensembles.append(ens)
 
     for node in model.all_nodes:
-        if is_on_chip(node):
+        if is_on_chip(node, model.config):
             chip.nodes.append(node)
         else:
             host.nodes.append(node)
@@ -100,42 +100,54 @@ def split(model, inter_rate, inter_n):  # noqa: C901
             target = target.obj
         if isinstance(target, nengo.ensemble.Neurons):
             target = target.ensemble
-        if is_on_chip(target):
+        if is_on_chip(target, model.config):
             chip.probes.append(probe)
         else:
             host.probes.append(probe)
 
     for c in model.all_connections:
-        pre_onchip = is_on_chip(c.pre_obj)
-        post_onchip = is_on_chip(c.post_obj)
+        pre_onchip = is_on_chip(c.pre_obj, model.config)
+        post_onchip = is_on_chip(c.post_obj, model.config)
         if pre_onchip and post_onchip:
             chip.connections.append(c)
         elif not pre_onchip and not post_onchip:
             host.connections.append(c)
         elif post_onchip and not pre_onchip:
-            dim = c.size_out
-            with chip:
-                receive = ChipReceiveNode(dim)
-                nengo.Connection(receive, c.post, synapse=c.synapse)
-            with host:
-                max_rate = inter_rate * inter_n
-                assert max_rate <= 1000
+            if isinstance(c.pre_obj, nengo.ensemble.Neurons):
+                # send spikes over and do the rest of the connection on-chip
+                dim = c.size_in
+                with chip:
+                    receive = ChipReceiveNode(dim, size_out=dim)
+                    nengo.Connection(receive, c.post,
+                                     transform=c.transform, synapse=c.synapse)
+                with host:
+                    send = HostSendNode(dim)
+                    nengo.Connection(c.pre, send, synapse=None)
+                host2chip_senders[send] = receive
+            else:
+                dim = c.size_out
+                with chip:
+                    receive = ChipReceiveNode(dim * 2, size_out=dim)
+                    nengo.Connection(receive, c.post, synapse=c.synapse)
+                with host:
+                    max_rate = inter_rate * inter_n
+                    assert max_rate <= 1000
 
-                ens = nengo.Ensemble(
-                    2 * dim, dim, neuron_type=NIF(tau_ref=0.0),
-                    encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
-                    max_rates=[max_rate] * dim + [max_rate] * dim,
-                    intercepts=[-1] * dim + [-1] * dim)
+                    ens = nengo.Ensemble(
+                        2 * dim, dim, neuron_type=NIF(tau_ref=0.0),
+                        encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
+                        max_rates=[max_rate] * dim + [max_rate] * dim,
+                        intercepts=[-1] * dim + [-1] * dim)
 
-                send = HostSendNode(dim * 2)
-                nengo.Connection(c.pre, ens,
-                                 function=c.function,
-                                 solver=c.solver,
-                                 eval_points=c.eval_points,
-                                 scale_eval_points=c.scale_eval_points,
-                                 synapse=None,
-                                 transform=c.transform)
-                nengo.Connection(ens.neurons, send, synapse=None)
+                    send = HostSendNode(dim * 2)
+                    nengo.Connection(c.pre, ens,
+                                     function=c.function,
+                                     solver=c.solver,
+                                     eval_points=c.eval_points,
+                                     scale_eval_points=c.scale_eval_points,
+                                     synapse=None,
+                                     transform=c.transform)
+                    nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
             dim = c.size_out

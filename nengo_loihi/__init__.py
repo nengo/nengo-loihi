@@ -10,6 +10,7 @@ from . import allocators
 from . import loihi_interface
 
 from .simulator import Simulator
+from .config import add_params
 
 logger = logging.getLogger(__name__)
 try:
