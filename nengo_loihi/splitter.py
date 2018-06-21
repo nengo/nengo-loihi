@@ -153,3 +153,83 @@ def split(model, inter_rate, inter_n):  # noqa: C901
         else:
             raise Exception('Unhandled Connection %s' % c)
     return host, chip, host2chip_senders, chip2host_params, chip2host_receivers
+
+
+def base_obj(obj):
+    if isinstance(obj, nengo.ensemble.Neurons):
+        return obj.ensemble
+    elif isinstance(obj, nengo.base.ObjView):
+        return obj.obj
+    assert isinstance(obj, (nengo.Node, nengo.Ensemble))
+    return obj
+
+
+def split_pre_from_host(host_model):    # noqa: C901
+    assert len(host_model.networks) == 0
+    pre = nengo.Network()
+    inputs = {}
+    outputs = {}
+    probes = {}
+    queue = []
+    for n in host_model.nodes[:]:
+        inputs[n] = []
+        outputs[n] = []
+        probes[n] = []
+        if isinstance(n, HostSendNode):
+            host_model.nodes.remove(n)
+            pre.nodes.append(n)
+            queue.append(n)
+    for e in host_model.ensembles:
+        inputs[e] = []
+        outputs[e] = []
+        probes[e] = []
+    for c in host_model.connections:
+        inputs[base_obj(c.post_obj)].append(c)
+        outputs[base_obj(c.pre_obj)].append(c)
+
+    for p in host_model.probes:
+        probes[base_obj(p.target)].append(p)
+
+    while len(queue) > 0:
+        n = queue.pop()
+        for c in inputs[n]:
+            if c not in host_model.connections:
+                continue
+            host_model.connections.remove(c)
+            pre.connections.append(c)
+            pre_obj = base_obj(c.pre_obj)
+            if pre_obj in host_model.nodes:
+                if isinstance(pre_obj, HostReceiveNode):
+                    raise Exception('Cannot precompute input, '
+                                    'as it is dependent on output')
+                host_model.nodes.remove(pre_obj)
+                pre.nodes.append(pre_obj)
+                queue.append(pre_obj)
+            elif pre_obj in host_model.ensembles:
+                host_model.ensembles.remove(pre_obj)
+                pre.ensembles.append(pre_obj)
+                queue.append(pre_obj)
+        for c in outputs[n]:
+            if c not in host_model.connections:
+                continue
+            host_model.connections.remove(c)
+            pre.connections.append(c)
+            post_obj = base_obj(c.post_obj)
+            if post_obj in host_model.nodes:
+                if isinstance(post_obj, HostReceiveNode):
+                    raise Exception('Cannot precompute input, '
+                                    'as it is dependent on output')
+                host_model.nodes.remove(post_obj)
+                pre.nodes.append(post_obj)
+                queue.append(post_obj)
+            if post_obj in host_model.ensembles:
+                host_model.ensembles.remove(post_obj)
+                pre.ensembles.append(post_obj)
+                queue.append(post_obj)
+
+    for obj in pre.ensembles + pre.nodes:
+        for p in probes[obj]:
+            host_model.probes.remove(p)
+            pre.probes.append(p)
+
+    return pre

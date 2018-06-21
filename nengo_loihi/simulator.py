@@ -10,7 +10,7 @@ from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
-from nengo_loihi.splitter import split
+import nengo_loihi.splitter as splitter
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,11 @@ class ProbeDict(collections.Mapping):
     def __init__(self, raw, host_probe_dict=None):
         super(ProbeDict, self).__init__()
         self.raw = raw
-        self.host_probe_dict = host_probe_dict
+        self.fallbacks = []
         self._cache = {}
+
+    def add_fallback_dict(self, fallback):
+        self.fallbacks.append(fallback)
 
     def __getitem__(self, key):
         if (key not in self._cache or
@@ -40,9 +43,10 @@ class ProbeDict(collections.Mapping):
                     rval.setflags(write=False)
                 self._cache[key] = rval
             else:
-                # don't put this in the cache, as it's already cached
-                # by the host nengo.Simulator
-                return self.host_probe_dict[key]
+                for fallback in self.fallbacks:
+                    if key in fallback:
+                        return fallback[key]
+                raise KeyError(key)
         return self._cache[key]
 
     def __iter__(self):
@@ -77,7 +81,8 @@ class Simulator(object):
     # would skip all test whose names start with 'test_pes'.
     unsupported = []
 
-    def __init__(self, network, dt=0.001, seed=None, model=None,
+    def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
+                 precompute=False,
                  target='loihi', max_time=None):
         self.closed = True  # Start closed in case constructor raises exception
 
@@ -88,17 +93,32 @@ class Simulator(object):
             assert max_time is None or model.max_time == max_time
             self.model = model
 
+        self.precompute = precompute
+
+        self.chip2host_sent_steps = 0   # how many timesteps have been sent
         if network is not None:
-            if max_time is None:
+            if max_time is None and not precompute:
                 # we don't have a max_time, so we need online communication
-                host, chip, h2c, c2h_params, c2h = split(
+                host, chip, h2c, c2h_params, c2h = splitter.split(
                     network, INTER_RATE, INTER_N)
-                self.host_network = host
                 network = chip
                 self.chip2host_receivers = c2h
                 self.host2chip_senders = h2c
                 self.model.chip2host_params.update(c2h_params)
                 self.host_sim = nengo.Simulator(host, progress_bar=False)
+            elif max_time is None and precompute:
+                # split the host into two networks, to allow precomputing
+                host, chip, h2c, c2h_params, c2h = splitter.split(
+                    network, INTER_RATE, INTER_N)
+                host_pre = splitter.split_pre_from_host(host)
+                network = chip
+                self.chip2host_receivers = c2h
+                self.host2chip_senders = h2c
+                self.model.chip2host_params.update(c2h_params)
+                self.host_pre_sim = nengo.Simulator(host_pre,
+                                                    progress_bar=False)
+                self.host_post_sim = nengo.Simulator(host,
+                                                     progress_bar=False)
             else:
                 self.host_sim = None
                 self.chip2host_receivers = {}
@@ -106,9 +126,12 @@ class Simulator(object):
             self.model.build(network)
 
         self._probe_outputs = self.model.params
-        self.data = ProbeDict(
-            self._probe_outputs, host_probe_dict=(
-                None if self.host_sim is None else self.host_sim.data))
+        self.data = ProbeDict(self._probe_outputs)
+        if precompute:
+            self.data.add_fallback_dict(self.host_pre_sim.data)
+            self.data.add_fallback_dict(self.host_post_sim.data)
+        elif self.host_sim is not None:
+            self.data.add_fallback_dict(self.host_sim.data)
 
         if seed is None:
             if network is not None and network.seed is not None:
@@ -258,7 +281,14 @@ class Simulator(object):
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
         if self.simulator is not None:
-            if self.host_sim is not None:
+            if self.precompute:
+                self.host_pre_sim.run_steps(steps)
+                self.handle_host2chip_communications()
+                self.simulator.run_steps(steps)
+                self.handle_chip2host_communications()
+                self.host_post_sim.run_steps(steps)
+
+            elif self.host_sim is not None:
                 for i in range(steps):
                     self.host_sim.step()
                     self.handle_host2chip_communications()
@@ -274,7 +304,7 @@ class Simulator(object):
 
     def handle_host2chip_communications(self):
         if self.simulator is not None:
-            if self.host_sim is not None:
+            if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
                     for t, x in sender.queue:
@@ -285,16 +315,21 @@ class Simulator(object):
 
     def handle_chip2host_communications(self):
         if self.simulator is not None:
-            if self.host_sim is not None:
+            if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
                 for probe, receiver in self.chip2host_receivers.items():
                     # extract the probe data from the simulator
                     cx_probe = self.simulator.model.objs[probe]['out']
-                    x = self.simulator.probe_outputs[cx_probe][-1]
-                    if cx_probe.weights is not None:
-                        x = np.dot(x, cx_probe.weights)
-                    # send the probe data to the correct host receiver
-                    receiver.receive(self.dt*self._n_steps, x)
+
+                    i = self.chip2host_sent_steps
+                    x = self.simulator.probe_outputs[cx_probe][i:]
+                    if len(x) > 0:
+                        if cx_probe.weights is not None:
+                            x = np.dot(x, cx_probe.weights)
+
+                        for j in range(len(x)):
+                            receiver.receive(self.dt*(i+j+2), x[j])
+                    self.chip2host_sent_steps += len(x)
         elif self.loihi is not None:
             raise NotImplementedError('Loihi chip2host not implemented yet')
 
