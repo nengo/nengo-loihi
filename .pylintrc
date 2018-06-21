@@ -35,6 +35,11 @@ max-line-length = 79
 valid-metaclass-classmethod-first-arg = metacls
 
 
+[IMPORTS]
+
+known-third-party = nengo
+
+
 [REPORTS]
 
 reports = no
