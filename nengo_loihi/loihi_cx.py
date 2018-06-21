@@ -574,6 +574,6 @@ class CxSimulator(object):
     def get_probe_output(self, probe):
         cx_probe = self.model.objs[probe]['out']
         assert isinstance(cx_probe, CxProbe)
-        x = self.probe_outputs[cx_probe]
+        x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
