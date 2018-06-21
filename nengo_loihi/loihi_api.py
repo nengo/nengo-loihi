@@ -333,6 +333,41 @@ class SynapseFmt(object):
     def scale(self):
         return self.get_scale(self.wgtExp)
 
+    @property
+    def realWgtBits(self):
+        return self.WEIGHT_BITS_MAP[self.wgtBits]
+
+    @property
+    def realIdxBits(self):
+        return self.INDEX_BITS_MAP[self.idxBits]
+
+    @property
+    def isMixed(self):
+        return self.fanoutType == 1
+
+    def bits_per_axon(self, n_weights):
+        """For an axon with n weights, compute the weight memory bits used"""
+        bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
+        if self.compression == 0:
+            bits_per_weight += self.realIdxBits
+        elif self.compression == 3:
+            pass
+        else:
+            raise NotImplementedError("Compression %s" % (self.compression,))
+
+        SYNAPSE_FMT_IDX_BITS = 4
+        N_SYNAPSES_BITS = 6
+        bits = 0
+        synapses_per_group = self.numSynapses + 1
+        for i in range(0, n_weights, synapses_per_group):
+            n = min(n_weights - i, synapses_per_group)
+            bits_i = n*bits_per_weight + SYNAPSE_FMT_IDX_BITS + N_SYNAPSES_BITS
+            bits_i = -64 * (-bits_i // 64)
+            # ^ round up to nearest 64 (size of one int64 memory unit)
+            bits += bits_i
+
+        return bits
+
     def set(self, **kwargs):
         for key, value in kwargs.items():
             assert hasattr(self, key)
@@ -348,20 +383,8 @@ class SynapseFmt(object):
         assert 0 <= self.idxBits < 8
         assert 1 <= self.fanoutType < 4
 
-    @property
-    def width(self):
-        return self.WEIGHT_BITS_MAP[self.wgtBits]
-
-    @property
-    def isMixed(self):
-        return self.fanoutType == 1
-
-    @property
-    def realIdxBits(self):
-        return self.INDEX_BITS_MAP[self.idxBits]
-
     def discretize_weights(self, w, dtype=np.int32):
-        s = 8 - self.width + self.isMixed
+        s = 8 - self.realWgtBits + self.isMixed
         m = 2**(8 - s) - 1
 
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)

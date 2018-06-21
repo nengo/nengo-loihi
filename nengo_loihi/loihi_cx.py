@@ -58,17 +58,16 @@ class CxGroup(object):
             self.named_synapses[name] = synapses
 
         AXONS_MAX = 4096
-        MAX_MEM_LEN = 16384
+        MAX_SYNAPSE_BITS = 16384*64
         n_axons = sum(s.n_axons for s in self.synapses)
         if n_axons > AXONS_MAX:
             raise ValueError("Total axons (%d) exceeded max (%d)" % (
                 n_axons, AXONS_MAX))
 
-        n_synapses = sum(s.size() for s in self.synapses)
-        max_synapses = 4*(MAX_MEM_LEN - len(self.synapses))
-        if n_synapses > max_synapses:
-            raise ValueError("Total synapses (%d) exceeded max (%d)" % (
-                n_synapses, max_synapses))
+        synapse_bits = sum(s.bits() for s in self.synapses)
+        if synapse_bits > MAX_SYNAPSE_BITS:
+            raise ValueError("Total synapse bits (%d) exceeded max (%d)" % (
+                synapse_bits, MAX_SYNAPSE_BITS))
 
     def add_axons(self, axons, name=None):
         """Add a CxAxons object to ensemble."""
@@ -230,6 +229,10 @@ class CxSynapses(object):
 
     def size(self):
         return sum(len(w) for w in self.weights)
+
+    def bits(self):
+        return sum(self.synapse_fmt.bits_per_axon(len(w))
+                   for w in self.weights)
 
     def max_abs_weight(self):
         return max(np.abs(w).max() if len(w) > 0 else -np.inf
