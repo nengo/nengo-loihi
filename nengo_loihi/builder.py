@@ -620,8 +620,16 @@ def conn_probe(model, probe):
 def signal_probe(model, key, probe):
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']
+
+    weights = None
+    # spike probes should give values of 1.0/dt on spike events
+    if isinstance(probe.target, nengo.ensemble.Neurons):
+        if probe.attr == 'output':
+            weights = 1.0 / model.dt
+
     cx_probe = CxProbe(
-        target=target, key=key, slice=probe.slice, synapse=probe.synapse)
+        target=target, key=key, slice=probe.slice,
+        synapse=probe.synapse, weights=weights)
     target.add_probe(cx_probe)
     model.objs[probe]['in'] = target
     model.objs[probe]['out'] = cx_probe
