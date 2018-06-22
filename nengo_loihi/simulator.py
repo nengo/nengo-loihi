@@ -317,19 +317,25 @@ class Simulator(object):
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
+                i = self.chip2host_sent_steps
+                increment = None
                 for probe, receiver in self.chip2host_receivers.items():
                     # extract the probe data from the simulator
                     cx_probe = self.simulator.model.objs[probe]['out']
 
-                    i = self.chip2host_sent_steps
                     x = self.simulator.probe_outputs[cx_probe][i:]
                     if len(x) > 0:
+                        if increment is None:
+                            increment = len(x)
+                        else:
+                            assert increment == len(x)
                         if cx_probe.weights is not None:
                             x = np.dot(x, cx_probe.weights)
 
                         for j in range(len(x)):
                             receiver.receive(self.dt*(i+j+2), x[j])
-                    self.chip2host_sent_steps += len(x)
+                if increment is not None:
+                    self.chip2host_sent_steps += increment
         elif self.loihi is not None:
             raise NotImplementedError('Loihi chip2host not implemented yet')
 
