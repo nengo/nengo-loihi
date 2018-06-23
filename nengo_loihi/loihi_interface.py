@@ -176,11 +176,16 @@ def build_input(n2core, core, spike_input, cx_idxs):
         axon_ids.append([(tchip.id, tcore.id, i)
                          for i in range(axon.n_axons)])
 
+    spike_input.spike_gen = spike_gen
+    spike_input.axon_ids = axon_ids
+
     for i, spiked in enumerate(spike_input.spikes):
         for j, s in enumerate(spiked):
             if s:
                 for output_axon in axon_ids:
                     spike_gen.addSpike(i, *output_axon[j])
+
+    spike_input.sent_count = len(spike_input.spikes)
 
 
 def build_synapses(n2core, core, group, synapses, cx_idxs):

@@ -301,12 +301,23 @@ class Simulator(object):
             else:
                 self.simulator.run_steps(steps)
         elif self.loihi is not None:
-            raise NotImplementedError
+            if self.precompute:
+                self.host_pre_sim.run_steps(steps)
+                self.handle_host2chip_communications()
+                self.loihi.run_steps(steps)
+                self.handle_chip2host_communications()
+                self.host_post_sim.run_steps(steps)
+
+            elif self.host_sim is not None:
+                pass
+
+            else:
+                self.loihi.run_steps(steps)
 
         self._n_steps += steps
         self._probe()
 
-    def handle_host2chip_communications(self):
+    def handle_host2chip_communications(self):  # noqa: C901
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
@@ -315,7 +326,25 @@ class Simulator(object):
                         receiver.receive(t, x)
                     del sender.queue[:]
         elif self.loihi is not None:
-            raise NotImplementedError('Loihi host2chip not implemented yet')
+            if self.precompute or self.host_sim is not None:
+                # go through the list of host2chip connections
+                for sender, receiver in self.host2chip_senders.items():
+                    for t, x in sender.queue:
+                        receiver.receive(t, x)
+                    del sender.queue[:]
+                    spike_input = receiver.cx_spike_input
+                    spike_gen = spike_input.spike_gen
+                    sent_count = spike_input.sent_count
+                    axon_ids = spike_input.axon_ids
+                    spikes = spike_input.spikes
+                    while sent_count < len(spikes):
+                        for j, s in enumerate(spikes[sent_count]):
+                            if s:
+                                for output_axon in axon_ids:
+                                    spike_gen.addSpike(sent_count,
+                                                       *output_axon[j])
+                        sent_count += 1
+                    spike_input.sent_count = sent_count
 
     def handle_chip2host_communications(self):
         if self.simulator is not None:
@@ -341,7 +370,7 @@ class Simulator(object):
                 if increment is not None:
                     self.chip2host_sent_steps += increment
         elif self.loihi is not None:
-            raise NotImplementedError('Loihi chip2host not implemented yet')
+            pass
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.
