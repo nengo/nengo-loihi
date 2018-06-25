@@ -1,5 +1,6 @@
 from __future__ import division
 
+import time
 import warnings
 
 import numpy as np
@@ -232,13 +233,21 @@ def build_probe(n2core, core, group, probe, cx_idxs):
 
 class LoihiSimulator(object):
     def __init__(self, cx_model, seed=None):
+        self.n2board = None
+        self._probe_filters = {}
+        self._probe_filter_pos = {}
+
         if seed is not None:
             warnings.warn("Seed will be ignored when running on Loihi")
 
         self.build(cx_model, seed=seed)
 
-        self._probe_filters = {}
-        self._probe_filter_pos = {}
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def build(self, cx_model, seed=None):
         self.model = cx_model
@@ -258,6 +267,35 @@ class LoihiSimulator(object):
 
     def run_steps(self, steps):
         self.n2board.run(steps)
+
+    def is_connected(self):
+        return self.n2board is not None and self.n2board.nxDriver.hasStarted()
+
+    def connect(self, attempts=10):
+        if self.n2board is None:
+            raise RuntimeError("Must build model before running")
+
+        if self.is_connected():
+            return
+
+        errors = []
+        for i in range(attempts):
+            try:
+                self.n2board.startDriver()
+                if self.is_connected():
+                    break
+                else:
+                    errors.append("Still not connected for unknown reason "
+                                  "after driver start attempt")
+            except Exception as e:
+                errors.append(str(e))
+                time.sleep(1)
+        else:
+            raise RuntimeError("Could not connect to board. Last error:\n%s"
+                               % (errors[-1],))
+
+    def close(self):
+        self.n2board.disconnect()
 
     def _filter_probe(self, cx_probe, data):
         dt = self.model.dt
