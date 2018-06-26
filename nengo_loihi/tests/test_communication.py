@@ -1,4 +1,5 @@
 import nengo
+from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 
@@ -25,7 +26,7 @@ def test_input_node(Simulator, val, type):
         p_b = nengo.Probe(b, synapse=0.1)
         p_c = nengo.Probe(c, synapse=0.1)
 
-    with Simulator(net, max_time=1.0) as sim:
+    with Simulator(net, max_time=1.0, precompute=False) as sim:
         sim.run(1.0)
 
         # TODO: seems like error margins should be smaller than this?
@@ -113,8 +114,7 @@ def test_neurons2node(Simulator, seed, plt):
     with Simulator(model) as sim:
         sim.run(1.0)
 
-    nengo.utils.matplotlib.rasterplot(sim.trange(), np.array(data),
-                                      ax=plt.gca())
+    rasterplot(sim.trange(), np.array(data), ax=plt.gca())
     plt.twinx()
     plt.plot(sim.trange(), sim.data[p_stim])
     plt.title('Raster plot for sine input')

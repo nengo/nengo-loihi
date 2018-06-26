@@ -71,7 +71,6 @@ class ProbeDict(collections.Mapping):
 
 
 class Simulator(object):
-
     # 'unsupported' defines features unsupported by a simulator.
     # The format is a list of tuples of the form `(test, reason)` with `test`
     # being a string with wildcards (*, ?, [abc], [!abc]) matched against Nengo
@@ -82,8 +81,11 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=False, target='loihi', max_time=None):
+                 precompute=True, target='loihi', max_time=None):
         self.closed = True  # Start closed in case constructor raises exception
+
+        # can only use one of the precompute methods
+        assert not precompute or max_time is None
 
         if model is None:
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt),
@@ -94,7 +96,7 @@ class Simulator(object):
 
         self.precompute = precompute
 
-        self.chip2host_sent_steps = 0   # how many timesteps have been sent
+        self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
             if max_time is None and not precompute:
                 # we don't have a max_time, so we need online communication
@@ -150,6 +152,8 @@ class Simulator(object):
             self.loihi = self.model.get_loihi(seed=seed)
         else:
             raise ValueError("Unrecognized target")
+
+        assert self.simulator or self.loihi
 
         self.closed = False
         self.reset(seed=seed)
@@ -290,15 +294,14 @@ class Simulator(object):
                 self.simulator.run_steps(steps)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
-
-            elif self.host_sim is not None:
+            elif self.host_sim is None:
+                self.simulator.run_steps(steps)
+            else:
                 for i in range(steps):
                     self.host_sim.step()
                     self.handle_host2chip_communications()
                     self.simulator.step()
                     self.handle_chip2host_communications()
-            else:
-                self.simulator.run_steps(steps)
         elif self.loihi is not None:
             if self.precompute:
                 self.host_pre_sim.run_steps(steps)
@@ -306,12 +309,10 @@ class Simulator(object):
                 self.loihi.run_steps(steps)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
-
-            elif self.host_sim is not None:
-                pass
-
-            else:
+            elif self.host_sim is None:
                 self.loihi.run_steps(steps)
+            else:
+                raise NotImplementedError
 
         self._n_steps += steps
         self._probe()
@@ -332,20 +333,17 @@ class Simulator(object):
                         receiver.receive(t, x)
                     del sender.queue[:]
                     spike_input = receiver.cx_spike_input
-                    spike_gen = spike_input.spike_gen
                     sent_count = spike_input.sent_count
-                    axon_ids = spike_input.axon_ids
-                    spikes = spike_input.spikes
-                    while sent_count < len(spikes):
-                        for j, s in enumerate(spikes[sent_count]):
+                    while sent_count < len(spike_input.spikes):
+                        for j, s in enumerate(spike_input.spikes[sent_count]):
                             if s:
-                                for output_axon in axon_ids:
-                                    spike_gen.addSpike(sent_count,
-                                                       *output_axon[j])
+                                for output_axon in spike_input.axon_ids:
+                                    spike_input.spike_gen.addSpike(
+                                        sent_count, *output_axon[j])
                         sent_count += 1
                     spike_input.sent_count = sent_count
 
-    def handle_chip2host_communications(self):   # noqa: C901
+    def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
@@ -365,20 +363,22 @@ class Simulator(object):
                             x = np.dot(x, cx_probe.weights)
 
                         for j in range(len(x)):
-                            receiver.receive(self.dt*(i+j+2), x[j])
+                            receiver.receive(self.dt * (i + j + 2), x[j])
                 if increment is not None:
                     self.chip2host_sent_steps += increment
+            else:
+                raise NotImplementedError
         elif self.loihi is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
-                i = self.chip2host_sent_steps
                 increment = None
                 for probe, receiver in self.chip2host_receivers.items():
                     # extract the probe data from the simulator
                     cx_probe = self.loihi.model.objs[probe]['out']
                     n2probe = self.loihi.board.probe_map[cx_probe]
                     x = np.column_stack([
-                        p.timeSeries.data[i:] for p in n2probe])
+                        p.timeSeries.data[self.chip2host_sent_steps:]
+                        for p in n2probe])
                     if len(x) > 0:
                         if increment is None:
                             increment = len(x)
@@ -388,9 +388,13 @@ class Simulator(object):
                             x = np.dot(x, cx_probe.weights)
 
                         for j in range(len(x)):
-                            receiver.receive(self.dt*(i+j+2), x[j])
+                            receiver.receive(
+                                self.dt * (self.chip2host_sent_steps + j + 2),
+                                x[j])
                 if increment is not None:
                     self.chip2host_sent_steps += increment
+            else:
+                raise NotImplementedError
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.
