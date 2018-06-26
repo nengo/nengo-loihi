@@ -4,6 +4,8 @@ import nengo
 import nengo.utils.matplotlib
 import pytest
 
+import nengo_loihi
+
 
 def test_precompute(Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:
@@ -70,3 +72,51 @@ def test_precompute_max_time(Simulator, seed, plt, D):
     plt.legend(['%d' % i for i in range(D)], loc='best')
 
     assert np.allclose(sim.data[p_stim], sim.data[p_a], atol=0.3)
+
+
+def test_input_node_precompute(plt):
+    pytest.importorskip('nxsdk')
+
+    input_fn = lambda t: np.sin(2*np.pi*t)
+    sims = {'simulation': nengo_loihi.NumpySimulator,
+            'silicon': nengo_loihi.Simulator}
+    x = {}
+    u = {}
+    v = {}
+    for name, simulator in sims.items():
+        n = 4
+        with nengo.Network(seed=1) as model:
+            inp = nengo.Node(input_fn)
+
+            a = nengo.Ensemble(n, 1,
+                               max_rates=nengo.dists.Uniform(100, 120),
+                               intercepts=nengo.dists.Uniform(-0.5, 0.5))
+            ap = nengo.Probe(a, synapse=0.01)
+            aup = nengo.Probe(a.neurons, 'input')
+            avp = nengo.Probe(a.neurons, 'voltage')
+
+            nengo.Connection(inp, a)
+
+        with simulator(model, precompute=True) as sim:
+            print("Running in {}".format(name))
+            sim.run(3.)
+
+        synapse = nengo.synapses.Lowpass(0.03)
+        x[name] = synapse.filt(sim.data[ap])
+
+        u[name] = sim.data[aup][:25]
+        u[name] = (np.round(u[name]*1000)
+                   if str(u[name].dtype).startswith('float') else u[name])
+
+        v[name] = sim.data[avp][:25]
+        v[name] = (np.round(v[name]*1000)
+                   if str(v[name].dtype).startswith('float') else v[name])
+
+        plt.plot(sim.trange(), x[name], label=name)
+
+    t = sim.trange()
+    u = input_fn(t)
+    plt.plot(t, u, 'k:', label='input')
+    plt.legend(loc='best')
+
+    assert np.allclose(x['silicon'], x['simulation'], atol=0.1, rtol=0.01)
