@@ -346,7 +346,7 @@ class Simulator(object):
                         sent_count += 1
                     spike_input.sent_count = sent_count
 
-    def handle_chip2host_communications(self):
+    def handle_chip2host_communications(self):   # noqa: C901
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
@@ -370,7 +370,28 @@ class Simulator(object):
                 if increment is not None:
                     self.chip2host_sent_steps += increment
         elif self.loihi is not None:
-            pass
+            if self.precompute or self.host_sim is not None:
+                # go through the list of chip2host connections
+                i = self.chip2host_sent_steps
+                increment = None
+                for probe, receiver in self.chip2host_receivers.items():
+                    # extract the probe data from the simulator
+                    cx_probe = self.loihi.model.objs[probe]['out']
+                    n2probe = self.loihi.board.probe_map[cx_probe]
+                    x = np.column_stack([
+                        p.timeSeries.data[i:] for p in n2probe])
+                    if len(x) > 0:
+                        if increment is None:
+                            increment = len(x)
+                        else:
+                            assert increment == len(x)
+                        if cx_probe.weights is not None:
+                            x = np.dot(x, cx_probe.weights)
+
+                        for j in range(len(x)):
+                            receiver.receive(self.dt*(i+j+2), x[j])
+                if increment is not None:
+                    self.chip2host_sent_steps += increment
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.
