@@ -7,15 +7,19 @@ import matplotlib.pyplot as plt
 import nengo
 import nengo_loihi
 
-import nxsdk
-Simulator = nengo_loihi.Simulator
-print("Running on Loihi")
+try:
+    import nxsdk
+    Simulator = nengo_loihi.Simulator
+    print("Running on Loihi")
+except ImportError:
+    Simulator = nengo_loihi.NumpySimulator
+    print("Running in simulation")
 
 with nengo.Network(seed=None) as model:
     u = nengo.Node(lambda t: np.sin(2*np.pi*t))
     up = nengo.Probe(u, synapse=None)
 
-    a = nengo.Ensemble(100, 2,
+    a = nengo.Ensemble(100, 1,
                        max_rates=nengo.dists.Uniform(100, 120),
                        intercepts=nengo.dists.Uniform(-.95,.95))
     nengo.Connection(u, a)
