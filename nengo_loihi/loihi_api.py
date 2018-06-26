@@ -147,6 +147,7 @@ class Core(object):
         self.cxProfiles = []
         self.vthProfiles = []
         self.synapseFmts = [None]  # keep index 0 unused
+        self.stdpPreCfgs = []
 
         self.synapse_fmt_idxs = {}  # one synfmt per CxSynapses, for now
         self.synapse_axons = collections.OrderedDict()
@@ -156,7 +157,16 @@ class Core(object):
     def board(self):
         return self.chip.board
 
+    @property
+    def synapses(self):
+        return list(self.synapse_axons)
+
     def validate(self):
+        assert len(self.cxProfiles) <= 32  # TODO: check this number
+        assert len(self.vthProfiles) <= 16  # TODO: check this number
+        assert len(self.synapseFmts) <= 16  # TODO: check this number
+        assert len(self.stdpPreCfgs) <= 3
+
         for cxProfile in self.cxProfiles:
             cxProfile.validate(core=self)
         for vthProfile in self.vthProfiles:
@@ -164,6 +174,9 @@ class Core(object):
         for synapseFmt in self.synapseFmts:
             if synapseFmt is not None:
                 synapseFmt.validate(core=self)
+        for traceCfg in self.stdpPreCfgs:
+            traceCfg.validate(core=self)
+
         for synapses in self.synapse_axons:
             synapseFmt = self.get_synapse_fmt(synapses)
             idxbits = synapseFmt.realIdxBits
@@ -191,6 +204,11 @@ class Core(object):
             yield inp, cx_idxs
             i0 = i1
 
+    def iterate_synapses(self):
+        for group in self.groups:
+            for synapses in group.synapses:
+                yield synapses
+
     def add_group(self, group):
         self.groups.append(group)
 
@@ -209,6 +227,10 @@ class Core(object):
         self.synapseFmts.append(synapse_fmt)
         return len(self.synapseFmts) - 1  # index
 
+    def add_stdp_pre_cfg(self, stdp_pre_cfg):
+        self.stdpPreCfgs.append(stdp_pre_cfg)
+        return len(self.stdpPreCfgs) - 1  # index
+
     def n_synapses(self):
         return sum(synapses.size() for group in self.groups
                    for synapses in group.synapses)
@@ -222,7 +244,7 @@ class Core(object):
         if len(self.synapse_axons) > 0:
             last = next(reversed(self.synapse_axons))
             a0 = self.synapse_axons[last][-1]
-        idx_mult = 1
+        idx_mult = 2 if synapses.tracing else 1
         idxs = [a0 + idx_mult*i for i in range(synapses.n_axons)]
         self.synapse_axons[synapses] = idxs
         self.board.index_synapses(synapses, self.chip, self, idxs)
@@ -241,7 +263,16 @@ class Core(object):
         return self.synapseFmts[self.synapse_fmt_idxs[synapses]]
 
 
-class CxProfile(object):
+class Profile(object):
+    def __eq__(self, obj):
+        return isinstance(obj, type(self)) and all(
+            self.__dict__[key] == obj.__dict__[key] for key in self.params)
+
+    def __hash__(self):
+        return hash(tuple(self.__dict__[key] for key in self.params))
+
+
+class CxProfile(Profile):
     DECAY_U_MAX = 2**12 - 1
     DECAY_V_MAX = 2**12 - 1
     REFRACT_DELAY_MAX = 2**6 - 1
@@ -249,17 +280,11 @@ class CxProfile(object):
     params = ('decayU', 'decayV', 'refractDelay', 'enableNoise')
 
     def __init__(self, decayV, decayU, refractDelay, enableNoise):
+        super(CxProfile, self).__init__()
         self.decayV = decayV
         self.decayU = decayU
         self.refractDelay = refractDelay
         self.enableNoise = enableNoise
-
-    def __eq__(self, obj):
-        return isinstance(obj, type(self)) and all(
-            self.__dict__[key] == obj.__dict__[key] for key in self.params)
-
-    def __hash__(self):
-        return hash(tuple(self.__dict__[key] for key in self.params))
 
     def validate(self, core=None):
         assert 0 <= self.decayU <= self.DECAY_U_MAX
@@ -268,20 +293,14 @@ class CxProfile(object):
         assert 0 <= self.enableNoise <= 1
 
 
-class VthProfile(object):
+class VthProfile(Profile):
     VTH_MAX = 2**17 - 1
 
     params = ('vth',)
 
     def __init__(self, vth):
+        super(VthProfile, self).__init__()
         self.vth = vth
-
-    def __eq__(self, obj):
-        return isinstance(obj, type(self)) and all(
-            self.__dict__[key] == obj.__dict__[key] for key in self.params)
-
-    def __hash__(self):
-        return hash(tuple(self.__dict__[key] for key in self.params))
 
     def validate(self, core=None):
         assert 0 < self.vth <= self.VTH_MAX
@@ -400,3 +419,47 @@ class SynapseFmt(object):
         assert np.all(ws <= 255) and np.all(ws >= -256)
 
         return w
+
+
+class StdpProfile(Profile):
+    params = (
+        'uCodePtr', 'decimateExp', 'numProducts', 'requireY', 'usesXepoch')
+
+    def __init__(self, uCodePtr=0, decimateExp=0, numProducts=0, requireY=0,
+                 usesXepoch=0):
+        super(StdpProfile, self).__init__()
+        self.uCodePtr = uCodePtr
+        self.decimateExp = decimateExp
+        self.numProducts = numProducts
+        self.requireY = requireY
+        self.usesXepoch = usesXepoch
+
+    def validate(self, core=None):
+        pass
+
+
+class StdpPreProfile(Profile):
+    params = ('updateAlways', 'numTraces', 'numTraceHist', 'stdpProfile')
+
+    def __init__(self, updateAlways=1, numTraces=0, numTraceHist=0, stdpProfile=0):
+        super(StdpPreProfile, self).__init__()
+        self.updateAlways = updateAlways
+        self.numTraces = numTraces
+        self.numTraceHist = numTraceHist
+        self.stdpProfile = stdpProfile
+
+    def validate(self, core=None):
+        pass
+
+
+class TraceCfg(Profile):
+    params = ('tau', 'spikeLevelInt', 'spikeLevelFrac')
+
+    def __init__(self, tau=0, spikeLevelInt=0, spikeLevelFrac=0):
+        super(TraceCfg, self).__init__()
+        self.tau = tau
+        self.spikeLevelInt = spikeLevelInt
+        self.spikeLevelFrac = spikeLevelFrac
+
+    def validate(self, core=None):
+        pass

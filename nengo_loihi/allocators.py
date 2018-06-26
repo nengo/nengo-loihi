@@ -1,6 +1,7 @@
 import numpy as np
 
-from nengo_loihi.loihi_api import Board, CxProfile, VthProfile, vth_to_manexp
+from nengo_loihi.loihi_api import (
+    Board, CxProfile, TraceCfg, VthProfile, vth_to_manexp)
 
 
 def compute_profiles(core, list_profiles):
@@ -50,6 +51,34 @@ def core_vth_profiles(core):
     return compute_profiles(core, list_vth_profiles)
 
 
+def core_stdp_pre_cfgs(core):
+    profiles = []
+    profile_idxs = {}
+    for synapses in core.synapses:
+        if synapses.tracing:
+            mag = synapses.tracing_mag
+            mag_int = int(mag)
+            # TODO: how does mag_frac actually work???
+            mag_frac = int(round(255*(mag - mag_int)))
+            # mag_frac = mag - mag_int
+            # mag_frac = min(int(round(1./mag_frac)), 128)
+            tracecfg = TraceCfg(
+                tau=synapses.tracing_tau,
+                spikeLevelInt=mag_int,
+                spikeLevelFrac=mag_frac,
+            )
+
+            if tracecfg in profiles:
+                profile_idxs[synapses] = profiles.index(tracecfg)
+            else:
+                profile_idxs[synapses] = len(profiles)
+                profiles.append(tracecfg)
+        else:
+            profile_idxs[synapses] = None
+
+    return profiles, profile_idxs
+
+
 def one_to_one_allocator(cx_model):
     board = Board()
     chip = board.new_chip()
@@ -60,17 +89,24 @@ def one_to_one_allocator(cx_model):
 
         cx_profiles, cx_profile_idxs = core_cx_profiles(core)
         [core.add_cx_profile(cx_profile) for cx_profile in cx_profiles]
-        core.cxProfileIdxs = cx_profile_idxs
+        core.cx_profile_idxs = cx_profile_idxs
 
         vth_profiles, vth_profile_idxs = core_vth_profiles(core)
         [core.add_vth_profile(vth_profile) for vth_profile in vth_profiles]
-        core.vthProfileIdxs = vth_profile_idxs
+        core.vth_profile_idxs = vth_profile_idxs
 
         for syn in group.synapses:
             core.add_synapses(syn)
 
         for axons in group.axons:
             core.add_axons(axons)
+
+        stdp_pre_cfgs, stdp_pre_cfg_idxs = core_stdp_pre_cfgs(core)
+        [core.add_stdp_pre_cfg(stdp_pre_cfg) for stdp_pre_cfg in stdp_pre_cfgs]
+        core.stdp_pre_cfg_idxs = stdp_pre_cfg_idxs
+
+        core.stdp_pre_profile_idx = None  # loihi_interface will set
+        core.stdp_profile_idx = None  # loihi_interface will set
 
     for input in cx_model.cx_inputs:
         # TODO: how to allocate inputs?

@@ -522,9 +522,7 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             if isinstance(conn.learning_rule_type, nengo.PES):
-                dec_syn.tracing = True
-                dec_syn.tracing_tau = 10.0
-                dec_syn.tracing_mag = 100.0
+                dec_syn.set_learning(tracing_tau=10., tracing_mag=100.)
             else:
                 raise NotImplementedError()
 

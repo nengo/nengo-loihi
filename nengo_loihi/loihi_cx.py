@@ -246,8 +246,8 @@ class CxSynapses(object):
         self.weights = None
         self.indices = None
         self.tracing = False
-        self.tracing_tau = 2.0
-        self.tracing_magnitude = 1.0
+        self.tracing_tau = None
+        self.tracing_mag = None
 
     def size(self):
         return sum(len(w) for w in self.weights)
@@ -287,6 +287,14 @@ class CxSynapses(object):
                        if v >= idxBits)
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
+
+    def set_learning(self, tracing_tau=2, tracing_mag=1.0):
+        assert tracing_tau == int(tracing_tau), "tracing_tau must be integer"
+        self.tracing = True
+        self.tracing_tau = int(tracing_tau)
+        self.tracing_mag = tracing_mag
+        self.format(learningCfg=1, stdpProfile=0)
+        # ^ stdpProfile hard-coded for now (see loihi_interface)
 
     def format(self, **kwargs):
         if self.synapse_fmt is None:

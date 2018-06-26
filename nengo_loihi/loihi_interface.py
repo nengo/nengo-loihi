@@ -39,6 +39,8 @@ def build_chip(n2chip, chip):
 
 
 def build_core(n2core, core):
+    from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
+
     assert len(core.cxProfiles) < CX_PROFILES_MAX
     assert len(core.vthProfiles) < VTH_PROFILES_MAX
 
@@ -79,6 +81,78 @@ def build_core(n2core, core):
         n2core.synapseFmt[i].compression = synapseFmt.compression
         n2core.synapseFmt[i].stdpProfile = synapseFmt.stdpProfile
         n2core.synapseFmt[i].ignoreDly = synapseFmt.ignoreDly
+
+    for i, traceCfg in enumerate(core.stdpPreCfgs):
+        tcg = TraceCfgGen()
+        tc = tcg.genTraceCfg(
+            tau=traceCfg.tau,
+            spikeLevelInt=traceCfg.spikeLevelInt,
+            spikeLevelFrac=traceCfg.spikeLevelFrac,
+        )
+        tc.writeToRegister(n2core.stdpPreCfg[i])
+
+    # --- learning
+    firstLearningIndex = None
+    for synapse in core.iterate_synapses():
+        if synapse.tracing and firstLearningIndex is None:
+            firstLearningIndex = core.synapse_axons[synapse][0]
+            break
+
+    numStdp = 0
+    if firstLearningIndex is not None:
+        for synapse in core.iterate_synapses():
+            axons = core.synapse_axons[synapse]
+            if synapse.tracing:
+                numStdp += len(axons)
+                assert np.all(axons >= firstLearningIndex)
+            else:
+                assert np.all(axons < firstLearningIndex)
+
+    if numStdp > 0:
+        # add configurations tailored to PES learning
+        n2core.stdpCfg.configure(
+            firstLearningIndex=firstLearningIndex,
+            numRewardAxons=0,
+        )
+
+        assert core.stdp_pre_profile_idx is None
+        assert core.stdp_profile_idx is None
+        core.stdp_pre_profile_idx = 0  # hard-code for now
+        core.stdp_profile_idx = 0  # hard-code for now (also in synapse_fmt)
+        n2core.stdpPreProfileCfg[0].configure(
+            updateAlways=1,
+            numTraces=0,
+            numTraceHist=0,
+            stdpProfile=0,
+        )
+
+        # stdpProfileCfg positive error
+        n2core.stdpProfileCfg[0].configure(
+            uCodePtr=0,
+            decimateExp=0,
+            numProducts=1,
+            requireY=1,
+            usesXepoch=1,
+        )
+        n2core.stdpUcodeMem[0].word = 0x00102108
+
+        # stdpProfileCfg negative error
+        n2core.stdpProfileCfg[1].configure(
+            uCodePtr=1,
+            decimateExp=0,
+            numProducts=1,
+            requireY=1,
+            usesXepoch=1,
+        )
+        n2core.stdpUcodeMem[1].word = 0x00f02108
+
+        tcg = TraceCfgGen()
+        tc = tcg.genTraceCfg(
+            tau=0,
+            spikeLevelInt=0,
+            spikeLevelFrac=0,
+        )
+        tc.writeToRegister(n2core.stdpPostCfg[0])
 
     # TODO: allocator should be checking that vmin, vmax are the same
     #   for all groups on a core
@@ -121,7 +195,10 @@ def build_core(n2core, core):
     for inp, cx_idxs in core.iterate_inputs():
         build_input(n2core, core, inp, cx_idxs)
 
-    n2core.numUpdates.configure(numUpdates=n_cx // 4 + 1)
+    n2core.numUpdates.configure(
+        numUpdates=n_cx // 4 + 1,
+        numStdp=numStdp,
+    )
 
 
 def build_group(n2core, core, group, cx_idxs, ax_range):
@@ -132,8 +209,8 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
 
     for i, bias in enumerate(group.bias):
         bman, bexp = bias_to_manexp(bias)
-        icx = core.cxProfileIdxs[group][i]
-        ivth = core.vthProfileIdxs[group][i]
+        icx = core.cx_profile_idxs[group][i]
+        ivth = core.vth_profile_idxs[group][i]
 
         ii = cx_idxs[i]
         n2core.cxCfg[ii].configure(
@@ -195,7 +272,9 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
     assert len(syn_idxs) == len(synapses.weights)
 
     synapse_fmt_idx = core.synapse_fmt_idxs[synapses]
+    stdp_pre_cfg_idx = core.stdp_pre_cfg_idxs[synapses]
 
+    target_cxs = set()
     s0 = core.synapse_entries[synapses][0]
     for a, syn_idx in enumerate(syn_idxs):
         wa = synapses.weights[a] // synapses.synapse_fmt.scale
@@ -204,15 +283,34 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
 
         assert np.all(wa <= 255) and np.all(wa >= -256), str(wa)
         for k, (w, i) in enumerate(zip(wa, ia)):
-            n2core.synapses[s0 + k].CIdx = cx_idxs[i]
-            n2core.synapses[s0 + k].Wgt = w
-            n2core.synapses[s0 + k].synFmtId = synapse_fmt_idx
+            n2core.synapses[s0 + k].configure(
+                CIdx=cx_idxs[i],
+                Wgt=w,
+                synFmtId=synapse_fmt_idx,
+                LrnEn=int(synapses.tracing),
+            )
+            target_cxs.add(cx_idxs[i])
 
         n2core.synapseMap[syn_idx].synapsePtr = s0
         n2core.synapseMap[syn_idx].synapseLen = len(wa)
         n2core.synapseMap[syn_idx].discreteMapEntry.configure()
 
+        if synapses.tracing:
+            assert core.stdp_pre_profile_idx is not None
+            assert stdp_pre_cfg_idx is not None
+            n2core.synapseMap[syn_idx+1].singleTraceEntry.configure(
+                preProfile=core.stdp_pre_profile_idx, tcs=stdp_pre_cfg_idx)
+
         s0 += len(wa)
+
+    if synapses.tracing:
+        assert core.stdp_profile_idx is not None
+        for target_cx in target_cxs:
+            # TODO: check that no cx gets configured by multiple synapses
+            n2core.stdpPostState[target_cx].configure(
+                stdpProfile=core.stdp_profile_idx,
+                traceProfile=3,  # TODO: where does this magic number come from!!!!!!!!!
+            )
 
 
 def build_axons(n2core, core, group, axons, cx_idxs):

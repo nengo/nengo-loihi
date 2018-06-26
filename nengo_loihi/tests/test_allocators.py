@@ -1,0 +1,30 @@
+import numpy as np
+
+from nengo_loihi.allocators import core_stdp_pre_cfgs
+from nengo_loihi.loihi_api import Board
+from nengo_loihi.loihi_cx import CxSynapses
+
+
+def test_core_stdp_pre_cfgs():
+    core = Board().new_chip().new_core()
+
+    def new_syn(tracing_mag=None):
+        syn = CxSynapses(n_axons=1)
+        syn.set_full_weights(np.array([[1]]))
+        if tracing_mag is not None:
+            syn.set_learning(tracing_mag=tracing_mag)
+        core.add_synapses(syn)
+        return syn
+
+    profile_idxs = {}
+    # Do this one by one to guarantee order of created tracecfgs
+    profile_idxs[new_syn(0.1)] = 0
+    profile_idxs[new_syn(0.2)] = 1
+    profile_idxs[new_syn(0.2)] = 1
+    profile_idxs[new_syn(0.3)] = 2
+    profile_idxs[new_syn(0.3)] = 2
+    profile_idxs[new_syn()] = None
+
+    profiles, ret_idxs = core_stdp_pre_cfgs(core)
+    assert len(profiles) == 3
+    assert ret_idxs == profile_idxs
