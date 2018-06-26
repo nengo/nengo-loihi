@@ -172,13 +172,11 @@ def build_input(n2core, core, spike_input, cx_idxs):
     # get core/axon ids
     axon_ids = []
     for axon in spike_input.axons:
-        tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axon.target)
+        tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapses(axon.target)
         tchip = n2board.n2Chips[tchip_idx]
         tcore = tchip.n2Cores[tcore_idx]
-
-        # TODO: what is the correct axonId? i? 2*i? taxon_idxs[i]? cx_idxs[i]?
-        axon_ids.append([(tchip.id, tcore.id, i)
-                         for i in range(axon.n_axons)])
+        axon_ids.append([(tchip.id, tcore.id, tsyn_idx)
+                         for tsyn_idx in tsyn_idxs])
 
     spike_input.spike_gen = n2core.master_spike_gen
     spike_input.axon_ids = axon_ids
@@ -193,13 +191,13 @@ def build_input(n2core, core, spike_input, cx_idxs):
 
 
 def build_synapses(n2core, core, group, synapses, cx_idxs):
-    a0, a1 = core.synapse_axons[synapses]
-    assert (a1 - a0) == len(synapses.weights)
+    syn_idxs = core.synapse_axons[synapses]
+    assert len(syn_idxs) == len(synapses.weights)
 
     synapse_fmt_idx = core.synapse_fmt_idxs[synapses]
 
     s0 = core.synapse_entries[synapses][0]
-    for a in range(a1 - a0):
+    for a, syn_idx in enumerate(syn_idxs):
         wa = synapses.weights[a] // synapses.synapse_fmt.scale
         ia = synapses.indices[a]
         assert len(wa) == len(ia)
@@ -210,23 +208,23 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
             n2core.synapses[s0 + k].Wgt = w
             n2core.synapses[s0 + k].synFmtId = synapse_fmt_idx
 
-        n2core.synapseMap[a0 + a].synapsePtr = s0
-        n2core.synapseMap[a0 + a].synapseLen = len(wa)
-        n2core.synapseMap[a0 + a].discreteMapEntry.configure()
+        n2core.synapseMap[syn_idx].synapsePtr = s0
+        n2core.synapseMap[syn_idx].synapseLen = len(wa)
+        n2core.synapseMap[syn_idx].discreteMapEntry.configure()
 
         s0 += len(wa)
 
 
 def build_axons(n2core, core, group, axons, cx_idxs):
-    tchip_idx, tcore_idx, t0, t1 = core.board.find_synapses(axons.target)
-    taxon_idxs = np.arange(t0, t1, dtype=np.int32)[axons.target_inds]
+    tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapses(axons.target)
+    taxon_idxs = np.asarray(tsyn_idxs)[axons.target_inds]
     n2board = n2core.parent.parent
     tchip_id = n2board.n2Chips[tchip_idx].id
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
-    assert axons.n_axons == len(cx_idxs)
+    assert axons.n_axons == len(cx_idxs) == len(taxon_idxs)
     for i in range(axons.n_axons):
         n2core.createDiscreteAxon(
-            cx_idxs[i], tchip_id, tcore_id, taxon_idxs[i])
+            cx_idxs[i], tchip_id, tcore_id, int(taxon_idxs[i]))
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):

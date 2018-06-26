@@ -82,10 +82,10 @@ class Board(object):
         assert cx_probe not in self.probe_map
         self.probe_map[cx_probe] = n2probe
 
-    def index_synapses(self, synapses, chip, core, a0, a1):
+    def index_synapses(self, synapses, chip, core, idxs):
         chip_idx = self.chip_index(chip)
         core_idx = chip.core_index(core)
-        self.synapses_index[synapses] = (chip_idx, core_idx, a0, a1)
+        self.synapses_index[synapses] = (chip_idx, core_idx, idxs)
 
     def find_synapses(self, synapses):
         group = synapses.group
@@ -221,10 +221,11 @@ class Core(object):
         a0 = 0
         if len(self.synapse_axons) > 0:
             last = next(reversed(self.synapse_axons))
-            a0 = self.synapse_axons[last][1]
-        a1 = a0 + synapses.n_axons
-        self.synapse_axons[synapses] = (a0, a1)
-        self.board.index_synapses(synapses, self.chip, self, a0, a1)
+            a0 = self.synapse_axons[last][-1]
+        idx_mult = 1
+        idxs = [a0 + idx_mult*i for i in range(synapses.n_axons)]
+        self.synapse_axons[synapses] = idxs
+        self.board.index_synapses(synapses, self.chip, self, idxs)
 
         s0 = 0
         if len(self.synapse_entries) > 0:
