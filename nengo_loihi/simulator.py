@@ -99,6 +99,7 @@ class Simulator(object):
 
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
+            nengo.rc.set("decoder_cache", "enabled", "False")
             if max_time is None and not precompute:
                 # we don't have a max_time, so we need online communication
                 host, chip, h2c, c2h_params, c2h = splitter.split(
