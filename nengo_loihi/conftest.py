@@ -1,7 +1,10 @@
-from nengo.conftest import plt, seed  # noqa: F401
+from nengo.conftest import plt, seed, TestConfig  # noqa: F401
 import pytest
 
 import nengo_loihi
+
+# This ensures that all plots go to the right directory
+TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
 
 
 @pytest.fixture(scope="session")

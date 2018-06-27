@@ -2,15 +2,9 @@ import numpy as np
 
 from nengo_loihi.loihi_cx import CxGroup, CxProbe, CxModel
 
-try:
-    import nxsdk  # noqa pylint: disable=unused-import
-    TARGET = 'loihi'
-except ImportError:
-    TARGET = 'sim'
 
-
-def test_simulator_noise(plt):
-    seed = 0
+def test_simulator_noise(request, plt, seed):
+    target = request.config.getoption("--target")
 
     model = CxModel()
     group = CxGroup(10)
@@ -29,7 +23,7 @@ def test_simulator_noise(plt):
 
     model.discretize()
 
-    if TARGET == 'loihi':
+    if target == 'loihi':
         sim = model.get_loihi(seed=seed)
         sim.run_steps(1000)
         y = np.column_stack([
@@ -39,26 +33,5 @@ def test_simulator_noise(plt):
         sim.run_steps(1000)
         y = sim.probe_outputs[probe]
 
-    ax = plt.subplot(111)
-    ax.plot(y)
-    # ax.set_xticks([])
-    ax.set_yticklabels([])
-    plt.savefig('test_simulator_noise.pdf')
-
-
-def run_tests():
-    import os
-    import matplotlib
-    haveDisplay = "DISPLAY" in os.environ
-    if not haveDisplay:
-        matplotlib.use('Agg')
-
-    import matplotlib.pyplot as plt
-
-    test_simulator_noise(plt)
-    if haveDisplay:
-        plt.show()
-
-
-if __name__ == '__main__':
-    run_tests()
+    plt.plot(y)
+    plt.yticks(())
