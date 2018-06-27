@@ -1,9 +1,11 @@
 import hashlib
 import os
+from functools import partial
 
 import nengo.utils.numpy as npext
 import numpy as np
 import pytest
+
 from nengo.conftest import plt, TestConfig  # noqa: F401
 from nengo.utils.compat import ensure_bytes
 
@@ -21,12 +23,10 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def Simulator(request):
     """Simulator class to be used in tests"""
-
-    def get_sim(*args, **kwargs):
-        kwargs.setdefault("target", request.config.getoption("--target"))
-        return nengo_loihi.Simulator(*args, **kwargs)
-
-    return get_sim
+    target = request.config.getoption("--target")
+    Sim = partial(nengo_loihi.Simulator, target=target)
+    Sim.__module__ = "nengo_loihi.simulator"
+    return Sim
 
 
 def pytest_addoption(parser):
