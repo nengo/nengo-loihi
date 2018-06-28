@@ -3,15 +3,6 @@ import nengo
 
 import nengo_loihi
 
-try:
-    import nxsdk  # pylint: disable=unused-import
-    Simulator = nengo_loihi.Simulator
-    print("Running on Loihi")
-except ImportError:
-    Simulator = nengo_loihi.NumpySimulator
-    print("Running in simulation")
-
-
 seed = 1
 b_vals = [-0.5, 0.75]
 a_fn = lambda x: [xx + bb for xx, bb in zip(x, b_vals)]
@@ -32,7 +23,7 @@ with nengo.Network(seed=seed) as model:
     bc_conn = nengo.Connection(b[1], c[0], solver=solver)
     bc_conn = nengo.Connection(b[0], c[1], solver=solver)
 
-with Simulator(model) as sim:
+with nengo_loihi.Simulator(model) as sim:
     sim.run(1.0)
 
 if __name__ == "__main__":

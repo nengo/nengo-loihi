@@ -4,15 +4,6 @@ import numpy as np
 
 import nengo_loihi
 
-try:
-    import nxsdk  # pylint: disable=unused-import
-    Simulator = nengo_loihi.Simulator
-    print("Running on Loihi")
-except ImportError:
-    # use the simulator if the chip isn't present
-    Simulator = nengo_loihi.NumpySimulator
-    print("Running in simulation")
-
 seed = 1
 weights = True
 a_fn = lambda x: x + 0.5
@@ -40,7 +31,7 @@ with nengo.Network(seed=seed) as model:
     c = nengo.Ensemble(1, 1, label='c')
     bc_conn = nengo.Connection(b, c)
 
-with Simulator(model) as sim:
+with nengo_loihi.Simulator(model) as sim:
     sim.run(1.0)
 
 if __name__ == "__main__":

@@ -4,14 +4,6 @@ import numpy as np
 
 import nengo_loihi
 
-try:
-    import nxsdk  # pylint: disable=unused-import
-    Simulator = nengo_loihi.Simulator
-    print("Running on Loihi")
-except ImportError:
-    Simulator = nengo_loihi.NumpySimulator
-    print("Running in simulation")
-
 seed = 1
 tend = 2.0
 weights = False
@@ -47,7 +39,7 @@ with nengo.Network(seed=seed) as model:
     c = nengo.Ensemble(1, d, label='c')
     bc_conn = nengo.Connection(b, c)
 
-with Simulator(model, precompute=True) as sim:
+with nengo_loihi.Simulator(model, precompute=True) as sim:
     sim.run(tend)
 
 if __name__ == "__main__":

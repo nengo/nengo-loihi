@@ -4,15 +4,6 @@ import numpy as np
 
 import nengo_loihi
 
-try:
-    import nxsdk  # pylint: disable=unused-import
-    Simulator = nengo_loihi.Simulator
-    print("Running on Loihi")
-except ImportError:
-    Simulator = nengo_loihi.NumpySimulator
-    print("Running in simulation")
-
-
 seed = 4
 tau = 0.1
 alpha = 3.0
@@ -49,7 +40,7 @@ with nengo.Network(seed=seed) as model:
     ab = nengo.Connection(a, b, synapse=None)
 
 
-with Simulator(model) as sim:
+with nengo_loihi.Simulator(model) as sim:
     sim.run(10.)
 
 if __name__ == "__main__":
