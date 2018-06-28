@@ -26,18 +26,13 @@ INTER_TAU = 0.005
 # ^TODO: how to choose this filter? Need it since all input will be spikes,
 #   but maybe don't want double filtering if connection has a filter
 
-# INTER_RATE = 1000
-# INTER_RATE = 500
-# INTER_RATE = 300
-# INTER_RATE = 250
-# INTER_RATE = 200
+# firing rate of inter neurons
 INTER_RATE = 100
 
-# INTER_N = 1
-# INTER_NOISE_EXP = -np.inf
-
-# INTER_N = 5
+# number of inter neurons
 INTER_N = 10
+
+# noise exponent for inter neurons
 INTER_NOISE_EXP = -2
 
 # voltage threshold for non-spiking neurons (i.e. voltage decoders)
@@ -565,12 +560,7 @@ def build_connection(model, conn):
                 dec_cx = CxGroup(2*d, label='%s' % conn, location='core')
                 dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
                 dec_cx.configure_filter(tau_s, dt=model.dt)
-                dec_cx.bias[:] = 0  # 0.5 * gain * np.array(([1.]*d + [1.]*d))
-                # no noise neded for non-spiking decoding
-                # if INTER_NOISE_EXP > -30:
-                #     dec_cx.enableNoise[:] = 1
-                #     dec_cx.noiseExp0 = INTER_NOISE_EXP
-                #     dec_cx.noiseAtDendOrVm = 1
+                dec_cx.bias[:] = 0
                 model.add_group(dec_cx)
                 model.objs[conn]['decoded'] = dec_cx
 
@@ -681,7 +671,6 @@ def conn_probe(model, probe):
     # the resulting signal (used when you want to probe the default
     # output of an object, which may not have a predefined signal)
 
-    # synapse = INTER_TAU if isinstance(probe.target, Ensemble) else 0
     synapse = 0  # Removed internal filtering
 
     # get any extra arguments if this probe was created to send data
@@ -733,8 +722,7 @@ def conn_probe(model, probe):
         w = np.diag(inter_scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:
-        inter_scale = 1.0
-        w = np.diag(inter_scale * np.ones(d))
+        w = np.diag(np.ones(d))
         weights = np.vstack([w, -w])
     cx_probe = CxProbe(key='v', weights=weights, synapse=probe.synapse)
     model.objs[target]['in'] = cx_probe
