@@ -91,7 +91,10 @@ class CxGroup(object):
     def configure_filter(self, tau_s, dt=0.001):
         """Synaptic input filter for Cx."""
 
-        self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
+        if tau_s == 0:
+            self.decayU[:] = 1.
+        else:
+            self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
 
     # def configure_linear(self, tau_s=0.0, dt=0.001):
     #     self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
@@ -105,7 +108,10 @@ class CxGroup(object):
 
     def configure_lif(
             self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
-        self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
+        if tau_s == 0:
+            self.decayU[:] = 1.
+        else:
+            self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
@@ -115,7 +121,10 @@ class CxGroup(object):
         self.scaleV = np.all(self.decayV > 1e-15)
 
     def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
-        self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
+        if tau_s == 0:
+            self.decayU[:] = 1.
+        else:
+            self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = 0.
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
@@ -125,7 +134,10 @@ class CxGroup(object):
         self.scaleV = False
 
     def configure_nonspiking(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
-        self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
+        if tau_s == 0:
+            self.decayU[:] = 1.
+        else:
+            self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
         self.decayV[:] = 1.
         self.refractDelay[:] = 1
         self.vth[:] = vth
