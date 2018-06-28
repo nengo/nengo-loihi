@@ -370,6 +370,7 @@ class Simulator(object):
         elif self.loihi is not None:
             if self.precompute:
                 # go through the list of host2chip connections
+                items = []
                 for sender, receiver in self.host2chip_senders.items():
                     for t, x in sender.queue:
                         receiver.receive(t, x)
@@ -380,10 +381,13 @@ class Simulator(object):
                         for j, s in enumerate(spike_input.spikes[sent_count]):
                             if s:
                                 for output_axon in spike_input.axon_ids:
-                                    spike_input.spike_gen.addSpike(
-                                        sent_count, *output_axon[j])
+                                    items.append((
+                                        sent_count, *output_axon[j]))
                         sent_count += 1
                     spike_input.sent_count = sent_count
+                if len(items) > 0:
+                    for info in sorted(items):
+                        spike_input.spike_gen.addSpike(*info)
             elif self.host_sim is not None:
                 to_send = []
                 # go through the list of host2chip connections
