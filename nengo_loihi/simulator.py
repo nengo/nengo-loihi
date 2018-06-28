@@ -81,7 +81,7 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=True, target='loihi', max_time=None):
+                 precompute=True, target=None, max_time=None):
         self.closed = True  # Start closed in case constructor raises exception
 
         # can only use one of the precompute methods
@@ -144,6 +144,14 @@ class Simulator(object):
 
         self.loihi = None
         self.simulator = None
+
+        if target is None:
+            try:
+                import nxsdk
+                target = 'loihi'
+            except ImportError:
+                target = 'sim'
+
         if target == 'simreal':
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'sim':
