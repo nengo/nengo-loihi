@@ -34,6 +34,19 @@ def bias_to_manexp(bias):
     return man, exp
 
 
+def tracing_mag_int_frac(synapses):
+    mag = synapses.tracing_mag
+    mag = mag / (synapses.size() / 100)
+
+    mag_int = int(mag)
+    # TODO: how does mag_frac actually work???
+    #  It's the x in x/128, I believe
+    mag_frac = int(128 * (mag - mag_int))
+    # mag_frac = min(int(round(1./mag_frac)), 128)
+
+    return mag_int, mag_frac
+
+
 def shift(x, s, **kwargs):
     if s < 0:
         return np.right_shift(x, -s, **kwargs)
@@ -152,6 +165,8 @@ class Core(object):
         self.synapse_fmt_idxs = {}  # one synfmt per CxSynapses, for now
         self.synapse_axons = collections.OrderedDict()
         self.synapse_entries = collections.OrderedDict()
+
+        self.learning_coreid = None
 
     @property
     def board(self):
@@ -441,7 +456,8 @@ class StdpProfile(Profile):
 class StdpPreProfile(Profile):
     params = ('updateAlways', 'numTraces', 'numTraceHist', 'stdpProfile')
 
-    def __init__(self, updateAlways=1, numTraces=0, numTraceHist=0, stdpProfile=0):
+    def __init__(
+            self, updateAlways=1, numTraces=0, numTraceHist=0, stdpProfile=0):
         super(StdpPreProfile, self).__init__()
         self.updateAlways = updateAlways
         self.numTraces = numTraces

@@ -38,7 +38,7 @@ def build_chip(n2chip, chip):
         build_core(n2core, core)
 
 
-def build_core(n2core, core):
+def build_core(n2core, core):  # noqa: C901
     from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
 
     assert len(core.cxProfiles) < CX_PROFILES_MAX
@@ -96,17 +96,18 @@ def build_core(n2core, core):
     for synapse in core.iterate_synapses():
         if synapse.tracing and firstLearningIndex is None:
             firstLearningIndex = core.synapse_axons[synapse][0]
+            core.learning_coreid = n2core.id
             break
 
     numStdp = 0
     if firstLearningIndex is not None:
         for synapse in core.iterate_synapses():
-            axons = core.synapse_axons[synapse]
+            axons = np.array(core.synapse_axons[synapse])
             if synapse.tracing:
                 numStdp += len(axons)
-                assert np.all(axons >= firstLearningIndex)
+                assert np.all(len(axons) >= firstLearningIndex)
             else:
-                assert np.all(axons < firstLearningIndex)
+                assert np.all(len(axons) < firstLearningIndex)
 
     if numStdp > 0:
         # add configurations tailored to PES learning
@@ -134,7 +135,7 @@ def build_core(n2core, core):
             requireY=1,
             usesXepoch=1,
         )
-        n2core.stdpUcodeMem[0].word = 0x00102108
+        n2core.stdpUcodeMem[0].word = 0x00102108  # 2^-7 learn rate
 
         # stdpProfileCfg negative error
         n2core.stdpProfileCfg[1].configure(
@@ -144,7 +145,7 @@ def build_core(n2core, core):
             requireY=1,
             usesXepoch=1,
         )
-        n2core.stdpUcodeMem[1].word = 0x00f02108
+        n2core.stdpUcodeMem[1].word = 0x00f02108  # 2^-7 learn rate
 
         tcg = TraceCfgGen()
         tc = tcg.genTraceCfg(
@@ -199,6 +200,9 @@ def build_core(n2core, core):
         numUpdates=n_cx // 4 + 1,
         numStdp=numStdp,
     )
+
+    n2core.dendriteTimeState[0].tepoch = 2
+    n2core.timeState[0].tepoch = 2
 
 
 def build_group(n2core, core, group, cx_idxs, ax_range):
@@ -309,7 +313,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
             # TODO: check that no cx gets configured by multiple synapses
             n2core.stdpPostState[target_cx].configure(
                 stdpProfile=core.stdp_profile_idx,
-                traceProfile=3,  # TODO: where does this magic number come from!!!!!!!!!
+                traceProfile=3,  # TODO: why this value
             )
 
 
@@ -458,8 +462,17 @@ class LoihiSimulator(object):
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
         template_path = os.path.join(snips_dir, "nengo_io.c.template")
         c_path = os.path.join(snips_dir, "nengo_io.c")
+        learn_c_path = os.path.join(snips_dir, "nengo_learn.c")
 
         # --- generate custom code
+        # Determine which cores have learning
+        learn_cores = set()
+        n_errors = 0
+        for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
+            if core.learning_coreid:
+                learn_cores.add(core.learning_coreid)
+                n_errors += 1
+
         n_outputs = 1
         probes = []
         cores = set()
@@ -486,7 +499,7 @@ class LoihiSimulator(object):
         with open(template_path) as f:
             template = f.read()
 
-        code = template % (n_outputs, code_cores, code_probes)
+        code = template % (n_outputs, n_errors, code_cores, code_probes)
         with open(c_path, 'w') as f:
             f.write(code)
 
@@ -500,7 +513,10 @@ class LoihiSimulator(object):
         phase = "mgmt"
         nengo_io = self.n2board.createProcess("nengo_io", c_path, include_dir,
                                               func_name, guard_name, phase)
-        size = self.snip_max_spikes_per_step * 2 + 1
+        self.n2board.createProcess("nengo_learn", learn_c_path, include_dir,
+                                   "nengo_learn", guard_name, "preLearnMgmt")
+
+        size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
                                                        "int", size)
         self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',

@@ -354,6 +354,8 @@ class Simulator(object):
 
                 print('Waiting for completion')
                 self.loihi.nengo_io_h2c.write(1, [0])
+                self.loihi.nengo_io_h2c.write(1, [0])
+                self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
                 print("done")
             else:
@@ -407,22 +409,43 @@ class Simulator(object):
                         spike_input.spike_gen.addSpike(*info)
             elif self.host_sim is not None:
                 to_send = []
+                errors = []
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
-                    for t, x in sender.queue:
-                        receiver.receive(t, x)
-                    del sender.queue[:]
-                    spike_input = receiver.cx_spike_input
-                    sent_count = spike_input.sent_count
-                    axon_ids = spike_input.axon_ids
-                    spikes = spike_input.spikes
-                    while sent_count < len(spikes):
-                        for j, s in enumerate(spikes[sent_count]):
-                            if s:
-                                for output_axon in axon_ids:
-                                    to_send.append(output_axon[j])
-                        sent_count += 1
-                    spike_input.sent_count = sent_count
+                    if isinstance(receiver, splitter.PESModulatoryTarget):
+                        for t, x in sender.queue:
+                            x = int(100 * x)  # >128 is an issue on chip
+                            probe = receiver.target
+                            conn = self.model.probe_conns[probe]
+                            dec_cx = self.model.objs[conn]['decoded']
+                            for core in self.loihi.board.chips[0].cores:
+                                for group in core.groups:
+                                    if group == dec_cx:
+                                        # TODO: assumes one group per core
+                                        coreid = core.learning_coreid
+                                    break
+
+                            assert coreid is not None
+
+                            errors.append([coreid, x])
+                        del sender.queue[:]
+
+                    else:
+                        for t, x in sender.queue:
+                            receiver.receive(t, x)
+                        del sender.queue[:]
+                        spike_input = receiver.cx_spike_input
+                        sent_count = spike_input.sent_count
+                        axon_ids = spike_input.axon_ids
+                        spikes = spike_input.spikes
+                        while sent_count < len(spikes):
+                            for j, s in enumerate(spikes[sent_count]):
+                                if s:
+                                    for output_axon in axon_ids:
+                                        to_send.append(output_axon[j])
+                            sent_count += 1
+                        spike_input.sent_count = sent_count
+
                 max_spikes = self.loihi.snip_max_spikes_per_step
                 if len(to_send) > max_spikes:
                     warnings.warn("Too many spikes (%d) sent in one time "
@@ -430,10 +453,13 @@ class Simulator(object):
                                   "snip_max_spikes_per_step (currently "
                                   "set to %d)" % (len(to_send), max_spikes))
                     del to_send[max_spikes:]
+
                 self.loihi.nengo_io_h2c.write(1, [len(to_send)])
                 for spike in to_send:
                     assert spike[0] == 0
                     self.loihi.nengo_io_h2c.write(2, spike[1:3])
+                for error in errors:
+                    self.loihi.nengo_io_h2c.write(2, error)
 
     def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:

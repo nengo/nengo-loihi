@@ -1,7 +1,13 @@
 import numpy as np
 
 from nengo_loihi.loihi_api import (
-    Board, CxProfile, TraceCfg, VthProfile, vth_to_manexp)
+    Board,
+    CxProfile,
+    TraceCfg,
+    tracing_mag_int_frac,
+    VthProfile,
+    vth_to_manexp
+)
 
 
 def compute_profiles(core, list_profiles):
@@ -56,12 +62,7 @@ def core_stdp_pre_cfgs(core):
     profile_idxs = {}
     for synapses in core.synapses:
         if synapses.tracing:
-            mag = synapses.tracing_mag
-            mag_int = int(mag)
-            # TODO: how does mag_frac actually work???
-            mag_frac = int(round(255*(mag - mag_int)))
-            # mag_frac = mag - mag_int
-            # mag_frac = min(int(round(1./mag_frac)), 128)
+            mag_int, mag_frac = tracing_mag_int_frac(synapses)
             tracecfg = TraceCfg(
                 tau=synapses.tracing_tau,
                 spikeLevelInt=mag_int,

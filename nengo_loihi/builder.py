@@ -522,7 +522,16 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             if isinstance(conn.learning_rule_type, nengo.PES):
-                dec_syn.set_learning(tracing_tau=10., tracing_mag=100.)
+                pes_learn_rate = conn.learning_rule_type.learning_rate
+                # scale learning rates such that the default would be 10
+                pes_learn_rate *= 10 / nengo.PES.learning_rate.default
+                assert isinstance(conn.learning_rule_type.pre_synapse,
+                                  nengo.synapses.Lowpass)
+                pes_pre_syn = conn.learning_rule_type.pre_synapse.tau
+                # scale pre_syn.tau from s to ms
+                pes_pre_syn *= 1e3
+                dec_syn.set_learning(tracing_tau=pes_pre_syn,
+                                     tracing_mag=pes_learn_rate)
             else:
                 raise NotImplementedError()
 

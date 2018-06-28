@@ -7,7 +7,8 @@ import numpy as np
 from nengo.utils.compat import is_iterable
 
 from nengo_loihi.loihi_api import (
-    VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt)
+    VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt,
+    tracing_mag_int_frac)
 
 
 class CxGroup(object):
@@ -96,16 +97,6 @@ class CxGroup(object):
         """Synaptic input filter for Cx."""
 
         self.set_decay_U(tau_s, dt)
-
-    # def configure_linear(self, tau_s=0.0, dt=0.001):
-    #     self.decayU[:] = -np.expm1(-dt/np.asarray(tau_s))
-    #     self.decayV[:] = 0.
-    #     self.refractDelay[:] = 0.
-    #     self.vth[:] = np.inf
-    #     self.vmin = -np.inf
-    #     self.vmax = np.inf
-    #     self.scaleU = True
-    #     self.scaleV = False
 
     def configure_lif(
             self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
@@ -221,6 +212,9 @@ class CxGroup(object):
                 ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
                 discretize(w, synapse.synapse_fmt.discretize_weights(
                     w * ws * 2**dWgtExp))
+            # TODO: scale this properly, hardcoded for now
+            if synapse.tracing:
+                synapse.synapse_fmt.wgtExp = 4
 
         # --- noise
         assert (v_scale[0] == v_scale).all()
@@ -295,6 +289,9 @@ class CxSynapses(object):
         self.tracing_mag = tracing_mag
         self.format(learningCfg=1, stdpProfile=0)
         # ^ stdpProfile hard-coded for now (see loihi_interface)
+
+        mag_int, _ = tracing_mag_int_frac(self)
+        assert int(mag_int) < 2**7
 
     def format(self, **kwargs):
         if self.synapse_fmt is None:
