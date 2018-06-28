@@ -1,10 +1,21 @@
-from nengo.conftest import plt, seed, TestConfig  # noqa: F401
+import hashlib
+import os
+
+import nengo.utils.numpy as npext
+import numpy as np
 import pytest
+from nengo.conftest import plt, TestConfig  # noqa: F401
+from nengo.utils.compat import ensure_bytes
 
 import nengo_loihi
 
 # This ensures that all plots go to the right directory
 TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
+
+
+def pytest_configure(config):
+    if config.getoption('seed_offset'):
+        TestConfig.test_seed = config.getoption('seed_offset')[0]
 
 
 @pytest.fixture(scope="session")
@@ -22,3 +33,45 @@ def pytest_addoption(parser):
     parser.addoption("--target", type=str, default="sim",
                      help="Platform on which to run tests (e.g. 'sim' "
                           "or 'loihi')")
+
+
+def function_seed(function, mod=0):
+    """Generates a unique seed for the given test function.
+
+    The seed should be the same across all machines/platforms.
+    """
+    c = function.__code__
+
+    # get function file path relative to Nengo directory root
+    nengo_path = os.path.abspath(os.path.dirname(nengo_loihi.__file__))
+    path = os.path.relpath(c.co_filename, start=nengo_path)
+
+    # take start of md5 hash of function file and name, should be unique
+    hash_list = os.path.normpath(path).split(os.path.sep) + [c.co_name]
+    hash_string = ensure_bytes('/'.join(hash_list))
+    i = int(hashlib.md5(hash_string).hexdigest()[:15], 16)
+    s = (i + mod) % npext.maxint
+    int_s = int(s)  # numpy 1.8.0 bug when RandomState on long type inputs
+    assert type(int_s) == int  # should not still be a long because < maxint
+    return int_s
+
+
+@pytest.fixture
+def rng(request):
+    """A seeded random number generator.
+
+    This should be used in lieu of np.random because we control its seed.
+    """
+    # add 1 to seed to be different from `seed` fixture
+    seed = function_seed(request.function, mod=TestConfig.test_seed + 1)
+    return np.random.RandomState(seed)
+
+
+@pytest.fixture
+def seed(request):
+    """A seed for seeding Networks.
+
+    This should be used in lieu of an integer seed so that we can ensure that
+    tests are not dependent on specific seeds.
+    """
+    return function_seed(request.function, mod=TestConfig.test_seed)
