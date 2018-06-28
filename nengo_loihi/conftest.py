@@ -2,6 +2,7 @@ import hashlib
 import os
 from functools import partial
 
+import matplotlib as mpl
 import nengo.utils.numpy as npext
 import numpy as np
 import pytest
@@ -11,11 +12,10 @@ from nengo.utils.compat import ensure_bytes
 
 import nengo_loihi
 
-# This ensures that all plots go to the right directory
-TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
-
 
 def pytest_configure(config):
+    mpl.use("Agg")
+    TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
     if config.getoption('seed_offset'):
         TestConfig.test_seed = config.getoption('seed_offset')[0]
 
