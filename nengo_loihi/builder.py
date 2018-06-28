@@ -566,10 +566,11 @@ def build_connection(model, conn):
                 dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
                 dec_cx.configure_filter(tau_s, dt=model.dt)
                 dec_cx.bias[:] = 0  # 0.5 * gain * np.array(([1.]*d + [1.]*d))
-                if INTER_NOISE_EXP > -30:
-                    dec_cx.enableNoise[:] = 1
-                    dec_cx.noiseExp0 = INTER_NOISE_EXP
-                    dec_cx.noiseAtDendOrVm = 1
+                # no noise neded for non-spiking decoding
+                # if INTER_NOISE_EXP > -30:
+                #     dec_cx.enableNoise[:] = 1
+                #     dec_cx.noiseExp0 = INTER_NOISE_EXP
+                #     dec_cx.noiseAtDendOrVm = 1
                 model.add_group(dec_cx)
                 model.objs[conn]['decoded'] = dec_cx
 
