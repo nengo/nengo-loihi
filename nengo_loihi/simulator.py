@@ -151,7 +151,7 @@ class Simulator(object):
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
             self.model.discretize()  # Make parameters fixed bit widths
-            if not precompute:
+            if not precompute and max_time is None:
                 # tag all probes as being snipbased
                 #  (having normal probes at the same time as snips
                 #   seems to cause problems)
