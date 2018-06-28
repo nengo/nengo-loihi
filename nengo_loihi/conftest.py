@@ -29,12 +29,6 @@ def Simulator(request):
     return Sim
 
 
-def pytest_addoption(parser):
-    parser.addoption("--target", type=str, default="sim",
-                     help="Platform on which to run tests (e.g. 'sim' "
-                          "or 'loihi')")
-
-
 def function_seed(function, mod=0):
     """Generates a unique seed for the given test function.
 
