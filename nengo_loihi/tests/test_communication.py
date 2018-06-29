@@ -26,7 +26,7 @@ def test_input_node(Simulator, val, type):
         p_b = nengo.Probe(b, synapse=0.1)
         p_c = nengo.Probe(c, synapse=0.1)
 
-    with Simulator(net, max_time=1.0, precompute=False) as sim:
+    with Simulator(net, precompute=True) as sim:
         sim.run(1.0)
 
         # TODO: seems like error margins should be smaller than this?

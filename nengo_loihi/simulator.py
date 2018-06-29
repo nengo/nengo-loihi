@@ -81,18 +81,13 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=True, target=None, max_time=None):
+                 precompute=True, target=None):
         self.closed = True  # Start closed in case constructor raises exception
-
-        # can only use one of the precompute methods
-        assert not precompute or max_time is None
 
         if model is None:
             # Call the builder to make a model
-            self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt),
-                               max_time=max_time)
+            self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
         else:
-            assert max_time is None or model.max_time == max_time
             self.model = model
 
         self.precompute = precompute
@@ -100,16 +95,7 @@ class Simulator(object):
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
             nengo.rc.set("decoder_cache", "enabled", "False")
-            if max_time is None and not precompute:
-                # we don't have a max_time, so we need online communication
-                host, chip, h2c, c2h_params, c2h = splitter.split(
-                    network, INTER_RATE, INTER_N)
-                network = chip
-                self.chip2host_receivers = c2h
-                self.host2chip_senders = h2c
-                self.model.chip2host_params.update(c2h_params)
-                self.host_sim = nengo.Simulator(host, progress_bar=False)
-            elif max_time is None and precompute:
+            if precompute:
                 # split the host into two networks, to allow precomputing
                 host, chip, h2c, c2h_params, c2h = splitter.split(
                     network, INTER_RATE, INTER_N)
@@ -123,8 +109,15 @@ class Simulator(object):
                 self.host_post_sim = nengo.Simulator(host,
                                                      progress_bar=False)
             else:
-                self.host_sim = None
-                self.chip2host_receivers = {}
+                # we need online communication
+                host, chip, h2c, c2h_params, c2h = splitter.split(
+                    network, INTER_RATE, INTER_N)
+                network = chip
+                self.chip2host_receivers = c2h
+                self.host2chip_senders = h2c
+                self.model.chip2host_params.update(c2h_params)
+                self.host_sim = nengo.Simulator(host, progress_bar=False)
+
             # Build the network into the model
             self.model.build(network)
 
@@ -159,7 +152,7 @@ class Simulator(object):
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
             self.model.discretize()  # Make parameters fixed bit widths
-            if not precompute and max_time is None:
+            if not precompute:
                 # tag all probes as being snipbased
                 #  (having normal probes at the same time as snips
                 #   seems to cause problems)

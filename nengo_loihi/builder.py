@@ -10,10 +10,9 @@ from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 from nengo.neurons import Direct, LIF, RectifiedLinear
-from nengo.processes import Process
 from nengo.solvers import NoSolver, Solver
 from nengo.utils.builder import default_n_eval_points
-from nengo.utils.compat import is_array_like, iteritems
+from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
@@ -44,12 +43,11 @@ class Model(CxModel):
 
     CxModel defines adding ensembles, discretizing, and tracks the simulator
     """
-    def __init__(self, dt=0.001, label=None, builder=None, max_time=None):
+    def __init__(self, dt=0.001, label=None, builder=None):
         super(Model, self).__init__()
 
         self.dt = dt
         self.label = label
-        self.max_time = max_time
 
         self.objs = collections.defaultdict(dict)
         self.params = {}  # Holds data generated when building objects
@@ -299,77 +297,8 @@ def build_node(model, node):
         model.add_input(cx_spiker)
         model.objs[node]['out'] = cx_spiker
         return
-
-    if node.size_in == 0:
-        from .neurons import NIF
-
-        # --- pre-compute node input spikes
-        assert model.max_time is not None
-
-        max_rate = INTER_RATE * INTER_N
-        assert max_rate <= 1000
-
-        d = node.size_out
-
-        # TODO: figure out seeds for this pre-compute simulation
-        network2 = nengo.Network()
-        with network2:
-            node2 = nengo.Node(output=node.output, size_in=0, size_out=d)
-            ens2 = nengo.Ensemble(
-                2*d, d, neuron_type=NIF(tau_ref=0.0),
-                encoders=np.vstack([np.eye(d), -np.eye(d)]),
-                max_rates=[max_rate]*d + [max_rate]*d,
-                intercepts=[-1]*d + [-1]*d)
-            nengo.Connection(node2, ens2, synapse=None)
-            probe2 = nengo.Probe(ens2.neurons, synapse=None)
-
-        with nengo.Simulator(network2) as sim2:
-            sim2.run(model.max_time)
-
-        spikes = sim2.data[probe2] > 0
-
-        cx_spiker = CxSpikeInput(spikes)
-        model.add_input(cx_spiker)
-        model.objs[node]['out'] = cx_spiker
-
-        return
     else:
         raise NotImplementedError()
-
-    # Provide output
-    if node.output is None:
-        raise NotImplementedError()
-        # sig_out = sig_in
-    elif isinstance(node.output, Process):
-        raise NotImplementedError()
-        # sig_out = Signal(np.zeros(node.size_out), name="%s.out" % node)
-        # model.build(node.output, sig_in, sig_out)
-    elif callable(node.output):
-        raise NotImplementedError()
-        # sig_out = (Signal(np.zeros(node.size_out), name="%s.out" % node)
-        #            if node.size_out > 0 else None)
-        # model.add_op(SimPyFunc(
-        #     output=sig_out, fn=node.output, t=model.time, x=sig_in))
-    elif is_array_like(node.output):
-        sig_out = np.asarray(node.output)
-    else:
-        raise BuildError(
-            "Invalid node output type %r" % type(node.output).__name__)
-
-    # on/off neuron coding for decoded values
-    d = node.size_out
-
-    raise NotImplementedError("INTER_N not implemented for nodes")
-    dec_cx = CxGroup(2*d, label='%s' % node, location='cpu')
-    dec_cx.configure_relu(dt=model.dt)
-    gain = model.dt * INTER_RATE
-    enc = (0.5 * gain) * np.array([1., -1.]).repeat(d)
-    bias0 = (0.5 * gain) * np.array([1., 1.]).repeat(d)
-    dec_cx.bias[:] = bias0 + enc*np.tile(sig_out, 2)
-    model.add_group(dec_cx)
-
-    model.objs[node]['out'] = dec_cx
-    model.params[node] = None
 
 
 BuiltConnection = collections.namedtuple(
@@ -697,7 +626,7 @@ def conn_probe(model, probe):
             assert transform.shape[1] == input_dim
             output_dim = transform.shape[0]
         else:
-            raise NotImplementedError
+            raise NotImplementedError()
 
         target = nengo.Node(None, size_in=output_dim,
                             add_to_container=False)
