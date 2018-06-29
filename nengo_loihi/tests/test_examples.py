@@ -111,7 +111,7 @@ def test_node_ens_ens(plt):
 
     tmask = t > 0.1  # ignore transients at the beginning
     assert np.allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.4, rtol=0.25)
-    assert np.allclose(b[tmask], a[tmask]**2, atol=0.3, rtol=0.0)
+    assert np.allclose(b[tmask], a[tmask]**2, atol=0.35, rtol=0.0)
 
 
 def test_oscillator(plt):
