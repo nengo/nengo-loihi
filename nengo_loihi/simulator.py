@@ -83,6 +83,7 @@ class Simulator(object):
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
                  precompute=True, target=None):
         self.closed = True  # Start closed in case constructor raises exception
+        self.running = False
 
         if model is None:
             # Call the builder to make a model
@@ -229,8 +230,21 @@ class Simulator(object):
         `.Simulator.step`, and `.Simulator.reset` on a closed simulator raises
         a `.SimulatorClosed` exception.
         """
+        if self.closed:
+            return
         self.closed = True
         self.signals = None  # signals may no longer exist on some backends
+        if self.loihi is not None:
+            if not self.precompute and self.running:
+                print('send a stop signal to the snip')
+                self.loihi.nengo_io_h2c.write(1, [-1])
+                import time
+                time.sleep(0.5)  # need to wait for stop signal to arrive
+                print('closing loihi...')
+                # this takes a while, since loihi seems to need to finish
+                #  all of the steps its been told to do
+                self.loihi.close()
+                print('...closed')
 
     def _probe(self):
         """Copy all probed signals to buffers."""
@@ -320,6 +334,7 @@ class Simulator(object):
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
+        self.running = True
         if self.simulator is not None:
             if self.precompute:
                 self.host_pre_sim.run_steps(steps)
@@ -364,13 +379,18 @@ class Simulator(object):
                     self.loihi.nengo_io_h2c.write(1, [-1])
                     raise
                 finally:
-                    # tell the snip to shut down
-                    self.loihi.nengo_io_h2c.write(1, [-1])
-                    self.loihi.wait_for_completion()
+                    try:
+                        # tell the snip to shut down
+                        self.loihi.nengo_io_h2c.write(1, [-1])
+                        self.loihi.wait_for_completion()
+                    except EOFError:
+                        # it has already been shut down
+                        pass
             else:
                 self.loihi.run_steps(steps)
                 self._n_steps += steps
 
+        self.running = False
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
