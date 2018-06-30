@@ -166,7 +166,7 @@ class CxGroup(object):
             w_scale = (255. / w_max)
             s_scale = 1. / (u_infactor * v_infactor)
 
-            for wgtExp in range(7, -8, -1):
+            for wgtExp in range(0, -8, -1):
                 v_scale = s_scale * w_scale * SynapseFmt.get_scale(wgtExp)
                 b_scale = v_scale * v_infactor
                 vth = np.round(self.vth * v_scale)

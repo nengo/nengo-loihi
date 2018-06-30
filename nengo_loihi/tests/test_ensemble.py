@@ -87,7 +87,7 @@ def test_amplitude(Simulator, amplitude, seed, allclose):
         # note: slight boost on transform so that the post neurons are pushed
         # over threshold, rather than ==threshold
         nengo.Connection(ens.neurons, ens2.neurons, synapse=None,
-                         transform=np.eye(n) * 1.01)
+                         transform=np.eye(n) * 1.02)
 
         node = nengo.Node(size_in=n)
         nengo.Connection(ens.neurons, node, synapse=None)
