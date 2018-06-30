@@ -8,8 +8,15 @@ import numpy as np
 from nengo.utils.compat import is_iterable, range
 
 from nengo_loihi.loihi_api import (
-    VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt,
-    tracing_mag_int_frac)
+    BIAS_MAX,
+    bias_to_manexp,
+    SynapseFmt,
+    tracing_mag_int_frac,
+    U_MAX, U_MIN,
+    V_MAX, V_MIN,
+    VTH_MAX,
+    vth_to_manexp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -564,9 +571,18 @@ class CxSimulator(object):
         self.u[:] = self.decayU_fn(self.u[:], q0)
         u2 = self.u[:] + self.bias
         u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
+        if np.any(u2 > U_MAX):
+            raise RuntimeError("Overflow in U (max was %d)" % u2.max())
+        if np.any(u2 < U_MIN):
+            raise RuntimeError("Underflow in U (min was %d)" % u2.min())
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
+        if np.any(self.v > V_MAX):
+            raise RuntimeError("Overflow in V (max was %d)" % self.v.max())
+        if np.any(self.v < V_MIN):
+            raise RuntimeError("Underflow in V (min was %d)" % self.v.min())
+
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
         # TODO^: don't zero voltage in case neuron is saving overshoot

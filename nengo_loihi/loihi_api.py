@@ -17,6 +17,11 @@ BIAS_MAN_MAX = 2**12 - 1
 BIAS_EXP_MAX = 2**3 - 1
 BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 
+U_MAX = 2**23 - 1
+U_MIN = -2**23
+V_MAX = 2**23 - 1
+V_MIN = -2**23
+
 
 def vth_to_manexp(vth):
     exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
