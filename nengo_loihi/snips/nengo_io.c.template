@@ -5,9 +5,20 @@
 #define N_OUTPUTS %d
 
 void nengo_io(runState *s) {
+    // use the last element in userData as a quit flag
+    if (s->userData[1023] != 0) {
+        return;
+    }
+
     int count[1];
     readChannel("nengo_io_h2c", count, 1);
     //printf("count %%d\n", count[0]);
+    if (count[0] < 0) {
+        // a negative value indicates we should stop
+        s->userData[1023] = 1;
+        printf("stopping\n");
+        return;
+    }
 
     int spike[2];
     for (int i=0; i<count[0]; i++) {

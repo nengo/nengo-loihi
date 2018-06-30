@@ -316,7 +316,7 @@ class Simulator(object):
 
         self.run_steps(1)
 
-    def run_steps(self, steps):
+    def run_steps(self, steps):  # noqa: C901
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
@@ -327,14 +327,19 @@ class Simulator(object):
                 self.simulator.run_steps(steps)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
+                self._n_steps += steps
             elif self.host_sim is None:
                 self.simulator.run_steps(steps)
+                self._n_steps += steps
             else:
                 for i in range(steps):
+                    if self.closed:
+                        break
                     self.host_sim.step()
                     self.handle_host2chip_communications()
                     self.simulator.step()
                     self.handle_chip2host_communications()
+                    self._n_steps += 1
         elif self.loihi is not None:
             if self.precompute:
                 self.host_pre_sim.run_steps(steps)
@@ -342,22 +347,30 @@ class Simulator(object):
                 self.loihi.run_steps(steps)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
+                self._n_steps += steps
             elif self.host_sim is not None:
                 self.loihi.create_io_snip()
-                self.loihi.run_steps(steps, async=True)
-                for i in range(steps):
-                    self.host_sim.run_steps(1)
-                    self.handle_host2chip_communications()
-                    self.handle_chip2host_communications()
-
-                print('Waiting for completion')
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.wait_for_completion()
-                print("done")
+                try:
+                    self.loihi.run_steps(steps, async=True)
+                    for i in range(steps):
+                        if self.closed:
+                            break
+                        self.host_sim.run_steps(1)
+                        self.handle_host2chip_communications()
+                        self.handle_chip2host_communications()
+                        self._n_steps += 1
+                except KeyboardInterrupt:
+                    # tell the snip to shut down
+                    self.loihi.nengo_io_h2c.write(1, [-1])
+                    raise
+                finally:
+                    # tell the snip to shut down
+                    self.loihi.nengo_io_h2c.write(1, [-1])
+                    self.loihi.wait_for_completion()
             else:
                 self.loihi.run_steps(steps)
+                self._n_steps += steps
 
-        self._n_steps += steps
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
