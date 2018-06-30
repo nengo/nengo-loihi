@@ -319,7 +319,6 @@ class Simulator(object):
 
     def step(self):
         """Advance the simulator by 1 step (``dt`` seconds)."""
-
         self.run_steps(1)
 
     def run_steps(self, steps):
@@ -327,47 +326,61 @@ class Simulator(object):
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
         if self.simulator is not None:
-            if self.precompute:
-                self.host_pre_sim.run_steps(steps)
-                self.handle_host2chip_communications()
-                self.simulator.run_steps(steps)
-                self.handle_chip2host_communications()
-                self.host_post_sim.run_steps(steps)
-            elif self.host_sim is None:
-                self.simulator.run_steps(steps)
-            else:
-                for i in range(steps):
-                    self.host_sim.step()
-                    self.handle_host2chip_communications()
-                    self.simulator.step()
-                    self.handle_chip2host_communications()
+            self.run_steps_sim(steps)
         elif self.loihi is not None:
-            if self.precompute:
-                self.host_pre_sim.run_steps(steps)
+            self.run_steps_loihi(steps)
+
+        logger.info("Finished running for %d steps", steps)
+        self._probe()
+
+    def run_steps_sim(self, steps):
+        if self.precompute:
+            self.host_pre_sim.run_steps(steps)
+            self.handle_host2chip_communications()
+            self.simulator.run_steps(steps)
+            self.handle_chip2host_communications()
+            self.host_post_sim.run_steps(steps)
+            self._n_steps += steps
+        elif self.host_sim is None:
+            self.simulator.run_steps(steps)
+            self._n_steps += steps
+        else:
+            for i in range(steps):
+                if self.closed:
+                    break
+                self.host_sim.step()
                 self.handle_host2chip_communications()
-                self.loihi.run_steps(steps)
+                self.simulator.step()
                 self.handle_chip2host_communications()
-                self.host_post_sim.run_steps(steps)
-            elif self.host_sim is not None:
-                self.loihi.create_io_snip()
+                self._n_steps += 1
+
+    def run_steps_loihi(self, steps):
+        if self.precompute:
+            self.host_pre_sim.run_steps(steps)
+            self.handle_host2chip_communications()
+            self.loihi.run_steps(steps)
+            self.handle_chip2host_communications()
+            self.host_post_sim.run_steps(steps)
+            self._n_steps += steps
+        elif self.host_sim is None:
+            self.loihi.run_steps(steps)
+            self._n_steps += steps
+        else:
+            self.loihi.create_io_snip()
+            try:
                 self.loihi.run_steps(steps, async=True)
                 for i in range(steps):
+                    if self.closed:
+                        break
                     self.host_sim.run_steps(1)
                     self.handle_host2chip_communications()
                     self.handle_chip2host_communications()
-
-                logger.info("Waiting for completion")
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
+                self._n_steps += 1
+            finally:
+                # tell the snip to shut down
+                logger.info("Stopping snip, waiting for completion")
+                self.loihi.nengo_io_h2c.write(numElements=1, data=[-1])
                 self.loihi.wait_for_completion()
-                logger.info("done")
-            else:
-                self.loihi.run_steps(steps)
-
-        self._n_steps += steps
-        logger.info("Finished running for %d steps", steps)
-        self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
         if self.simulator is not None:
@@ -458,13 +471,14 @@ class Simulator(object):
                                   "snip_max_spikes_per_step (currently "
                                   "set to %d)" % (len(to_send), max_spikes))
                     del to_send[max_spikes:]
-
-                self.loihi.nengo_io_h2c.write(1, [len(to_send)])
+                self.loihi.nengo_io_h2c.write(
+                    numElements=1, data=[len(to_send)])
                 for spike in to_send:
                     assert spike[0] == 0
-                    self.loihi.nengo_io_h2c.write(2, spike[1:3])
+                    self.loihi.nengo_io_h2c.write(
+                        numElements=2, data=spike[1:3])
                 for error in errors:
-                    self.loihi.nengo_io_h2c.write(2, error)
+                    self.loihi.nengo_io_h2c.write(numElements=2, data=error)
 
     def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:
