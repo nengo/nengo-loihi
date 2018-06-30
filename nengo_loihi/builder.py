@@ -246,8 +246,9 @@ def build_ensemble(model, ens):
         raise NotImplementedError("Direct neurons not implemented")
         # scaled_encoders = encoders
     else:
-        assert ens.radius == 1
-        scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
+        # to keep scaling reasonable, we don't include the radius
+        # scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
+        scaled_encoders = encoders * gain[:, np.newaxis]
 
     # --- encoders
     # synapses = CxSynapses(scaled_encoders.shape[1])
@@ -476,6 +477,11 @@ def build_connection(model, conn):
             assert post_cx.target is None
             assert conn.post_slice == slice(None)
 
+            # use the same scaling as the ensemble does, to get good
+            #  decodes.  Note that this assumes that the decoded value
+            #  is in the range -radius to radius, which is usually true.
+            weights = weights / conn.pre_obj.radius
+
             gain = 1  # model.dt * INTER_RATE(=1000)
             dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
             dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
@@ -506,6 +512,10 @@ def build_connection(model, conn):
                 dec_cx.noiseAtDendOrVm = 1
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
+
+            if isinstance(conn.post_obj, Ensemble):
+                # loihi encoders don't include radius, so handle scaling here
+                weights = weights / conn.post_obj.radius
 
             dec_syn = CxSynapses(n)
             weights2 = 0.5 * gain * np.vstack([weights,
@@ -572,6 +582,9 @@ def build_connection(model, conn):
         assert weights.ndim == 2
         n2, n1 = weights.shape
         assert post_cx.n == n2
+
+        # loihi encoders don't include radius, so handle scaling here
+        weights = weights / conn.post_obj.radius
 
         syn = CxSynapses(n1)
         syn.set_full_weights(weights.T)
@@ -662,7 +675,9 @@ def conn_probe(model, probe):
         w = np.diag(inter_scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:
-        w = np.diag(np.ones(d))
+        # probed values are scaled by the target ensemble's radius
+        scale = probe.target.radius
+        w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
     cx_probe = CxProbe(key='v', weights=weights, synapse=probe.synapse)
     model.objs[target]['in'] = cx_probe

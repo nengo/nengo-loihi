@@ -170,6 +170,13 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                         max_rates=[max_rate] * dim + [max_rate] * dim,
                         intercepts=[-1] * dim + [-1] * dim)
 
+                    # scale the input spikes based on the radius of the
+                    #  target ensemble
+                    if isinstance(c.post_obj, nengo.Ensemble):
+                        scaling = 1.0 / c.post_obj.radius
+                    else:
+                        scaling = 1.0
+
                     send = HostSendNode(dim * 2)
                     nengo.Connection(c.pre, ens,
                                      function=c.function,
@@ -177,7 +184,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                                      eval_points=c.eval_points,
                                      scale_eval_points=c.scale_eval_points,
                                      synapse=None,
-                                     transform=c.transform)
+                                     transform=c.transform * scaling)
                     nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
