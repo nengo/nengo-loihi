@@ -18,9 +18,7 @@ def test_ens_decoded_on_host(precompute, Simulator, seed, plt):
         a = nengo.Ensemble(100, 1)
         model.config[a].on_chip = False
 
-        b = nengo.Ensemble(100, 1,
-                           max_rates=Uniform(100, 120),
-                           intercepts=Uniform(-0.5, 0.5))
+        b = nengo.Ensemble(100, 1)
 
         nengo.Connection(stim, a)
 

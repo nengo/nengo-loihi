@@ -11,23 +11,20 @@ a_fn = lambda x: x**2
 d = 2
 
 bnp = None
+nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
     u = nengo.Node(
         output=nengo.processes.WhiteSignal(tend, high=5, seed=seed+1),
         size_out=d)
     up = nengo.Probe(u, synapse=None)
 
-    a = nengo.Ensemble(100, d, label='a',
-                       max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+    a = nengo.Ensemble(100, d, label='a')
     nengo.Connection(u, a, synapse=None)
     ap = nengo.Probe(a)
     anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
 
-    b = nengo.Ensemble(101, d, label='b',
-                       max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+    b = nengo.Ensemble(101, d, label='b')
     ab_conn = nengo.Connection(a, b,
                                function=a_fn,
                                solver=nengo.solvers.LstsqL2(weights=weights))

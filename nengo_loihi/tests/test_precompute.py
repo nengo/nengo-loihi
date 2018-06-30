@@ -10,9 +10,7 @@ def test_precompute(Simulator, seed, plt):
         D = 2
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * D)
 
-        a = nengo.Ensemble(100, D,
-                           max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        a = nengo.Ensemble(100, D)
 
         nengo.Connection(stim, a)
 
@@ -58,9 +56,7 @@ def test_input_node_precompute(Simulator, plt):
         with nengo.Network(seed=1) as model:
             inp = nengo.Node(input_fn)
 
-            a = nengo.Ensemble(n, 1,
-                               max_rates=nengo.dists.Uniform(100, 120),
-                               intercepts=nengo.dists.Uniform(-0.5, 0.5))
+            a = nengo.Ensemble(n, 1)
             ap = nengo.Probe(a, synapse=0.01)
             aup = nengo.Probe(a.neurons, 'input')
             avp = nengo.Probe(a.neurons, 'voltage')

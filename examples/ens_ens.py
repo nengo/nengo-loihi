@@ -9,17 +9,14 @@ weights = True
 a_fn = lambda x: x + 0.5
 bnp = None
 
+nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
-    a = nengo.Ensemble(100, 1, label='a',
-                       max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+    a = nengo.Ensemble(100, 1, label='a')
     ap = nengo.Probe(a)
     anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
 
-    b = nengo.Ensemble(101, 1, label='b',
-                       max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+    b = nengo.Ensemble(101, 1, label='b')
     ab_conn = nengo.Connection(a, b,
                                function=a_fn,
                                solver=nengo.solvers.LstsqL2(weights=weights))

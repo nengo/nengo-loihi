@@ -11,13 +11,9 @@ def test_ens_ens_constant(weight_solver, target_value, Simulator, seed, plt):
 
     bnp = None
     with nengo.Network(seed=seed) as model:
-        a = nengo.Ensemble(100, 1, label='b',
-                           max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        a = nengo.Ensemble(100, 1, label='a')
 
-        b = nengo.Ensemble(101, 1, label='b',
-                           max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        b = nengo.Ensemble(101, 1, label='b')
         nengo.Connection(a, b, function=a_fn, solver=solver)
         bp = nengo.Probe(b)
         bnp = nengo.Probe(b.neurons)

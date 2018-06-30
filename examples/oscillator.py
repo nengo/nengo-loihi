@@ -22,10 +22,9 @@ def f(x):
     return [r*np.cos(a), r*np.sin(a)]
 
 
+nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
-    a = nengo.Ensemble(n, 2, label='a',
-                       max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+    a = nengo.Ensemble(n, 2, label='a')
     ap = nengo.Probe(a, synapse=0.01)
     anp = nengo.Probe(a.neurons)
     aup = nengo.Probe(a.neurons[:8], 'input')
@@ -38,7 +37,6 @@ with nengo.Network(seed=seed) as model:
 
     b = nengo.Ensemble(100, 2, label='b')
     ab = nengo.Connection(a, b, synapse=None)
-
 
 with nengo_loihi.Simulator(model) as sim:
     sim.run(10.)

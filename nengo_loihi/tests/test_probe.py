@@ -24,7 +24,6 @@ def test_voltage_decode(Simulator, seed, plt, dim):
         p_stim = nengo.Probe(stim, synapse=0.01)
 
         a = nengo.Ensemble(100 * 3, dim,
-                           max_rates=nengo.dists.Uniform(100, 120),
                            intercepts=nengo.dists.Uniform(-.95, .95))
         nengo.Connection(stim, a, synapse=None)
 

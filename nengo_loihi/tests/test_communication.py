@@ -14,13 +14,11 @@ def test_input_node(Simulator, val, type):
             input = lambda t: [val]
         a = nengo.Node(input)
 
-        b = nengo.Ensemble(100, 1, max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        b = nengo.Ensemble(100, 1)
         nengo.Connection(a, b)
 
         # create a second path so that we test nodes with multiple outputs
-        c = nengo.Ensemble(100, 1, max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        c = nengo.Ensemble(100, 1)
         nengo.Connection(a, c)
 
         p_b = nengo.Probe(b, synapse=0.1)
@@ -41,9 +39,7 @@ def test_ens2node(Simulator, seed, plt, pre_d, post_d, func):
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
 
-        a = nengo.Ensemble(100, pre_d,
-                           max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        a = nengo.Ensemble(100, pre_d)
 
         nengo.Connection(stim, a)
 
@@ -101,7 +97,6 @@ def test_neurons2node(Simulator, seed, plt):
         p_stim = nengo.Probe(stim)
 
         a = nengo.Ensemble(100, 1,
-                           max_rates=nengo.dists.Uniform(100, 120),
                            intercepts=nengo.dists.Choice([0]))
 
         nengo.Connection(stim, a)
@@ -135,9 +130,7 @@ def test_node2ens(Simulator, seed, plt, pre_d, post_d, func):
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
 
-        a = nengo.Ensemble(100, post_d,
-                           max_rates=nengo.dists.Uniform(100, 120),
-                           intercepts=nengo.dists.Uniform(-0.5, 0.5))
+        a = nengo.Ensemble(100, post_d)
 
         transform = np.identity(max(pre_d, post_d))
         transform = transform[:post_d, :pre_d]

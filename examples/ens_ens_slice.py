@@ -8,10 +8,8 @@ b_vals = [-0.5, 0.75]
 a_fn = lambda x: [xx + bb for xx, bb in zip(x, b_vals)]
 weights = True
 
+nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
-    model.config[nengo.Ensemble].max_rates = nengo.dists.Uniform(100, 120)
-    model.config[nengo.Ensemble].intercepts = nengo.dists.Uniform(-0.5, 0.5)
-
     a = nengo.Ensemble(100, 2, label='a')
     b = nengo.Ensemble(101, 2, label='b')
     bp = nengo.Probe(b)
