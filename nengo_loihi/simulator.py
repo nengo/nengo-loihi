@@ -485,7 +485,7 @@ class Simulator(object):
                 if increment is not None:
                     self.chip2host_sent_steps += increment
             else:
-                raise NotImplementedError
+                raise NotImplementedError()
         elif self.loihi is not None:
             if self.precompute:
                 # go through the list of chip2host connections
@@ -543,7 +543,7 @@ class Simulator(object):
                         # onchip probes
                         self.snip_probes[probe].append(x)
             else:
-                raise NotImplementedError
+                raise NotImplementedError()
 
     def trange(self, dt=None):
         """Create a vector of times matching probed data.

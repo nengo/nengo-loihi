@@ -401,21 +401,17 @@ class LoihiSimulator(object):
         if self.is_connected():
             return
 
-        errors = []
         for i in range(attempts):
             try:
                 self.n2board.startDriver()
                 if self.is_connected():
                     break
-                else:
-                    errors.append("Still not connected for unknown reason "
-                                  "after driver start attempt")
             except Exception as e:
-                errors.append(str(e))
+                print(str(e))
+                print("Retrying...")
                 time.sleep(1)
         else:
-            raise RuntimeError("Could not connect to board. Last error:\n%s"
-                               % (errors[-1],))
+            raise RuntimeError("Could not connect to the board")
 
     def close(self):
         self.n2board.disconnect()
