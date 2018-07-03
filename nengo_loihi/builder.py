@@ -283,7 +283,6 @@ def build_ensemble(model, ens):
 
 @Builder.register(LIF)
 def build_lif(model, lif, neurons, group):
-    assert lif.amplitude == 1
     group.configure_lif(
         tau_rc=lif.tau_rc,
         tau_ref=lif.tau_ref,
@@ -292,7 +291,6 @@ def build_lif(model, lif, neurons, group):
 
 @Builder.register(RectifiedLinear)
 def build_relu(model, relu, neurons, group):
-    assert relu.amplitude == 1
     group.configure_relu(dt=model.dt)
 
 
@@ -419,6 +417,7 @@ def build_connection(model, conn):
     weights = None
     eval_points = None
     solver_info = None
+    neuron_type = None
 
     # Sample transform if given a distribution
     transform = get_samples(
@@ -463,12 +462,21 @@ def build_connection(model, conn):
         # case on loihi, so we need to undo that scaling
         weights = weights / model.dt
 
+        neuron_type = conn.pre_obj.neuron_type
+
         if not conn.solver.weights:
             needs_interneurons = True
-    else:
+    elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
         assert transform.ndim == 2
         weights = transform
+        neuron_type = conn.pre_obj.ensemble.neuron_type
+    else:
+        raise NotImplementedError("Connection from type %r" % (
+            type(conn.pre_obj),))
+
+    if neuron_type is not None and hasattr(neuron_type, 'amplitude'):
+        weights = weights * neuron_type.amplitude
 
     mid_cx = pre_cx
     mid_axon_inds = slice(None)
@@ -703,10 +711,14 @@ def signal_probe(model, key, probe):
             raise ValueError("Functions not supported for signal probe")
         weights = kwargs['transform'].T / model.dt
 
-    # spike probes should give values of 1/dt on spike events
     if isinstance(probe.target, nengo.ensemble.Neurons):
-        if probe.attr == 'output' and weights is None:
-            weights = 1.0 / model.dt
+        if probe.attr == 'output':
+            if weights is None:
+                # spike probes should give values of 1.0/dt on spike events
+                weights = 1.0 / model.dt
+
+            if hasattr(probe.target.ensemble.neuron_type, 'amplitude'):
+                weights = weights * probe.target.ensemble.neuron_type.amplitude
 
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']

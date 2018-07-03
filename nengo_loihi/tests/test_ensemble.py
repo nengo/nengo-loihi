@@ -26,7 +26,7 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
 
     upper_bound = nengo.LIF(tau_ref=tau_ref).rates(0., gain, bias)
     lower_bound = nengo.LIF(tau_ref=tau_ref + dt).rates(0., gain, bias)
-    mid = nengo.LIF(tau_ref=tau_ref + 0.5*dt).rates(0., gain, bias)
+    mid = nengo.LIF(tau_ref=tau_ref + 0.5 * dt).rates(0., gain, bias)
     plt.title("tau_ref=%.3f" % tau_ref)
     plt.plot(bias, upper_bound, "k")
     plt.plot(bias, lower_bound, "k")
@@ -68,3 +68,46 @@ def test_relu_response_curves(Simulator, plt):
     plt.legend(loc="best")
 
     assert np.all(actual >= scount)
+
+
+@pytest.mark.parametrize("amplitude", (0.1, 0.5, 1))
+def test_amplitude(Simulator, amplitude, seed, allclose):
+    # TODO: test rectifiedlinear as well (not working at the moment due to
+    # other reasons)
+
+    with nengo.Network(seed=seed) as net:
+        a = nengo.Node([0.5])
+        n = 100
+        ens = nengo.Ensemble(
+            n, 1, neuron_type=nengo.LIF(amplitude=amplitude))
+        ens2 = nengo.Ensemble(n, 1, gain=np.ones(n), bias=np.zeros(n),
+                              neuron_type=nengo.RectifiedLinear())
+        nengo.Connection(a, ens, synapse=None)
+
+        # note: slight boost on transform so that the post neurons are pushed
+        # over threshold, rather than ==threshold
+        nengo.Connection(ens.neurons, ens2.neurons, synapse=None,
+                         transform=np.eye(n) * 1.01)
+
+        node = nengo.Node(size_in=n)
+        nengo.Connection(ens.neurons, node, synapse=None)
+
+        ens_p = nengo.Probe(ens, synapse=0.1)
+        neuron_p = nengo.Probe(ens.neurons)
+        indirect_p = nengo.Probe(node)
+        neuron2_p = nengo.Probe(ens2.neurons)
+
+    with Simulator(net, precompute=True) as sim:
+        sim.run(1)
+
+    assert allclose(sim.data[ens_p][sim.trange() > 0.9], 0.5, atol=0.05)
+    assert np.max(sim.data[neuron_p]) == amplitude / sim.dt
+
+    # the identity neuron-to-neuron connection causes `ens2` to fire at
+    # `amplitude` * the firing rate of `ens` (i.e., the same overall firing
+    # rate as `ens`)
+    assert allclose(np.mean(sim.data[neuron_p], axis=0),
+                    np.mean(sim.data[neuron2_p], axis=0), atol=1)
+
+    # note: one-timestep delay, despite synapse=None
+    assert allclose(sim.data[neuron_p][:-1], sim.data[indirect_p][1:])
