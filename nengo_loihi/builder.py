@@ -567,7 +567,7 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
-    elif isinstance(conn.pre_obj, Ensemble) and conn.solver.weights:
+    elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
         assert isinstance(post_cx, CxGroup)
         assert weights.ndim == 2
         n2, n1 = weights.shape
