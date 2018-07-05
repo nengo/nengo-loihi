@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.parametrize('N', [100, 300])
-def test_pes_comm_channel(Simulator, seed, plt, N):
+def test_pes_comm_channel(allclose, Simulator, seed, plt, N):
     input_fn = lambda t: np.sin(t*2*np.pi)
 
     with nengo.Network(seed=seed) as model:
@@ -50,7 +50,7 @@ def test_pes_comm_channel(Simulator, seed, plt, N):
     plt.plot(t[t > 4], y)
     plt.plot(t[t > 4], m_best * x, ':')
 
-    assert np.allclose(
+    assert allclose(
         sim.data[p_a][t > 0.1], sim.data[p_stim][t > 0.1], atol=0.2, rtol=0.2)
     assert errors.min() < 0.3, "Not able to fit correctly"
     assert m_best > (0.3 if N < 150 else 0.6)

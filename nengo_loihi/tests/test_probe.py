@@ -17,7 +17,7 @@ def test_spike_units(Simulator, seed):
 
 
 @pytest.mark.parametrize('dim', [1, 3])
-def test_voltage_decode(Simulator, seed, plt, dim):
+def test_voltage_decode(allclose, Simulator, seed, plt, dim):
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(
             lambda t: [np.sin(2 * np.pi * t) / np.sqrt(dim)] * dim)
@@ -35,4 +35,4 @@ def test_voltage_decode(Simulator, seed, plt, dim):
     plt.plot(sim.trange(), sim.data[p_a])
     plt.plot(sim.trange(), sim.data[p_stim])
 
-    assert np.allclose(sim.data[p_stim], sim.data[p_a], atol=0.3)
+    assert allclose(sim.data[p_stim], sim.data[p_a], atol=0.3)

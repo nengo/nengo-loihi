@@ -5,7 +5,7 @@ import nengo.utils.matplotlib
 import pytest
 
 
-def test_precompute(Simulator, seed, plt):
+def test_precompute(allclose, Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:
         D = 2
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * D)
@@ -39,11 +39,11 @@ def test_precompute(Simulator, seed, plt):
     plt.title('precompute=True')
 
     assert np.array_equal(sim1.data[p_stim], sim2.data[p_stim])
-    assert np.allclose(sim1.data[p_a], sim2.data[p_a], atol=0.2)
-    assert np.allclose(sim1.data[p_out], sim2.data[p_out], atol=0.2)
+    assert allclose(sim1.data[p_a], sim2.data[p_a], atol=0.2)
+    assert allclose(sim1.data[p_out], sim2.data[p_out], atol=0.2)
 
 
-def test_input_node_precompute(Simulator, plt):
+def test_input_node_precompute(allclose, Simulator, plt):
     pytest.importorskip('nxsdk')
 
     input_fn = lambda t: np.sin(2 * np.pi * t)
@@ -89,4 +89,4 @@ def test_input_node_precompute(Simulator, plt):
     plt.plot(t, u, 'k:', label='input')
     plt.legend(loc='best')
 
-    assert np.allclose(x['sim'], x['loihi'], atol=0.1, rtol=0.01)
+    assert allclose(x['sim'], x['loihi'], atol=0.1, rtol=0.01)

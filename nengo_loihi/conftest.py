@@ -21,6 +21,19 @@ def pytest_configure(config):
     nengo_loihi.set_defaults()
 
 
+def pytest_terminal_summary(terminalreporter):
+    tr = terminalreporter
+    all_rmses = []
+    for passed_test in tr.stats["passed"]:
+        for name, val in passed_test.user_properties:
+            if name == "rmse":
+                all_rmses.append(val)
+
+    tr.write_sep("=", "root mean squared error for allclose checks", bold=True)
+    tr.write_line("mean rmse: %.5f +/- %.4f" % (
+        np.mean(all_rmses), np.std(all_rmses)))
+
+
 @pytest.fixture(scope="session")
 def Simulator(request):
     """Simulator class to be used in tests"""
@@ -70,3 +83,13 @@ def seed(request):
     tests are not dependent on specific seeds.
     """
     return function_seed(request.function, mod=TestConfig.test_seed)
+
+
+@pytest.fixture
+def allclose(request):
+    def _allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
+        rmse = npext.rmse(a, b)
+        if not np.any(np.isnan(rmse)):
+            request.node.user_properties.append(("rmse", rmse))
+        return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
+    return _allclose

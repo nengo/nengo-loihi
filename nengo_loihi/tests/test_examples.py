@@ -29,7 +29,7 @@ def execexample(fname):
     return example_ns
 
 
-def test_ens_ens(plt):
+def test_ens_ens(allclose, plt):
     ns = execexample("ens_ens.py")
     sim = ns["sim"]
     ap = ns["ap"]
@@ -43,11 +43,11 @@ def test_ens_ens(plt):
     plt.plot(t, a)
     plt.plot(t, b)
 
-    assert np.allclose(a, 0., atol=0.03)
-    assert np.allclose(b[t > 0.1], 0.5, atol=0.075)
+    assert allclose(a, 0., atol=0.03)
+    assert allclose(b[t > 0.1], 0.5, atol=0.075)
 
 
-def test_ens_ens_slice(plt):
+def test_ens_ens_slice(allclose, plt):
     ns = execexample("ens_ens_slice.py")
     sim = ns["sim"]
     b = ns["b"]
@@ -65,13 +65,13 @@ def test_ens_ens_slice(plt):
     plt.legend(['b%d' % d for d in range(b.shape[1])] +
                ['c%d' % d for d in range(c.shape[1])])
 
-    assert np.allclose(b[t > 0.15, 0], b_vals[0], atol=0.15)
-    assert np.allclose(b[t > 0.15, 1], b_vals[1], atol=0.2)
-    assert np.allclose(c[t > 0.15, 0], b_vals[1], atol=0.2)
-    assert np.allclose(c[t > 0.15, 1], b_vals[0], atol=0.2)
+    assert allclose(b[t > 0.15, 0], b_vals[0], atol=0.15)
+    assert allclose(b[t > 0.15, 1], b_vals[1], atol=0.2)
+    assert allclose(c[t > 0.15, 0], b_vals[1], atol=0.2)
+    assert allclose(c[t > 0.15, 1], b_vals[0], atol=0.2)
 
 
-def test_node_ens_ens(plt):
+def test_node_ens_ens(allclose, plt):
     ns = execexample("node_ens_ens.py")
     sim = ns["sim"]
     up = ns["up"]
@@ -110,8 +110,8 @@ def test_node_ens_ens(plt):
     plt.legend(loc=0)
 
     tmask = t > 0.1  # ignore transients at the beginning
-    assert np.allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.4, rtol=0.25)
-    assert np.allclose(b[tmask], a[tmask]**2, atol=0.35, rtol=0.0)
+    assert allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.4, rtol=0.25)
+    assert allclose(b[tmask], a[tmask]**2, atol=0.35, rtol=0.0)
 
 
 def test_oscillator(plt):

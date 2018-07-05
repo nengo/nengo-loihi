@@ -5,7 +5,8 @@ import pytest
 
 @pytest.mark.parametrize('weight_solver', [False, True])
 @pytest.mark.parametrize('target_value', [-0.75, 0.4, 1.0])
-def test_ens_ens_constant(weight_solver, target_value, Simulator, seed, plt):
+def test_ens_ens_constant(
+        allclose, weight_solver, target_value, Simulator, seed, plt):
     a_fn = lambda x: x + target_value
     solver = nengo.solvers.LstsqL2(weights=weight_solver)
 
@@ -36,14 +37,14 @@ def test_ens_ens_constant(weight_solver, target_value, Simulator, seed, plt):
     plt.plot(t, target_output, 'k')
     plt.plot(t, sim_output)
 
-    assert np.allclose(dec_value, target_value, rtol=0.1, atol=0.1)
+    assert allclose(dec_value, target_value, rtol=0.1, atol=0.1)
     t_check = t > 0.5
-    assert np.allclose(sim_output[t_check], target_output[t_check],
-                       rtol=0.15, atol=0.15)
+    assert allclose(
+        sim_output[t_check], target_output[t_check], rtol=0.15, atol=0.15)
 
 
 @pytest.mark.parametrize('precompute', [True, False])
-def test_node_to_neurons(precompute, Simulator, plt):
+def test_node_to_neurons(precompute, allclose, Simulator, plt):
     tfinal = 1.0
 
     x = np.array([0.7, 0.3])
@@ -77,4 +78,4 @@ def test_node_to_neurons(precompute, Simulator, plt):
     plt.bar(np.arange(len(z)) + bar_width, rates, bar_width, label='rates')
     plt.legend(loc='best')
 
-    assert np.allclose(rates, z, atol=3, rtol=0.1)
+    assert allclose(rates, z, atol=3, rtol=0.1)

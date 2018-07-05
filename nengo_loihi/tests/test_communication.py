@@ -6,7 +6,7 @@ import pytest
 
 @pytest.mark.parametrize("val", (-0.75, -0.5, 0, 0.5, 0.75))
 @pytest.mark.parametrize("type", ("array", "func"))
-def test_input_node(Simulator, val, type):
+def test_input_node(allclose, Simulator, val, type):
     with nengo.Network() as net:
         if type == "array":
             input = [val]
@@ -28,14 +28,14 @@ def test_input_node(Simulator, val, type):
         sim.run(1.0)
 
         # TODO: seems like error margins should be smaller than this?
-        assert np.allclose(sim.data[p_b][-100:], val, atol=0.15)
-        assert np.allclose(sim.data[p_c][-100:], val, atol=0.15)
+        assert allclose(sim.data[p_b][-100:], val, atol=0.15)
+        assert allclose(sim.data[p_c][-100:], val, atol=0.15)
 
 
 @pytest.mark.parametrize('pre_d', [1, 3])
 @pytest.mark.parametrize('post_d', [1, 3])
 @pytest.mark.parametrize('func', [False, True])
-def test_ens2node(Simulator, seed, plt, pre_d, post_d, func):
+def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
 
@@ -66,13 +66,13 @@ def test_ens2node(Simulator, seed, plt, pre_d, post_d, func):
 
     # TODO: improve the bounds on these tests
     if post_d >= pre_d:
-        assert np.allclose(
+        assert allclose(
             filt_data[:, :pre_d] * (-1 if func else 1),
             sim.data[p_stim][:, :pre_d],
             atol=0.6)
-        assert np.allclose(filt_data[:, pre_d:], 0, atol=0.6)
+        assert allclose(filt_data[:, pre_d:], 0, atol=0.6)
     else:
-        assert np.allclose(
+        assert allclose(
             filt_data * (-1 if func else 1),
             sim.data[p_stim][:, :post_d],
             atol=0.6)
@@ -126,7 +126,7 @@ def test_neurons2node(Simulator, seed, plt):
 @pytest.mark.parametrize('pre_d', [1, 3])
 @pytest.mark.parametrize('post_d', [1, 3])
 @pytest.mark.parametrize('func', [False, True])
-def test_node2ens(Simulator, seed, plt, pre_d, post_d, func):
+def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
 
@@ -149,17 +149,17 @@ def test_node2ens(Simulator, seed, plt, pre_d, post_d, func):
 
     # TODO: improve the bounds on these tests
     if post_d >= pre_d:
-        assert np.allclose(
+        assert allclose(
             sim.data[p_stim][:, :pre_d],
             sim.data[p_a][:, :pre_d] * (-1 if func else 1),
             atol=0.6)
-        assert np.allclose(
+        assert allclose(
             sim.data[p_a][:, pre_d:] * (-1 if func else 1), 0, atol=0.6)
     else:
-        assert (np.allclose(
+        assert allclose(
             sim.data[p_stim][:, :post_d],
             sim.data[p_a] * (-1 if func else 1),
-            atol=0.6))
+            atol=0.6)
 
     plt.subplot(2, 1, 1)
     plt.plot(sim.trange(), sim.data[p_stim])

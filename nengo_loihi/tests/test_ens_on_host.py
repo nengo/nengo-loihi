@@ -7,7 +7,7 @@ import nengo_loihi
 
 
 @pytest.mark.parametrize('precompute', [True, False])
-def test_ens_decoded_on_host(precompute, Simulator, seed, plt):
+def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     out_synapse = nengo.synapses.Alpha(0.03)
 
     with nengo.Network(seed=seed) as model:
@@ -35,12 +35,12 @@ def test_ens_decoded_on_host(precompute, Simulator, seed, plt):
     plt.plot(sim.trange(), sim.data[p_a])
     plt.plot(sim.trange(), sim.data[p_b])
 
-    assert np.allclose(sim.data[p_a], sim.data[p_stim], atol=0.05, rtol=0.01)
-    assert np.allclose(sim.data[p_b], -sim.data[p_a], atol=0.15, rtol=0.1)
+    assert allclose(sim.data[p_a], sim.data[p_stim], atol=0.05, rtol=0.01)
+    assert allclose(sim.data[p_b], -sim.data[p_a], atol=0.15, rtol=0.1)
 
 
 @pytest.mark.parametrize('precompute', [True, False])
-def test_ens_neurons_on_host(precompute, Simulator, seed, plt, rng):
+def test_ens_neurons_on_host(precompute, allclose, Simulator, seed, plt, rng):
     out_synapse = nengo.synapses.Alpha(0.03)
 
     n = 50
@@ -76,11 +76,11 @@ def test_ens_neurons_on_host(precompute, Simulator, seed, plt, rng):
     plt.plot(sim.trange(), sim.data[p_a])
     plt.plot(sim.trange(), sim.data[p_b])
 
-    assert np.allclose(sim.data[p_b], sim.data[p_a], atol=0.15, rtol=0.15)
+    assert allclose(sim.data[p_b], sim.data[p_a], atol=0.15, rtol=0.15)
 
 
 @pytest.mark.parametrize('precompute', [True, False])
-def test_post_node_on_host(precompute, Simulator, seed, plt, rng):
+def test_post_node_on_host(precompute, allclose, Simulator, seed, plt, rng):
     out_synapse = nengo.synapses.Alpha(0.03)
 
     n = 50
@@ -126,4 +126,4 @@ def test_post_node_on_host(precompute, Simulator, seed, plt, rng):
     plt.plot(sim.trange(), sim.data[p_a])
     plt.plot(sim.trange(), sim.data[p_b])
 
-    assert np.allclose(sim.data[p_b], sim.data[p_a], atol=0.15, rtol=0.15)
+    assert allclose(sim.data[p_b], sim.data[p_a], atol=0.15, rtol=0.15)
