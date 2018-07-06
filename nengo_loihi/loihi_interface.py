@@ -20,7 +20,6 @@ except ImportError:
         raise exc_info[1]
     nxsdk = N2Board = BasicSpikeGenerator = TraceCfgGen = no_nxsdk
 
-
 from nengo_loihi.allocators import one_to_one_allocator
 from nengo_loihi.loihi_api import (
     CX_PROFILES_MAX, VTH_PROFILES_MAX, bias_to_manexp)
@@ -456,50 +455,50 @@ class LoihiSimulator(object):
         # snips must be created before connecting
         assert not self.is_connected()
 
-        nxsdk_dir = os.path.dirname(nxsdk.__file__)
-        nxsdk_root_dir = os.path.join(nxsdk_dir, "..")
+        nxsdk_root_dir = os.path.realpath(
+            os.path.join(os.path.dirname(nxsdk.__file__), "..")
+        )
 
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
-        template_path = os.path.join(snips_dir, "nengo_io.c.template")
-        c_path = os.path.join(snips_dir, "nengo_io.c")
+        env = jinja2.Environment(
+            trim_blocks=True,
+            loader=jinja2.FileSystemLoader(snips_dir),
+            keep_trailing_newline=True
+        )
+        template = env.get_template("nengo_io.c.template")
         learn_c_path = os.path.join(snips_dir, "nengo_learn.c")
 
         # --- generate custom code
         # Determine which cores have learning
-        learn_cores = set()
         n_errors = 0
         for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
             if core.learning_coreid:
-                learn_cores.add(core.learning_coreid)
                 n_errors += 1
 
         n_outputs = 1
         probes = []
         cores = set()
+        # TODO: should snip_range be stored on the probe?
         snip_range = {}
         for group in self.model.cx_groups.keys():
             for probe in group.probes:
                 if probe.use_snip:
                     info = probe.snip_info
-                    coreid = info['coreid']
-                    cxs = info['cxs']
-                    cores.add(coreid)
+                    cores.add(info["coreid"])
                     snip_range[probe] = slice(n_outputs - 1,
-                                              n_outputs + len(cxs) - 1)
-                    for cx in cxs:
-                        probes.append((n_outputs, coreid, cx))
+                                              n_outputs + len(info["cxs"]) - 1)
+                    for cx in info["cxs"]:
+                        probes.append((n_outputs, info["coreid"], cx))
                         n_outputs += 1
 
-        core_line = 'NeuronCore *core%d = NEURON_PTR((CoreId){.id=%d});'
-        code_cores = '\n'.join([core_line % (c, c) for c in cores])
-        probe_line = 'output[%d] = core%d->cx_state[%d].V;'
-        code_probes = '\n'.join([probe_line % p for p in probes])
-
         # --- write c file using template
-        with open(template_path) as f:
-            template = f.read()
-
-        code = template % (n_outputs, n_errors, code_cores, code_probes)
+        code = template.render(
+            n_outputs=n_outputs,
+            n_errors=n_errors,
+            cores=cores,
+            probes=probes,
+        )
+        c_path = os.path.join(snips_dir, "nengo_io.c")
         with open(c_path, 'w') as f:
             f.write(code)
 

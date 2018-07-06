@@ -2,43 +2,46 @@
 #include <string.h>
 #include "nengo_io.h"
 
-#define N_OUTPUTS %d
-#define N_ERRORS %d
+#define N_OUTPUTS {{ n_outputs }}
+#define N_ERRORS {{ n_errors }}
 
 
 void nengo_io(runState *s) {
+{% for core in cores %}
+    NeuronCore *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
+{% endfor %}
+    CoreId coreId;
+    int32_t count[1];
+    int32_t spike[2];
+    int32_t error[2];
+    int32_t output[N_OUTPUTS];
 
-    if (s->time %% 100 == 0) {
-        printf("time %%d\n", s->time);
+    if (s->time % 100 == 0) {
+        printf("time %d\n", s->time);
     }
 
-    int count[1];
     readChannel(getChannelID("nengo_io_h2c"), count, 1);
-    //printf("count %%d\n", count[0]);
+    // printf("count %d\n", count[0]);
 
-    int spike[2];
-    for (int i=0; i<count[0]; i++) {
+    for (int i=0; i < count[0]; i++) {
         readChannel(getChannelID("nengo_io_h2c"), spike, 2);
-        //printf("send spike %%d.%%d\n", spike[0], spike[1]);
-        CoreId coreId = (CoreId) {.id=spike[0]};
+        // printf("send spike %d.%d\n", spike[0], spike[1]);
+        coreId = (CoreId) { .id=spike[0] };
         nx_send_discrete_spike(s->time, coreId, spike[1]);
     }
 
-    //Communicate with learning snip
-    int error[2];
-    for (int i=0; i<N_ERRORS; i++) {
+    // Communicate with learning snip
+    for (int i=0; i < N_ERRORS; i++) {
         readChannel(getChannelID("nengo_io_h2c"), error, 2);
-        //printf("send error %%d.%%d\n", error[0], error[1]);
+        // printf("send error %d.%d\n", error[0], error[1]);
         s->userData[0] = error[0];
         s->userData[1] = error[1];
     }
 
-
-    int output[N_OUTPUTS];
     output[0] = s->time;
+{% for n_out, core, cx in probes %}
+    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+{% endfor %}
 
-%s
-%s
     writeChannel(getChannelID("nengo_io_c2h"), output, N_OUTPUTS);
-
 }

@@ -38,6 +38,7 @@ setup(
         "nengo",
     ],
     install_requires=[
+        "jinja2",
         "nengo>=2.8.0",
     ],
     tests_require=[
