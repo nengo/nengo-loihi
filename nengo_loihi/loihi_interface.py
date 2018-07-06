@@ -1,13 +1,25 @@
 from __future__ import division
 
+import os
+import sys
 import time
 import warnings
-import os
 
+import jinja2
 import numpy as np
 
-from nxsdk.arch.n2a.graph.graph import N2Board
-# from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
+try:
+    import nxsdk
+    from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
+    from nxsdk.arch.n2a.graph.graph import N2Board
+    from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
+except ImportError:
+    exc_info = sys.exc_info()
+
+    def no_nxsdk(*args, **kwargs):
+        raise exc_info[1]
+    nxsdk = N2Board = BasicSpikeGenerator = TraceCfgGen = no_nxsdk
+
 
 from nengo_loihi.allocators import one_to_one_allocator
 from nengo_loihi.loihi_api import (
@@ -15,9 +27,6 @@ from nengo_loihi.loihi_api import (
 
 
 def build_board(board):
-    # Import the NxSDK defining Loihi API
-    # from nxsdk.arch.n2a.graph.graph import N2Board
-
     n_chips = board.n_chips()
     n_cores_per_chip = board.n_cores_per_chip()
     n_synapses_per_core = board.n_synapses_per_core()
@@ -39,8 +48,6 @@ def build_chip(n2chip, chip):
 
 
 def build_core(n2core, core):  # noqa: C901
-    from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
-
     assert len(core.cxProfiles) < CX_PROFILES_MAX
     assert len(core.vthProfiles) < VTH_PROFILES_MAX
 
@@ -234,8 +241,6 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
 
 
 def build_input(n2core, core, spike_input, cx_idxs):
-    from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
-
     assert len(spike_input.axons) > 0
 
     for axon in spike_input.axons:
@@ -451,7 +456,6 @@ class LoihiSimulator(object):
         # snips must be created before connecting
         assert not self.is_connected()
 
-        import nxsdk
         nxsdk_dir = os.path.dirname(nxsdk.__file__)
         nxsdk_root_dir = os.path.join(nxsdk_dir, "..")
 
