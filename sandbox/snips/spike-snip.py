@@ -28,7 +28,7 @@ with nengo.Network(seed=1) as model:
     p = nengo.Probe(a)
     p2 = nengo.Probe(out, synapse=0.02)
 
-with Simulator(model) as sim:
+with Simulator(model, precompute=False) as sim:
     sim.run(0.1)
 
 print(sim.data[p2])
