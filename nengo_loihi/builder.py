@@ -443,25 +443,28 @@ def build_connection(model, conn):
         if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
             weights = transform
         else:
+            # input is on-off neuron encoded, so double/flip transform
             weights = np.column_stack([transform, -transform])
-            # ^ input is on-off neuron encoded, so double/flip transform
-            weights = weights / (INTER_RATE * INTER_N)
-            # ^ remove rate factor added by pre-compute nodes
 
+            # remove rate factor added by pre-compute nodes;
+            # (max_rate = INTER_RATE * INTER_N) is the spike rate we
+            # use to represent a value of +/- 1
+            weights = weights / (INTER_RATE * INTER_N * model.dt)
     elif (isinstance(conn.pre_obj, Ensemble) and
           isinstance(conn.pre_obj.neuron_type, Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
             conn.solver, conn, rng, transform)
+
+        # the decoder solver assumes a spike height of 1/dt; that isn't the
+        # case on loihi, so we need to undo that scaling
         weights = weights / model.dt
-        # ^ scale, since nengo spikes have 1/dt scaling
 
         if not conn.solver.weights:
             needs_interneurons = True
     else:
         assert conn.pre_slice == slice(None)
-        # assert conn.post_slice == slice(None)
         assert transform.ndim == 2
         weights = transform
 
@@ -564,7 +567,7 @@ def build_connection(model, conn):
 
             syn = CxSynapses(n1)
             gain = model.params[conn.post_obj.ensemble].gain
-            syn.set_full_weights(weights.T * gain / model.dt)
+            syn.set_full_weights(weights.T * gain)
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 
