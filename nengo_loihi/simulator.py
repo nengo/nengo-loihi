@@ -375,7 +375,7 @@ class Simulator(object):
                     self.host_sim.run_steps(1)
                     self.handle_host2chip_communications()
                     self.handle_chip2host_communications()
-                self._n_steps += 1
+                    self._n_steps += 1
             finally:
                 # tell the snip to shut down
                 logger.info("Stopping snip, waiting for completion")
