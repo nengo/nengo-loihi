@@ -48,7 +48,7 @@ with nengo.Network() as model:
     ap = nengo.Probe(a)
     bp = nengo.Probe(b)
 
-with Simulator(model) as sim:
+with Simulator(model, precompute=False) as sim:
     sim.run(.1)
 
 plt.figure()
@@ -57,4 +57,3 @@ plt.plot(sim.trange(), output_filter.filt(sim.data[ap]))
 plt.plot(sim.trange(), output_filter.filt(sim.data[bp]))
 
 plt.savefig('pes_learning_snips.png')
-

@@ -26,15 +26,16 @@ with nengo.Network(seed=1) as model:
     def output(t, x):
         # print(x)
         return x
-        
+
     out = nengo.Node(output, size_in=1, size_out=1)
     c = nengo.Connection(a, out,
                          learning_rule_type=nengo.PES(),
                          function=lambda x: 0,
                          synapse=0.01)
 
+
     error = nengo.Node(None, size_in=1)
-   
+
     nengo.Connection(out, error, transform=-1)
     nengo.Connection(stim, error, transform=1)
 

@@ -353,9 +353,10 @@ class Simulator(object):
                     self.handle_chip2host_communications()
 
                 print('Waiting for completion')
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
+                # TODO: fix this when are the close writes?
+                # This needs to be the number of dimensions+2
+                # I've just set it big so we can use lots of dims
+                self.loihi.nengo_io_h2c.write(25, [0]*25)
                 self.loihi.wait_for_completion()
                 print("done")
             else:
@@ -414,10 +415,12 @@ class Simulator(object):
                 for sender, receiver in self.host2chip_senders.items():
                     if isinstance(receiver, splitter.PESModulatoryTarget):
                         for t, x in sender.queue:
-                            x = int(100 * x)  # >128 is an issue on chip
+                            # >128 is an issue on chip
+                            x = np.array(x, dtype=int) * 100
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_cx = self.model.objs[conn]['decoded']
+                            # TODO: Assumes 1 chip
                             for core in self.loihi.board.chips[0].cores:
                                 for group in core.groups:
                                     if group == dec_cx:
@@ -427,7 +430,7 @@ class Simulator(object):
 
                             assert coreid is not None
 
-                            errors.append([coreid, x])
+                            errors.append(list(np.hstack([coreid, x])))
                         del sender.queue[:]
 
                     else:
@@ -459,7 +462,7 @@ class Simulator(object):
                     assert spike[0] == 0
                     self.loihi.nengo_io_h2c.write(2, spike[1:3])
                 for error in errors:
-                    self.loihi.nengo_io_h2c.write(2, error)
+                    self.loihi.nengo_io_h2c.write(len(error), error)
 
     def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:

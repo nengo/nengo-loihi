@@ -13,29 +13,34 @@ import matplotlib.pyplot as plt
 import nxsdk
 Simulator = nengo_loihi.Simulator
 
+d = 2
 
 with nengo.Network(seed=1) as model:
-    stim = nengo.Node(lambda t: np.sin(2*np.pi*t))
+    if d == 1:
+        #stim = nengo.Node(lambda t: [np.sin(2*np.pi*t)])
+        stim = nengo.Node([.5])
+    else:
+        stim = nengo.Node(lambda t: [np.sin(2*np.pi*t), np.cos(2*np.pi*t)])
+        #stim = nengo.Node([.5, .8, -.3])
 
-    a = nengo.Ensemble(500, 1, label='b',
+    a = nengo.Ensemble(100, d, label='b',
                        max_rates=nengo.dists.Uniform(100, 120),
-                       intercepts=nengo.dists.Uniform(-0.5, 0.5))
+                       intercepts=nengo.dists.Uniform(-0.5, 0.5)
+			)
     nengo.Connection(stim, a, synapse=None)
 
-    out = nengo.Node(None, size_in=1, size_out=1)
+    out = nengo.Node(None, size_in=d, size_out=d)
     c = nengo.Connection(a, out,
-                         learning_rule_type=nengo.PES(),
-                         function=lambda x: 0,
+                         learning_rule_type=nengo.PES(learning_rate=1e-3),
+                         function=lambda x: [0]*d,
                          synapse=0.01)
-    #c = nengo.Connection(a, out, synapse=0.1)
 
-    error = nengo.Node(None, size_in=1)
+    error = nengo.Node(None, size_in=d)
 
-    # target = nengo.Node(.75)
     nengo.Connection(out, error, transform=-1)
-    nengo.Connection(stim, error, transform=1)
+    nengo.Connection(stim, error)
 
-    nengo.Connection(error, c.learning_rule, transform=1.0)
+    nengo.Connection(error, c.learning_rule)
 
     p = nengo.Probe(a)
     p2 = nengo.Probe(out)
@@ -48,7 +53,8 @@ output_filter = nengo.synapses.Lowpass(0.01)
 
 plt.figure()
 plt.plot(sim.trange(), output_filter.filt(sim.data[p]))
-plt.plot(sim.trange(), output_filter.filt(sim.data[p2]))
-plt.plot(sim.trange(), output_filter.filt(sim.data[p3]))
+plt.plot(sim.trange(), output_filter.filt(sim.data[p2]), label="out")
+plt.plot(sim.trange(), output_filter.filt(sim.data[p3]), label="err")
+plt.legend(loc='best')
 print('saving...')
-plt.savefig('pes_learning_snips2.png')
+plt.savefig('pes_learning_snips{}d.png'.format(d))

@@ -463,17 +463,19 @@ class LoihiSimulator(object):
         # --- generate custom code
         # Determine which cores have learning
         learn_cores = set()
-        n_errors = 0
         for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
             if core.learning_coreid:
                 learn_cores.add(core.learning_coreid)
-                n_errors += 1
 
         n_outputs = 1
+        n_errors = 0
         probes = []
         cores = set()
         snip_range = {}
         for group in self.model.cx_groups.keys():
+            for synapse in group.synapses:
+                if synapse.tracing:
+                    n_errors += int(group.n // 2)
             for probe in group.probes:
                 if probe.use_snip:
                     info = probe.snip_info
@@ -515,8 +517,8 @@ class LoihiSimulator(object):
         size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
                                                        "int", size)
-        self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',
-                                                       "int", n_outputs)
+        self.nengo_io_c2h = self.n2board.createChannel(
+            b'nengo_io_c2h', "int", n_outputs + n_errors * 2)
         self.nengo_io_h2c.connect(None, nengo_io)
         self.nengo_io_c2h.connect(nengo_io, None)
         self.nengo_io_c2h_count = n_outputs

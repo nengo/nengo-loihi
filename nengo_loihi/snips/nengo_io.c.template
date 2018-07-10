@@ -25,14 +25,16 @@ void nengo_io(runState *s) {
     }
 
     //Communicate with learning snip
-    int error[2];
+    //assumes only 1 core is learning
+    //userData is [N_errors, core, errors...]
+    int error[N_ERRORS+1];
+    s->userData[0] = N_ERRORS;
+    readChannel(getChannelID("nengo_io_h2c"), error, N_ERRORS+1);
+    //printf("send error %%d.%%d,%%d\n", error[0], error[1], error[2]);
+    s->userData[1] = error[0];
     for (int i=0; i<N_ERRORS; i++) {
-        readChannel(getChannelID("nengo_io_h2c"), error, 2);
-        //printf("send error %%d.%%d\n", error[0], error[1]);
-        s->userData[0] = error[0];
-        s->userData[1] = error[1];
+        s->userData[i+2] = error[i+1];
     }
-
 
     int output[N_OUTPUTS];
     output[0] = s->time;

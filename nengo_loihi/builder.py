@@ -460,6 +460,7 @@ def build_connection(model, conn):
         if not conn.solver.weights:
             needs_interneurons = True
     else:
+        # TODO: Does this code ever run?  What case is this for?
         assert conn.pre_slice == slice(None)
         # assert conn.post_slice == slice(None)
         assert transform.ndim == 2
