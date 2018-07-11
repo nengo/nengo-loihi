@@ -352,12 +352,17 @@ class LoihiSimulator(object):
     """
     Simulator to place CxModel onto board and run it.
     """
-    def __init__(self, cx_model, seed=None,
-                 snip_max_spikes_per_step=50):
+    def __init__(self, cx_model, seed=None, snip_max_spikes_per_step=50):
         self.n2board = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
+
+        nxsdk_dir = os.path.realpath(
+            os.path.join(os.path.dirname(nxsdk.__file__), "..")
+        )
+        self.cwd = os.getcwd()
+        os.chdir(nxsdk_dir)
 
         if seed is not None:
             warnings.warn("Seed will be ignored when running on Loihi")
@@ -419,6 +424,10 @@ class LoihiSimulator(object):
 
     def close(self):
         self.n2board.disconnect()
+        # TODO: can we chdir back earlier?
+        if self.cwd is not None:
+            os.chdir(self.cwd)
+            self.cwd = None
 
     def _filter_probe(self, cx_probe, data):
         dt = self.model.dt
@@ -454,10 +463,6 @@ class LoihiSimulator(object):
     def create_io_snip(self):
         # snips must be created before connecting
         assert not self.is_connected()
-
-        nxsdk_root_dir = os.path.realpath(
-            os.path.join(os.path.dirname(nxsdk.__file__), "..")
-        )
 
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
         env = jinja2.Environment(
@@ -503,9 +508,6 @@ class LoihiSimulator(object):
             f.write(code)
 
         # --- create SNIP process and channels
-        os.chdir(nxsdk_root_dir)
-        # TODO: figure out when it's safe to go back to the original directory
-
         include_dir = snips_dir
         func_name = "nengo_io"
         guard_name = None
