@@ -2,6 +2,10 @@
 #include <string.h>
 #include "nengo_learn.h"
 
+int guard_learn(runState *s) {
+    return 1;
+}
+
 void nengo_learn(runState *s) {
     int core = s->userData[0];
     int error = (signed char) s->userData[1];

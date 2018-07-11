@@ -5,26 +5,36 @@
 #define N_OUTPUTS {{ n_outputs }}
 #define N_ERRORS {{ n_errors }}
 
+int guard_io(runState *s) {
+    return 1;
+}
 
 void nengo_io(runState *s) {
 {% for core in cores %}
     NeuronCore *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
 {% endfor %}
     CoreId coreId;
+    int inChannel = getChannelID("nengo_io_h2c");
+    int outChannel = getChannelID("nengo_io_c2h");
     int32_t count[1];
     int32_t spike[2];
     int32_t error[2];
     int32_t output[N_OUTPUTS];
 
+    if (inChannel == -1 || outChannel == -1) {
+        printf("Got an invalid channel ID\n");
+        return;
+    }
+
     if (s->time % 100 == 0) {
         printf("time %d\n", s->time);
     }
 
-    readChannel(getChannelID("nengo_io_h2c"), count, 1);
+    readChannel(inChannel, count, 1);
     // printf("count %d\n", count[0]);
 
     for (int i=0; i < count[0]; i++) {
-        readChannel(getChannelID("nengo_io_h2c"), spike, 2);
+        readChannel(inChannel, spike, 2);
         // printf("send spike %d.%d\n", spike[0], spike[1]);
         coreId = (CoreId) { .id=spike[0] };
         nx_send_discrete_spike(s->time, coreId, spike[1]);
@@ -32,7 +42,7 @@ void nengo_io(runState *s) {
 
     // Communicate with learning snip
     for (int i=0; i < N_ERRORS; i++) {
-        readChannel(getChannelID("nengo_io_h2c"), error, 2);
+        readChannel(inChannel, error, 2);
         // printf("send error %d.%d\n", error[0], error[1]);
         s->userData[0] = error[0];
         s->userData[1] = error[1];
@@ -43,5 +53,5 @@ void nengo_io(runState *s) {
     output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
 {% endfor %}
 
-    writeChannel(getChannelID("nengo_io_c2h"), output, N_OUTPUTS);
+    writeChannel(outChannel, output, N_OUTPUTS);
 }

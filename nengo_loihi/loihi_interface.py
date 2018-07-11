@@ -471,7 +471,6 @@ class LoihiSimulator(object):
             keep_trailing_newline=True
         )
         template = env.get_template("nengo_io.c.template")
-        learn_c_path = os.path.join(snips_dir, "nengo_learn.c")
 
         # --- generate custom code
         # Determine which cores have learning
@@ -508,14 +507,22 @@ class LoihiSimulator(object):
             f.write(code)
 
         # --- create SNIP process and channels
-        include_dir = snips_dir
-        func_name = "nengo_io"
-        guard_name = None
-        phase = "mgmt"
-        nengo_io = self.n2board.createProcess("nengo_io", c_path, include_dir,
-                                              func_name, guard_name, phase)
-        self.n2board.createProcess("nengo_learn", learn_c_path, include_dir,
-                                   "nengo_learn", guard_name, "preLearnMgmt")
+        nengo_io = self.n2board.createProcess(
+            name="nengo_io",
+            cFilePath=c_path,
+            includeDir=snips_dir,
+            funcName="nengo_io",
+            guardName="guard_io",
+            phase="mgmt",
+        )
+        self.n2board.createProcess(
+            name="nengo_learn",
+            cFilePath=os.path.join(snips_dir, "nengo_learn.c"),
+            includeDir=snips_dir,
+            funcName="nengo_learn",
+            guardName="guard_learn",
+            phase="preLearnMgmt",
+        )
 
         size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
