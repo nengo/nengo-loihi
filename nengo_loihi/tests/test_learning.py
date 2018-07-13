@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 
 
+@pytest.mark.xfail(pytest.config.getoption("--target") == "loihi",
+                   reason="Hangs indefinitely on Loihi")
 @pytest.mark.parametrize('N', [100, 300])
 def test_pes_comm_channel(allclose, Simulator, seed, plt, N):
     input_fn = lambda t: np.sin(t*2*np.pi)

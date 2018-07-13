@@ -16,6 +16,8 @@ def test_spike_units(Simulator, seed):
     assert len(values) == 2
 
 
+@pytest.mark.xfail(pytest.config.getoption("--target") == "loihi",
+                   reason="Hangs indefinitely on Loihi")
 @pytest.mark.parametrize('dim', [1, 3])
 def test_voltage_decode(allclose, Simulator, seed, plt, dim):
     with nengo.Network(seed=seed) as model:
