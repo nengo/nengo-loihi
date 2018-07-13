@@ -24,14 +24,15 @@ def pytest_configure(config):
 def pytest_terminal_summary(terminalreporter):
     tr = terminalreporter
     all_rmses = []
-    for passed_test in tr.stats["passed"]:
+    for passed_test in tr.stats.get("passed", []):
         for name, val in passed_test.user_properties:
             if name == "rmse":
                 all_rmses.append(val)
 
-    tr.write_sep("=", "root mean squared error for allclose checks", bold=True)
-    tr.write_line("mean rmse: %.5f +/- %.4f" % (
-        np.mean(all_rmses), np.std(all_rmses)))
+    if len(all_rmses) > 0:
+        tr.write_sep("=", "root mean squared error for allclose checks")
+        tr.write_line("mean rmse: %.5f +/- %.4f" % (
+            np.mean(all_rmses), np.std(all_rmses)))
 
 
 @pytest.fixture(scope="session")
