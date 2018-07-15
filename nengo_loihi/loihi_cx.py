@@ -1,14 +1,17 @@
 from __future__ import division
 
 import collections
+import logging
 import warnings
 
 import numpy as np
-from nengo.utils.compat import is_iterable
+from nengo.utils.compat import is_iterable, range
 
 from nengo_loihi.loihi_api import (
     VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt,
     tracing_mag_int_frac)
+
+logger = logging.getLogger(__name__)
 
 
 class CxGroup(object):
@@ -385,6 +388,8 @@ class CxSimulator(object):
     def build(self, model, seed=None):  # noqa: C901
         if seed is None:
             seed = np.random.randint(2**31 - 1)
+
+        logger.debug("CxSimulator seed: %d", seed)
         self.seed = seed
         self.rng = np.random.RandomState(seed)
 
@@ -392,7 +397,6 @@ class CxSimulator(object):
 
         self.model = model
         self.inputs = list(self.model.cx_inputs)
-        # self.groups = list(self.model.cx_groups)
         self.groups = sorted(self.model.cx_groups,
                              key=lambda g: g.location == 'cpu')
         self.probe_outputs = collections.defaultdict(list)
@@ -419,7 +423,7 @@ class CxSimulator(object):
             assert group.vth.dtype == group_dtype
             assert group.bias.dtype == group_dtype
 
-        print("Simulator dtype: %s" % group_dtype)
+        logger.debug("CxSimulator dtype: %s", group_dtype)
 
         MAX_DELAY = 1  # don't do delay yet
         self.q = np.zeros((MAX_DELAY, self.n_cx), dtype=group_dtype)

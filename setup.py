@@ -42,7 +42,7 @@ setup(
         "nengo>=2.8.0",
     ],
     tests_require=[
-        "pytest>=3.2",
+        "pytest>=3.4",
         "matplotlib>=2.0",
     ],
     entry_points={

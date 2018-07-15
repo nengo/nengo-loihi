@@ -1,5 +1,6 @@
 from __future__ import division
 
+import logging
 import os
 import sys
 import time
@@ -24,6 +25,8 @@ from nengo_loihi.allocators import one_to_one_allocator
 from nengo_loihi.loihi_api import (
     CX_PROFILES_MAX, VTH_PROFILES_MAX, bias_to_manexp)
 
+logger = logging.getLogger(__name__)
+
 
 def build_board(board):
     n_chips = board.n_chips()
@@ -35,6 +38,7 @@ def build_board(board):
 
     assert len(board.chips) == len(n2board.n2Chips)
     for chip, n2chip in zip(board.chips, n2board.n2Chips):
+        logger.debug("Building chip %s", chip)
         build_chip(n2chip, chip)
 
     return n2board
@@ -43,6 +47,7 @@ def build_board(board):
 def build_chip(n2chip, chip):
     assert len(chip.cores) == len(n2chip.n2Cores)
     for core, n2core in zip(chip.cores, n2chip.n2Cores):
+        logger.debug("Building core %s", core)
         build_core(n2core, core)
 
 
@@ -50,6 +55,7 @@ def build_core(n2core, core):  # noqa: C901
     assert len(core.cxProfiles) < CX_PROFILES_MAX
     assert len(core.vthProfiles) < VTH_PROFILES_MAX
 
+    logger.debug("- Configuring cxProfiles")
     for i, cxProfile in enumerate(core.cxProfiles):
         n2core.cxProfileCfg[i].configure(
             decayV=cxProfile.decayV,
@@ -59,11 +65,13 @@ def build_core(n2core, core):  # noqa: C901
             bapAction=1,
         )
 
+    logger.debug("- Configuring vthProfiles")
     for i, vthProfile in enumerate(core.vthProfiles):
         n2core.vthProfileCfg[i].staticCfg.configure(
             vth=vthProfile.vth,
         )
 
+    logger.debug("- Configuring synapseFmts")
     for i, synapseFmt in enumerate(core.synapseFmts):
         if synapseFmt is None:
             continue
@@ -88,6 +96,7 @@ def build_core(n2core, core):  # noqa: C901
         n2core.synapseFmt[i].stdpProfile = synapseFmt.stdpProfile
         n2core.synapseFmt[i].ignoreDly = synapseFmt.ignoreDly
 
+    logger.debug("- Configuring stdpPreCfgs")
     for i, traceCfg in enumerate(core.stdpPreCfgs):
         tcg = TraceCfgGen()
         tc = tcg.genTraceCfg(
@@ -116,6 +125,7 @@ def build_core(n2core, core):  # noqa: C901
                 assert np.all(len(axons) < firstLearningIndex)
 
     if numStdp > 0:
+        logger.debug("- Configuring PES learning")
         # add configurations tailored to PES learning
         n2core.stdpCfg.configure(
             firstLearningIndex=firstLearningIndex,
@@ -202,6 +212,7 @@ def build_core(n2core, core):  # noqa: C901
     for inp, cx_idxs in core.iterate_inputs():
         build_input(n2core, core, inp, cx_idxs)
 
+    logger.debug("- Configuring numUpdates=%d", n_cx // 4 + 1)
     n2core.numUpdates.configure(
         numUpdates=n_cx // 4 + 1,
         numStdp=numStdp,
@@ -215,7 +226,7 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
     assert group.scaleU is False
     assert group.scaleV is False
 
-    print("Building %s on core.id=%d" % (group, n2core.id))
+    logger.debug("Building %s on core.id=%d", group, n2core.id)
 
     for i, bias in enumerate(group.bias):
         bman, bexp = bias_to_manexp(bias)
@@ -229,12 +240,15 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
         phasex = 'phase%d' % (ii % 4,)
         n2core.cxMetaState[ii // 4].configure(**{phasex: 2})
 
+    logger.debug("- Building %d synapses", len(group.synapses))
     for synapses in group.synapses:
         build_synapses(n2core, core, group, synapses, cx_idxs)
 
+    logger.debug("- Building %d synapses", len(group.axons))
     for axons in group.axons:
         build_axons(n2core, core, group, axons, cx_idxs)
 
+    logger.debug("- Building %d synapses", len(group.probes))
     for probe in group.probes:
         build_probe(n2core, core, group, probe, cx_idxs)
 
@@ -362,6 +376,7 @@ class LoihiSimulator(object):
             os.path.join(os.path.dirname(nxsdk.__file__), "..")
         )
         self.cwd = os.getcwd()
+        logger.debug("cd to %s", nxsdk_dir)
         os.chdir(nxsdk_dir)
 
         if seed is not None:
@@ -410,15 +425,16 @@ class LoihiSimulator(object):
         if self.is_connected():
             return
 
+        logger.info("Connecting to Loihi, max attempts: %d", attempts)
         for i in range(attempts):
             try:
                 self.n2board.startDriver()
                 if self.is_connected():
                     break
             except Exception as e:
-                print(str(e))
-                print("Retrying...")
+                logger.info("Connection error: %s", e)
                 time.sleep(1)
+                logger.info("Retrying, attempt %d", i + 1)
         else:
             raise RuntimeError("Could not connect to the board")
 
@@ -426,6 +442,7 @@ class LoihiSimulator(object):
         self.n2board.disconnect()
         # TODO: can we chdir back earlier?
         if self.cwd is not None:
+            logger.debug("cd to %s", self.cwd)
             os.chdir(self.cwd)
             self.cwd = None
 
@@ -496,17 +513,21 @@ class LoihiSimulator(object):
                         n_outputs += 1
 
         # --- write c file using template
+        c_path = os.path.join(snips_dir, "nengo_io.c")
+        logger.debug(
+            "Creating %s with %d outputs, %d error, %d cores, %d probes",
+            c_path, n_outputs, n_errors, len(cores), len(probes))
         code = template.render(
             n_outputs=n_outputs,
             n_errors=n_errors,
             cores=cores,
             probes=probes,
         )
-        c_path = os.path.join(snips_dir, "nengo_io.c")
         with open(c_path, 'w') as f:
             f.write(code)
 
         # --- create SNIP process and channels
+        logger.debug("Creating nengo_io snip process")
         nengo_io = self.n2board.createProcess(
             name="nengo_io",
             cFilePath=c_path,
@@ -515,6 +536,7 @@ class LoihiSimulator(object):
             guardName="guard_io",
             phase="mgmt",
         )
+        logger.debug("Creating nengo_learn snip process")
         self.n2board.createProcess(
             name="nengo_learn",
             cFilePath=os.path.join(snips_dir, "nengo_learn.c"),
@@ -525,8 +547,10 @@ class LoihiSimulator(object):
         )
 
         size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
+        logger.debug("Creating nengo_io_h2c channel")
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
                                                        "int", size)
+        logger.debug("Creating nengo_io_c2h channel")
         self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',
                                                        "int", n_outputs)
         self.nengo_io_h2c.connect(None, nengo_io)

@@ -148,11 +148,15 @@ class Simulator(object):
                 target = 'sim'
 
         if target == 'simreal':
+            logger.info("Using real-valued simulator")
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'sim':
+            logger.info("Using discretized simulator")
             self.model.discretize()  # Make parameters fixed bit widths
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
+            logger.info(
+                "Using Loihi hardware with precompute=%s", self.precompute)
             self.model.discretize()  # Make parameters fixed bit widths
             if not precompute:
                 # tag all probes as being snipbased
@@ -352,16 +356,17 @@ class Simulator(object):
                     self.handle_host2chip_communications()
                     self.handle_chip2host_communications()
 
-                print('Waiting for completion')
+                logger.info("Waiting for completion")
                 self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
-                print("done")
+                logger.info("done")
             else:
                 self.loihi.run_steps(steps)
 
         self._n_steps += steps
+        logger.info("Finished running for %d steps", steps)
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901

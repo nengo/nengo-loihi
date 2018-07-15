@@ -1,8 +1,12 @@
+import logging
+
 import nengo
 import numpy as np
 
-from . import loihi_cx
-from .neurons import NIF
+from nengo_loihi import loihi_cx
+from nengo_loihi.neurons import NIF
+
+logger = logging.getLogger(__name__)
 
 
 def is_on_chip(obj, config):
@@ -90,6 +94,7 @@ class ChipReceiveNeurons(ChipReceiveNode):
 def split(model, inter_rate, inter_n):  # noqa: C901
     """Split a model into code running on the host and on-chip"""
 
+    logger.info("Splitting model into host and chip parts")
     host = nengo.Network(seed=model.seed)
     chip = nengo.Network(seed=model.seed)
     chip2host_params = {}
@@ -98,14 +103,18 @@ def split(model, inter_rate, inter_n):  # noqa: C901
 
     for ens in model.all_ensembles:
         if is_on_chip(ens, model.config):
+            logger.debug("Adding %s to chip", ens)
             chip.ensembles.append(ens)
         else:
+            logger.debug("Adding %s to host", ens)
             host.ensembles.append(ens)
 
     for node in model.all_nodes:
         if is_on_chip(node, model.config):
+            logger.debug("Adding %s to chip", node)
             chip.nodes.append(node)
         else:
+            logger.debug("Adding %s to host", node)
             host.nodes.append(node)
 
     for probe in model.all_probes:
@@ -115,8 +124,10 @@ def split(model, inter_rate, inter_n):  # noqa: C901
         if isinstance(target, nengo.ensemble.Neurons):
             target = target.ensemble
         if is_on_chip(target, model.config):
+            logger.debug("Adding %s to chip", probe)
             chip.probes.append(probe)
         else:
+            logger.debug("Adding %s to host", probe)
             host.probes.append(probe)
 
     modulatory_nodes = {}
@@ -126,8 +137,10 @@ def split(model, inter_rate, inter_n):  # noqa: C901
         post_onchip = is_on_chip(c.post_obj, model.config)
         if pre_onchip and post_onchip:
             assert c.learning_rule_type is None
+            logger.debug("Adding %s to chip", c)
             chip.connections.append(c)
         elif not pre_onchip and not post_onchip:
+            logger.debug("Adding %s to host", c)
             host.connections.append(c)
         elif post_onchip and not pre_onchip:
             if isinstance(c.pre_obj, nengo.ensemble.Neurons):
@@ -135,10 +148,12 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 assert not isinstance(c.post, nengo.connection.LearningRule)
                 dim = c.size_in
                 with chip:
+                    logger.debug("Creating ChipReceiveNeurons for %s", c)
                     receive = ChipReceiveNeurons(dim)
                     nengo.Connection(receive, c.post,
                                      transform=c.transform, synapse=c.synapse)
                 with host:
+                    logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim)
                     nengo.Connection(c.pre, send, synapse=None)
                 host2chip_senders[send] = receive
@@ -147,6 +162,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 dim = c.size_out
                 with host:
                     send = HostSendNode(dim)
+                    logger.debug("Creating HostSendNode for %s", c)
                     modulatory_nodes[c] = send
                     nengo.Connection(c.pre, send,
                                      function=c.function,
@@ -158,12 +174,14 @@ def split(model, inter_rate, inter_n):  # noqa: C901
             else:
                 dim = c.size_out
                 with chip:
+                    logger.debug("Creating ChipReceiveNode for %s", c)
                     receive = ChipReceiveNode(dim * 2, size_out=dim)
                     nengo.Connection(receive, c.post, synapse=c.synapse)
                 with host:
                     max_rate = inter_rate * inter_n
                     assert max_rate <= 1000
 
+                    logger.debug("Creating NIF ensemble for %s", c)
                     ens = nengo.Ensemble(
                         2 * dim, dim, neuron_type=NIF(tau_ref=0.0),
                         encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
@@ -177,6 +195,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                     else:
                         scaling = 1.0
 
+                    logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim * 2)
                     nengo.Connection(c.pre, ens,
                                      function=c.function,
@@ -190,9 +209,11 @@ def split(model, inter_rate, inter_n):  # noqa: C901
         elif pre_onchip and not post_onchip:
             dim = c.size_out
             with host:
+                logger.debug("Creating HostReceiveNode for %s", c)
                 receive = HostReceiveNode(dim)
                 nengo.Connection(receive, c.post, synapse=c.synapse)
             with chip:
+                logger.debug("Creating Probe for %s", c)
                 probe = nengo.Probe(c.pre, synapse=None, solver=c.solver)
                 chip2host_params[probe] = dict(
                     learning_rule_type=c.learning_rule_type,
@@ -228,6 +249,8 @@ def base_obj(obj):
 
 def split_pre_from_host(host_model):    # noqa: C901
     assert len(host_model.networks) == 0
+    logger.info("Splitting pre model from host")
+
     pre = nengo.Network()
     inputs = {}
     outputs = {}

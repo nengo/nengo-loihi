@@ -1,4 +1,5 @@
 import collections
+import logging
 import warnings
 
 import numpy as np
@@ -19,6 +20,7 @@ from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
 from . import splitter
 
+logger = logging.getLogger(__name__)
 
 # Filter on intermediary neurons
 INTER_TAU = 0.005
@@ -132,19 +134,19 @@ def build_network(model, network):
                                  getattr(obj, 'seed', None) is not None)
             model.seeds[obj] = get_seed(obj, rng)
 
-    # logger.debug("Network step 1: Building ensembles and nodes")
+    logger.debug("Network step 1: Building ensembles and nodes")
     for obj in network.ensembles + network.nodes:
         model.build(obj)
 
-    # logger.debug("Network step 2: Building subnetworks")
+    logger.debug("Network step 2: Building subnetworks")
     for subnetwork in network.networks:
         model.build(subnetwork)
 
-    # logger.debug("Network step 3: Building connections")
+    logger.debug("Network step 3: Building connections")
     for conn in network.connections:
         model.build(conn)
 
-    # logger.debug("Network step 4: Building probes")
+    logger.debug("Network step 4: Building probes")
     for probe in network.probes:
         model.build(probe)
 

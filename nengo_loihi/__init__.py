@@ -2,7 +2,6 @@ import logging
 
 from .version import version as __version__
 
-# manually import modules in correct order for Cython
 from . import loihi_api
 from . import loihi_cx
 from . import builder
