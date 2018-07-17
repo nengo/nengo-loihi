@@ -16,9 +16,9 @@ from nengo.utils.builder import default_n_eval_points
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
-from nengo_loihi.loihi_cx import (
+from nengo_loihi.cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
-from . import splitter
+from nengo_loihi.hardware.splitter import ChipReceiveNeurons, ChipReceiveNode
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +296,7 @@ def build_relu(model, relu, neurons, group):
 
 @Builder.register(Node)
 def build_node(model, node):
-    if isinstance(node, splitter.ChipReceiveNode):
+    if isinstance(node, ChipReceiveNode):
         cx_spiker = node.cx_spike_input
         model.add_input(cx_spiker)
         model.objs[node]['out'] = cx_spiker
@@ -441,7 +441,7 @@ def build_connection(model, conn):
             assert transform.shape[1] == conn.pre.size_out
 
         assert transform.shape[1] == conn.pre.size_out
-        if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
+        if isinstance(conn.pre_obj, ChipReceiveNeurons):
             weights = transform
         else:
             # input is on-off neuron encoded, so double/flip transform

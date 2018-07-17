@@ -1,57 +1,12 @@
 from __future__ import division
 
 import collections
-import warnings
 
 import numpy as np
 
 CX_PROFILES_MAX = 32
 VTH_PROFILES_MAX = 8
 SYNAPSE_FMTS_MAX = 16
-
-VTH_MAN_MAX = 2**17 - 1
-VTH_EXP = 6
-VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
-
-BIAS_MAN_MAX = 2**12 - 1
-BIAS_EXP_MAX = 2**3 - 1
-BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
-
-
-def vth_to_manexp(vth):
-    exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
-    man = np.round(vth / 2**exp).astype(np.int32)
-    assert ((man >= 0) & (man <= VTH_MAN_MAX)).all()
-    return man, exp
-
-
-def bias_to_manexp(bias):
-    r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
-    exp = np.ceil(np.log2(r)).astype(np.int32)
-    man = np.round(bias / 2**exp).astype(np.int32)
-    assert ((exp >= 0) & (exp <= BIAS_EXP_MAX)).all()
-    assert (np.abs(man) <= BIAS_MAN_MAX).all()
-    return man, exp
-
-
-def tracing_mag_int_frac(synapses):
-    mag = synapses.tracing_mag
-    mag = mag / (synapses.size() / 100)
-
-    mag_int = int(mag)
-    # TODO: how does mag_frac actually work???
-    #  It's the x in x/128, I believe
-    mag_frac = int(128 * (mag - mag_int))
-    # mag_frac = min(int(round(1./mag_frac)), 128)
-
-    return mag_int, mag_frac
-
-
-def shift(x, s, **kwargs):
-    if s < 0:
-        return np.right_shift(x, -s, **kwargs)
-    else:
-        return np.left_shift(x, s, **kwargs)
 
 
 class CxSlice(object):
@@ -309,7 +264,7 @@ class CxProfile(Profile):
 
 
 class VthProfile(Profile):
-    VTH_MAX = 2**17 - 1
+    VTH_MAX = 2**17 - 1  # TODO: is this or the one in cx.py right?
 
     params = ('vth',)
 
@@ -321,119 +276,6 @@ class VthProfile(Profile):
         assert 0 < self.vth <= self.VTH_MAX
         # if core is not None:
         #     assert self.realVth < core.dendrite_shared_cfg.v_max
-
-
-class SynapseFmt(object):
-    INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
-    WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
-
-    def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
-                 learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
-                 reuseSynData=0, numSynapses=0, cIdxOffset=0, cIdxMult=0,
-                 skipBits=0, idxBits=0, synType=0, fanoutType=0,
-                 compression=0, stdpProfile=0, ignoreDly=0):
-        self.wgtLimitMant = wgtLimitMant
-        self.wgtLimitExp = wgtLimitExp
-        self.wgtExp = wgtExp
-        self.discMaxWgt = discMaxWgt
-        self.learningCfg = learningCfg
-        self.tagBits = tagBits
-        self.dlyBits = dlyBits
-        self.wgtBits = wgtBits
-        self.reuseSynData = reuseSynData
-        self.numSynapses = numSynapses
-        self.cIdxOffset = cIdxOffset
-        self.cIdxMult = cIdxMult
-        self.skipBits = skipBits
-        self.idxBits = idxBits
-        self.synType = synType
-        self.fanoutType = fanoutType
-        self.compression = compression
-        self.stdpProfile = stdpProfile
-        self.ignoreDly = ignoreDly
-
-    @classmethod
-    def get_realWgtExp(cls, wgtExp):
-        return 6 + wgtExp
-
-    @classmethod
-    def get_scale(cls, wgtExp):
-        return 2**cls.get_realWgtExp(wgtExp)
-
-    @property
-    def realWgtExp(self):
-        return self.get_realWgtExp(self.wgtExp)
-
-    @property
-    def scale(self):
-        return self.get_scale(self.wgtExp)
-
-    @property
-    def realWgtBits(self):
-        return self.WEIGHT_BITS_MAP[self.wgtBits]
-
-    @property
-    def realIdxBits(self):
-        return self.INDEX_BITS_MAP[self.idxBits]
-
-    @property
-    def isMixed(self):
-        return self.fanoutType == 1
-
-    def bits_per_axon(self, n_weights):
-        """For an axon with n weights, compute the weight memory bits used"""
-        bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
-        if self.compression == 0:
-            bits_per_weight += self.realIdxBits
-        elif self.compression == 3:
-            pass
-        else:
-            raise NotImplementedError("Compression %s" % (self.compression,))
-
-        SYNAPSE_FMT_IDX_BITS = 4
-        N_SYNAPSES_BITS = 6
-        bits = 0
-        synapses_per_group = self.numSynapses + 1
-        for i in range(0, n_weights, synapses_per_group):
-            n = min(n_weights - i, synapses_per_group)
-            bits_i = n*bits_per_weight + SYNAPSE_FMT_IDX_BITS + N_SYNAPSES_BITS
-            bits_i = -64 * (-bits_i // 64)
-            # ^ round up to nearest 64 (size of one int64 memory unit)
-            bits += bits_i
-
-        return bits
-
-    def set(self, **kwargs):
-        for key, value in kwargs.items():
-            assert hasattr(self, key)
-            setattr(self, key, value)
-
-    def validate(self, core=None):
-        assert -7 <= self.wgtExp <= 7
-        assert 0 <= self.tagBits < 4
-        assert 0 <= self.dlyBits < 8
-        assert 1 <= self.wgtBits < 8
-        assert 0 <= self.cIdxOffset < 16
-        assert 0 <= self.cIdxMult < 16
-        assert 0 <= self.idxBits < 8
-        assert 1 <= self.fanoutType < 4
-
-    def discretize_weights(self, w, dtype=np.int32):
-        s = 8 - self.realWgtBits + self.isMixed
-        m = 2**(8 - s) - 1
-
-        w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
-        s2 = s + self.wgtExp
-        shift(w, s2, out=w)
-        np.left_shift(w, 6, out=w)
-
-        if s2 < 0:
-            warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
-
-        ws = w // self.scale
-        assert np.all(ws <= 255) and np.all(ws >= -256)
-
-        return w
 
 
 class StdpProfile(Profile):

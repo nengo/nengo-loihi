@@ -2,16 +2,16 @@ import collections
 import logging
 import warnings
 
-import numpy as np
-
 import nengo
 import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
+import numpy as np
 
+from nengo_loihi import config
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
-import nengo_loihi.config as config
-import nengo_loihi.splitter as splitter
+from nengo_loihi.emulator import CxSimulator
+from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator, splitter
 
 logger = logging.getLogger(__name__)
 
@@ -141,20 +141,17 @@ class Simulator(object):
         self.simulator = None
 
         if target is None:
-            try:
-                import nxsdk
-                target = 'loihi'
-            except ImportError:
-                target = 'sim'
+            target = 'loihi' if HAS_NXSDK else 'sim'
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
-            self.simulator = self.model.get_simulator(seed=seed)
+            self.simulator = CxSimulator(self.model, seed=seed)
         elif target == 'sim':
             logger.info("Using discretized simulator")
             self.model.discretize()  # Make parameters fixed bit widths
-            self.simulator = self.model.get_simulator(seed=seed)
+            self.simulator = CxSimulator(self.model, seed=seed)
         elif target == 'loihi':
+            assert HAS_NXSDK, "Must have NxSDK installed to use Loihi hardware"
             logger.info(
                 "Using Loihi hardware with precompute=%s", self.precompute)
             self.model.discretize()  # Make parameters fixed bit widths
@@ -182,7 +179,7 @@ class Simulator(object):
                     cx_probe = self.model.objs[probe]['out']
                     self.cx_probe2probe[cx_probe] = probe
 
-            self.loihi = self.model.get_loihi(seed=seed)
+            self.loihi = LoihiSimulator(self.model, seed=seed)
         else:
             raise ValueError("Unrecognized target")
 

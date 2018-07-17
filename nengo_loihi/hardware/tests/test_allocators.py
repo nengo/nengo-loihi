@@ -1,10 +1,13 @@
 import numpy as np
+import pytest
 
-from nengo_loihi.allocators import core_stdp_pre_cfgs
-from nengo_loihi.loihi_api import Board
-from nengo_loihi.loihi_cx import CxSynapses
+from nengo_loihi.cx import CxSynapses
+from nengo_loihi.hardware import HAS_NXSDK
+from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs
+from nengo_loihi.hardware.api import Board
 
 
+@pytest.mark.skipif(not HAS_NXSDK, reason="Test requires NxSDK")
 def test_core_stdp_pre_cfgs():
     core = Board().new_chip().new_core()
 

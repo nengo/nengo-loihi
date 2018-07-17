@@ -1,6 +1,6 @@
 [MASTER]
 
-ignore = _vendor, compat.py, conftest.py
+ignore = _vendor, compat.py, conftest.py, nxsdk_shim.py
 
 
 [MESSAGES CONTROL]

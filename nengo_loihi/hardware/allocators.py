@@ -1,12 +1,14 @@
 import numpy as np
 
-from nengo_loihi.loihi_api import (
+from nengo_loihi.cx import (
+    tracing_mag_int_frac,
+    vth_to_manexp
+)
+from nengo_loihi.hardware.api import (
     Board,
     CxProfile,
     TraceCfg,
-    tracing_mag_int_frac,
     VthProfile,
-    vth_to_manexp
 )
 
 

@@ -3,7 +3,7 @@ import logging
 import nengo
 import numpy as np
 
-from nengo_loihi import loihi_cx
+from nengo_loihi import cx
 from nengo_loihi.neurons import NIF
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class ChipReceiveNode(nengo.Node):
 
     def __init__(self, dimensions, size_out):
         self.raw_dimensions = dimensions
-        self.cx_spike_input = loihi_cx.CxSpikeInput(
+        self.cx_spike_input = cx.CxSpikeInput(
             np.zeros((0, dimensions), dtype=bool))
         self.last_time = None
         super(ChipReceiveNode, self).__init__(self.update,

@@ -26,4 +26,4 @@ htmlcov
 *.analytics/
 *.logs/
 *.plots/
-nengo_loihi/snips/nengo_io.c
+nengo_io.c

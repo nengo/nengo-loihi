@@ -7,11 +7,51 @@ import warnings
 import numpy as np
 from nengo.utils.compat import is_iterable, range
 
-from nengo_loihi.loihi_api import (
-    VTH_MAX, vth_to_manexp, BIAS_MAX, bias_to_manexp, SynapseFmt,
-    tracing_mag_int_frac)
-
 logger = logging.getLogger(__name__)
+
+VTH_MAN_MAX = 2**17 - 1
+VTH_EXP = 6
+VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
+
+BIAS_MAN_MAX = 2**12 - 1
+BIAS_EXP_MAX = 2**3 - 1
+BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
+
+
+def vth_to_manexp(vth):
+    exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
+    man = np.round(vth / 2**exp).astype(np.int32)
+    assert ((man >= 0) & (man <= VTH_MAN_MAX)).all()
+    return man, exp
+
+
+def bias_to_manexp(bias):
+    r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
+    exp = np.ceil(np.log2(r)).astype(np.int32)
+    man = np.round(bias / 2**exp).astype(np.int32)
+    assert ((exp >= 0) & (exp <= BIAS_EXP_MAX)).all()
+    assert (np.abs(man) <= BIAS_MAN_MAX).all()
+    return man, exp
+
+
+def tracing_mag_int_frac(synapses):
+    mag = synapses.tracing_mag
+    mag = mag / (synapses.size() / 100)
+
+    mag_int = int(mag)
+    # TODO: how does mag_frac actually work???
+    #  It's the x in x/128, I believe
+    mag_frac = int(128 * (mag - mag_int))
+    # mag_frac = min(int(round(1./mag_frac)), 128)
+
+    return mag_int, mag_frac
+
+
+def shift(x, s, **kwargs):
+    if s < 0:
+        return np.right_shift(x, -s, **kwargs)
+    else:
+        return np.left_shift(x, s, **kwargs)
 
 
 class CxGroup(object):
@@ -235,6 +275,119 @@ class CxGroup(object):
                 p.weights /= v_scale[0]
 
 
+class SynapseFmt(object):
+    INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
+    WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
+
+    def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
+                 learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
+                 reuseSynData=0, numSynapses=0, cIdxOffset=0, cIdxMult=0,
+                 skipBits=0, idxBits=0, synType=0, fanoutType=0,
+                 compression=0, stdpProfile=0, ignoreDly=0):
+        self.wgtLimitMant = wgtLimitMant
+        self.wgtLimitExp = wgtLimitExp
+        self.wgtExp = wgtExp
+        self.discMaxWgt = discMaxWgt
+        self.learningCfg = learningCfg
+        self.tagBits = tagBits
+        self.dlyBits = dlyBits
+        self.wgtBits = wgtBits
+        self.reuseSynData = reuseSynData
+        self.numSynapses = numSynapses
+        self.cIdxOffset = cIdxOffset
+        self.cIdxMult = cIdxMult
+        self.skipBits = skipBits
+        self.idxBits = idxBits
+        self.synType = synType
+        self.fanoutType = fanoutType
+        self.compression = compression
+        self.stdpProfile = stdpProfile
+        self.ignoreDly = ignoreDly
+
+    @classmethod
+    def get_realWgtExp(cls, wgtExp):
+        return 6 + wgtExp
+
+    @classmethod
+    def get_scale(cls, wgtExp):
+        return 2**cls.get_realWgtExp(wgtExp)
+
+    @property
+    def realWgtExp(self):
+        return self.get_realWgtExp(self.wgtExp)
+
+    @property
+    def scale(self):
+        return self.get_scale(self.wgtExp)
+
+    @property
+    def realWgtBits(self):
+        return self.WEIGHT_BITS_MAP[self.wgtBits]
+
+    @property
+    def realIdxBits(self):
+        return self.INDEX_BITS_MAP[self.idxBits]
+
+    @property
+    def isMixed(self):
+        return self.fanoutType == 1
+
+    def bits_per_axon(self, n_weights):
+        """For an axon with n weights, compute the weight memory bits used"""
+        bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
+        if self.compression == 0:
+            bits_per_weight += self.realIdxBits
+        elif self.compression == 3:
+            pass
+        else:
+            raise NotImplementedError("Compression %s" % (self.compression,))
+
+        SYNAPSE_FMT_IDX_BITS = 4
+        N_SYNAPSES_BITS = 6
+        bits = 0
+        synapses_per_group = self.numSynapses + 1
+        for i in range(0, n_weights, synapses_per_group):
+            n = min(n_weights - i, synapses_per_group)
+            bits_i = n*bits_per_weight + SYNAPSE_FMT_IDX_BITS + N_SYNAPSES_BITS
+            bits_i = -64 * (-bits_i // 64)
+            # ^ round up to nearest 64 (size of one int64 memory unit)
+            bits += bits_i
+
+        return bits
+
+    def set(self, **kwargs):
+        for key, value in kwargs.items():
+            assert hasattr(self, key)
+            setattr(self, key, value)
+
+    def validate(self, core=None):
+        assert -7 <= self.wgtExp <= 7
+        assert 0 <= self.tagBits < 4
+        assert 0 <= self.dlyBits < 8
+        assert 1 <= self.wgtBits < 8
+        assert 0 <= self.cIdxOffset < 16
+        assert 0 <= self.cIdxMult < 16
+        assert 0 <= self.idxBits < 8
+        assert 1 <= self.fanoutType < 4
+
+    def discretize_weights(self, w, dtype=np.int32):
+        s = 8 - self.realWgtBits + self.isMixed
+        m = 2**(8 - s) - 1
+
+        w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
+        s2 = s + self.wgtExp
+        shift(w, s2, out=w)
+        np.left_shift(w, 6, out=w)
+
+        if s2 < 0:
+            warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
+
+        ws = w // self.scale
+        assert np.all(ws <= 255) and np.all(ws >= -256)
+
+        return w
+
+
 class CxSynapses(object):
     def __init__(self, n_axons):
         self.n_axons = n_axons
@@ -349,7 +502,6 @@ class CxSpikeInput(object):
 
 
 class CxModel(object):
-
     def __init__(self):
         self.cx_inputs = collections.OrderedDict()
         self.cx_groups = collections.OrderedDict()
@@ -367,271 +519,3 @@ class CxModel(object):
     def discretize(self):
         for group in self.cx_groups:
             group.discretize()
-
-    def get_loihi(self, seed=None):
-        from nengo_loihi.loihi_interface import LoihiSimulator
-        return LoihiSimulator(self, seed=seed)
-
-    def get_simulator(self, seed=None):
-        return CxSimulator(self, seed=seed)
-
-
-class CxSimulator(object):
-    """Numerical simulation of chip behaviour given a CxModel"""
-
-    def __init__(self, model, seed=None):
-        self.build(model, seed=seed)
-
-        self._probe_filters = {}
-        self._probe_filter_pos = {}
-
-    def build(self, model, seed=None):  # noqa: C901
-        if seed is None:
-            seed = np.random.randint(2**31 - 1)
-
-        logger.debug("CxSimulator seed: %d", seed)
-        self.seed = seed
-        self.rng = np.random.RandomState(seed)
-
-        self.t = 0
-
-        self.model = model
-        self.inputs = list(self.model.cx_inputs)
-        self.groups = sorted(self.model.cx_groups,
-                             key=lambda g: g.location == 'cpu')
-        self.probe_outputs = collections.defaultdict(list)
-
-        self.n_cx = sum(group.n for group in self.groups)
-        self.group_cxs = {}
-        cx_slice = None
-        i0 = 0
-        for group in self.groups:
-            if group.location == 'cpu' and cx_slice is None:
-                cx_slice = slice(0, i0)
-
-            i1 = i0 + group.n
-            self.group_cxs[group] = slice(i0, i1)
-            i0 = i1
-
-        self.cx_slice = slice(0, i0) if cx_slice is None else cx_slice
-        self.cpu_slice = slice(self.cx_slice.stop, i1)
-
-        # --- allocate group memory
-        group_dtype = self.groups[0].vth.dtype
-        assert group_dtype in (np.float32, np.int32)
-        for group in self.groups:
-            assert group.vth.dtype == group_dtype
-            assert group.bias.dtype == group_dtype
-
-        logger.debug("CxSimulator dtype: %s", group_dtype)
-
-        MAX_DELAY = 1  # don't do delay yet
-        self.q = np.zeros((MAX_DELAY, self.n_cx), dtype=group_dtype)
-        self.u = np.zeros(self.n_cx, dtype=group_dtype)
-        self.v = np.zeros(self.n_cx, dtype=group_dtype)
-        self.s = np.zeros(self.n_cx, dtype=bool)  # spiked
-        self.c = np.zeros(self.n_cx, dtype=np.int32)  # spike counter
-        self.w = np.zeros(self.n_cx, dtype=np.int32)  # ref period counter
-
-        # --- allocate group parameters
-        self.decayU = np.hstack([group.decayU for group in self.groups])
-        self.decayV = np.hstack([group.decayV for group in self.groups])
-        self.scaleU = np.hstack([
-            group.decayU if group.scaleU else np.ones_like(group.decayU)
-            for group in self.groups])
-        self.scaleV = np.hstack([
-            group.decayV if group.scaleV else np.ones_like(group.decayV)
-            for group in self.groups])
-
-        def decay_float(x, u, d, s):
-            return (1 - d)*x + s*u
-
-        def decay_int(x, u, d, s, a=12, b=0):
-            r = (2**a - b - np.asarray(d)).astype(np.int64)
-            x = np.sign(x) * np.right_shift(np.abs(x) * r, a)  # round to zero
-            return x + u  # no scaling on u
-
-        if group_dtype == np.int32:
-            assert (self.scaleU == 1).all()
-            assert (self.scaleV == 1).all()
-            self.decayU_fn = lambda x, u: decay_int(
-                x, u, d=self.decayU, s=self.scaleU, b=1)
-            self.decayV_fn = lambda x, u: decay_int(
-                x, u, d=self.decayV, s=self.scaleV)
-        elif group_dtype == np.float32:
-            self.decayU_fn = lambda x, u: decay_float(
-                x, u, d=self.decayU, s=self.scaleU)
-            self.decayV_fn = lambda x, u: decay_float(
-                x, u, d=self.decayV, s=self.scaleV)
-
-        ones = lambda n: np.ones(n, dtype=group_dtype)
-        self.vth = np.hstack([group.vth for group in self.groups])
-        self.vmin = np.hstack([
-            group.vmin*ones(group.n) for group in self.groups])
-        self.vmax = np.hstack([
-            group.vmax*ones(group.n) for group in self.groups])
-
-        self.bias = np.hstack([group.bias for group in self.groups])
-        self.ref = np.hstack([group.refractDelay for group in self.groups])
-
-        # --- allocate synapse memory
-        self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
-                     for group in self.groups for synapses in group.synapses}
-        self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
-                  for group in self.groups for synapses in group.synapses
-                  if synapses.tracing}
-
-        # --- noise
-        enableNoise = np.hstack([
-            group.enableNoise*ones(group.n) for group in self.groups])
-        noiseExp0 = np.hstack([
-            group.noiseExp0*ones(group.n) for group in self.groups])
-        noiseMantOffset0 = np.hstack([
-            group.noiseMantOffset0*ones(group.n) for group in self.groups])
-        noiseTarget = np.hstack([
-            group.noiseAtDendOrVm*ones(group.n) for group in self.groups])
-        if group_dtype == np.int32:
-            noiseMult = np.where(enableNoise, 2**(noiseExp0 - 7), 0)
-
-            def noiseGen(n=self.n_cx, rng=self.rng):
-                x = rng.randint(-128, 128, size=n)
-                return (x + 64*noiseMantOffset0) * noiseMult
-        elif group_dtype == np.float32:
-            noiseMult = np.where(enableNoise, 10.**noiseExp0, 0)
-
-            def noiseGen(n=self.n_cx, rng=self.rng):
-                x = rng.uniform(-1, 1, size=n)
-                return (x + noiseMantOffset0) * noiseMult
-
-        self.noiseGen = noiseGen
-        self.noiseTarget = noiseTarget
-
-    def step(self):  # noqa: C901
-        # --- connections
-        self.q[:-1] = self.q[1:]  # advance delays
-        self.q[-1] = 0
-
-        for a_in in self.a_in.values():
-            a_in[:] = 0
-
-        for input in self.inputs:
-            for axons in input.axons:
-                synapses = axons.target
-                assert axons.target_inds == slice(None)
-                self.a_in[synapses] += input.spikes[self.t]
-
-        for group in self.groups:
-            for axons in group.axons:
-                synapses = axons.target
-                s_in = self.a_in[synapses]
-
-                a_slice = self.group_cxs[axons.group]
-                sa = self.s[a_slice]
-                np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
-
-        for group in self.groups:
-            for synapses in group.synapses:
-                s_in = self.a_in[synapses]
-
-                b_slice = self.group_cxs[synapses.group]
-                weights = synapses.weights
-                indices = synapses.indices
-                qb = self.q[:, b_slice]
-                # delays = np.zeros(qb.shape[1], dtype=np.int32)
-
-                for i in s_in.nonzero()[0]:
-                    for _ in range(s_in[i]):  # faster than mult since likely 1
-                        qb[0, indices[i]] += weights[i]
-                    # qb[delays[indices[i]], indices[i]] += weights[i]
-
-                if synapses.tracing:
-                    z = self.z[synapses]
-                    tau = synapses.tracing_tau
-                    mag = synapses.tracing_mag
-
-                    decay = np.exp(-1.0 / tau)
-                    z *= decay
-
-                    z += mag * s_in
-
-        # --- updates
-        q0 = self.q[0, :]
-
-        noise = self.noiseGen()
-        q0[self.noiseTarget == 0] += noise[self.noiseTarget == 0]
-
-        # self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)
-        self.u[:] = self.decayU_fn(self.u[:], q0)
-        u2 = self.u[:] + self.bias
-        u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
-
-        # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
-        self.v[:] = self.decayV_fn(self.v, u2)
-        np.clip(self.v, self.vmin, self.vmax, out=self.v)
-        self.v[self.w > 0] = 0
-        # TODO^: don't zero voltage in case neuron is saving overshoot
-
-        self.s[:] = (self.v > self.vth)
-
-        cx = self.cx_slice
-        cpu = self.cpu_slice
-        self.v[cx][self.s[cx]] = 0
-        self.v[cpu][self.s[cpu]] -= self.vth[cpu][self.s[cpu]]
-
-        self.w[self.s] = self.ref[self.s]
-        np.clip(self.w - 1, 0, None, out=self.w)  # decrement w
-
-        self.c[self.s] += 1
-
-        # --- probes
-        for input in self.inputs:
-            for probe in input.probes:
-                assert probe.key == 's'
-                p_slice = probe.slice
-                x = input.spikes[self.t][p_slice].copy()
-                self.probe_outputs[probe].append(x)
-
-        for group in self.groups:
-            for probe in group.probes:
-                x_slice = self.group_cxs[probe.target]
-                p_slice = probe.slice
-                assert hasattr(self, probe.key)
-                x = getattr(self, probe.key)[x_slice][p_slice].copy()
-                self.probe_outputs[probe].append(x)
-
-        self.t += 1
-
-    def run_steps(self, steps):
-        for _ in range(steps):
-            self.step()
-
-    def _filter_probe(self, cx_probe, data):
-        dt = self.model.dt
-        i = self._probe_filter_pos.get(cx_probe, 0)
-        if i == 0:
-            shape = data[0].shape
-            synapse = cx_probe.synapse
-            rng = None
-            step = (synapse.make_step(shape, shape, dt, rng, dtype=data.dtype)
-                    if synapse is not None else None)
-            self._probe_filters[cx_probe] = step
-        else:
-            step = self._probe_filters[cx_probe]
-
-        if step is None:
-            self._probe_filter_pos[cx_probe] = i + len(data)
-            return data
-        else:
-            filt_data = np.zeros_like(data)
-            for k, x in enumerate(data):
-                filt_data[k] = step((i + k) * dt, x)
-
-            self._probe_filter_pos[cx_probe] = i + k
-            return filt_data
-
-    def get_probe_output(self, probe):
-        cx_probe = self.model.objs[probe]['out']
-        assert isinstance(cx_probe, CxProbe)
-        x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
-        x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
-        return self._filter_probe(cx_probe, x)
