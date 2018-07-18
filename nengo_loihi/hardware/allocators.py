@@ -4,7 +4,7 @@ from nengo_loihi.cx import (
     tracing_mag_int_frac,
     vth_to_manexp
 )
-from nengo_loihi.hardware.api import (
+from nengo_loihi.hardware.builder import (
     Board,
     CxProfile,
     TraceCfg,

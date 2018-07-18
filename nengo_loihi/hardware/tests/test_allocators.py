@@ -4,7 +4,7 @@ import pytest
 from nengo_loihi.cx import CxSynapses
 from nengo_loihi.hardware import HAS_NXSDK
 from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs
-from nengo_loihi.hardware.api import Board
+from nengo_loihi.hardware.builder import Board
 
 
 @pytest.mark.skipif(not HAS_NXSDK, reason="Test requires NxSDK")
