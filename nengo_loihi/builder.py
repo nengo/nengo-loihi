@@ -1,18 +1,23 @@
 import collections
 import logging
-import warnings
 
 import numpy as np
 
 import nengo
 from nengo import Network, Ensemble, Connection, Node, Probe
+from nengo.builder.builder import Builder as NengoBuilder
+from nengo.builder.connection import (
+    build_no_solver, build_solver, BuiltConnection)
+from nengo.builder.ensemble import (
+    BuiltEnsemble, gen_eval_points, get_gain_bias)
+from nengo.builder.network import build_network
+from nengo.cache import NoDecoderCache
 from nengo.dists import Distribution, get_samples
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 from nengo.neurons import Direct, LIF, RectifiedLinear
 from nengo.solvers import NoSolver, Solver
-from nengo.utils.builder import default_n_eval_points
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
@@ -60,6 +65,10 @@ class Model(CxModel):
         self.seeds = {}
         self.seeded = {}
 
+        self.toplevel = None
+        self.config = None
+        self.decoder_cache = NoDecoderCache()
+
         self.builder = Builder() if builder is None else builder
         self.build_callback = None
 
@@ -76,140 +85,19 @@ class Model(CxModel):
         return obj in self.params
 
 
-class Builder(object):
-    """Fills in the Loihi Model object based on the Nengo Network."""
+class Builder(NengoBuilder):
+    """Fills in the Loihi Model object based on the Nengo Network.
 
-    builders = {}  # Methods that build different components
+    We cannot use the Nengo builder as is because we make normal Nengo
+    networks for host-to-chip and chip-to-host communication. To keep
+    Nengo and Nengo Loihi builders separate, we make a blank subclass,
+    which effectively copies the class.
+    """
 
-    @classmethod
-    def build(cls, model, obj, *args, **kwargs):
-        if model.has_built(obj):
-            warnings.warn("Object %s has already been built." % obj)
-            return None
-
-        for obj_cls in type(obj).__mro__:
-            if obj_cls in cls.builders:
-                break
-        else:
-            raise BuildError(
-                "Cannot build object of type %r" % type(obj).__name__)
-
-        return cls.builders[obj_cls](model, obj, *args, **kwargs)
-
-    @classmethod
-    def register(cls, nengo_class):
-        """Register methods to build Nengo objects into Model."""
-
-        def register_builder(build_fn):
-            if nengo_class in cls.builders:
-                warnings.warn("Type '%s' already has a builder. Overwriting."
-                              % nengo_class)
-            cls.builders[nengo_class] = build_fn
-            return build_fn
-        return register_builder
+    builders = {}
 
 
-@Builder.register(Network)
-def build_network(model, network):
-    def get_seed(obj, rng):
-        return (rng.randint(npext.maxint)
-                if not hasattr(obj, 'seed') or obj.seed is None else obj.seed)
-
-    if network not in model.seeds:
-        model.seeded[network] = getattr(network, 'seed', None) is not None
-        model.seeds[network] = get_seed(network, np.random)
-
-    # # Set config
-    # old_config = model.config
-    # model.config = network.config
-
-    # assign seeds to children
-    rng = np.random.RandomState(model.seeds[network])
-    # Put probes last so that they don't influence other seeds
-    sorted_types = (Connection, Ensemble, Network, Node, Probe)
-    assert all(tp in sorted_types for tp in network.objects)
-    for obj_type in sorted_types:
-        for obj in network.objects[obj_type]:
-            model.seeded[obj] = (model.seeded[network] or
-                                 getattr(obj, 'seed', None) is not None)
-            model.seeds[obj] = get_seed(obj, rng)
-
-    logger.debug("Network step 1: Building ensembles and nodes")
-    for obj in network.ensembles + network.nodes:
-        model.build(obj)
-
-    logger.debug("Network step 2: Building subnetworks")
-    for subnetwork in network.networks:
-        model.build(subnetwork)
-
-    logger.debug("Network step 3: Building connections")
-    for conn in network.connections:
-        model.build(conn)
-
-    logger.debug("Network step 4: Building probes")
-    for probe in network.probes:
-        model.build(probe)
-
-    # # Unset config
-    # model.config = old_config
-    model.params[network] = None
-
-
-def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
-    if isinstance(eval_points, Distribution):
-        n_points = ens.n_eval_points
-        if n_points is None:
-            n_points = default_n_eval_points(ens.n_neurons, ens.dimensions)
-        eval_points = eval_points.sample(n_points, ens.dimensions, rng)
-    else:
-        if (ens.n_eval_points is not None
-                and eval_points.shape[0] != ens.n_eval_points):
-            warnings.warn("Number of eval_points doesn't match "
-                          "n_eval_points. Ignoring n_eval_points.")
-        eval_points = np.array(eval_points, dtype=np.float64)
-        assert eval_points.ndim == 2
-
-    if scale_eval_points:
-        eval_points *= ens.radius  # scale by ensemble radius
-    return eval_points
-
-
-def get_gain_bias(ens, rng=np.random):
-    if ens.gain is not None and ens.bias is not None:
-        gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
-        bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
-        max_rates, intercepts = ens.neuron_type.max_rates_intercepts(
-            gain, bias)
-    elif ens.gain is not None or ens.bias is not None:
-        # TODO: handle this instead of error
-        raise NotImplementedError("gain or bias set for %s, but not both. "
-                                  "Solving for one given the other is not "
-                                  "implemented yet." % ens)
-    else:
-        max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
-        intercepts = get_samples(ens.intercepts, ens.n_neurons, rng=rng)
-        gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
-        if gain is not None and (
-                not np.all(np.isfinite(gain)) or np.any(gain <= 0.)):
-            raise BuildError(
-                "The specified intercepts for %s lead to neurons with "
-                "negative or non-finite gain. Please adjust the intercepts so "
-                "that all gains are positive. For most neuron types (e.g., "
-                "LIF neurons) this is achieved by reducing the maximum "
-                "intercept value to below 1." % ens)
-
-    return gain, bias, max_rates, intercepts
-
-
-BuiltEnsemble = collections.namedtuple(
-    'BuiltEnsemble',
-    ('eval_points',
-     'encoders',
-     'intercepts',
-     'max_rates',
-     'scaled_encoders',
-     'gain',
-     'bias'))
+Builder.register(Network)(build_network)
 
 
 @Builder.register(Ensemble)
@@ -305,103 +193,8 @@ def build_node(model, node):
         raise NotImplementedError()
 
 
-BuiltConnection = collections.namedtuple(
-    'BuiltConnection',
-    ('eval_points', 'solver_info', 'weights', 'transform'))
-
-
-def get_eval_points(model, conn, rng):
-    if conn.eval_points is None:
-        view = model.params[conn.pre_obj].eval_points.view()
-        view.setflags(write=False)
-        return view
-    else:
-        return gen_eval_points(
-            conn.pre_obj, conn.eval_points, rng, conn.scale_eval_points)
-
-
-def get_targets(conn, eval_points):
-    if conn.function is None:
-        targets = eval_points[:, conn.pre_slice]
-    elif isinstance(conn.function, np.ndarray):
-        targets = conn.function
-    else:
-        targets = np.zeros((len(eval_points), conn.size_mid))
-        for i, ep in enumerate(eval_points[:, conn.pre_slice]):
-            out = conn.function(ep)
-            if out is None:
-                raise BuildError("Building %s: Connection function returned "
-                                 "None. Cannot solve for decoders." % (conn,))
-            targets[i] = out
-
-    return targets
-
-
-def build_decoders(model, conn, rng, transform):
-    encoders = model.params[conn.pre_obj].encoders
-    gain = model.params[conn.pre_obj].gain
-    bias = model.params[conn.pre_obj].bias
-
-    eval_points = get_eval_points(model, conn, rng)
-    targets = get_targets(conn, eval_points)
-
-    x = np.dot(eval_points, encoders.T / conn.pre_obj.radius)
-    E = None
-    if conn.solver.weights:
-        E = model.params[conn.post_obj].scaled_encoders.T[conn.post_slice]
-        # include transform in solved weights
-        targets = multiply(targets, transform.T)
-
-    # wrapped_solver = (model.decoder_cache.wrap_solver(solve_for_decoders)
-    #                   if model.seeded[conn] else solve_for_decoders)
-    # decoders, solver_info = wrapped_solver(
-    decoders, solver_info = solve_for_decoders(
-        conn, gain, bias, x, targets, rng=rng, E=E)
-
-    weights = (decoders.T if conn.solver.weights else
-               multiply(transform, decoders.T))
-    return eval_points, weights, solver_info
-
-
-def solve_for_decoders(conn, gain, bias, x, targets, rng, E=None):
-    activities = conn.pre_obj.neuron_type.rates(x, gain, bias)
-    if np.count_nonzero(activities) == 0:
-        raise BuildError(
-            "Building %s: 'activities' matrix is all zero for %s. "
-            "This is because no evaluation points fall in the firing "
-            "ranges of any neurons." % (conn, conn.pre_obj))
-
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
-    return decoders, solver_info
-
-
-def multiply(x, y):
-    if x.ndim <= 2 and y.ndim < 2:
-        return x * y
-    elif x.ndim < 2 and y.ndim == 2:
-        return x.reshape(-1, 1) * y
-    elif x.ndim == 2 and y.ndim == 2:
-        return np.dot(x, y)
-    else:
-        raise BuildError("Tensors not supported (x.ndim = %d, y.ndim = %d)"
-                         % (x.ndim, y.ndim))
-
-
-@Builder.register(Solver)
-def build_solver(model, solver, conn, rng, transform):
-    return build_decoders(model, conn, rng, transform)
-
-
-@Builder.register(NoSolver)
-def build_no_solver(model, solver, conn, rng, transform):
-    activities = np.zeros((1, conn.pre_obj.n_neurons))
-    targets = np.zeros((1, conn.size_mid))
-    E = np.zeros((1, conn.post_obj.n_neurons)) if solver.weights else None
-    # No need to invoke the cache for NoSolver
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
-    weights = (decoders.T if conn.solver.weights else
-               multiply(transform, decoders.T))
-    return None, weights, solver_info
+Builder.register(Solver)(build_solver)
+Builder.register(NoSolver)(build_no_solver)
 
 
 @Builder.register(Connection)  # noqa: C901
@@ -731,6 +524,7 @@ def signal_probe(model, key, probe):
     model.objs[probe]['out'] = cx_probe
 
 
+# TODO: why q, s, v, u ?
 probemap = {
     Ensemble: {'decoded_output': None,
                'input': 'q'},
@@ -747,6 +541,9 @@ probemap = {
 
 @Builder.register(Probe)
 def build_probe(model, probe):
+    # This is a copy of Nengo's build_probe, but since conn_probe
+    # and signal_probe are different, we have to include it here.
+
     # find the right parent class in `objtypes`, using `isinstance`
     for nengotype, probeables in iteritems(probemap):
         if isinstance(probe.obj, nengotype):
