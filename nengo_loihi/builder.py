@@ -21,7 +21,7 @@ from nengo.solvers import NoSolver, Solver
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
-from nengo_loihi.cx import (
+from nengo_loihi.model import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
 from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
 

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from nengo_loihi.cx import CxGroup, CxProbe, CxModel
 from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator
+from nengo_loihi.model import CxGroup, CxProbe, CxModel
 
 
 @pytest.mark.skipif(not HAS_NXSDK, reason="Test requires NxSDK")

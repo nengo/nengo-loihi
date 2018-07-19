@@ -1,7 +1,7 @@
 import numpy as np
 
-from nengo_loihi.cx import CxGroup, CxProbe, CxModel
 from nengo_loihi.emulator import Emulator
+from nengo_loihi.model import CxGroup, CxProbe, CxModel
 
 
 def test_simulator_noise(plt, seed):

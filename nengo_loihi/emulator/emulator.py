@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 
-from nengo_loihi.cx import CxProbe
+from nengo_loihi.model import CxProbe
 
 logger = logging.getLogger(__name__)
 
