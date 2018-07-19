@@ -8,10 +8,10 @@ from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
 import numpy as np
 
-from nengo_loihi import config
+from nengo_loihi import config, splitter
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
 from nengo_loihi.emulator import Emulator
-from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator, splitter
+from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator
 
 logger = logging.getLogger(__name__)
 

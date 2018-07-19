@@ -23,7 +23,7 @@ import nengo.utils.numpy as npext
 
 from nengo_loihi.cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
-from nengo_loihi.hardware.splitter import ChipReceiveNeurons, ChipReceiveNode
+from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
 
 logger = logging.getLogger(__name__)
 
