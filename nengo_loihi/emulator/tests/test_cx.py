@@ -1,7 +1,7 @@
 import numpy as np
 
 from nengo_loihi.cx import CxGroup, CxProbe, CxModel
-from nengo_loihi.emulator import CxSimulator
+from nengo_loihi.emulator import Emulator
 
 
 def test_simulator_noise(plt, seed):
@@ -22,7 +22,7 @@ def test_simulator_noise(plt, seed):
 
     model.discretize()
 
-    sim = CxSimulator(model, seed=seed)
+    sim = Emulator(model, seed=seed)
     sim.run_steps(1000)
     y = sim.probe_outputs[probe]
 

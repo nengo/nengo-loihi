@@ -10,7 +10,7 @@ from nengo_loihi.cx import CxProbe
 logger = logging.getLogger(__name__)
 
 
-class CxSimulator(object):
+class Emulator(object):
     """Numerical simulation of chip behaviour given a CxModel"""
 
     def __init__(self, model, seed=None):

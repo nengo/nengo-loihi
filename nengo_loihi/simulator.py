@@ -10,7 +10,7 @@ import numpy as np
 
 from nengo_loihi import config
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
-from nengo_loihi.emulator import CxSimulator
+from nengo_loihi.emulator import Emulator
 from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator, splitter
 
 logger = logging.getLogger(__name__)
@@ -145,11 +145,11 @@ class Simulator(object):
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
-            self.simulator = CxSimulator(self.model, seed=seed)
+            self.simulator = Emulator(self.model, seed=seed)
         elif target == 'sim':
             logger.info("Using discretized simulator")
             self.model.discretize()  # Make parameters fixed bit widths
-            self.simulator = CxSimulator(self.model, seed=seed)
+            self.simulator = Emulator(self.model, seed=seed)
         elif target == 'loihi':
             assert HAS_NXSDK, "Must have NxSDK installed to use Loihi hardware"
             logger.info(
