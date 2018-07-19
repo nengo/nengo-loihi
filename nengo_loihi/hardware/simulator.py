@@ -8,8 +8,7 @@ import warnings
 import jinja2
 import numpy as np
 
-from nengo_loihi.hardware.allocators import one_to_one_allocator
-from nengo_loihi.hardware.builder import build_board
+from nengo_loihi.hardware.builder import build_board, one_to_one_allocator
 from nengo_loihi.hardware.nxsdk_shim import nxsdk_dir
 
 logger = logging.getLogger(__name__)
