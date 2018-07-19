@@ -16,15 +16,6 @@ VTH_PROFILES_MAX = 8
 SYNAPSE_FMTS_MAX = 16
 
 
-class CxSlice(object):
-    def __init__(self, board_idx, chip_idx, core_idx, cx_i0, cx_i1):
-        self.board_idx = board_idx
-        self.chip_idx = chip_idx
-        self.core_idx = core_idx
-        self.cx_i0 = cx_i0
-        self.cx_i1 = cx_i1
-
-
 class Board(object):
     def __init__(self, board_id=1):
         self.board_id = board_id
