@@ -80,49 +80,6 @@ class NIFRate(NeuronType):
         output[j > 0] = self.amplitude / (self.tau_ref + 1./j[j > 0])
 
 
-# class NIF(NIFRate):
-#     """Spiking version of non-leaky integrate-and-fire (NIF) neuron model.
-
-#     Parameters
-#     ----------
-#     tau_ref : float
-#         Absolute refractory period, in seconds. This is how long the
-#         membrane voltage is held at zero after a spike.
-#     min_voltage : float
-#         Minimum value for the membrane voltage. If ``-np.inf``, the voltage
-#         is never clipped.
-#     amplitude : float
-#         Scaling factor on the neuron output. Corresponds to the relative
-#         amplitude of the output spikes of the neuron.
-#     """
-
-#     probeable = ('spikes', 'voltage', 'refractory_time')
-
-#     min_voltage = NumberParam('min_voltage', high=0)
-
-#     def __init__(self, tau_ref=0.002, min_voltage=0, amplitude=1):
-#         super(NIF, self).__init__(tau_ref=tau_ref, amplitude=amplitude)
-#         self.min_voltage = min_voltage
-
-#     def step_math(self, dt, J, spiked, voltage, refractory_time):
-#         refractory_time -= dt
-#         delta_t = (dt - refractory_time).clip(0, dt)
-#         voltage += J * delta_t
-
-#         # determine which neurons spiked (set them to 1/dt, else 0)
-#         spiked_mask = voltage > 1
-#         spiked[:] = spiked_mask * (self.amplitude / dt)
-
-#         # set v(0) = 1 and solve for t to compute the spike time
-#         t_spike = dt - (voltage[spiked_mask] - 1) / J[spiked_mask]
-
-#         # set spiked voltages to zero, refractory times to tau_ref, and
-#         # rectify negative voltages to a floor of min_voltage
-#         voltage[voltage < self.min_voltage] = self.min_voltage
-#         voltage[spiked_mask] = 0
-#         refractory_time[spiked_mask] = self.tau_ref + t_spike
-
-
 class NIF(NIFRate):
     probeable = ('spikes', 'voltage', 'refractory_time')
 
