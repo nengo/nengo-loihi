@@ -27,9 +27,9 @@ from nengo_loihi.model import (
     CxModel,
     CxProbe,
     CxSpikeInput,
-    CxSynapses,
 )
 from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
+from nengo_loihi.synapses import CxSynapses
 
 logger = logging.getLogger(__name__)
 

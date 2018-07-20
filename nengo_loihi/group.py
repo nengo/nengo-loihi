@@ -6,10 +6,10 @@ import numpy as np
 from nengo_loihi.model import (
     BIAS_MAX,
     bias_to_manexp,
-    SynapseFmt,
     VTH_MAX,
     vth_to_manexp
 )
+from nengo_loihi.synapses import SynapseFmt
 
 
 def discretize(target, value):

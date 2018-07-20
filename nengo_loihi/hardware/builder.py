@@ -7,8 +7,8 @@ import numpy as np
 
 from nengo_loihi.hardware.nxsdk_shim import (
     BasicSpikeGenerator, N2Board, TraceCfgGen)
-from nengo_loihi.model import (
-    bias_to_manexp, tracing_mag_int_frac, vth_to_manexp)
+from nengo_loihi.model import bias_to_manexp, vth_to_manexp
+from nengo_loihi.synapses import tracing_mag_int_frac
 
 logger = logging.getLogger(__name__)
 
