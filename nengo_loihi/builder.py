@@ -21,8 +21,14 @@ from nengo.solvers import NoSolver, Solver
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
+from nengo_loihi.group import CoreGroup
 from nengo_loihi.model import (
-    CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
+    CxAxons,
+    CxModel,
+    CxProbe,
+    CxSpikeInput,
+    CxSynapses,
+)
 from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
 
 logger = logging.getLogger(__name__)
@@ -125,33 +131,26 @@ def build_ensemble(model, ens):
     if isinstance(ens.neuron_type, Direct):
         raise NotImplementedError()
     else:
-        group = CxGroup(ens.n_neurons, label='%s' % ens)
-        group.bias[:] = bias
-        model.build(ens.neuron_type, ens.neurons, group)
+        group = CoreGroup(ens.n_neurons, label=str(ens))
+        group.compartments.bias[...] = bias
+        model.build(ens.neuron_type, ens.neurons, group.compartments)
 
-    group.configure_filter(INTER_TAU, dt=model.dt)
+    group.compartments.configure_filter(INTER_TAU, dt=model.dt)
 
     # Scale the encoders
     if isinstance(ens.neuron_type, Direct):
         raise NotImplementedError("Direct neurons not implemented")
-        # scaled_encoders = encoders
     else:
         # to keep scaling reasonable, we don't include the radius
-        # scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
         scaled_encoders = encoders * gain[:, np.newaxis]
 
-    # --- encoders
-    # synapses = CxSynapses(scaled_encoders.shape[1])
-    # synapses.set_full_weights(scaled_encoders.T)
-    # group.add_synapses(synapses, name='encoders')
-
     # --- encoders for interneurons
-    synapses2 = CxSynapses(2*scaled_encoders.shape[1])
+    synapses = CxSynapses(2*scaled_encoders.shape[1])
     inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     interscaled_encoders = scaled_encoders * inter_scale
-    synapses2.set_full_weights(
+    synapses.set_full_weights(
         np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
-    group.add_synapses(synapses2, name='encoders2')
+    group.synapses.add(synapses, name='encoders2')
 
     model.add_group(group)
 
@@ -170,16 +169,16 @@ def build_ensemble(model, ens):
 
 
 @Builder.register(LIF)
-def build_lif(model, lif, neurons, group):
-    group.configure_lif(
+def build_lif(model, lif, neurons, cx_group):
+    cx_group.configure_lif(
         tau_rc=lif.tau_rc,
         tau_ref=lif.tau_ref,
         dt=model.dt)
 
 
 @Builder.register(RectifiedLinear)
-def build_relu(model, relu, neurons, group):
-    group.configure_relu(dt=model.dt)
+def build_relu(model, relu, neurons, cx_group):
+    cx_group.configure_relu(dt=model.dt)
 
 
 @Builder.register(Node)
@@ -204,8 +203,8 @@ def build_connection(model, conn):
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, (CxGroup, CxSpikeInput))
-    assert isinstance(post_cx, (CxGroup, CxProbe))
+    assert isinstance(pre_cx, (CoreGroup, CxSpikeInput))
+    assert isinstance(post_cx, (CoreGroup, CxProbe))
 
     weights = None
     eval_points = None
@@ -289,14 +288,12 @@ def build_connection(model, conn):
             weights = weights / conn.pre_obj.radius
 
             gain = 1  # model.dt * INTER_RATE(=1000)
-            dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
-            dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
-            dec_cx.configure_filter(tau_s, dt=model.dt)
-            dec_cx.bias[:] = 0
-            model.add_group(dec_cx)
-            model.objs[conn]['decoded'] = dec_cx
+            dec_group = CoreGroup(2 * d, label=str(conn))
+            dec_group.compartments.configure_nonspiking(
+                dt=model.dt, vth=VTH_NONSPIKING)
+            dec_group.compartments.configure_filter(tau_s, dt=model.dt)
+            dec_group.compartments.bias[...] = 0
 
-            dec_syn = CxSynapses(n)
             weights2 = gain * np.vstack([weights, -weights]).T
         else:
             # use spiking interneurons for on-chip connection
@@ -306,35 +303,35 @@ def build_connection(model, conn):
             mid_axon_inds = np.hstack([post_inds, post_d+post_inds] * INTER_N)
 
             gain = model.dt * INTER_RATE
-            dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
-                             location='core')
-            dec_cx.configure_relu(dt=model.dt)
-            dec_cx.configure_filter(tau_s, dt=model.dt)
-            dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
-                                                    [1.] * d) * INTER_N)
+            dec_group = CoreGroup(2 * d * INTER_N, label=str(conn))
+            dec_group.compartments.configure_relu(dt=model.dt)
+            dec_group.compartments.configure_filter(tau_s, dt=model.dt)
+            # TODO: is 2 * d * INTER_N necessary here?
+            dec_group.compartments.bias[...] = (
+                0.5 * gain * np.ones(2 * d * INTER_N))
             if INTER_NOISE_EXP > -30:
-                dec_cx.enableNoise[:] = 1
-                dec_cx.noiseExp0 = INTER_NOISE_EXP
-                dec_cx.noiseAtDendOrVm = 1
-            model.add_group(dec_cx)
-            model.objs[conn]['decoded'] = dec_cx
+                dec_group.compartments.enableNoise[:] = 1
+                dec_group.compartments.noiseExp0 = INTER_NOISE_EXP
+                dec_group.compartments.noiseAtDendOrVm = 1
 
             if isinstance(conn.post_obj, Ensemble):
                 # loihi encoders don't include radius, so handle scaling here
                 weights = weights / conn.post_obj.radius
 
-            dec_syn = CxSynapses(n)
-            weights2 = 0.5 * gain * np.vstack([weights,
-                                               -weights] * INTER_N).T
+            weights2 = 0.5 * gain * np.vstack([weights, -weights] * INTER_N).T
 
+        dec_syn = CxSynapses(n)
         dec_syn.set_full_weights(weights2)
-        dec_cx.add_synapses(dec_syn)
+        dec_group.synapses.add(dec_syn)
         model.objs[conn]['decoders'] = dec_syn
 
         dec_ax0 = CxAxons(n)
-        dec_ax0.target = dec_syn
-        pre_cx.add_axons(dec_ax0)
+        dec_ax0.target = dec_syn  # TODO: handle target better
+        pre_cx.axons.add(dec_ax0)
         model.objs[conn]['decode_axons'] = dec_ax0
+
+        model.add_group(dec_group)
+        model.objs[conn]['decoded'] = dec_group
 
         if conn.learning_rule_type is not None:
             if isinstance(conn.learning_rule_type, nengo.PES):
@@ -351,66 +348,74 @@ def build_connection(model, conn):
             else:
                 raise NotImplementedError()
 
-        mid_cx = dec_cx
+        mid_cx = dec_group
 
     if isinstance(post_cx, CxProbe):
         assert post_cx.target is None
         assert conn.post_slice == slice(None)
         post_cx.target = mid_cx
-        mid_cx.add_probe(post_cx)
+        mid_cx.probes.add(post_cx)
     elif isinstance(conn.post_obj, Neurons):
-        assert isinstance(post_cx, CxGroup)
+        assert isinstance(post_cx, CoreGroup)
         assert conn.post_slice == slice(None)
         if weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
         else:
             assert weights.ndim == 2
             n2, n1 = weights.shape
-            assert post_cx.n == n2
+            assert post_cx.n_compartments == n2
 
             syn = CxSynapses(n1)
             gain = model.params[conn.post_obj.ensemble].gain
             syn.set_full_weights(weights.T * gain)
-            post_cx.add_synapses(syn)
+            post_cx.synapses.add(syn)
             model.objs[conn]['weights'] = syn
 
-        ax = CxAxons(pre_cx.n)
+        if isinstance(pre_cx, CxSpikeInput):
+            ax = CxAxons(pre_cx.n)
+            pre_cx.add_axons(ax)
+        elif isinstance(pre_cx, CoreGroup):
+            ax = CxAxons(pre_cx.n_compartments)
+            pre_cx.axons.add(ax)
         ax.target = syn
-        pre_cx.add_axons(ax)
 
-        post_cx.configure_filter(tau_s, dt=model.dt)
+        post_cx.compartments.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
-        assert isinstance(post_cx, CxGroup)
+        assert isinstance(post_cx, CoreGroup)
         assert weights.ndim == 2
         n2, n1 = weights.shape
-        assert post_cx.n == n2
+        assert post_cx.n_compartments == n2
 
         # loihi encoders don't include radius, so handle scaling here
         weights = weights / conn.post_obj.radius
 
         syn = CxSynapses(n1)
         syn.set_full_weights(weights.T)
-        post_cx.add_synapses(syn)
+        post_cx.synapses.add(syn)
         model.objs[conn]['weights'] = syn
 
         ax = CxAxons(n1)
         ax.target = syn
-        pre_cx.add_axons(ax)
+        pre_cx.axons.add(ax)
 
-        post_cx.configure_filter(tau_s, dt=model.dt)
+        post_cx.compartments.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
-        mid_ax = CxAxons(mid_cx.n)
-        mid_ax.target = post_cx.named_synapses['encoders2']
+        if isinstance(mid_cx, CxSpikeInput):
+            mid_ax = CxAxons(mid_cx.n)
+            mid_cx.add_axons(mid_ax)
+        elif isinstance(mid_cx, CoreGroup):
+            mid_ax = CxAxons(mid_cx.n_compartments)
+            mid_cx.axons.add(mid_ax)
+        mid_ax.target = post_cx.synapses.named_synapses['encoders2']
         mid_ax.target_inds = mid_axon_inds
-        mid_cx.add_axons(mid_ax)
         model.objs[conn]['mid_axons'] = mid_ax
     elif isinstance(conn.post_obj, Node):
         raise NotImplementedError()
@@ -519,7 +524,7 @@ def signal_probe(model, key, probe):
     cx_probe = CxProbe(
         target=target, key=key, slice=probe.slice,
         synapse=probe.synapse, weights=weights)
-    target.add_probe(cx_probe)
+    target.probes.add(cx_probe)
     model.objs[probe]['in'] = target
     model.objs[probe]['out'] = cx_probe
 

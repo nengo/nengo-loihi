@@ -150,8 +150,8 @@ class LoihiSimulator(object):
         cores = set()
         # TODO: should snip_range be stored on the probe?
         snip_range = {}
-        for group in self.model.cx_groups.keys():
-            for probe in group.probes:
+        for group in self.model.groups:
+            for probe in group.probes.probes:
                 if probe.use_snip:
                     info = probe.snip_info
                     cores.add(info["coreid"])

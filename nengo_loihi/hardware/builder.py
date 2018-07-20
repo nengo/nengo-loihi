@@ -36,12 +36,12 @@ def core_cx_profiles(core):
     """Compute all cxProfiles needed for a core"""
     def list_cx_profiles(group):
         profiles = []
-        for i in range(group.n):
+        for i in range(group.n_compartments):
             profiles.append(CxProfile(
-                decayU=group.decayU[i],
-                decayV=group.decayV[i],
-                refractDelay=group.refractDelay[i],
-                enableNoise=group.enableNoise[i],
+                decayU=group.compartments.decayU[i],
+                decayV=group.compartments.decayV[i],
+                refractDelay=group.compartments.refractDelay[i],
+                enableNoise=group.compartments.enableNoise[i],
             ))
 
         return profiles
@@ -53,8 +53,8 @@ def core_vth_profiles(core):
     """Compute all vthProfiles needed for a core"""
     def list_vth_profiles(group):
         profiles = []
-        vth, _ = vth_to_manexp(group.vth)
-        for i in range(group.n):
+        vth, _ = vth_to_manexp(group.compartments.vth)
+        for i in range(group.n_compartments):
             profiles.append(VthProfile(
                 vth=vth[i],
             ))
@@ -91,7 +91,7 @@ def one_to_one_allocator(cx_model):
     board = Board()
     chip = board.new_chip()
 
-    for group in cx_model.cx_groups:
+    for group in cx_model.groups:
         core = chip.new_core()
         core.add_group(group)
 
@@ -103,10 +103,10 @@ def one_to_one_allocator(cx_model):
         [core.add_vth_profile(vth_profile) for vth_profile in vth_profiles]
         core.vth_profile_idxs = vth_profile_idxs
 
-        for syn in group.synapses:
+        for syn in group.synapses.synapses:
             core.add_synapses(syn)
 
-        for axons in group.axons:
+        for axons in group.axons.axons:
             core.add_axons(axons)
 
         stdp_pre_cfgs, stdp_pre_cfg_idxs = core_stdp_pre_cfgs(core)
@@ -165,13 +165,7 @@ class Board(object):
         self.synapses_index[synapses] = (chip_idx, core_idx, idxs)
 
     def find_synapses(self, synapses):
-        group = synapses.group
-        if group.location == 'core':
-            return self.synapses_index[synapses]
-        elif group.location == 'cpu':
-            raise NotImplementedError("CPU neurons not implemented")
-        else:
-            raise ValueError("Unrecognized location %r" % group.location)
+        return self.synapses_index[synapses]
 
     def cores(self):
         return (core for chip in self.chips for core in chip.cores)
@@ -290,8 +284,8 @@ class Core(object):
         i0 = 0
         a0 = 0
         for group in self.groups:
-            i1 = i0 + group.n
-            a1 = a0 + sum(ax.n_axons for ax in group.axons)
+            i1 = i0 + group.n_compartments
+            a1 = a0 + sum(ax.n_axons for ax in group.axons.axons)
             cx_idxs = list(range(i0, i1))
             ax_range = (a0, a1)
             yield group, cx_idxs, ax_range
@@ -308,7 +302,7 @@ class Core(object):
 
     def iterate_synapses(self):
         for group in self.groups:
-            for synapses in group.synapses:
+            for synapses in group.synapses.synapses:
                 yield synapses
 
     def add_group(self, group):
@@ -335,7 +329,7 @@ class Core(object):
 
     def n_synapses(self):
         return sum(synapses.size() for group in self.groups
-                   for synapses in group.synapses)
+                   for synapses in group.synapses.synapses)
 
     def add_synapses(self, synapses):
         synapse_fmt = synapses.synapse_fmt
@@ -490,21 +484,22 @@ def build_core(n2core, core):  # noqa: C901
     n_cx = 0
     if len(core.groups) > 0:
         group0 = core.groups[0]
-        vmin, vmax = group0.vmin, group0.vmax
-        assert all(group.vmin == vmin for group in core.groups)
-        assert all(group.vmax == vmax for group in core.groups)
+        vmin, vmax = group0.compartments.vmin, group0.compartments.vmax
+        assert all(group.compartments.vmin == vmin for group in core.groups)
+        assert all(group.compartments.vmax == vmax for group in core.groups)
         negVmLimit = np.log2(-vmin + 1)
         posVmLimit = (np.log2(vmax + 1) - 9) * 0.5
         assert int(negVmLimit) == negVmLimit
         assert int(posVmLimit) == posVmLimit
 
-        noiseExp0 = group0.noiseExp0
-        noiseMantOffset0 = group0.noiseMantOffset0
-        noiseAtDendOrVm = group0.noiseAtDendOrVm
-        assert all(group.noiseExp0 == noiseExp0 for group in core.groups)
-        assert all(group.noiseMantOffset0 == noiseMantOffset0
+        noiseExp0 = group0.compartments.noiseExp0
+        noiseMantOffset0 = group0.compartments.noiseMantOffset0
+        noiseAtDendOrVm = group0.compartments.noiseAtDendOrVm
+        assert all(group.compartments.noiseExp0 == noiseExp0
                    for group in core.groups)
-        assert all(group.noiseAtDendOrVm == noiseAtDendOrVm
+        assert all(group.compartments.noiseMantOffset0 == noiseMantOffset0
+                   for group in core.groups)
+        assert all(group.compartments.noiseAtDendOrVm == noiseAtDendOrVm
                    for group in core.groups)
 
         n2core.dendriteSharedCfg.configure(
@@ -537,12 +532,12 @@ def build_core(n2core, core):  # noqa: C901
 
 
 def build_group(n2core, core, group, cx_idxs, ax_range):
-    assert group.scaleU is False
-    assert group.scaleV is False
+    assert group.compartments.scaleU is False
+    assert group.compartments.scaleV is False
 
     logger.debug("Building %s on core.id=%d", group, n2core.id)
 
-    for i, bias in enumerate(group.bias):
+    for i, bias in enumerate(group.compartments.bias):
         bman, bexp = bias_to_manexp(bias)
         icx = core.cx_profile_idxs[group][i]
         ivth = core.vth_profile_idxs[group][i]
@@ -554,16 +549,16 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
         phasex = 'phase%d' % (ii % 4,)
         n2core.cxMetaState[ii // 4].configure(**{phasex: 2})
 
-    logger.debug("- Building %d synapses", len(group.synapses))
-    for synapses in group.synapses:
+    logger.debug("- Building %d synapses", len(group.synapses.synapses))
+    for synapses in group.synapses.synapses:
         build_synapses(n2core, core, group, synapses, cx_idxs)
 
-    logger.debug("- Building %d synapses", len(group.axons))
-    for axons in group.axons:
+    logger.debug("- Building %d axons", len(group.axons.axons))
+    for axons in group.axons.axons:
         build_axons(n2core, core, group, axons, cx_idxs)
 
-    logger.debug("- Building %d synapses", len(group.probes))
-    for probe in group.probes:
+    logger.debug("- Building %d probes", len(group.probes.probes))
+    for probe in group.probes.probes:
         build_probe(n2core, core, group, probe, cx_idxs)
 
 

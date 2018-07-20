@@ -159,8 +159,8 @@ class Simulator(object):
                 # tag all probes as being snipbased
                 #  (having normal probes at the same time as snips
                 #   seems to cause problems)
-                for group in self.model.cx_groups.keys():
-                    for cx_probe in group.probes:
+                for group in self.model.groups:
+                    for cx_probe in group.probes.probes:
                         cx_probe.use_snip = True
                 # create a place to store data from snip probes
                 self.snip_probes = {}

@@ -31,31 +31,25 @@ class Emulator(object):
 
         self.model = model
         self.inputs = list(self.model.cx_inputs)
-        self.groups = sorted(self.model.cx_groups,
-                             key=lambda g: g.location == 'cpu')
+        self.groups = list(self.model.groups)
         self.probe_outputs = collections.defaultdict(list)
 
-        self.n_cx = sum(group.n for group in self.groups)
+        self.n_cx = sum(group.n_compartments for group in self.groups)
         self.group_cxs = {}
-        cx_slice = None
         i0 = 0
         for group in self.groups:
-            if group.location == 'cpu' and cx_slice is None:
-                cx_slice = slice(0, i0)
-
-            i1 = i0 + group.n
+            i1 = i0 + group.n_compartments
             self.group_cxs[group] = slice(i0, i1)
             i0 = i1
 
-        self.cx_slice = slice(0, i0) if cx_slice is None else cx_slice
-        self.cpu_slice = slice(self.cx_slice.stop, i1)
+        self.cx_slice = slice(0, i0)
 
         # --- allocate group memory
-        group_dtype = self.groups[0].vth.dtype
+        group_dtype = self.groups[0].compartments.vth.dtype
         assert group_dtype in (np.float32, np.int32)
         for group in self.groups:
-            assert group.vth.dtype == group_dtype
-            assert group.bias.dtype == group_dtype
+            assert group.compartments.vth.dtype == group_dtype
+            assert group.compartments.bias.dtype == group_dtype
 
         logger.debug("CxSimulator dtype: %s", group_dtype)
 
@@ -68,13 +62,17 @@ class Emulator(object):
         self.w = np.zeros(self.n_cx, dtype=np.int32)  # ref period counter
 
         # --- allocate group parameters
-        self.decayU = np.hstack([group.decayU for group in self.groups])
-        self.decayV = np.hstack([group.decayV for group in self.groups])
+        self.decayU = np.hstack([
+            group.compartments.decayU for group in self.groups])
+        self.decayV = np.hstack([
+            group.compartments.decayV for group in self.groups])
         self.scaleU = np.hstack([
-            group.decayU if group.scaleU else np.ones_like(group.decayU)
+            group.compartments.decayU if group.compartments.scaleU
+            else np.ones_like(group.compartments.decayU)
             for group in self.groups])
         self.scaleV = np.hstack([
-            group.decayV if group.scaleV else np.ones_like(group.decayV)
+            group.compartments.decayV if group.compartments.scaleV
+            else np.ones_like(group.compartments.decayV)
             for group in self.groups])
 
         def decay_float(x, u, d, s):
@@ -99,31 +97,41 @@ class Emulator(object):
                 x, u, d=self.decayV, s=self.scaleV)
 
         ones = lambda n: np.ones(n, dtype=group_dtype)
-        self.vth = np.hstack([group.vth for group in self.groups])
+        self.vth = np.hstack([group.compartments.vth for group in self.groups])
         self.vmin = np.hstack([
-            group.vmin*ones(group.n) for group in self.groups])
+            group.compartments.vmin*ones(group.n_compartments)
+            for group in self.groups])
         self.vmax = np.hstack([
-            group.vmax*ones(group.n) for group in self.groups])
+            group.compartments.vmax*ones(group.n_compartments)
+            for group in self.groups])
 
-        self.bias = np.hstack([group.bias for group in self.groups])
-        self.ref = np.hstack([group.refractDelay for group in self.groups])
+        self.bias = np.hstack([group.compartments.bias
+                               for group in self.groups])
+        self.ref = np.hstack([group.compartments.refractDelay
+                              for group in self.groups])
 
         # --- allocate synapse memory
         self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
-                     for group in self.groups for synapses in group.synapses}
+                     for group in self.groups
+                     for synapses in group.synapses.synapses}
         self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
-                  for group in self.groups for synapses in group.synapses
+                  for group in self.groups
+                  for synapses in group.synapses.synapses
                   if synapses.tracing}
 
         # --- noise
         enableNoise = np.hstack([
-            group.enableNoise*ones(group.n) for group in self.groups])
+            group.compartments.enableNoise*ones(group.n_compartments)
+            for group in self.groups])
         noiseExp0 = np.hstack([
-            group.noiseExp0*ones(group.n) for group in self.groups])
+            group.compartments.noiseExp0*ones(group.n_compartments)
+            for group in self.groups])
         noiseMantOffset0 = np.hstack([
-            group.noiseMantOffset0*ones(group.n) for group in self.groups])
+            group.compartments.noiseMantOffset0*ones(group.n_compartments)
+            for group in self.groups])
         noiseTarget = np.hstack([
-            group.noiseAtDendOrVm*ones(group.n) for group in self.groups])
+            group.compartments.noiseAtDendOrVm*ones(group.n_compartments)
+            for group in self.groups])
         if group_dtype == np.int32:
             noiseMult = np.where(enableNoise, 2**(noiseExp0 - 7), 0)
 
@@ -155,19 +163,19 @@ class Emulator(object):
                 self.a_in[synapses] += input.spikes[self.t]
 
         for group in self.groups:
-            for axons in group.axons:
+            for axons in group.axons.axons:
                 synapses = axons.target
                 s_in = self.a_in[synapses]
 
-                a_slice = self.group_cxs[axons.group]
+                a_slice = self.group_cxs[group]
                 sa = self.s[a_slice]
                 np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
 
         for group in self.groups:
-            for synapses in group.synapses:
+            for synapses in group.synapses.synapses:
                 s_in = self.a_in[synapses]
 
-                b_slice = self.group_cxs[synapses.group]
+                b_slice = self.group_cxs[group]
                 weights = synapses.weights
                 indices = synapses.indices
                 qb = self.q[:, b_slice]
@@ -208,9 +216,7 @@ class Emulator(object):
         self.s[:] = (self.v > self.vth)
 
         cx = self.cx_slice
-        cpu = self.cpu_slice
         self.v[cx][self.s[cx]] = 0
-        self.v[cpu][self.s[cpu]] -= self.vth[cpu][self.s[cpu]]
 
         self.w[self.s] = self.ref[self.s]
         np.clip(self.w - 1, 0, None, out=self.w)  # decrement w
@@ -226,8 +232,8 @@ class Emulator(object):
                 self.probe_outputs[probe].append(x)
 
         for group in self.groups:
-            for probe in group.probes:
-                x_slice = self.group_cxs[probe.target]
+            for probe in group.probes.probes:
+                x_slice = self.group_cxs[group]
                 p_slice = probe.slice
                 assert hasattr(self, probe.key)
                 x = getattr(self, probe.key)[x_slice][p_slice].copy()
