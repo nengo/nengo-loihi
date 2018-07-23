@@ -27,9 +27,9 @@ def test_input_node(allclose, Simulator, val, type):
     with Simulator(net, precompute=True) as sim:
         sim.run(1.0)
 
-        # TODO: seems like error margins should be smaller than this?
-        assert allclose(sim.data[p_b][-100:], val, atol=0.15)
-        assert allclose(sim.data[p_c][-100:], val, atol=0.15)
+    # TODO: seems like error margins should be smaller than this?
+    assert allclose(sim.data[p_b][-100:], val, atol=0.15)
+    assert allclose(sim.data[p_c][-100:], val, atol=0.15)
 
 
 @pytest.mark.parametrize('pre_d', [1, 3])
