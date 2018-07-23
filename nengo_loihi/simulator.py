@@ -376,7 +376,7 @@ class Simulator(object):
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_syn = self.model.objs[conn]['decoders']
-                            assert dec_syn.tracing
+                            assert dec_syn.learning
 
                             z = self.simulator.z[dec_syn]
                             x = np.hstack([-x, x])

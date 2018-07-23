@@ -68,7 +68,7 @@ def core_stdp_pre_cfgs(core):
     profiles = []
     profile_idxs = {}
     for synapses in core.synapses:
-        if synapses.tracing:
+        if synapses.learning:
             mag_int, mag_frac = tracing_mag_int_frac(synapses)
             tracecfg = TraceCfg(
                 tau=synapses.tracing_tau,
@@ -243,7 +243,7 @@ class Core(object):
         self.synapseFmts = [None]  # keep index 0 unused
         self.stdpPreCfgs = []
 
-        self.synapse_fmt_idxs = {}  # one synfmt per CxSynapses, for now
+        self.synapse_fmt_idxs = {}  # one fmt per Synapses, for now
         self.synapse_axons = collections.OrderedDict()
         self.synapse_entries = collections.OrderedDict()
 
@@ -269,7 +269,7 @@ class Core(object):
             vthProfile.validate(core=self)
         for synapseFmt in self.synapseFmts:
             if synapseFmt is not None:
-                synapseFmt.validate(core=self)
+                synapseFmt.validate()
         for traceCfg in self.stdpPreCfgs:
             traceCfg.validate(core=self)
 
@@ -328,11 +328,11 @@ class Core(object):
         return len(self.stdpPreCfgs) - 1  # index
 
     def n_synapses(self):
-        return sum(synapses.size() for group in self.groups
+        return sum(synapses.size for group in self.groups
                    for synapses in group.synapses.synapses)
 
     def add_synapses(self, synapses):
-        synapse_fmt = synapses.synapse_fmt
+        synapse_fmt = synapses.fmt
         synapse_fmt_idx = self.add_synapse_fmt(synapse_fmt)
         self.synapse_fmt_idxs[synapses] = synapse_fmt_idx
 
@@ -340,7 +340,7 @@ class Core(object):
         if len(self.synapse_axons) > 0:
             last = next(reversed(self.synapse_axons))
             a0 = self.synapse_axons[last][-1]
-        idx_mult = 2 if synapses.tracing else 1
+        idx_mult = 2 if synapses.learning else 1
         idxs = [a0 + idx_mult*i for i in range(synapses.n_axons)]
         self.synapse_axons[synapses] = idxs
         self.board.index_synapses(synapses, self.chip, self, idxs)
@@ -349,7 +349,7 @@ class Core(object):
         if len(self.synapse_entries) > 0:
             last = next(reversed(self.synapse_entries))
             s0 = self.synapse_entries[last][1]
-        s1 = s0 + synapses.size()
+        s1 = s0 + synapses.size
         self.synapse_entries[synapses] = (s0, s1)
 
     def add_axons(self, axons):
@@ -393,7 +393,7 @@ def build_core(n2core, core):  # noqa: C901
         n2core.synapseFmt[i].dlyBits = synapseFmt.dlyBits
         n2core.synapseFmt[i].wgtBits = synapseFmt.wgtBits
         n2core.synapseFmt[i].reuseSynData = synapseFmt.reuseSynData
-        n2core.synapseFmt[i].numSynapses = synapseFmt.numSynapses
+        n2core.synapseFmt[i].numSynapses = synapseFmt.n_synapses
         n2core.synapseFmt[i].cIdxOffset = synapseFmt.cIdxOffset
         n2core.synapseFmt[i].cIdxMult = synapseFmt.cIdxMult
         n2core.synapseFmt[i].skipBits = synapseFmt.skipBits
@@ -417,7 +417,7 @@ def build_core(n2core, core):  # noqa: C901
     # --- learning
     firstLearningIndex = None
     for synapse in core.iterate_synapses():
-        if synapse.tracing and firstLearningIndex is None:
+        if synapse.learning and firstLearningIndex is None:
             firstLearningIndex = core.synapse_axons[synapse][0]
             core.learning_coreid = n2core.id
             break
@@ -426,7 +426,7 @@ def build_core(n2core, core):  # noqa: C901
     if firstLearningIndex is not None:
         for synapse in core.iterate_synapses():
             axons = np.array(core.synapse_axons[synapse])
-            if synapse.tracing:
+            if synapse.learning:
                 numStdp += len(axons)
                 assert np.all(len(axons) >= firstLearningIndex)
             else:
@@ -608,7 +608,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
     target_cxs = set()
     s0 = core.synapse_entries[synapses][0]
     for a, syn_idx in enumerate(syn_idxs):
-        wa = synapses.weights[a] // synapses.synapse_fmt.scale
+        wa = synapses.weights[a] // synapses.fmt.scale
         ia = synapses.indices[a]
         assert len(wa) == len(ia)
 
@@ -618,7 +618,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
                 CIdx=cx_idxs[i],
                 Wgt=w,
                 synFmtId=synapse_fmt_idx,
-                LrnEn=int(synapses.tracing),
+                LrnEn=int(synapses.learning),
             )
             target_cxs.add(cx_idxs[i])
 
@@ -626,7 +626,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
         n2core.synapseMap[syn_idx].synapseLen = len(wa)
         n2core.synapseMap[syn_idx].discreteMapEntry.configure()
 
-        if synapses.tracing:
+        if synapses.learning:
             assert core.stdp_pre_profile_idx is not None
             assert stdp_pre_cfg_idx is not None
             n2core.synapseMap[syn_idx+1].singleTraceEntry.configure(
@@ -634,7 +634,7 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
 
         s0 += len(wa)
 
-    if synapses.tracing:
+    if synapses.learning:
         assert core.stdp_profile_idx is not None
         for target_cx in target_cxs:
             # TODO: check that no cx gets configured by multiple synapses

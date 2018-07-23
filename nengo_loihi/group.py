@@ -184,20 +184,20 @@ class SynapseGroup(object):
             raise ValueError("Total axons (%d) exceeded max (%d)" % (
                 n_axons, AXONS_MAX))
 
-        synapse_bits = sum(s.bits() for s in self.synapses)
+        synapse_bits = sum(s.n_bits for s in self.synapses)
         if synapse_bits > MAX_SYNAPSE_BITS:
             raise ValueError("Total synapse bits (%d) exceeded max (%d)" % (
                 synapse_bits, MAX_SYNAPSE_BITS))
 
     def max_weight(self):
-        w_maxs = [s.max_abs_weight() for s in self.synapses]
+        w_maxs = [s.max_abs_weight for s in self.synapses]
         return max(w_maxs) if len(w_maxs) > 0 else 0
 
     def discretize(self, w_scale, weight_exp):
         max_weight = self.max_weight()
 
         for i, synapse in enumerate(self.synapses):
-            s_max_weight = synapse.max_abs_weight()
+            s_max_weight = synapse.max_abs_weight
             if s_max_weight > 1e-16:
                 d_weight_exp = int(
                     np.floor(np.log2(max_weight / s_max_weight))
@@ -207,14 +207,14 @@ class SynapseGroup(object):
             else:
                 weight_exp2 = -6
                 d_weight_exp = weight_exp - weight_exp2
-            synapse.format(wgtExp=weight_exp2)
+            synapse.fmt.wgtExp = weight_exp2
             for w, idxs in zip(synapse.weights, synapse.indices):
                 ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
-                discretize(w, synapse.synapse_fmt.discretize_weights(
+                discretize(w, synapse.fmt.discretize_weights(
                     w * ws * 2**d_weight_exp))
             # TODO: scale this properly, hardcoded for now
-            if synapse.tracing:
-                synapse.synapse_fmt.weight_exp = 4
+            if synapse.learning:
+                synapse.fmt.weight_exp = 4
 
 
 class AxonGroup(object):

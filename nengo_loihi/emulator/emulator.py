@@ -117,7 +117,7 @@ class Emulator(object):
         self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
                   for group in self.groups
                   for synapses in group.synapses.synapses
-                  if synapses.tracing}
+                  if synapses.learning}
 
         # --- noise
         enableNoise = np.hstack([
@@ -186,7 +186,7 @@ class Emulator(object):
                         qb[0, indices[i]] += weights[i]
                     # qb[delays[indices[i]], indices[i]] += weights[i]
 
-                if synapses.tracing:
+                if synapses.learning:
                     z = self.z[synapses]
                     tau = synapses.tracing_tau
                     mag = synapses.tracing_mag

@@ -29,7 +29,7 @@ from nengo_loihi.model import (
     CxSpikeInput,
 )
 from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
-from nengo_loihi.synapses import CxSynapses
+from nengo_loihi.synapses import Synapses
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ def build_ensemble(model, ens):
         scaled_encoders = encoders * gain[:, np.newaxis]
 
     # --- encoders for interneurons
-    synapses = CxSynapses(2*scaled_encoders.shape[1])
+    synapses = Synapses(2*scaled_encoders.shape[1])
     inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     interscaled_encoders = scaled_encoders * inter_scale
     synapses.set_full_weights(
@@ -320,7 +320,7 @@ def build_connection(model, conn):
 
             weights2 = 0.5 * gain * np.vstack([weights, -weights] * INTER_N).T
 
-        dec_syn = CxSynapses(n)
+        dec_syn = Synapses(n)
         dec_syn.set_full_weights(weights2)
         dec_group.synapses.add(dec_syn)
         model.objs[conn]['decoders'] = dec_syn
@@ -343,7 +343,8 @@ def build_connection(model, conn):
                 pes_pre_syn = conn.learning_rule_type.pre_synapse.tau
                 # scale pre_syn.tau from s to ms
                 pes_pre_syn *= 1e3
-                dec_syn.set_learning(tracing_tau=pes_pre_syn,
+                assert int(pes_pre_syn) == pes_pre_syn
+                dec_syn.set_learning(tracing_tau=int(pes_pre_syn),
                                      tracing_mag=pes_learn_rate)
             else:
                 raise NotImplementedError()
@@ -365,7 +366,7 @@ def build_connection(model, conn):
             n2, n1 = weights.shape
             assert post_cx.n_compartments == n2
 
-            syn = CxSynapses(n1)
+            syn = Synapses(n1)
             gain = model.params[conn.post_obj.ensemble].gain
             syn.set_full_weights(weights.T * gain)
             post_cx.synapses.add(syn)
@@ -393,7 +394,7 @@ def build_connection(model, conn):
         # loihi encoders don't include radius, so handle scaling here
         weights = weights / conn.post_obj.radius
 
-        syn = CxSynapses(n1)
+        syn = Synapses(n1)
         syn.set_full_weights(weights.T)
         post_cx.synapses.add(syn)
         model.objs[conn]['weights'] = syn
