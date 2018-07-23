@@ -27,3 +27,7 @@ htmlcov
 *.logs/
 *.plots/
 nengo_loihi/snips/nengo_io.c
+
+# For .ipynb examples
+*.pdf
+examples/communication_channel.py
