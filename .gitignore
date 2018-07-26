@@ -33,6 +33,8 @@ nengo_loihi/snips/nengo_io.c
 examples/communication_channel.py
 examples/integrator.py
 examples/integrator_multi_d.py
+examples/keyword_spotting.py
 examples/learn_communication_channel.py
 examples/oscillator.py
 examples/oscillator_nonlinear.py
+examples/*.pkl
