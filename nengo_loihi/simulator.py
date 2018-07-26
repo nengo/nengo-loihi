@@ -72,6 +72,71 @@ class ProbeDict(collections.Mapping):
 
 
 class Simulator(object):
+    """Nengo Loihi simulator for Loihi hardware and emulator.
+
+    The simulator takes a `nengo.Network` and builds internal data structures
+    to run the model defined by that network on Loihi emulator or hardware.
+    Run the simulator with the `.Simulator.run` method, and access probed data
+    through the ``data`` attribute.
+
+    Building and running the simulation allocates resources. To properly free
+    these resources, call the `.Simulator.close` method. Alternatively,
+    `.Simulator.close` will automatically be called if you use
+    ``with`` syntax::
+
+        with nengo_loihi.Simulator(my_network) as sim:
+            sim.run(0.1)
+        print(sim.data[my_probe])
+
+    Note that the ``data`` attribute is still accessible even when a simulator
+    has been closed. Running the simulator, however, will raise an error.
+
+    Parameters
+    ----------
+    network : Network or None
+        A network object to be built and then simulated. If None,
+        then the *model* parameter must be provided instead.
+    dt : float, optional (Default: 0.001)
+        The length of a simulator timestep, in seconds.
+    seed : int, optional (Default: None)
+        A seed for all stochastic operators used in this simulator.
+        Will be set to ``network.seed + 1`` if not given.
+    model : Model, optional (Default: None)
+        A `.Model` that contains build artifacts to be simulated.
+        Usually the simulator will build this model for you; however, if you
+        want to build the network manually, or you want to inject build
+        artifacts in the model before building the network, then you can
+        pass in a `.Model` instance.
+    precompute : bool, optional (Default: True)
+        Whether model inputs should be precomputed to speed up simulation.
+        When *precompute* is False, the simulator will be run one step
+        at a time in order to use model outputs as inputs in other parts
+        of the model.
+    target : str, optional (Default: None)
+        Whether the simulator should target the emulator (``'sim'``) or
+        Loihi hardware (``'loihi'``). If None, *target* will default to
+        ``'loihi'`` if NxSDK is installed, and the emulator if it is not.
+
+    Attributes
+    ----------
+    closed : bool
+        Whether the simulator has been closed.
+        Once closed, it cannot be reopened.
+    data : ProbeDict
+        The dictionary mapping from Nengo objects to the data associated
+        with those objects. In particular, each `nengo.Probe` maps to
+        the data probed while running the simulation.
+    model : Model
+        The `.Model` containing the data structures necessary for
+        simulating the network.
+    precompute : bool
+        Whether model inputs should be precomputed to speed up simulation.
+        When *precompute* is False, the simulator will be run one step
+        at a time in order to use model outputs as inputs in other parts
+        of the model.
+
+    """
+
     # 'unsupported' defines features unsupported by a simulator.
     # The format is a list of tuples of the form `(test, reason)` with `test`
     # being a string with wildcards (*, ?, [abc], [!abc]) matched against Nengo
@@ -211,7 +276,7 @@ class Simulator(object):
 
     @property
     def dt(self):
-        """(float) The time step of the simulator."""
+        """(float) The step time of the simulator."""
         return self.model.dt
 
     @dt.setter
@@ -233,10 +298,9 @@ class Simulator(object):
 
         Any call to `.Simulator.run`, `.Simulator.run_steps`,
         `.Simulator.step`, and `.Simulator.reset` on a closed simulator raises
-        a `.SimulatorClosed` exception.
+        a ``SimulatorClosed`` exception.
         """
         self.closed = True
-        self.signals = None  # signals may no longer exist on some backends
 
     def _probe(self):
         """Copy all probed signals to buffers."""
@@ -263,8 +327,6 @@ class Simulator(object):
             assert len(self._probe_outputs[probe]) == self.n_steps
 
     def _probe_step_time(self):
-        # self._n_steps = self.signals[self.model.step].item()
-        # self._time = self.signals[self.model.time].item()
         self._time = self._n_steps * self.dt
 
     def reset(self, seed=None):
@@ -286,23 +348,28 @@ class Simulator(object):
 
         self._n_steps = 0
 
-        # reset signals
-        # for key in self.signals:
-        #     self.signals.reset(key)
-
-        # rebuild steps (resets ops with their own state, like Processes)
-        # self.rng = np.random.RandomState(self.seed)
-        # self._steps = [op.make_step(self.signals, self.dt, self.rng)
-        #                for op in self._step_order]
-
         # clear probe data
         for probe in self.model.probes:
             self._probe_outputs[probe] = []
         self.data.reset()
 
-        # self._probe_step_time()
-
     def run(self, time_in_seconds):
+        """Simulate for the given length of time.
+
+        If the given length of time is not a multiple of ``dt``,
+        it will be rounded to the nearest ``dt``. For example, if ``dt``
+        is 0.001 and ``run`` is called with ``time_in_seconds=0.0006``,
+        the simulator will advance one timestep, resulting in the actual
+        simulator time being 0.001.
+
+        The given length of time must be positive. The simulator cannot
+        be run backwards.
+
+        Parameters
+        ----------
+        time_in_seconds : float
+            Amount of time to run the simulation for. Must be positive.
+        """
         if time_in_seconds < 0:
             raise ValidationError("Must be positive (got %g)"
                                   % (time_in_seconds,), attr="time_in_seconds")
@@ -323,6 +390,13 @@ class Simulator(object):
         self.run_steps(1)
 
     def run_steps(self, steps):
+        """Simulate for the given number of ``dt`` steps.
+
+        Parameters
+        ----------
+        steps : int
+            Number of steps to run the simulation for.
+        """
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
@@ -545,7 +619,7 @@ class Simulator(object):
             else:
                 raise NotImplementedError()
 
-    def trange(self, dt=None):
+    def trange(self, sample_every=None):
         """Create a vector of times matching probed data.
 
         Note that the range does not start at 0 as one might expect, but at
@@ -553,10 +627,10 @@ class Simulator(object):
 
         Parameters
         ----------
-        dt : float, optional (Default: None)
+        sample_every : float, optional (Default: None)
             The sampling period of the probe to create a range for.
-            If None, the simulator's ``dt`` will be used.
+            If None, a time value for every ``dt`` will be produced.
         """
-        dt = self.dt if dt is None else dt
-        n_steps = int(self.n_steps * (self.dt / dt))
-        return dt * np.arange(1, n_steps + 1)
+        period = 1 if sample_every is None else sample_every / self.dt
+        steps = np.arange(1, self.n_steps + 1)
+        return self.dt * steps[steps % period < 1]

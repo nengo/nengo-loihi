@@ -7,7 +7,7 @@ import pytest
 
 
 examples_dir = os.path.realpath(os.path.join(
-    os.path.dirname(__file__), os.pardir, os.pardir, "examples"
+    os.path.dirname(__file__), os.pardir, os.pardir, "docs", "examples"
 ))
 
 

@@ -363,9 +363,22 @@ def build_probe(n2core, core, group, probe, cx_idxs):
 
 
 class LoihiSimulator(object):
+    """Simulator to place a Model onto a Loihi board and run it.
+
+    Parameters
+    ----------
+    cx_model : CxModel
+        Model specification that will be placed on the Loihi board.
+    seed : int, optional (Default: None)
+        A seed for stochastic operations.
+
+        .. warning :: Setting the seed has no effect on stochastic
+                      operations run on the Loihi board.
+    snip_max_spikes_per_step : int, optional (Default: 50)
+        Maximum number of spikes that can be sent through
+        the nengo_io_h2c channel on one timestep.
     """
-    Simulator to place CxModel onto board and run it.
-    """
+
     def __init__(self, cx_model, seed=None, snip_max_spikes_per_step=50):
         self.n2board = None
         self._probe_filters = {}

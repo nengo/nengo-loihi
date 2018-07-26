@@ -384,7 +384,15 @@ class CxModel(object):
 
 
 class CxSimulator(object):
-    """Numerical simulation of chip behaviour given a CxModel"""
+    """Software emulator for Loihi chip.
+
+    Parameters
+    ----------
+    model : Model
+        Model specification that will be simulated.
+    seed : int, optional (Default: None)
+        A seed for all stochastic operations done in this simulator.
+    """
 
     def __init__(self, model, seed=None):
         self.build(model, seed=seed)
@@ -393,6 +401,7 @@ class CxSimulator(object):
         self._probe_filter_pos = {}
 
     def build(self, model, seed=None):  # noqa: C901
+        """Set up NumPy arrays to emulate chip memory and I/O."""
         if seed is None:
             seed = np.random.randint(2**31 - 1)
 
@@ -514,6 +523,8 @@ class CxSimulator(object):
         self.noiseTarget = noiseTarget
 
     def step(self):  # noqa: C901
+        """Advance the simulation by 1 step (``dt`` seconds)."""
+
         # --- connections
         self.q[:-1] = self.q[1:]  # advance delays
         self.q[-1] = 0
@@ -618,6 +629,13 @@ class CxSimulator(object):
         self.t += 1
 
     def run_steps(self, steps):
+        """Simulate for the given number of ``dt`` steps.
+
+        Parameters
+        ----------
+        steps : int
+            Number of steps to run the simulation for.
+        """
         for _ in range(steps):
             self.step()
 
