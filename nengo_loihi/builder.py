@@ -43,7 +43,45 @@ VTH_NONSPIKING = 10
 class Model(CxModel):
     """The data structure for the chip/simulator.
 
-    CxModel defines adding ensembles, discretizing, and tracks the simulator
+    This is a subclass of CxModel, which defines methods for adding ensembles,
+    discretizing, and tracking the simulator. This class handles build
+    functions and keeping track of chip/host communication.
+
+    Parameters
+    ----------
+    dt : float, optional (Default: 0.001)
+        The length of a simulator timestep, in seconds.
+    label : str, optional (Default: None)
+        A name or description to differentiate models.
+    builder : Builder, optional (Default: None)
+        A `.Builder` instance to keep track of build functions.
+        If None, the default builder will be used.
+
+    Attributes
+    ----------
+    builder : Builder
+        The build functions used by this model.
+    dt : float
+        The length of a simulator timestep, in seconds.
+    label : str or None
+        A name or description to differentiate models.
+    objs : dict
+        Dictionary mapping from Nengo objects to Nengo Loihi objects.
+    params : dict
+        Mapping from objects to namedtuples containing parameters generated
+        in the build process.
+    probes : list
+        List of all probes. Probes must be added to this list in the build
+        process, as this list is used by Simulator.
+    seeded : dict
+        All objects are assigned a seed, whether the user defined the seed
+        or it was automatically generated. 'seeded' keeps track of whether
+        the seed is user-defined. We consider the seed to be user-defined
+        if it was set directly on the object, or if a seed was set on the
+        network in which the object resides, or if a seed was set on any
+        ancestor network of the network in which the object resides.
+    seeds : dict
+        Mapping from objects to the integer seed assigned to that object.
     """
     def __init__(self, dt=0.001, label=None, builder=None):
         super(Model, self).__init__()
