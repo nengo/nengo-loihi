@@ -15,7 +15,7 @@ void nengo_learn(runState *s) {
 
     int cx_idx = 0;
 
-    if (error < 0) {
+    if (error > 0) {
         neuron->stdp_post_state[cx_idx] = \
             (PostTraceEntry) {
                 .Yspike0      = 0,
