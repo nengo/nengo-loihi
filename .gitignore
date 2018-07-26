@@ -31,3 +31,5 @@ nengo_loihi/snips/nengo_io.c
 # For .ipynb examples
 *.pdf
 examples/communication_channel.py
+examples/oscillator.py
+examples/oscillator_nonlinear.py

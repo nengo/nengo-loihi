@@ -112,23 +112,3 @@ def test_node_ens_ens(allclose, plt):
     tmask = t > 0.1  # ignore transients at the beginning
     assert allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.4, rtol=0.25)
     assert allclose(b[tmask], a[tmask]**2, atol=0.35, rtol=0.0)
-
-
-def test_oscillator(plt):
-    ns = execexample("oscillator.py")
-    sim = ns["sim"]
-    ap = ns["ap"]
-
-    t = sim.trange()
-    x = nengo.synapses.Alpha(0.01).filtfilt(sim.data[ap])
-
-    plt.subplot(211)
-    plt.plot(t, sim.data[ap])
-
-    plt.subplot(212)
-    plt.plot(t, x)
-
-    # If we start oscillating by around t=5 we should get 10% above 0.1
-    n_samples = x.size
-    assert np.sum(x > 0.1) > n_samples * 0.1
-    assert np.sum(x < -0.1) > n_samples * 0.1
