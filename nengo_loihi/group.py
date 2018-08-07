@@ -3,20 +3,14 @@ import warnings
 from nengo.utils.compat import is_iterable
 import numpy as np
 
-from nengo_loihi.model import (
+from nengo_loihi.discretize import (
     BIAS_MAX,
     bias_to_manexp,
+    discretize,
     VTH_MAX,
     vth_to_manexp
 )
 from nengo_loihi.synapses import SynapseFmt
-
-
-def discretize(target, value):
-    assert target.dtype == np.float32
-    new = np.round(value).astype(np.int32)
-    target.dtype = np.int32
-    target[:] = new
 
 
 class CompartmentGroup(object):
