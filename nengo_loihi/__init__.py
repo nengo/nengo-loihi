@@ -2,7 +2,6 @@ import logging
 
 from .version import version as __version__
 
-from . import model
 from . import builder
 from .simulator import Simulator
 from .config import add_params, set_defaults

@@ -5,8 +5,7 @@ from nengo.dists import Distribution, get_samples
 import nengo.utils.numpy as npext
 import numpy as np
 
-from nengo_loihi.builder import Builder, INTER_N, INTER_RATE
-from nengo_loihi.group import CoreGroup
+from nengo_loihi.builder import Builder, CoreGroup, INTER_N, INTER_RATE
 from nengo_loihi.synapses import Synapses
 
 # Filter on intermediary neurons

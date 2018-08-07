@@ -3,7 +3,7 @@ import logging
 import nengo
 import numpy as np
 
-from nengo_loihi import model
+from nengo_loihi.builder import SpikeInput
 from nengo_loihi.neurons import NIF
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,7 @@ class ChipReceiveNode(nengo.Node):
 
     def __init__(self, dimensions, size_out):
         self.raw_dimensions = dimensions
-        self.cx_spike_input = model.CxSpikeInput(
-            np.zeros((0, dimensions), dtype=bool))
+        self.spike_input = SpikeInput(np.zeros((0, dimensions), dtype=bool))
         self.last_time = None
         super(ChipReceiveNode, self).__init__(self.update,
                                               size_in=0, size_out=size_out)
@@ -80,8 +79,7 @@ class ChipReceiveNode(nengo.Node):
     def receive(self, t, x):
         assert self.last_time is None or t > self.last_time
         # TODO: make this stacking efficient
-        self.cx_spike_input.spikes = np.vstack([self.cx_spike_input.spikes,
-                                                [x > 0]])
+        self.spike_input.spikes = np.vstack([self.spike_input.spikes, [x > 0]])
         self.last_time = t
 
 

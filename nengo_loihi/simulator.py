@@ -396,7 +396,7 @@ class Simulator(object):
                     for t, x in sender.queue:
                         receiver.receive(t, x)
                     del sender.queue[:]
-                    spike_input = receiver.cx_spike_input
+                    spike_input = receiver.spike_input
                     sent_count = spike_input.sent_count
                     while sent_count < len(spike_input.spikes):
                         for j, s in enumerate(spike_input.spikes[sent_count]):
@@ -436,7 +436,7 @@ class Simulator(object):
                         for t, x in sender.queue:
                             receiver.receive(t, x)
                         del sender.queue[:]
-                        spike_input = receiver.cx_spike_input
+                        spike_input = receiver.spike_input
                         sent_count = spike_input.sent_count
                         axon_ids = spike_input.axon_ids
                         spikes = spike_input.spikes

@@ -6,9 +6,8 @@ from nengo.solvers import NoSolver, Solver
 import numpy as np
 
 from nengo_loihi.axons import Axons
-from nengo_loihi.builder import Builder, INTER_N, INTER_RATE
-from nengo_loihi.group import CoreGroup
-from nengo_loihi.model import CxSpikeInput
+from nengo_loihi.builder import (
+    Builder, CoreGroup, INTER_N, INTER_RATE, SpikeInput)
 from nengo_loihi.probes import Probe
 from nengo_loihi.splitter import ChipReceiveNeurons
 from nengo_loihi.synapses import Synapses
@@ -27,7 +26,7 @@ def build_connection(model, conn):
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, (CoreGroup, CxSpikeInput))
+    assert isinstance(pre_cx, (CoreGroup, SpikeInput))
     assert isinstance(post_cx, (CoreGroup, Probe))
 
     weights = None
@@ -197,7 +196,7 @@ def build_connection(model, conn):
             post_cx.synapses.add(syn)
             model.objs[conn]['weights'] = syn
 
-        if isinstance(pre_cx, CxSpikeInput):
+        if isinstance(pre_cx, SpikeInput):
             ax = Axons(pre_cx.n)
             pre_cx.add_axons(ax)
         elif isinstance(pre_cx, CoreGroup):
@@ -234,7 +233,7 @@ def build_connection(model, conn):
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, nengo.Ensemble):
-        if isinstance(mid_cx, CxSpikeInput):
+        if isinstance(mid_cx, SpikeInput):
             mid_ax = Axons(mid_cx.n)
             mid_cx.add_axons(mid_ax)
         elif isinstance(mid_cx, CoreGroup):

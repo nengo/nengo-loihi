@@ -116,7 +116,7 @@ def one_to_one_allocator(cx_model):
         core.stdp_pre_profile_idx = None  # loihi_interface will set
         core.stdp_profile_idx = None  # loihi_interface will set
 
-    for input in cx_model.cx_inputs:
+    for input in cx_model.spike_inputs:
         # TODO: how to allocate inputs?
         core = chip.new_core()
         core.add_input(input)

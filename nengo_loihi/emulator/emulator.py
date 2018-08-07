@@ -30,7 +30,7 @@ class Emulator(object):
         self.t = 0
 
         self.model = model
-        self.inputs = list(self.model.cx_inputs)
+        self.inputs = list(self.model.spike_inputs)
         self.groups = list(self.model.groups)
         self.probe_outputs = collections.defaultdict(list)
 

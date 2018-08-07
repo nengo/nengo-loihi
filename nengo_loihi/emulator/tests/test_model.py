@@ -1,13 +1,12 @@
 import numpy as np
 
-from nengo_loihi.group import CoreGroup
+from nengo_loihi.builder import CoreGroup, Model
 from nengo_loihi.emulator import Emulator
-from nengo_loihi.model import CxModel
 from nengo_loihi.probes import Probe
 
 
 def test_simulator_noise(plt, seed):
-    model = CxModel()
+    model = Model()
     group = CoreGroup(10)
     group.compartments.configure_relu()
 

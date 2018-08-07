@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-from nengo_loihi.group import CoreGroup
+from nengo_loihi.builder import CoreGroup, Model
 from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator
-from nengo_loihi.model import CxModel
 from nengo_loihi.probes import Probe
 
 
 @pytest.mark.skipif(not HAS_NXSDK, reason="Test requires NxSDK")
 def test_simulator_noise(plt, seed):
-    model = CxModel()
+    model = Model()
     group = CoreGroup(10)
     group.compartments.configure_relu()
 
