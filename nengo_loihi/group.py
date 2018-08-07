@@ -1,23 +1,7 @@
 from nengo_loihi.axons import AxonGroup
 from nengo_loihi.compartments import CompartmentGroup
+from nengo_loihi.probes import ProbeGroup
 from nengo_loihi.synapses import SynapseGroup
-
-
-class ProbeGroup(object):
-    def __init__(self):
-        self.probes = []
-
-    def add(self, probe):
-        """Add a CxProbe object to ensemble."""
-        # if probe.target is None:
-        #     probe.target = self
-        # assert probe.target is self
-        self.probes.append(probe)
-
-    def discretize(self, v_scale):
-        for p in self.probes:
-            if p.key == 'v' and p.weights is not None:
-                p.weights /= v_scale
 
 
 class CoreGroup(object):

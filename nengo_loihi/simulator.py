@@ -167,7 +167,7 @@ class Simulator(object):
                 for probe in network.all_probes:
                     self.snip_probes[probe] = []
 
-                # create a list of all the CxProbes and their nengo.Probes
+                # create a list of all the Probes and their nengo.Probes
                 self.cx_probe2probe = {}
                 for obj in self.model.objs.keys():
                     if isinstance(obj, nengo.Probe):

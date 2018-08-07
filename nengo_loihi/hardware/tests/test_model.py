@@ -3,7 +3,8 @@ import pytest
 
 from nengo_loihi.group import CoreGroup
 from nengo_loihi.hardware import HAS_NXSDK, LoihiSimulator
-from nengo_loihi.model import CxProbe, CxModel
+from nengo_loihi.model import CxModel
+from nengo_loihi.probes import Probe
 
 
 @pytest.mark.skipif(not HAS_NXSDK, reason="Test requires NxSDK")
@@ -19,7 +20,7 @@ def test_simulator_noise(plt, seed):
     group.compartments.noiseMantOffset0 = 0
     group.compartments.noiseAtDendOrVm = 1
 
-    probe = CxProbe(target=group, key='v')
+    probe = Probe(target=group, key='v')
     group.probes.add(probe)
     model.add_group(group)
 

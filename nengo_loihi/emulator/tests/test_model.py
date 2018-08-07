@@ -2,7 +2,8 @@ import numpy as np
 
 from nengo_loihi.group import CoreGroup
 from nengo_loihi.emulator import Emulator
-from nengo_loihi.model import CxProbe, CxModel
+from nengo_loihi.model import CxModel
+from nengo_loihi.probes import Probe
 
 
 def test_simulator_noise(plt, seed):
@@ -17,7 +18,7 @@ def test_simulator_noise(plt, seed):
     group.compartments.noiseMantOffset0 = 0
     group.compartments.noiseAtDendOrVm = 1
 
-    probe = CxProbe(target=group, key='v')
+    probe = Probe(target=group, key='v')
     group.probes.add(probe)
     model.add_group(group)
 

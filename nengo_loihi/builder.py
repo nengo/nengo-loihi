@@ -4,7 +4,6 @@ import logging
 import numpy as np
 
 import nengo
-from nengo import Network, Ensemble, Connection, Node, Probe
 from nengo.builder.builder import Builder as NengoBuilder
 from nengo.builder.connection import (
     build_no_solver, build_solver, BuiltConnection)
@@ -25,9 +24,9 @@ from nengo_loihi.axons import Axons
 from nengo_loihi.group import CoreGroup
 from nengo_loihi.model import (
     CxModel,
-    CxProbe,
     CxSpikeInput,
 )
+from nengo_loihi.probes import Probe
 from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
 from nengo_loihi.synapses import Synapses
 
@@ -103,10 +102,10 @@ class Builder(NengoBuilder):
     builders = {}
 
 
-Builder.register(Network)(build_network)
+Builder.register(nengo.Network)(build_network)
 
 
-@Builder.register(Ensemble)
+@Builder.register(nengo.Ensemble)
 def build_ensemble(model, ens):
 
     # Create random number generator
@@ -181,7 +180,7 @@ def build_relu(model, relu, neurons, cx_group):
     cx_group.configure_relu(dt=model.dt)
 
 
-@Builder.register(Node)
+@Builder.register(nengo.Node)
 def build_node(model, node):
     if isinstance(node, ChipReceiveNode):
         cx_spiker = node.cx_spike_input
@@ -196,7 +195,7 @@ Builder.register(Solver)(build_solver)
 Builder.register(NoSolver)(build_no_solver)
 
 
-@Builder.register(Connection)  # noqa: C901
+@Builder.register(nengo.Connection)  # noqa: C901
 def build_connection(model, conn):
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
@@ -204,7 +203,7 @@ def build_connection(model, conn):
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
     assert isinstance(pre_cx, (CoreGroup, CxSpikeInput))
-    assert isinstance(post_cx, (CoreGroup, CxProbe))
+    assert isinstance(post_cx, (CoreGroup, Probe))
 
     weights = None
     eval_points = None
@@ -222,7 +221,7 @@ def build_connection(model, conn):
         raise NotImplementedError("Cannot handle non-Lowpass synapses")
 
     needs_interneurons = False
-    if isinstance(conn.pre_obj, Node):
+    if isinstance(conn.pre_obj, nengo.Node):
         assert conn.pre_slice == slice(None)
 
         if np.array_equal(transform, np.array(1.)):
@@ -243,10 +242,10 @@ def build_connection(model, conn):
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
             weights = weights / (INTER_RATE * INTER_N * model.dt)
-    elif (isinstance(conn.pre_obj, Ensemble) and
+    elif (isinstance(conn.pre_obj, nengo.Ensemble) and
           isinstance(conn.pre_obj.neuron_type, Direct)):
         raise NotImplementedError()
-    elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
+    elif isinstance(conn.pre_obj, nengo.Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
             conn.solver, conn, rng, transform)
 
@@ -277,7 +276,7 @@ def build_connection(model, conn):
         assert weights.ndim == 2
         d, n = weights.shape
 
-        if isinstance(post_cx, CxProbe):
+        if isinstance(post_cx, Probe):
             # use non-spiking interneurons for voltage probing
             assert post_cx.target is None
             assert conn.post_slice == slice(None)
@@ -314,7 +313,7 @@ def build_connection(model, conn):
                 dec_group.compartments.noiseExp0 = INTER_NOISE_EXP
                 dec_group.compartments.noiseAtDendOrVm = 1
 
-            if isinstance(conn.post_obj, Ensemble):
+            if isinstance(conn.post_obj, nengo.Ensemble):
                 # loihi encoders don't include radius, so handle scaling here
                 weights = weights / conn.post_obj.radius
 
@@ -351,7 +350,7 @@ def build_connection(model, conn):
 
         mid_cx = dec_group
 
-    if isinstance(post_cx, CxProbe):
+    if isinstance(post_cx, Probe):
         assert post_cx.target is None
         assert conn.post_slice == slice(None)
         post_cx.target = mid_cx
@@ -385,7 +384,7 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
-    elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
+    elif isinstance(conn.post_obj, nengo.Ensemble) and conn.solver.weights:
         assert isinstance(post_cx, CoreGroup)
         assert weights.ndim == 2
         n2, n1 = weights.shape
@@ -408,7 +407,7 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
-    elif isinstance(conn.post_obj, Ensemble):
+    elif isinstance(conn.post_obj, nengo.Ensemble):
         if isinstance(mid_cx, CxSpikeInput):
             mid_ax = Axons(mid_cx.n)
             mid_cx.add_axons(mid_ax)
@@ -418,7 +417,7 @@ def build_connection(model, conn):
         mid_ax.target = post_cx.synapses.named_synapses['encoders2']
         mid_ax.target_inds = mid_axon_inds
         model.objs[conn]['mid_axons'] = mid_ax
-    elif isinstance(conn.post_obj, Node):
+    elif isinstance(conn.post_obj, nengo.Node):
         raise NotImplementedError()
     else:
         raise NotImplementedError()
@@ -466,15 +465,17 @@ def conn_probe(model, probe):
         target = nengo.Node(None, size_in=output_dim,
                             add_to_container=False)
 
-        conn = Connection(probe.target, target, synapse=synapse,
-                          solver=probe.solver, add_to_container=False,
-                          **kwargs
-                          )
+        conn = nengo.Connection(probe.target, target,
+                                synapse=synapse,
+                                solver=probe.solver,
+                                add_to_container=False,
+                                **kwargs)
         model.probe_conns[probe] = conn
     else:
-        conn = Connection(probe.target, probe, synapse=synapse,
-                          solver=probe.solver, add_to_container=False,
-                          )
+        conn = nengo.Connection(probe.target, probe,
+                                synapse=synapse,
+                                solver=probe.solver,
+                                add_to_container=False)
         target = probe
 
     # Set connection's seed to probe's (which isn't used elsewhere)
@@ -482,7 +483,7 @@ def conn_probe(model, probe):
     model.seeds[conn] = model.seeds[probe]
 
     d = conn.size_out
-    if isinstance(probe.target, Node):
+    if isinstance(probe.target, nengo.Node):
         inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
         w = np.diag(inter_scale * np.ones(d))
         weights = np.vstack([w, -w])
@@ -491,7 +492,7 @@ def conn_probe(model, probe):
         scale = probe.target.radius
         w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
-    cx_probe = CxProbe(key='v', weights=weights, synapse=probe.synapse)
+    cx_probe = Probe(key='v', weights=weights, synapse=probe.synapse)
     model.objs[target]['in'] = cx_probe
     model.objs[target]['out'] = cx_probe
 
@@ -522,7 +523,7 @@ def signal_probe(model, key, probe):
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']
 
-    cx_probe = CxProbe(
+    cx_probe = Probe(
         target=target, key=key, slice=probe.slice,
         synapse=probe.synapse, weights=weights)
     target.probes.add(cx_probe)
@@ -532,20 +533,20 @@ def signal_probe(model, key, probe):
 
 # TODO: why q, s, v, u ?
 probemap = {
-    Ensemble: {'decoded_output': None,
-               'input': 'q'},
+    nengo.Ensemble: {'decoded_output': None,
+                     'input': 'q'},
     Neurons: {'output': 's',
               'spikes': 's',
               'voltage': 'v',
               'input': 'u'},
-    Node: {'output': None},
-    Connection: {'output': 'weighted',
-                 'input': 'in'},
+    nengo.Node: {'output': None},
+    nengo.Connection: {'output': 'weighted',
+                       'input': 'in'},
     LearningRule: {},  # make LR signals probeable, but no mapping required
 }
 
 
-@Builder.register(Probe)
+@Builder.register(nengo.Probe)
 def build_probe(model, probe):
     # This is a copy of Nengo's build_probe, but since conn_probe
     # and signal_probe are different, we have to include it here.

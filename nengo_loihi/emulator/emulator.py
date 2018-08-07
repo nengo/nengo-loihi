@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 
-from nengo_loihi.model import CxProbe
+from nengo_loihi.probes import Probe
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +271,7 @@ class Emulator(object):
 
     def get_probe_output(self, probe):
         cx_probe = self.model.objs[probe]['out']
-        assert isinstance(cx_probe, CxProbe)
+        assert isinstance(cx_probe, Probe)
         x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
