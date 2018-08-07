@@ -1,0 +1,155 @@
+import warnings
+
+import numpy as np
+
+from nengo_loihi.discretize import (
+    BIAS_MAX,
+    bias_to_manexp,
+    discretize,
+    VTH_MAX,
+    vth_to_manexp
+)
+from nengo_loihi.synapses import SynapseFmt
+
+
+class CompartmentGroup(object):
+    """A group of compartments."""
+    DEFAULT_WEIGHT_EXP = -7
+
+    def __init__(self, n_compartments):
+        self.n_compartments = n_compartments
+
+        self.decayU = np.zeros(n_compartments, dtype=np.float32)
+        self.decayV = np.zeros(n_compartments, dtype=np.float32)
+        self.refractDelay = np.zeros(n_compartments, dtype=np.int32)
+        self.vth = np.zeros(n_compartments, dtype=np.float32)
+        self.bias = np.zeros(n_compartments, dtype=np.float32)
+        self.enableNoise = np.zeros(n_compartments, dtype=bool)
+
+        # parameters common to core
+        self.vmin = 0
+        self.vmax = np.inf
+        self.noiseMantOffset0 = 0
+        self.noiseExp0 = 0
+        self.noiseAtDendOrVm = 0
+
+        # determined in `discretize`
+        self.weight_exp = None
+        self.v_scale = None
+        self.w_scale = None
+
+    def set_decay_U(self, tau_s, dt):
+        self.decayU[:] = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
+
+    def configure_filter(self, tau_s, dt=0.001):
+        """Synaptic input filter for Cx."""
+        self.set_decay_U(tau_s, dt)
+
+    def configure_lif(
+            self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
+        self.set_decay_U(tau_s, dt)
+        self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
+        self.refractDelay[:] = np.round(tau_ref / dt) + 1
+        self.vth[:] = vth
+        self.vmin = 0
+        self.vmax = np.inf
+        self.scaleU = True
+        self.scaleV = np.all(self.decayV > 1e-15)
+
+    def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
+        self.set_decay_U(tau_s, dt)
+        self.decayV[:] = 0.
+        self.refractDelay[:] = np.round(tau_ref / dt) + 1
+        self.vth[:] = vth
+        self.vmin = 0
+        self.vmax = np.inf
+        self.scaleU = True
+        self.scaleV = False
+
+    def configure_nonspiking(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
+        self.set_decay_U(tau_s, dt)
+        self.decayV[:] = 1.
+        self.refractDelay[:] = 1
+        self.vth[:] = vth
+        self.vmin = 0
+        self.vmax = np.inf
+        self.scaleU = True
+        self.scaleV = False
+
+    def discretize(self, w_max):
+        # --- discretize decayU and decayV
+        u_infactor = (
+            self.decayU.copy() if self.scaleU else np.ones_like(self.decayU))
+        v_infactor = (
+            self.decayV.copy() if self.scaleV else np.ones_like(self.decayV))
+        discretize(self.decayU, self.decayU * (2**12 - 1))
+        discretize(self.decayV, self.decayV * (2**12 - 1))
+        self.scaleU = False
+        self.scaleV = False
+
+        # --- vmin and vmax
+        vmine = np.clip(np.round(np.log2(-self.vmin + 1)), 0, 2**5-1)
+        self.vmin = -2**vmine + 1
+        vmaxe = np.clip(np.round((np.log2(self.vmax + 1) - 9)*0.5), 0, 2**3-1)
+        self.vmax = 2**(9 + 2*vmaxe) - 1
+
+        # --- discretize weights and vth
+        weight_exp = self.DEFAULT_WEIGHT_EXP
+        b_max = np.abs(self.bias).max()
+
+        if w_max > 1e-8:
+            w_scale = (255. / w_max)
+            s_scale = 1. / (u_infactor * v_infactor)
+
+            # Determine a better weight_exp
+            for weight_exp in range(7, -8, -1):
+                v_scale = s_scale * w_scale * SynapseFmt.get_scale(weight_exp)
+                b_scale = v_scale * v_infactor
+                vth = np.round(self.vth * v_scale)
+                bias = np.round(self.bias * b_scale)
+                if (vth <= VTH_MAX).all() and (np.abs(bias) <= BIAS_MAX).all():
+                    break
+            else:
+                raise ValueError("Could not find appropriate weight_exp")
+        elif b_max > 1e-8:
+            b_scale = BIAS_MAX / b_max
+            while b_scale*b_max > 1:
+                v_scale = b_scale / v_infactor
+                w_scale = (
+                    b_scale * u_infactor / SynapseFmt.get_scale(weight_exp))
+                vth = np.round(self.vth * v_scale)
+                bias = np.round(self.bias * b_scale)
+                if np.all(vth <= VTH_MAX):
+                    break
+
+                b_scale /= 2.
+            else:
+                raise ValueError("Could not find appropriate bias scaling")
+        else:
+            v_scale = np.array([VTH_MAX / (self.vth.max() + 1)])
+            vth = np.round(self.vth * v_scale)
+            b_scale = v_scale * v_infactor
+            bias = np.round(self.bias * b_scale)
+            w_scale = (v_scale * v_infactor * u_infactor
+                       / SynapseFmt.get_scale(weight_exp))
+
+        vth_man, vth_exp = vth_to_manexp(vth)
+        discretize(self.vth, vth_man * 2**vth_exp)
+
+        bias_man, bias_exp = bias_to_manexp(bias)
+        discretize(self.bias, bias_man * 2**bias_exp)
+
+        # --- noise
+        assert (v_scale[0] == v_scale).all()
+        noiseExp0 = np.round(np.log2(10.**self.noiseExp0 * v_scale[0]))
+        if noiseExp0 < 0:
+            warnings.warn("Noise amplitude falls below lower limit")
+        if noiseExp0 > 23:
+            warnings.warn(
+                "Noise amplitude exceeds upper limit (%d > 23)" % (noiseExp0,))
+        self.noiseExp0 = int(np.clip(noiseExp0, 0, 23))
+        self.noiseMantOffset0 = int(np.round(2*self.noiseMantOffset0))
+
+        self.weight_exp = weight_exp
+        self.v_scale = v_scale[0]
+        self.w_scale = w_scale
