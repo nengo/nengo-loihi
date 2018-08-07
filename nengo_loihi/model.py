@@ -6,16 +6,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class CxAxons(object):
-    def __init__(self, n_axons):
-        self.n_axons = n_axons
-        self.group = None
-
-        self.target = None
-        self.target_inds = slice(None)  # which synapse inputs are targeted
-        # ^ TODO: this does not allow multiple pre-cx per axon, loihi does
-
-
 class CxProbe(object):
     _slice = slice
 

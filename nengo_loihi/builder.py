@@ -21,9 +21,9 @@ from nengo.solvers import NoSolver, Solver
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
+from nengo_loihi.axons import Axons
 from nengo_loihi.group import CoreGroup
 from nengo_loihi.model import (
-    CxAxons,
     CxModel,
     CxProbe,
     CxSpikeInput,
@@ -325,7 +325,7 @@ def build_connection(model, conn):
         dec_group.synapses.add(dec_syn)
         model.objs[conn]['decoders'] = dec_syn
 
-        dec_ax0 = CxAxons(n)
+        dec_ax0 = Axons(n)
         dec_ax0.target = dec_syn  # TODO: handle target better
         pre_cx.axons.add(dec_ax0)
         model.objs[conn]['decode_axons'] = dec_ax0
@@ -373,10 +373,10 @@ def build_connection(model, conn):
             model.objs[conn]['weights'] = syn
 
         if isinstance(pre_cx, CxSpikeInput):
-            ax = CxAxons(pre_cx.n)
+            ax = Axons(pre_cx.n)
             pre_cx.add_axons(ax)
         elif isinstance(pre_cx, CoreGroup):
-            ax = CxAxons(pre_cx.n_compartments)
+            ax = Axons(pre_cx.n_compartments)
             pre_cx.axons.add(ax)
         ax.target = syn
 
@@ -399,7 +399,7 @@ def build_connection(model, conn):
         post_cx.synapses.add(syn)
         model.objs[conn]['weights'] = syn
 
-        ax = CxAxons(n1)
+        ax = Axons(n1)
         ax.target = syn
         pre_cx.axons.add(ax)
 
@@ -410,10 +410,10 @@ def build_connection(model, conn):
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
         if isinstance(mid_cx, CxSpikeInput):
-            mid_ax = CxAxons(mid_cx.n)
+            mid_ax = Axons(mid_cx.n)
             mid_cx.add_axons(mid_ax)
         elif isinstance(mid_cx, CoreGroup):
-            mid_ax = CxAxons(mid_cx.n_compartments)
+            mid_ax = Axons(mid_cx.n_compartments)
             mid_cx.axons.add(mid_ax)
         mid_ax.target = post_cx.synapses.named_synapses['encoders2']
         mid_ax.target_inds = mid_axon_inds

@@ -1,19 +1,6 @@
+from nengo_loihi.axons import AxonGroup
 from nengo_loihi.compartments import CompartmentGroup
 from nengo_loihi.synapses import SynapseGroup
-
-
-class AxonGroup(object):
-    def __init__(self, n_axons):
-        self.n_axons = n_axons
-        self.axons = []
-        self.named_axons = {}
-
-    def add(self, axons, name=None):
-        """Add a CxAxons object to this group."""
-        self.axons.append(axons)
-        if name is not None:
-            assert name not in self.named_axons
-            self.named_axons[name] = axons
 
 
 class ProbeGroup(object):
