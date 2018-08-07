@@ -1,7 +1,9 @@
 import warnings
 
-from nengo.utils.compat import is_integer, range
+from nengo.utils.compat import is_integer, is_iterable, range
 import numpy as np
+
+from nengo_loihi.discretize import discretize
 
 
 def tracing_mag_int_frac(synapses):
@@ -187,3 +189,58 @@ class Synapses(object):
 
         mag_int, _ = tracing_mag_int_frac(self)
         assert int(mag_int) < 2**7
+
+
+class SynapseGroup(object):
+    def __init__(self, n_synapses):
+        self.n_synapses = n_synapses
+
+        self.synapses = []
+        self.named_synapses = {}
+
+    def add(self, synapses, name=None):
+        """Add a CxSynapses object to this group."""
+
+        self.synapses.append(synapses)
+        if name is not None:
+            assert name not in self.named_synapses
+            self.named_synapses[name] = synapses
+
+        AXONS_MAX = 4096
+        MAX_SYNAPSE_BITS = 16384*64
+        n_axons = sum(s.n_axons for s in self.synapses)
+        if n_axons > AXONS_MAX:
+            raise ValueError("Total axons (%d) exceeded max (%d)" % (
+                n_axons, AXONS_MAX))
+
+        synapse_bits = sum(s.n_bits for s in self.synapses)
+        if synapse_bits > MAX_SYNAPSE_BITS:
+            raise ValueError("Total synapse bits (%d) exceeded max (%d)" % (
+                synapse_bits, MAX_SYNAPSE_BITS))
+
+    def max_weight(self):
+        w_maxs = [s.max_abs_weight for s in self.synapses]
+        return max(w_maxs) if len(w_maxs) > 0 else 0
+
+    def discretize(self, w_scale, weight_exp):
+        max_weight = self.max_weight()
+
+        for i, synapse in enumerate(self.synapses):
+            s_max_weight = synapse.max_abs_weight
+            if s_max_weight > 1e-16:
+                d_weight_exp = int(
+                    np.floor(np.log2(max_weight / s_max_weight))
+                )
+                assert d_weight_exp >= 0
+                weight_exp2 = max(weight_exp - d_weight_exp, -6)
+            else:
+                weight_exp2 = -6
+                d_weight_exp = weight_exp - weight_exp2
+            synapse.fmt.wgtExp = weight_exp2
+            for w, idxs in zip(synapse.weights, synapse.indices):
+                ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
+                discretize(w, synapse.fmt.discretize_weights(
+                    w * ws * 2**d_weight_exp))
+            # TODO: scale this properly, hardcoded for now
+            if synapse.learning:
+                synapse.fmt.weight_exp = 4
