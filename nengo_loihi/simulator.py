@@ -459,12 +459,14 @@ class Simulator(object):
                                   "set to %d)" % (len(to_send), max_spikes))
                     del to_send[max_spikes:]
 
-                self.loihi.nengo_io_h2c.write(1, [len(to_send)])
+                msg = [len(to_send)]
                 for spike in to_send:
                     assert spike[0] == 0
-                    self.loihi.nengo_io_h2c.write(2, spike[1:3])
+                    msg.extend(spike[1:3])
                 for error in errors:
-                    self.loihi.nengo_io_h2c.write(2, error)
+                    assert len(error) == 2
+                    msg.extend(error)
+                self.loihi.nengo_io_h2c.write(len(msg), msg)
 
     def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:
