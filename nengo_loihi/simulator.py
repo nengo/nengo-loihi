@@ -5,7 +5,7 @@ import warnings
 import nengo
 import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
-from nengo.utils.compat import ResourceWarning
+from nengo.utils.compat import iteritems, ResourceWarning
 import numpy as np
 
 from nengo_loihi import config, splitter
@@ -253,7 +253,7 @@ class Simulator(object):
                 else:
                     data = self.loihi.get_probe_output(probe)
             elif self.simulator is not None:
-                data = self.simulator.get_probe_output(probe)
+                data = self.simulator.probes[probe]
             # TODO: stop recomputing this all the time
             del self._probe_outputs[probe][:]
             self._probe_outputs[probe].extend(data)
@@ -370,20 +370,14 @@ class Simulator(object):
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
-                for sender, receiver in self.host2chip_senders.items():
+                for sender, receiver in iteritems(self.host2chip_senders):
                     if isinstance(receiver, splitter.PESModulatoryTarget):
                         for t, x in sender.queue:
-                            probe = receiver.target
-                            conn = self.model.probe_conns[probe]
-                            dec_syn = self.model.objs[conn]['decoders']
-                            assert dec_syn.learning
-
-                            z = self.simulator.z[dec_syn]
-                            x = np.hstack([-x, x])
-                            delta_w = np.outer(z, x)
-
-                            for i, w in enumerate(dec_syn.weights):
-                                w += delta_w[i].astype('int32')
+                            conn = self.model.probe_conns[receiver.target]
+                            self.simulator.synapses.update_weights(
+                                synapses=self.model.objs[conn]['decoders'],
+                                x=np.hstack([-x, x])
+                            )
                     else:
                         for t, x in sender.queue:
                             receiver.receive(t, x)
@@ -392,7 +386,7 @@ class Simulator(object):
             if self.precompute:
                 # go through the list of host2chip connections
                 items = []
-                for sender, receiver in self.host2chip_senders.items():
+                for sender, receiver in iteritems(self.host2chip_senders):
                     for t, x in sender.queue:
                         receiver.receive(t, x)
                     del sender.queue[:]
@@ -413,7 +407,7 @@ class Simulator(object):
                 to_send = []
                 errors = []
                 # go through the list of host2chip connections
-                for sender, receiver in self.host2chip_senders.items():
+                for sender, receiver in iteritems(self.host2chip_senders):
                     if isinstance(receiver, splitter.PESModulatoryTarget):
                         for t, x in sender.queue:
                             x = int(100 * x)  # >128 is an issue on chip
@@ -468,31 +462,22 @@ class Simulator(object):
             if self.precompute or self.host_sim is not None:
                 # go through the list of chip2host connections
                 i = self.chip2host_sent_steps
-                increment = None
-                for probe, receiver in self.chip2host_receivers.items():
-                    # extract the probe data from the simulator
-                    cx_probe = self.simulator.model.objs[probe]['out']
-
-                    x = self.simulator.probe_outputs[cx_probe][i:]
-                    if len(x) > 0:
-                        if increment is None:
-                            increment = len(x)
-                        else:
-                            assert increment == len(x)
-                        if cx_probe.weights is not None:
-                            x = np.dot(x, cx_probe.weights)
-
-                        for j in range(len(x)):
-                            receiver.receive(self.dt * (i + j + 2), x[j])
-                if increment is not None:
-                    self.chip2host_sent_steps += increment
+                steps_sent = None
+                for probe, receiver in iteritems(self.chip2host_receivers):
+                    sent = self.simulator.probes.send(probe, i, receiver)
+                    if steps_sent is None:
+                        steps_sent = sent
+                    else:
+                        assert sent == steps_sent
+                if steps_sent is not None:
+                    self.chip2host_sent_steps += steps_sent
             else:
                 raise NotImplementedError()
         elif self.loihi is not None:
             if self.precompute:
                 # go through the list of chip2host connections
                 increment = None
-                for probe, receiver in self.chip2host_receivers.items():
+                for probe, receiver in iteritems(self.chip2host_receivers):
                     # extract the probe data from the simulator
                     cx_probe = self.loihi.model.objs[probe]['out']
                     n2probe = self.loihi.board.probe_map[cx_probe]
@@ -524,7 +509,7 @@ class Simulator(object):
                 data = self.loihi.nengo_io_c2h.read(count-1)
                 data = np.array(data)
                 snip_range = self.loihi.nengo_io_snip_range
-                for cx_probe, probe in self.cx_probe2probe.items():
+                for cx_probe, probe in iteritems(self.cx_probe2probe):
                     x = data[snip_range[cx_probe]]
                     if cx_probe.key == 's':
                         if isinstance(probe.target, nengo.ensemble.Neurons):

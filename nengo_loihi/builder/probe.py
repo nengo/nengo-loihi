@@ -7,7 +7,7 @@ from nengo_loihi.builder import Builder, INTER_N, INTER_RATE
 from nengo_loihi.probes import Probe
 
 
-def conn_probe(model, probe):
+def conn_probe(model, nengo_probe):
     # Connection probes create a connection from the target, and probe
     # the resulting signal (used when you want to probe the default
     # output of an object, which may not have a predefined signal)
@@ -17,12 +17,12 @@ def conn_probe(model, probe):
     # get any extra arguments if this probe was created to send data
     #  to an off-chip Node via the splitter
 
-    kwargs = model.chip2host_params.get(probe, None)
+    kwargs = model.chip2host_params.get(nengo_probe, None)
     if kwargs is not None:
         # this probe is for sending data to a Node
 
         # determine the dimensionality
-        input_dim = probe.target.size_out
+        input_dim = nengo_probe.target.size_out
         func = kwargs['function']
         if func is not None:
             if callable(func):
@@ -43,80 +43,80 @@ def conn_probe(model, probe):
         target = nengo.Node(None, size_in=output_dim,
                             add_to_container=False)
 
-        conn = nengo.Connection(probe.target, target,
+        conn = nengo.Connection(nengo_probe.target, target,
                                 synapse=synapse,
-                                solver=probe.solver,
+                                solver=nengo_probe.solver,
                                 add_to_container=False,
                                 **kwargs)
-        model.probe_conns[probe] = conn
+        model.probe_conns[nengo_probe] = conn
     else:
-        conn = nengo.Connection(probe.target, probe,
+        conn = nengo.Connection(nengo_probe.target, nengo_probe,
                                 synapse=synapse,
-                                solver=probe.solver,
+                                solver=nengo_probe.solver,
                                 add_to_container=False)
-        target = probe
+        target = nengo_probe
 
     # Set connection's seed to probe's (which isn't used elsewhere)
-    model.seeded[conn] = model.seeded[probe]
-    model.seeds[conn] = model.seeds[probe]
+    model.seeded[conn] = model.seeded[nengo_probe]
+    model.seeds[conn] = model.seeds[nengo_probe]
 
     d = conn.size_out
-    if isinstance(probe.target, nengo.Node):
+    if isinstance(nengo_probe.target, nengo.Node):
         inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
         w = np.diag(inter_scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:
         # probed values are scaled by the target ensemble's radius
-        scale = probe.target.radius
+        scale = nengo_probe.target.radius
         w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
-    cx_probe = Probe(key='v', weights=weights, synapse=probe.synapse)
-    model.objs[target]['in'] = cx_probe
-    model.objs[target]['out'] = cx_probe
+    probe = Probe(key='voltage', weights=weights, synapse=nengo_probe.synapse)
+    model.objs[target]['in'] = probe
+    model.objs[target]['out'] = probe
 
     # add an extra entry for simulator.run_steps to read data out
-    model.objs[probe]['out'] = cx_probe
+    model.objs[nengo_probe]['out'] = probe
 
     # Build the connection
     model.build(conn)
 
 
-def signal_probe(model, key, probe):
-    kwargs = model.chip2host_params.get(probe, None)
+def signal_probe(model, key, nengo_probe):
+    kwargs = model.chip2host_params.get(nengo_probe, None)
     weights = None
     if kwargs is not None:
         if kwargs['function'] is not None:
             raise ValueError("Functions not supported for signal probe")
         weights = kwargs['transform'].T / model.dt
 
-    if isinstance(probe.target, nengo.ensemble.Neurons):
-        if probe.attr == 'output':
+    if isinstance(nengo_probe.target, nengo.ensemble.Neurons):
+        if nengo_probe.attr == 'output':
             if weights is None:
                 # spike probes should give values of 1.0/dt on spike events
                 weights = 1.0 / model.dt
 
-            if hasattr(probe.target.ensemble.neuron_type, 'amplitude'):
-                weights = weights * probe.target.ensemble.neuron_type.amplitude
+            if hasattr(nengo_probe.target.ensemble.neuron_type, 'amplitude'):
+                weights = weights * nengo_probe.target.ensemble.neuron_type.amplitude
 
     # Signal probes directly probe a target signal
-    target = model.objs[probe.obj]['out']
+    target = model.objs[nengo_probe.obj]['out']
 
-    cx_probe = Probe(
-        target=target, key=key, slice=probe.slice,
-        synapse=probe.synapse, weights=weights)
-    target.probes.add(cx_probe)
-    model.objs[probe]['in'] = target
-    model.objs[probe]['out'] = cx_probe
+    probe = Probe(
+        target=target, key=key, slice=nengo_probe.slice,
+        synapse=nengo_probe.synapse, weights=weights)
+    target.probes.add(probe)
+    model.objs[nengo_probe]['in'] = target
+    model.objs[nengo_probe]['out'] = probe
 
 
 # TODO: why q, s, v, u ?
 probemap = {
     nengo.Ensemble: {'decoded_output': None,
-                     'input': 'q'},
-    nengo.ensemble.Neurons: {'output': 's',
-                             'spikes': 's',
-                             'voltage': 'v',
-                             'input': 'u'},
+                     'input': 'input'},
+    nengo.ensemble.Neurons: {'output': 'spiked',
+                             'spikes': 'spiked',
+                             'voltage': 'voltage',
+                             'input': 'current'},
     nengo.Node: {'output': None},
     nengo.Connection: {'output': 'weighted',
                        'input': 'in'},

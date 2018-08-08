@@ -3,6 +3,7 @@ from __future__ import division
 import collections
 import logging
 
+from nengo.utils.compat import iteritems, itervalues, range
 import numpy as np
 
 from nengo_loihi.probes import Probe
@@ -11,267 +12,384 @@ logger = logging.getLogger(__name__)
 
 
 class Emulator(object):
-    """Numerical simulation of chip behaviour given a CxModel"""
+    """Numerical simulation of chip behaviour given a Model."""
 
     def __init__(self, model, seed=None):
-        self.build(model, seed=seed)
-
-        self._probe_filters = {}
-        self._probe_filter_pos = {}
-
-    def build(self, model, seed=None):  # noqa: C901
         if seed is None:
             seed = np.random.randint(2**31 - 1)
-
-        logger.debug("CxSimulator seed: %d", seed)
         self.seed = seed
-        self.rng = np.random.RandomState(seed)
+        logger.debug("Emulator seed: %d", seed)
+        self.rng = np.random.RandomState(self.seed)
+
+        self.group_info = GroupInfo(model.groups)
+        self.inputs = list(model.spike_inputs)
+        logger.debug("Emulator dtype: %s", self.group_info.dtype)
+
+        self.compartments = CompartmentState(self.group_info)
+        self.synapses = SynapseState(self.group_info)
+        self.axons = AxonState(self.group_info)
+        self.probes = ProbeState(
+            model.objs, model.dt, self.inputs, self.group_info)
 
         self.t = 0
-
-        self.model = model
-        self.inputs = list(self.model.spike_inputs)
-        self.groups = list(self.model.groups)
-        self.probe_outputs = collections.defaultdict(list)
-
-        self.n_cx = sum(group.n_compartments for group in self.groups)
-        self.group_cxs = {}
-        i0 = 0
-        for group in self.groups:
-            i1 = i0 + group.n_compartments
-            self.group_cxs[group] = slice(i0, i1)
-            i0 = i1
-
-        self.cx_slice = slice(0, i0)
-
-        # --- allocate group memory
-        group_dtype = self.groups[0].compartments.vth.dtype
-        assert group_dtype in (np.float32, np.int32)
-        for group in self.groups:
-            assert group.compartments.vth.dtype == group_dtype
-            assert group.compartments.bias.dtype == group_dtype
-
-        logger.debug("CxSimulator dtype: %s", group_dtype)
-
-        MAX_DELAY = 1  # don't do delay yet
-        self.q = np.zeros((MAX_DELAY, self.n_cx), dtype=group_dtype)
-        self.u = np.zeros(self.n_cx, dtype=group_dtype)
-        self.v = np.zeros(self.n_cx, dtype=group_dtype)
-        self.s = np.zeros(self.n_cx, dtype=bool)  # spiked
-        self.c = np.zeros(self.n_cx, dtype=np.int32)  # spike counter
-        self.w = np.zeros(self.n_cx, dtype=np.int32)  # ref period counter
-
-        # --- allocate group parameters
-        self.decayU = np.hstack([
-            group.compartments.decayU for group in self.groups])
-        self.decayV = np.hstack([
-            group.compartments.decayV for group in self.groups])
-        self.scaleU = np.hstack([
-            group.compartments.decayU if group.compartments.scaleU
-            else np.ones_like(group.compartments.decayU)
-            for group in self.groups])
-        self.scaleV = np.hstack([
-            group.compartments.decayV if group.compartments.scaleV
-            else np.ones_like(group.compartments.decayV)
-            for group in self.groups])
-
-        def decay_float(x, u, d, s):
-            return (1 - d)*x + s*u
-
-        def decay_int(x, u, d, s, a=12, b=0):
-            r = (2**a - b - np.asarray(d)).astype(np.int64)
-            x = np.sign(x) * np.right_shift(np.abs(x) * r, a)  # round to zero
-            return x + u  # no scaling on u
-
-        if group_dtype == np.int32:
-            assert (self.scaleU == 1).all()
-            assert (self.scaleV == 1).all()
-            self.decayU_fn = lambda x, u: decay_int(
-                x, u, d=self.decayU, s=self.scaleU, b=1)
-            self.decayV_fn = lambda x, u: decay_int(
-                x, u, d=self.decayV, s=self.scaleV)
-        elif group_dtype == np.float32:
-            self.decayU_fn = lambda x, u: decay_float(
-                x, u, d=self.decayU, s=self.scaleU)
-            self.decayV_fn = lambda x, u: decay_float(
-                x, u, d=self.decayV, s=self.scaleV)
-
-        ones = lambda n: np.ones(n, dtype=group_dtype)
-        self.vth = np.hstack([group.compartments.vth for group in self.groups])
-        self.vmin = np.hstack([
-            group.compartments.vmin*ones(group.n_compartments)
-            for group in self.groups])
-        self.vmax = np.hstack([
-            group.compartments.vmax*ones(group.n_compartments)
-            for group in self.groups])
-
-        self.bias = np.hstack([group.compartments.bias
-                               for group in self.groups])
-        self.ref = np.hstack([group.compartments.refractDelay
-                              for group in self.groups])
-
-        # --- allocate synapse memory
-        self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
-                     for group in self.groups
-                     for synapses in group.synapses.synapses}
-        self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
-                  for group in self.groups
-                  for synapses in group.synapses.synapses
-                  if synapses.learning}
-
-        # --- noise
-        enableNoise = np.hstack([
-            group.compartments.enableNoise*ones(group.n_compartments)
-            for group in self.groups])
-        noiseExp0 = np.hstack([
-            group.compartments.noiseExp0*ones(group.n_compartments)
-            for group in self.groups])
-        noiseMantOffset0 = np.hstack([
-            group.compartments.noiseMantOffset0*ones(group.n_compartments)
-            for group in self.groups])
-        noiseTarget = np.hstack([
-            group.compartments.noiseAtDendOrVm*ones(group.n_compartments)
-            for group in self.groups])
-        if group_dtype == np.int32:
-            noiseMult = np.where(enableNoise, 2**(noiseExp0 - 7), 0)
-
-            def noiseGen(n=self.n_cx, rng=self.rng):
-                x = rng.randint(-128, 128, size=n)
-                return (x + 64*noiseMantOffset0) * noiseMult
-        elif group_dtype == np.float32:
-            noiseMult = np.where(enableNoise, 10.**noiseExp0, 0)
-
-            def noiseGen(n=self.n_cx, rng=self.rng):
-                x = rng.uniform(-1, 1, size=n)
-                return (x + noiseMantOffset0) * noiseMult
-
-        self.noiseGen = noiseGen
-        self.noiseTarget = noiseTarget
-
-    def step(self):  # noqa: C901
-        # --- connections
-        self.q[:-1] = self.q[1:]  # advance delays
-        self.q[-1] = 0
-
-        for a_in in self.a_in.values():
-            a_in[:] = 0
-
-        for input in self.inputs:
-            for axons in input.axons:
-                synapses = axons.target
-                assert axons.target_inds == slice(None)
-                self.a_in[synapses] += input.spikes[self.t]
-
-        for group in self.groups:
-            for axons in group.axons.axons:
-                synapses = axons.target
-                s_in = self.a_in[synapses]
-
-                a_slice = self.group_cxs[group]
-                sa = self.s[a_slice]
-                np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
-
-        for group in self.groups:
-            for synapses in group.synapses.synapses:
-                s_in = self.a_in[synapses]
-
-                b_slice = self.group_cxs[group]
-                weights = synapses.weights
-                indices = synapses.indices
-                qb = self.q[:, b_slice]
-                # delays = np.zeros(qb.shape[1], dtype=np.int32)
-
-                for i in s_in.nonzero()[0]:
-                    for _ in range(s_in[i]):  # faster than mult since likely 1
-                        qb[0, indices[i]] += weights[i]
-                    # qb[delays[indices[i]], indices[i]] += weights[i]
-
-                if synapses.learning:
-                    z = self.z[synapses]
-                    tau = synapses.tracing_tau
-                    mag = synapses.tracing_mag
-
-                    decay = np.exp(-1.0 / tau)
-                    z *= decay
-
-                    z += mag * s_in
-
-        # --- updates
-        q0 = self.q[0, :]
-
-        noise = self.noiseGen()
-        q0[self.noiseTarget == 0] += noise[self.noiseTarget == 0]
-
-        # self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)
-        self.u[:] = self.decayU_fn(self.u[:], q0)
-        u2 = self.u[:] + self.bias
-        u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
-
-        # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
-        self.v[:] = self.decayV_fn(self.v, u2)
-        np.clip(self.v, self.vmin, self.vmax, out=self.v)
-        self.v[self.w > 0] = 0
-        # TODO^: don't zero voltage in case neuron is saving overshoot
-
-        self.s[:] = (self.v > self.vth)
-
-        cx = self.cx_slice
-        self.v[cx][self.s[cx]] = 0
-
-        self.w[self.s] = self.ref[self.s]
-        np.clip(self.w - 1, 0, None, out=self.w)  # decrement w
-
-        self.c[self.s] += 1
-
-        # --- probes
-        for input in self.inputs:
-            for probe in input.probes:
-                assert probe.key == 's'
-                p_slice = probe.slice
-                x = input.spikes[self.t][p_slice].copy()
-                self.probe_outputs[probe].append(x)
-
-        for group in self.groups:
-            for probe in group.probes.probes:
-                x_slice = self.group_cxs[group]
-                p_slice = probe.slice
-                assert hasattr(self, probe.key)
-                x = getattr(self, probe.key)[x_slice][p_slice].copy()
-                self.probe_outputs[probe].append(x)
-
-        self.t += 1
 
     def run_steps(self, steps):
         for _ in range(steps):
             self.step()
 
-    def _filter_probe(self, cx_probe, data):
-        dt = self.model.dt
-        i = self._probe_filter_pos.get(cx_probe, 0)
-        if i == 0:
-            shape = data[0].shape
-            synapse = cx_probe.synapse
-            rng = None
-            step = (synapse.make_step(shape, shape, dt, rng, dtype=data.dtype)
-                    if synapse is not None else None)
-            self._probe_filters[cx_probe] = step
+    def step(self):
+        self.compartments.advance_input()
+        self.synapses.inject_current(
+            self.t, self.inputs, self.axons, self.compartments.spiked)
+        self.compartments.update_input(self.synapses)
+        self.synapses.update_traces()
+        self.compartments.update(self.rng)
+        self.probes.update(self.t, self.compartments)
+        self.t += 1
+
+
+class GroupInfo(object):
+    def __init__(self, groups):
+        self.groups = list(groups)
+        self.slices = {}
+
+        assert self.dtype in (np.float32, np.int32)
+
+        start_ix = end_ix = 0
+        for group in self.groups:
+            end_ix += group.n_compartments
+            self.slices[group] = slice(start_ix, end_ix)
+            assert group.compartments.vth.dtype == self.dtype
+            assert group.compartments.bias.dtype == self.dtype
+            start_ix = end_ix
+
+    @property
+    def dtype(self):
+        return self.groups[0].compartments.vth.dtype
+
+    @property
+    def n_compartments(self):
+        return sum(group.n_compartments for group in self.groups)
+
+
+class IterableState(object):
+    def __init__(self, group_info, group_key):
+        self.n_compartments = group_info.n_compartments
+        self.dtype = group_info.dtype
+
+        if group_key == "compartments":
+            self.slices = {
+                getattr(group, group_key): group_info.slices[group]
+                for group in group_info.groups
+            }
         else:
-            step = self._probe_filters[cx_probe]
+            self.slices = {
+                item: group_info.slices[core_group]
+                for core_group in group_info.groups
+                for item in getattr(getattr(core_group, group_key), group_key)
+            }
 
-        if step is None:
-            self._probe_filter_pos[cx_probe] = i + len(data)
-            return data
+    def __contains__(self, item):
+        return item in self.slices
+
+    def __getitem__(self, key):
+        return self.slices[key]
+
+    def __iter__(self):
+        for obj in self.slices:
+            yield obj
+
+    def __len__(self):
+        return len(self.slices)
+
+    def items(self):
+        return iteritems(self.slices)
+
+
+class CompartmentState(IterableState):
+    MAX_DELAY = 1  # don't do delay yet
+
+    def __init__(self, group_info):
+        super(CompartmentState, self).__init__(group_info, "compartments")
+
+        # Initialize NumPy arrays to store compartment-related data
+        self.input = np.zeros(
+            (self.MAX_DELAY, self.n_compartments), dtype=self.dtype)
+        self.current = np.zeros(self.n_compartments, dtype=self.dtype)
+        self.voltage = np.zeros(self.n_compartments, dtype=self.dtype)
+        self.spiked = np.zeros(self.n_compartments, dtype=bool)
+        self.spike_count = np.zeros(self.n_compartments, dtype=np.int32)
+        self.ref_count = np.zeros(self.n_compartments, dtype=np.int32)
+
+        self.decay_u = np.full(self.n_compartments, np.nan, dtype=np.float32)
+        self.decay_v = np.full(self.n_compartments, np.nan, dtype=np.float32)
+        self.scale_u = np.ones(self.n_compartments, dtype=np.float32)
+        self.scale_v = np.ones(self.n_compartments, dtype=np.float32)
+
+        self.vth = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+        self.vmin = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+        self.vmax = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+
+        self.bias = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+        self.ref = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+
+        # Fill in arrays with parameters from CompartmentGroups
+        for compartment, sl in self.items():
+            self.decay_u[sl] = compartment.decayU
+            self.decay_v[sl] = compartment.decayV
+            if compartment.scaleU:
+                self.scale_u[sl] = compartment.decayU
+            if compartment.scaleV:
+                self.scale_v[sl] = compartment.decayV
+            self.vth[sl] = compartment.vth
+            self.vmin[sl] = compartment.vmin
+            self.vmax[sl] = compartment.vmax
+            self.bias[sl] = compartment.bias
+            self.ref[sl] = compartment.refractDelay
+
+        assert not np.any(np.isnan(self.decay_u))
+        assert not np.any(np.isnan(self.decay_v))
+        assert not np.any(np.isnan(self.vth))
+        assert not np.any(np.isnan(self.vmin))
+        assert not np.any(np.isnan(self.vmax))
+        assert not np.any(np.isnan(self.bias))
+        assert not np.any(np.isnan(self.ref))
+
+        if self.dtype == np.float32:
+
+            def _decay_float(x, u, d, s):
+                return (1 - d)*x + s*u
+
+            self._decay = _decay_float
         else:
-            filt_data = np.zeros_like(data)
-            for k, x in enumerate(data):
-                filt_data[k] = step((i + k) * dt, x)
+            assert self.dtype == np.int32
 
-            self._probe_filter_pos[cx_probe] = i + k
-            return filt_data
+            def _decay_int(x, u, d, s, a=12, b=0):
+                r = (2**a - b - np.asarray(d)).astype(np.int64)
+                # round to zero
+                x = np.sign(x) * np.right_shift(np.abs(x) * r, a)
+                return x + u  # no scaling on u
 
-    def get_probe_output(self, probe):
-        cx_probe = self.model.objs[probe]['out']
-        assert isinstance(cx_probe, Probe)
-        x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
-        x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
-        return self._filter_probe(cx_probe, x)
+            self._decay = _decay_int
+
+        self.noise = NoiseState(group_info)
+
+    def advance_input(self):
+        self.input[:-1] = self.input[1:]
+        self.input[-1] = 0
+
+    def update_input(self, all_synapses):
+        for synapses, s_slice in all_synapses.items():
+            activity_in = all_synapses.activity_in[synapses]
+            weights = synapses.weights
+            indices = synapses.indices
+            qb = self.input[:, s_slice]
+
+            for i in activity_in.nonzero()[0]:
+                # faster than mult since likely 1
+                for _ in range(activity_in[i]):
+                    qb[0, indices[i]] += weights[i]
+                # qb[inputs[indices[i]], indices[i]] += weights[i]
+
+    def update(self, rng):
+        noise = self.noise.sample(rng)
+        q0 = self.input[0, :]
+        q0[~self.noise.target_u] += noise[~self.noise.target_u]
+
+        self.current[:] = self._decay(
+            x=self.current[:], u=q0, d=self.decay_u, s=self.scale_u, b=1)
+        u2 = self.current[:] + self.bias
+        u2[self.noise.target_u] += noise[self.noise.target_u]
+
+        self.voltage[:] = self._decay(
+            x=self.voltage, u=u2, d=self.decay_v, s=self.scale_v)
+        np.clip(self.voltage, self.vmin, self.vmax, out=self.voltage)
+        self.voltage[self.ref_count > 0] = 0
+        # TODO^: don't zero voltage in case neuron is saving overshoot
+
+        self.spiked[:] = (self.voltage > self.vth)
+        self.voltage[self.spiked] = 0
+        self.ref_count[self.spiked] = self.ref[self.spiked]
+        # decrement ref_count
+        np.clip(self.ref_count - 1, 0, None, out=self.ref_count)
+
+        self.spike_count[self.spiked] += 1
+
+
+class NoiseState(IterableState):
+    def __init__(self, group_info):
+        super(NoiseState, self).__init__(group_info, "compartments")
+        self.enabled = np.full(self.n_compartments, np.nan, dtype=bool)
+        self.exp = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+        self.mant_offset = np.full(self.n_compartments, np.nan, dtype=self.dtype)
+        self.target_u = np.full(self.n_compartments, np.nan, dtype=bool)
+
+        # Fill in arrays with parameters from CompartmentGroups
+        for compartment, sl in self.items():
+            self.enabled[sl] = compartment.enableNoise
+            self.exp[sl] = compartment.noiseExp0
+            self.mant_offset[sl] = compartment.noiseMantOffset0
+            self.target_u[sl] = compartment.noiseAtDendOrVm
+
+        if self.dtype == np.float32:
+            self.mult = np.where(self.enabled, 10.**self.exp, 0)
+            self.r_scale = 1
+            self.mant_scale = 1
+        else:
+            assert self.dtype == np.int32
+            self.mult = np.where(self.enabled, 2**(self.exp - 7), 0)
+            self.r_scale = 128
+            self.mant_scale = 64
+
+        assert not np.any(np.isnan(self.enabled))
+        assert not np.any(np.isnan(self.exp))
+        assert not np.any(np.isnan(self.mant_offset))
+        assert not np.any(np.isnan(self.target_u))
+        assert not np.any(np.isnan(self.mult))
+
+    def sample(self, rng):
+        x = rng.uniform(-self.r_scale, self.r_scale, size=self.n_compartments)
+        x = x.astype(self.dtype)
+        return (x + self.mant_scale * self.mant_offset) * self.mult
+
+
+class SynapseState(IterableState):
+    def __init__(self, group_info):
+        super(SynapseState, self).__init__(group_info, "synapses")
+
+        self.activity_in = {}
+        self.traces = {}
+        for synapses in self.slices:
+            n = synapses.n_axons
+            self.activity_in[synapses] = np.zeros(n, dtype=np.int32)
+            if synapses.learning:
+                self.traces[synapses] = np.zeros(n, dtype=np.float64)
+
+    def inject_current(self, t, spike_inputs, all_axons, spiked):
+        for activity_in in itervalues(self.activity_in):
+            activity_in[...] = 0
+
+        for spike_input in spike_inputs:
+            for axons in spike_input.axons:
+                synapses = axons.target
+                assert axons.target_inds == slice(None)
+                self.activity_in[synapses] += spike_input.spikes[t]
+
+        for axons, a_idx in all_axons.items():
+            synapses = axons.target
+            # Use add.at to allow repeated indices
+            np.add.at(
+                self.activity_in[synapses], axons.target_inds, spiked[a_idx])
+
+    def update_weights(self, synapses, x):
+        assert synapses.learning
+        traces = self.traces[synapses]
+        delta_w = np.outer(traces, x).astype('int32')
+        for i, w in enumerate(synapses.weights):
+            w += delta_w[i]
+
+    def update_traces(self):
+        for synapses in self.traces:
+            activity_in = self.activity_in[synapses]
+            traces = self.traces[synapses]
+            tau = synapses.tracing_tau
+            mag = synapses.tracing_mag
+            decay = np.exp(-1.0 / tau)
+            traces *= decay
+            traces += mag * activity_in
+
+
+class AxonState(IterableState):
+    def __init__(self, group_info):
+        super(AxonState, self).__init__(group_info, "axons")
+
+
+class ProbeState(object):
+    def __init__(self, objs, dt, inputs, group_info):
+        self.objs = objs
+        self.dt = dt
+        self.input_probes = {}
+        for spike_input in inputs:
+            for probe in spike_input.probes:
+                assert probe.key == 'spiked'
+                self.input_probes[probe] = spike_input
+        self.other_probes = {}
+        for group in group_info.groups:
+            for probe in group.probes.probes:
+                self.other_probes[probe] = group_info.slices[group]
+
+        self.filters = {}
+        self.filter_pos = {}
+        for probe, spike_input in iteritems(self.input_probes):
+            if probe.synapse is not None:
+                self.filters[probe] = probe.synapse.make_step(
+                    shape=spike_input.spikes[0][probe.slice].shape[0],
+                    dt=self.dt,
+                    rng=None,
+                    dtype=spike_input.spikes.dtype,
+                )
+                self.filter_pos[probe] = 0
+
+        for probe, sl in iteritems(self.other_probes):
+            if probe.synapse is not None:
+                size = (sl.stop - sl.start if probe.weights is None
+                        else probe.weights.shape[1])
+                self.filters[probe] = probe.synapse.make_step(
+                    shape_in=(size,),
+                    shape_out=(size,),
+                    dt=self.dt,
+                    rng=None,
+                    dtype=np.float32,
+                )
+                self.filter_pos[probe] = 0
+
+        self.outputs = collections.defaultdict(list)
+
+    def __getitem__(self, nengo_probe):
+        probe = self.objs[nengo_probe]['out']
+        assert isinstance(probe, Probe)
+        out = np.asarray(self.outputs[probe], dtype=np.float32)
+        out = out if probe.weights is None else np.dot(out, probe.weights)
+        if probe in self.filters:
+            return self._filter(probe, out)
+        else:
+            return out
+
+    def _filter(self, probe, data):
+        dt = self.dt
+        i = self.filter_pos[probe]
+        step = self.filters[probe]
+        filt_data = np.zeros_like(data)
+        for k, x in enumerate(data):
+            filt_data[k] = step((i + k) * dt, x)
+        self.filter_pos[probe] = i + k
+        return filt_data
+
+    def send(self, nengo_probe, already_sent, receiver):
+        """Send probed data to the receiver node.
+
+        Returns
+        -------
+        steps : int
+            The number of steps sent to the receiver.
+        """
+        probe = self.objs[nengo_probe]['out']
+        x = self.outputs[probe][already_sent:]
+
+        if len(x) > 0:
+            if probe.weights is not None:
+                x = np.dot(x, probe.weights)
+            for j, xx in enumerate(x):
+                receiver.receive(self.dt * (already_sent + j + 2), xx)
+        return len(x)
+
+    def update(self, t, compartments):
+        for probe, spike_input in iteritems(self.input_probes):
+            output = spike_input.spikes[t][probe.slice].copy()
+            self.outputs[probe].append(output)
+
+        for probe, out_idx in iteritems(self.other_probes):
+            p_slice = probe.slice
+            assert hasattr(compartments, probe.key)
+            output = getattr(compartments, probe.key)[out_idx][p_slice].copy()
+            self.outputs[probe].append(output)

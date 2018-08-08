@@ -17,7 +17,7 @@ def test_simulator_noise(plt, seed):
     group.compartments.noiseMantOffset0 = 0
     group.compartments.noiseAtDendOrVm = 1
 
-    probe = Probe(target=group, key='v')
+    probe = Probe(target=group, key='voltage')
     group.probes.add(probe)
     model.add_group(group)
 
@@ -25,7 +25,7 @@ def test_simulator_noise(plt, seed):
 
     sim = Emulator(model, seed=seed)
     sim.run_steps(1000)
-    y = sim.probe_outputs[probe]
+    y = sim.probes.outputs[probe]
 
     plt.plot(y)
     plt.yticks(())
