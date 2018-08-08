@@ -519,11 +519,8 @@ class Simulator(object):
                     self.chip2host_sent_steps += increment
             elif self.host_sim is not None:
                 count = self.loihi.nengo_io_c2h_count
-                time_step = self.loihi.nengo_io_c2h.read(1)[0]
-                while time_step == 0:
-                    time_step = self.loihi.nengo_io_c2h.read(1)[0]
-                data = self.loihi.nengo_io_c2h.read(count-1)
-                data = np.array(data)
+                data = self.loihi.nengo_io_c2h.read(count)
+                time_step, data = data[0], np.array(data[1:])
                 snip_range = self.loihi.nengo_io_snip_range
                 for cx_probe, probe in self.cx_probe2probe.items():
                     x = data[snip_range[cx_probe]]
