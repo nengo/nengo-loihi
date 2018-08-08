@@ -516,10 +516,6 @@ class Simulator(object):
                 if increment is not None:
                     self.chip2host_sent_steps += increment
             elif self.host_sim is not None:
-                # TODO: Why is this needed?  Without the sleep, we randomly
-                #  get communication failures....
-                import time
-                time.sleep(0.005)
                 count = self.loihi.nengo_io_c2h_count
                 time_step = self.loihi.nengo_io_c2h.read(1)[0]
                 while time_step == 0:
