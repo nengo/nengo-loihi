@@ -180,13 +180,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 with host:
                     max_rate = inter_rate * inter_n
                     assert max_rate <= 1000
-
-                    logger.debug("Creating NIF ensemble for %s", c)
-                    ens = nengo.Ensemble(
-                        2 * dim, dim, neuron_type=NIF(tau_ref=0.0),
-                        encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
-                        max_rates=[max_rate] * dim + [max_rate] * dim,
-                        intercepts=[-1] * dim + [-1] * dim)
+                    # TODO: move the above check elsewhere
 
                     # scale the input spikes based on the radius of the
                     #  target ensemble
@@ -196,15 +190,14 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                         scaling = 1.0
 
                     logger.debug("Creating HostSendNode for %s", c)
-                    send = HostSendNode(dim * 2)
-                    nengo.Connection(c.pre, ens,
+                    send = HostSendNode(dim)
+                    nengo.Connection(c.pre, send,
                                      function=c.function,
                                      solver=c.solver,
                                      eval_points=c.eval_points,
                                      scale_eval_points=c.scale_eval_points,
-                                     synapse=None,
+                                     synapse=c.synapse,
                                      transform=c.transform * scaling)
-                    nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
             dim = c.size_out

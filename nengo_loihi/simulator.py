@@ -1,5 +1,6 @@
 import collections
 import logging
+import timeit
 import warnings
 
 import numpy as np
@@ -425,15 +426,22 @@ class Simulator(object):
             elif self.host_sim is not None:
                 self.loihi.create_io_snip()
                 self.loihi.run_steps(steps, async=True)
+
+                targets = self.determine_spike_targets()
+                self.loihi.nengo_io_h2c.write(len(targets), targets)
+
+                start = timeit.default_timer()
                 for i in range(steps):
                     self.host_sim.run_steps(1)
                     self.handle_host2chip_communications()
                     self.handle_chip2host_communications()
+                end = timeit.default_timer()
+                self.time_per_step = (end - start) / steps
 
                 logger.info("Waiting for completion")
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
+                #self.loihi.nengo_io_h2c.write(1, [0])
+                #self.loihi.nengo_io_h2c.write(1, [0])
+                #self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
                 logger.info("done")
             else:
@@ -442,6 +450,22 @@ class Simulator(object):
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)
         self._probe()
+
+    def determine_spike_targets(self):
+        spike_targets = []
+        for sender, receiver in self.host2chip_senders.items():
+            if not isinstance(receiver, splitter.PESModulatoryTarget):
+                inp = receiver.cx_spike_input
+                assert len(inp.axon_ids) == 1   # TODO: handle len>1
+                axon_ids = inp.axon_ids[0]
+                half = len(axon_ids)//2
+                for i in range(len(axon_ids)//2):
+                    assert axon_ids[i][0] == 0
+                    assert axon_ids[i][1] == axon_ids[half+i][1]
+                    spike_targets.extend((axon_ids[i][1], axon_ids[i][2],
+                                          axon_ids[half+i][2]))
+        return spike_targets
+
 
     def handle_host2chip_communications(self):  # noqa: C901
         if self.simulator is not None:
@@ -512,33 +536,16 @@ class Simulator(object):
                         del sender.queue[:]
 
                     else:
+                        latest = None
                         for t, x in sender.queue:
-                            receiver.receive(t, x)
+                            latest = x
                         del sender.queue[:]
-                        spike_input = receiver.cx_spike_input
-                        sent_count = spike_input.sent_count
-                        axon_ids = spike_input.axon_ids
-                        spikes = spike_input.spikes
-                        while sent_count < len(spikes):
-                            for j, s in enumerate(spikes[sent_count]):
-                                if s:
-                                    for output_axon in axon_ids:
-                                        to_send.append(output_axon[j])
-                            sent_count += 1
-                        spike_input.sent_count = sent_count
+                        if latest is not None:
+                            msg = (x * (1<<15)).astype(int)
+                            to_send.extend(msg.tolist())
 
-                max_spikes = self.loihi.snip_max_spikes_per_step
-                if len(to_send) > max_spikes:
-                    warnings.warn("Too many spikes (%d) sent in one time "
-                                  "step.  Increase the value of "
-                                  "snip_max_spikes_per_step (currently "
-                                  "set to %d)" % (len(to_send), max_spikes))
-                    del to_send[max_spikes:]
-
-                msg = [len(to_send)]
-                for spike in to_send:
-                    assert spike[0] == 0
-                    msg.extend(spike[1:3])
+                msg = []
+                msg.extend(to_send)
                 for error in errors:
                     assert len(error) == 2
                     msg.extend(error)

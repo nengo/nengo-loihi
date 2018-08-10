@@ -509,6 +509,14 @@ class LoihiSimulator(object):
             if core.learning_coreid:
                 n_errors += 1
 
+        n_inputs = 0
+        for chip in self.board.chips:
+            for core in chip.cores:
+                for inp, cx_ids in core.iterate_inputs():
+                    axon_ids = inp.axon_ids[0]
+                    assert len(axon_ids) % 2 == 0
+                    n_inputs += len(axon_ids) //2
+
         n_outputs = 1
         probes = []
         cores = set()
@@ -533,6 +541,7 @@ class LoihiSimulator(object):
         code = template.render(
             n_outputs=n_outputs,
             n_errors=n_errors,
+            n_inputs=n_inputs,
             cores=cores,
             probes=probes,
         )
@@ -559,7 +568,7 @@ class LoihiSimulator(object):
             phase="preLearnMgmt",
         )
 
-        size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
+        size = n_inputs + n_errors*2
         logger.debug("Creating nengo_io_h2c channel")
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
                                                        "int", size)
