@@ -161,6 +161,13 @@ class Simulator(object):
         self.precompute = precompute
         self.snip_io_steps = snip_io_steps
 
+        if target is None:
+            try:
+                import nxsdk
+                target = 'loihi'
+            except ImportError:
+                target = 'sim'
+
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
             nengo.rc.set("decoder_cache", "enabled", "False")
@@ -180,8 +187,10 @@ class Simulator(object):
                                                      progress_bar=False)
             else:
                 # we need online communication
+                spiking_interneurons_on_host = target != 'loihi'
                 host, chip, h2c, c2h_params, c2h = splitter.split(
-                    network, INTER_RATE, INTER_N)
+                    network, INTER_RATE, INTER_N,
+                    spiking_interneurons_on_host=spiking_interneurons_on_host)
                 network = chip
                 self.chip2host_receivers = c2h
                 self.host2chip_senders = h2c
@@ -207,13 +216,6 @@ class Simulator(object):
 
         self.loihi = None
         self.simulator = None
-
-        if target is None:
-            try:
-                import nxsdk
-                target = 'loihi'
-            except ImportError:
-                target = 'sim'
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
