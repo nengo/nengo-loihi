@@ -515,7 +515,7 @@ class LoihiSimulator(object):
                 for inp, cx_ids in core.iterate_inputs():
                     axon_ids = inp.axon_ids[0]
                     assert len(axon_ids) % 2 == 0
-                    n_inputs += len(axon_ids) //2
+                    n_inputs += len(axon_ids) // 2
 
         n_outputs = 1
         probes = []

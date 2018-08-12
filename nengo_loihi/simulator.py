@@ -468,7 +468,6 @@ class Simulator(object):
                                           axon_ids[half+i][2]))
         return spike_targets
 
-
     def handle_host2chip_communications(self):  # noqa: C901
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
@@ -543,7 +542,7 @@ class Simulator(object):
                             latest = x
                         del sender.queue[:]
                         if latest is not None:
-                            msg = (x * (1<<15)).astype(int)
+                            msg = (x * (1 << 15)).astype(int)
                             to_send.extend(msg.tolist())
 
                 msg = []
