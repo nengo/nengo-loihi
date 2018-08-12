@@ -394,7 +394,7 @@ class Simulator(object):
 
         self.run_steps(1)
 
-    def run_steps(self, steps):
+    def run_steps(self, steps):  # noqa: C901
         """Simulate for the given number of ``dt`` steps.
 
         Parameters

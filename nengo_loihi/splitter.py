@@ -91,8 +91,8 @@ class ChipReceiveNeurons(ChipReceiveNode):
         super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)
 
 
-def split(model, inter_rate, inter_n,
-          spiking_interneurons_on_host=True):  # noqa: C901
+def split(model, inter_rate, inter_n,          # noqa: C901
+          spiking_interneurons_on_host=True):
     """Split a model into code running on the host and on-chip"""
 
     logger.info("Splitting model into host and chip parts")
