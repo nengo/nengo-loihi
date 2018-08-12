@@ -11,6 +11,7 @@
 #define IDX_POS_ACCUMULATORS (IDX_VALUES + (N_INPUTS*3)*4)
 #define IDX_NEG_ACCUMULATORS (IDX_POS_ACCUMULATORS + (N_INPUTS*3)*4)
 
+#define IO_STEPS {{ io_steps }}
 
 int guard_io(runState *s) {
     return 1;
@@ -49,17 +50,27 @@ void nengo_io(runState *s) {
         }
     }
 
-    if (s->time % 100 == 0) {
+    if (s->time % 1000 == 0) {
         printf("time %d\n", s->time);
     }
 
     //readChannel(inChannel, count, 1);
     // printf("count %d\n", count[0]);
 
-    for (int i=0; i < N_INPUTS; i++) {
-        readChannel(inChannel, spike, 1);
-        //printf("stim value %d.%d\n", i, spike[0]);
-        value[i] = spike[0];
+    if (s->time % IO_STEPS == 0) {
+        for (int i=0; i < N_INPUTS; i++) {
+            readChannel(inChannel, spike, 1);
+            //printf("  %d: stim value %d.%d\n", s->time, i, spike[0]);
+            value[i] = spike[0];
+        }
+
+        // Communicate with learning snip
+        for (int i=0; i < N_ERRORS; i++) {
+            readChannel(inChannel, error, 2);
+            // printf("send error %d.%d\n", error[0], error[1]);
+            s->userData[0] = error[0];
+            s->userData[1] = error[1];
+        }
     }
 
     for (int i=0; i < N_INPUTS; i++) {
@@ -93,18 +104,12 @@ void nengo_io(runState *s) {
         }
     }
 
-    // Communicate with learning snip
-    for (int i=0; i < N_ERRORS; i++) {
-        readChannel(inChannel, error, 2);
-        // printf("send error %d.%d\n", error[0], error[1]);
-        s->userData[0] = error[0];
-        s->userData[1] = error[1];
-    }
-
-    output[0] = s->time;
+    if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
+        output[0] = s->time;
 {% for n_out, core, cx in probes %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+        output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
 {% endfor %}
 
-    writeChannel(outChannel, output, N_OUTPUTS);
+        writeChannel(outChannel, output, N_OUTPUTS);
+    }
 }

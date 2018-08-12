@@ -148,7 +148,8 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=True, target=None):
+                 precompute=True, target=None,
+                 snip_io_steps=10):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
@@ -158,6 +159,7 @@ class Simulator(object):
             self.model = model
 
         self.precompute = precompute
+        self.snip_io_steps = snip_io_steps
 
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
@@ -424,7 +426,7 @@ class Simulator(object):
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
             elif self.host_sim is not None:
-                self.loihi.create_io_snip()
+                self.loihi.create_io_snip(io_steps=self.snip_io_steps)
                 self.loihi.run_steps(steps, async=True)
 
                 targets = self.determine_spike_targets()
@@ -433,15 +435,13 @@ class Simulator(object):
                 start = timeit.default_timer()
                 for i in range(steps):
                     self.host_sim.run_steps(1)
-                    self.handle_host2chip_communications()
-                    self.handle_chip2host_communications()
+                    if i % self.snip_io_steps == 0:
+                        self.handle_host2chip_communications()
+                        self.handle_chip2host_communications()
                 end = timeit.default_timer()
                 self.time_per_step = (end - start) / steps
 
                 logger.info("Waiting for completion")
-                #self.loihi.nengo_io_h2c.write(1, [0])
-                #self.loihi.nengo_io_h2c.write(1, [0])
-                #self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
                 logger.info("done")
             else:

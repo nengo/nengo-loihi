@@ -490,7 +490,7 @@ class LoihiSimulator(object):
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
 
-    def create_io_snip(self):
+    def create_io_snip(self, io_steps):
         # snips must be created before connecting
         assert not self.is_connected()
 
@@ -542,6 +542,7 @@ class LoihiSimulator(object):
             n_outputs=n_outputs,
             n_errors=n_errors,
             n_inputs=n_inputs,
+            io_steps=io_steps,
             cores=cores,
             probes=probes,
         )
@@ -570,11 +571,13 @@ class LoihiSimulator(object):
 
         size = n_inputs + n_errors*2
         logger.debug("Creating nengo_io_h2c channel")
+        # double the size of the buffers so we don't have to be in lock-step
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
-                                                       "int", size)
+                                                       "int", size*2)
         logger.debug("Creating nengo_io_c2h channel")
+        # double the size of the buffers so we don't have to be in lock-step
         self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',
-                                                       "int", n_outputs)
+                                                       "int", n_outputs*2)
         self.nengo_io_h2c.connect(None, nengo_io)
         self.nengo_io_c2h.connect(nengo_io, None)
         self.nengo_io_c2h_count = n_outputs
