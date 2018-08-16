@@ -314,8 +314,14 @@ class CxProfile(Profile):
 
 
 class VthProfile(Profile):
-    VTH_MAX = 2**17 - 1
+    """Represents the VthProfile of a compartment (Cx).
 
+    Attributes
+    ----------
+    vth : int
+        The mantissa of the voltage threshold for a compartment. To get the
+        actual voltage threshold, this is multiplied by VTH_EXP (64).
+    """
     params = ('vth',)
 
     def __init__(self, vth):
@@ -323,7 +329,7 @@ class VthProfile(Profile):
         self.vth = vth
 
     def validate(self, core=None):
-        assert 0 < self.vth <= self.VTH_MAX
+        assert 0 < self.vth <= VTH_MAN_MAX
         # if core is not None:
         #     assert self.realVth < core.dendrite_shared_cfg.v_max
 
