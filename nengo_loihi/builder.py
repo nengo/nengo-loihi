@@ -584,8 +584,9 @@ def build_connection(model, conn):
         if conn.learning_rule_type is not None:
             if isinstance(conn.learning_rule_type, nengo.PES):
                 pes_learn_rate = conn.learning_rule_type.learning_rate
-                # scale learning rates such that the default would be 10
-                pes_learn_rate *= 10 / nengo.PES.learning_rate.default
+                # scale learning rates to roughly match Nengo
+                # 1e-4 is the Nengo core default learning rate
+                pes_learn_rate *= 4 / 1e-4
                 assert isinstance(conn.learning_rule_type.pre_synapse,
                                   nengo.synapses.Lowpass)
                 pes_pre_syn = conn.learning_rule_type.pre_synapse.tau
