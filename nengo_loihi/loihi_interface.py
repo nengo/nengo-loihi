@@ -2,6 +2,7 @@ from __future__ import division
 
 import time
 import warnings
+import os
 
 import numpy as np
 
@@ -164,6 +165,7 @@ def build_input(n2core, core, spike_input, cx_idxs):
 
     n2board = n2core.parent.parent
 
+    # TODO: this is only needed if precompute=True
     spike_gen = BasicSpikeGenerator(n2board)
 
     # get core/axon ids
@@ -233,18 +235,24 @@ def build_probe(n2core, core, group, probe, cx_idxs):
 
     n2board = n2core.parent.parent
     r = cx_idxs[probe.slice]
-    p = n2board.monitor.probe(n2core.cxState, r, key)
-    core.board.map_probe(probe, p)
+
+    if probe.use_snip:
+        probe.snip_info = dict(coreid=n2core.id, cxs=r)
+    else:
+        p = n2board.monitor.probe(n2core.cxState, r, key)
+        core.board.map_probe(probe, p)
 
 
 class LoihiSimulator(object):
     """
     Simulator to place CxModel onto board and run it.
     """
-    def __init__(self, cx_model, seed=None):
+    def __init__(self, cx_model, seed=None,
+                 snip_max_spikes_per_step=50):
         self.n2board = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
+        self.snip_max_spikes_per_step = snip_max_spikes_per_step
 
         if seed is not None:
             warnings.warn("Seed will be ignored when running on Loihi")
@@ -252,7 +260,6 @@ class LoihiSimulator(object):
         self.build(cx_model, seed=seed)
 
     def __enter__(self):
-        self.connect()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -275,8 +282,13 @@ class LoihiSimulator(object):
             for k, n2core in enumerate(n2chip.n2Cores):
                 print("  Core %d, id=%d" % (k, n2core.id))
 
-    def run_steps(self, steps):
-        self.n2board.run(steps)
+    def run_steps(self, steps, async=False):
+        # NOTE: we need to call connect() after snips are created
+        self.connect()
+        self.n2board.run(steps, async=async)
+
+    def wait_for_completion(self):
+        self.n2board.finishRun()
 
     def is_connected(self):
         return self.n2board is not None and self.n2board.nxDriver.hasStarted()
@@ -337,3 +349,66 @@ class LoihiSimulator(object):
         x = np.column_stack([p.timeSeries.data for p in n2probe])
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
+
+    def create_io_snip(self):
+        # snips must be created before connecting
+        assert not self.is_connected()
+
+        import nxsdk
+        nxsdk_dir = os.path.dirname(nxsdk.__file__)
+        nxsdk_root_dir = os.path.join(nxsdk_dir, "..")
+
+        snips_dir = os.path.join(os.path.dirname(__file__), "snips")
+        template_path = os.path.join(snips_dir, "nengo_io.c.template")
+        c_path = os.path.join(snips_dir, "nengo_io.c")
+
+        # --- generate custom code
+        n_outputs = 1
+        probes = []
+        cores = set()
+        snip_range = {}
+        for group in self.model.cx_groups.keys():
+            for probe in group.probes:
+                if probe.use_snip:
+                    info = probe.snip_info
+                    coreid = info['coreid']
+                    cxs = info['cxs']
+                    cores.add(coreid)
+                    snip_range[probe] = slice(n_outputs - 1,
+                                              n_outputs + len(cxs) - 1)
+                    for cx in cxs:
+                        probes.append((n_outputs, coreid, cx))
+                        n_outputs += 1
+
+        core_line = 'NeuronCore *core%d = NEURON_PTR((CoreId){.id=%d});'
+        code_cores = '\n'.join([core_line % (c, c) for c in cores])
+        probe_line = 'output[%d] = core%d->cx_state[%d].V;'
+        code_probes = '\n'.join([probe_line % p for p in probes])
+
+        # --- write c file using template
+        with open(template_path) as f:
+            template = f.read()
+
+        code = template % (n_outputs, code_cores, code_probes)
+        with open(c_path, 'w') as f:
+            f.write(code)
+
+        # --- create SNIP process and channels
+        os.chdir(nxsdk_root_dir)
+        # TODO: figure out when it's safe to go back to the original directory
+
+        include_dir = snips_dir
+        func_name = "nengo_io"
+        guard_name = None
+        phase = "mgmt"
+        nengo_io = self.n2board.createProcess("nengo_io", c_path, include_dir,
+                                              func_name, guard_name, phase)
+        size = self.snip_max_spikes_per_step * 2 + 1
+        self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
+                                                       "int", size)
+        self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',
+                                                       "int", n_outputs)
+        self.nengo_io_h2c.connect(None, nengo_io)
+        self.nengo_io_c2h.connect(nengo_io, None)
+        self.nengo_io_c2h_count = n_outputs
+        self.nengo_io_snip_range = snip_range

@@ -275,6 +275,8 @@ class CxProbe(object):
         self.slice = slice if slice is not None else self._slice(None)
         self.weights = weights
         self.synapse = synapse
+        self.use_snip = False
+        self.snip_info = None
 
 
 class CxSpikeInput(object):

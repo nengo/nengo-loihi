@@ -5,7 +5,6 @@ import nengo.utils.matplotlib
 import pytest
 
 
-@pytest.mark.xfail(reason="precompute=True not implemented yet")
 def test_precompute(Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:
         D = 2
@@ -42,8 +41,8 @@ def test_precompute(Simulator, seed, plt):
     plt.title('precompute=True')
 
     assert np.array_equal(sim1.data[p_stim], sim2.data[p_stim])
-    assert np.array_equal(sim1.data[p_a], sim2.data[p_a])
-    assert np.array_equal(sim1.data[p_out], sim2.data[p_out])
+    assert np.allclose(sim1.data[p_a], sim2.data[p_a], atol=0.2)
+    assert np.allclose(sim1.data[p_out], sim2.data[p_out], atol=0.2)
 
 
 @pytest.mark.xfail(reason="TODO: fix this test or remove it")

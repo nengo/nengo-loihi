@@ -151,6 +151,30 @@ class Simulator(object):
             self.simulator = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
             self.model.discretize()  # Make parameters fixed bit widths
+            if not precompute:
+                # tag all probes as being snipbased
+                #  (having normal probes at the same time as snips
+                #   seems to cause problems)
+                for group in self.model.cx_groups.keys():
+                    for cx_probe in group.probes:
+                        cx_probe.use_snip = True
+                # create a place to store data from snip probes
+                self.snip_probes = {}
+                for probe in network.all_probes:
+                    self.snip_probes[probe] = []
+
+                # create a list of all the CxProbes and their nengo.Probes
+                self.cx_probe2probe = {}
+                for obj in self.model.objs.keys():
+                    if isinstance(obj, nengo.Probe):
+                        # actual nengo.Probes on chip objects
+                        cx_probe = self.model.objs[obj]['out']
+                        self.cx_probe2probe[cx_probe] = obj
+                for probe in self.chip2host_receivers.keys():
+                    # probes used for chip->host communication
+                    cx_probe = self.model.objs[probe]['out']
+                    self.cx_probe2probe[cx_probe] = probe
+
             self.loihi = self.model.get_loihi(seed=seed)
         else:
             raise ValueError("Unrecognized target")
@@ -217,7 +241,13 @@ class Simulator(object):
             assert probe.sample_every is None
             assert self.loihi is None or self.simulator is None
             if self.loihi is not None:
-                data = self.loihi.get_probe_output(probe)
+                cx_probe = self.loihi.model.objs[probe]['out']
+                if cx_probe.use_snip:
+                    data = self.snip_probes[probe]
+                    if probe.synapse is not None:
+                        data = probe.synapse.filt(data, dt=self.dt, y0=0)
+                else:
+                    data = self.loihi.get_probe_output(probe)
             elif self.simulator is not None:
                 data = self.simulator.get_probe_output(probe)
             # TODO: stop recomputing this all the time
@@ -311,10 +341,20 @@ class Simulator(object):
                 self.loihi.run_steps(steps)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
-            elif self.host_sim is None:
-                self.loihi.run_steps(steps)
+            elif self.host_sim is not None:
+                self.loihi.create_io_snip()
+                self.loihi.run_steps(steps, async=True)
+                for i in range(steps):
+                    self.host_sim.run_steps(1)
+                    self.handle_host2chip_communications()
+                    self.handle_chip2host_communications()
+
+                print('Waiting for completion')
+                self.loihi.nengo_io_h2c.write(1, [0])
+                self.loihi.wait_for_completion()
+                print("done")
             else:
-                raise NotImplementedError
+                self.loihi.run_steps(steps)
 
         self._n_steps += steps
         self._probe()
@@ -328,7 +368,7 @@ class Simulator(object):
                         receiver.receive(t, x)
                     del sender.queue[:]
         elif self.loihi is not None:
-            if self.precompute or self.host_sim is not None:
+            if self.precompute:
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
                     for t, x in sender.queue:
@@ -344,6 +384,35 @@ class Simulator(object):
                                         sent_count, *output_axon[j])
                         sent_count += 1
                     spike_input.sent_count = sent_count
+            elif self.host_sim is not None:
+                to_send = []
+                # go through the list of host2chip connections
+                for sender, receiver in self.host2chip_senders.items():
+                    for t, x in sender.queue:
+                        receiver.receive(t, x)
+                    del sender.queue[:]
+                    spike_input = receiver.cx_spike_input
+                    sent_count = spike_input.sent_count
+                    axon_ids = spike_input.axon_ids
+                    spikes = spike_input.spikes
+                    while sent_count < len(spikes):
+                        for j, s in enumerate(spikes[sent_count]):
+                            if s:
+                                for output_axon in axon_ids:
+                                    to_send.append(output_axon[j])
+                        sent_count += 1
+                    spike_input.sent_count = sent_count
+                max_spikes = self.loihi.snip_max_spikes_per_step
+                if len(to_send) > max_spikes:
+                    warnings.warn("Too many spikes (%d) sent in one time "
+                                  "step.  Increase the value of "
+                                  "snip_max_spikes_per_step (currently "
+                                  "set to %d)" % (len(to_send), max_spikes))
+                    del to_send[max_spikes:]
+                self.loihi.nengo_io_h2c.write(1, [len(to_send)])
+                for spike in to_send:
+                    assert spike[0] == 0
+                    self.loihi.nengo_io_h2c.write(2, spike[1:3])
 
     def handle_chip2host_communications(self):  # noqa: C901
         if self.simulator is not None:
@@ -371,7 +440,7 @@ class Simulator(object):
             else:
                 raise NotImplementedError
         elif self.loihi is not None:
-            if self.precompute or self.host_sim is not None:
+            if self.precompute:
                 # go through the list of chip2host connections
                 increment = None
                 for probe, receiver in self.chip2host_receivers.items():
@@ -388,13 +457,44 @@ class Simulator(object):
                             assert increment == len(x)
                         if cx_probe.weights is not None:
                             x = np.dot(x, cx_probe.weights)
-
                         for j in range(len(x)):
                             receiver.receive(
                                 self.dt * (self.chip2host_sent_steps + j + 2),
                                 x[j])
                 if increment is not None:
                     self.chip2host_sent_steps += increment
+            elif self.host_sim is not None:
+                # TODO: Why is this needed?  Without the sleep, we randomly
+                #  get communication failures....
+                import time
+                time.sleep(0.005)
+                count = self.loihi.nengo_io_c2h_count
+                time_step = self.loihi.nengo_io_c2h.read(1)[0]
+                while time_step == 0:
+                    time_step = self.loihi.nengo_io_c2h.read(1)[0]
+                data = self.loihi.nengo_io_c2h.read(count-1)
+                data = np.array(data)
+                snip_range = self.loihi.nengo_io_snip_range
+                for cx_probe, probe in self.cx_probe2probe.items():
+                    x = data[snip_range[cx_probe]]
+                    if cx_probe.key == 's':
+                        if isinstance(probe.target, nengo.ensemble.Neurons):
+                            t_ref = probe.target.ensemble.neuron_type.tau_ref
+                            assert t_ref == 0.002
+                            # TODO: generalize this to other tau_ref values
+                            x = (x == 384)
+                        else:
+                            # interneurons have a refractory period of 1 step
+                            x = (x == 128)
+                    if cx_probe.weights is not None:
+                        x = np.dot(x, cx_probe.weights)
+                    receiver = self.chip2host_receivers.get(probe, None)
+                    if receiver is not None:
+                        # chip->host
+                        receiver.receive(self.dt*(time_step), x)
+                    else:
+                        # onchip probes
+                        self.snip_probes[probe].append(x)
             else:
                 raise NotImplementedError
 
