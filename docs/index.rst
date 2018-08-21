@@ -21,3 +21,7 @@ with::
    api
    tips
    setup/index
+
+* :ref:`genindex`
+
+.. include:: ../CHANGES.rst
