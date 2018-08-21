@@ -1,0 +1,46 @@
+language: c
+sudo: false
+notifications:
+  email:
+    - tbekolay@gmail.com
+
+env:
+  global:
+    - STATIC="false"
+    - DOCS="false"
+
+matrix:
+  include:
+    - env: PYTHON="3.5.5"
+    - env: PYTHON="3.5.5" STATIC="true"
+    - env: PYTHON="3.5.5" DOCS="true"
+
+before_install:
+  - source .ci/conda.sh install
+
+install:
+  - if [[ "$STATIC" == "true" ]]; then
+      .ci/static.sh install;
+    elif [[ "$DOCS" == "true" ]]; then
+      .ci/docs.sh install;
+    else
+      .ci/test.sh install;
+    fi
+
+script:
+  - if [[ "$STATIC" == "true" ]]; then
+      .ci/static.sh run;
+    elif [[ -n "$TRAVIS_TAG" && "$DOCS" == "true" ]]; then
+      .ci/docs.sh run;
+    elif [[ "$DOCS" == "true" ]]; then
+      .ci/docs.sh check;
+    else
+      .ci/test.sh run;
+    fi
+
+after_success:
+  - if [[ "$STATIC" == "false" && "$DOCS" == "false" ]]; then
+      .ci/test.sh upload;
+    elif [[ -n "$TRAVIS_TAG" && "$DOCS" == "true" ]]; then
+      .ci/docs.sh upload;
+    fi

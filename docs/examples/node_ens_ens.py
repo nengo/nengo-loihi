@@ -7,14 +7,18 @@ import nengo_loihi
 seed = 1
 tend = 2.0
 weights = False
-a_fn = lambda x: x**2
 d = 2
+
+
+def a_fn(x):
+    return x ** 2
+
 
 bnp = None
 nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
     u = nengo.Node(
-        output=nengo.processes.WhiteSignal(tend, high=5, seed=seed+1),
+        output=nengo.processes.WhiteSignal(tend, high=5, seed=seed + 1),
         size_out=d)
     up = nengo.Probe(u, synapse=None)
 
@@ -44,8 +48,7 @@ if __name__ == "__main__":
     print(sim.data[bup][-10:])
     print(sim.data[bvp][-10:])
 
-    acount = sim.data[anp].sum(axis=0)
-    print(acount)
+    print(sim.data[anp].sum(axis=0))
 
     if bnp is not None:
         bcount = sim.data[bnp].sum(axis=0)
