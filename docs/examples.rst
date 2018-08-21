@@ -15,5 +15,6 @@ We compare performance with Nengo core where appropriate.
    examples/integrator_multi_d
    examples/oscillator
    examples/oscillator_nonlinear
+   examples/neuron_to_neuron
    examples/learn_communication_channel
    examples/keyword_spotting
