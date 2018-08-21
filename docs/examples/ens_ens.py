@@ -6,8 +6,12 @@ import nengo_loihi
 
 seed = 1
 weights = True
-a_fn = lambda x: x + 0.5
 bnp = None
+
+
+def a_fn(x):
+    return x + 0.5
+
 
 nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
@@ -36,8 +40,7 @@ if __name__ == "__main__":
     print(sim.data[bup][-10:])
     print(sim.data[bvp][-10:])
 
-    acount = sim.data[anp].sum(axis=0)
-    print(acount)
+    print(sim.data[anp].sum(axis=0))
 
     if bnp is not None:
         bcount = sim.data[bnp].sum(axis=0)

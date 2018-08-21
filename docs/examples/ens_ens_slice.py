@@ -5,8 +5,12 @@ import nengo_loihi
 
 seed = 1
 b_vals = [-0.5, 0.75]
-a_fn = lambda x: [xx + bb for xx, bb in zip(x, b_vals)]
 weights = True
+
+
+def a_fn(x):
+    return [xx + bb for xx, bb in zip(x, b_vals)]
+
 
 nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:

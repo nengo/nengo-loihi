@@ -75,7 +75,7 @@ class ChipReceiveNode(nengo.Node):
                                               size_in=0, size_out=size_out)
 
     def update(self, t):
-        raise Exception('ChipReceiveNodes should not acutally be run')
+        raise Exception('ChipReceiveNodes should not actually be run')
 
     def receive(self, t, x):
         assert self.last_time is None or t > self.last_time
