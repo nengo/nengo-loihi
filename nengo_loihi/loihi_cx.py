@@ -507,6 +507,9 @@ class CxSimulator(object):
         noiseTarget = np.hstack([
             group.noiseAtDendOrVm*ones(group.n) for group in self.groups])
         if group_dtype == np.int32:
+            if np.any(noiseExp0 < 7):
+                warnings.warn("Noise amplitude falls below lower limit")
+            noiseExp0[noiseExp0 < 7] = 7
             noiseMult = np.where(enableNoise, 2**(noiseExp0 - 7), 0)
 
             def noiseGen(n=self.n_cx, rng=self.rng):

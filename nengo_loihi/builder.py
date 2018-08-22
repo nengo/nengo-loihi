@@ -10,7 +10,6 @@ from nengo.dists import Distribution, get_samples
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
-from nengo.neurons import Direct, LIF, RectifiedLinear
 from nengo.solvers import NoSolver, Solver
 from nengo.utils.builder import default_n_eval_points
 from nengo.utils.compat import iteritems
@@ -259,7 +258,7 @@ def build_ensemble(model, ens):
     eval_points = gen_eval_points(ens, ens.eval_points, rng=rng)
 
     # Set up encoders
-    if isinstance(ens.neuron_type, Direct):
+    if isinstance(ens.neuron_type, nengo.Direct):
         encoders = np.identity(ens.dimensions)
     elif isinstance(ens.encoders, Distribution):
         encoders = get_samples(
@@ -272,7 +271,7 @@ def build_ensemble(model, ens):
     # Build the neurons
     gain, bias, max_rates, intercepts = get_gain_bias(ens, rng)
 
-    if isinstance(ens.neuron_type, Direct):
+    if isinstance(ens.neuron_type, nengo.Direct):
         raise NotImplementedError()
     else:
         group = CxGroup(ens.n_neurons, label='%s' % ens)
@@ -282,7 +281,7 @@ def build_ensemble(model, ens):
     group.configure_filter(INTER_TAU, dt=model.dt)
 
     # Scale the encoders
-    if isinstance(ens.neuron_type, Direct):
+    if isinstance(ens.neuron_type, nengo.Direct):
         raise NotImplementedError("Direct neurons not implemented")
         # scaled_encoders = encoders
     else:
@@ -319,7 +318,7 @@ def build_ensemble(model, ens):
         bias=bias)
 
 
-@Builder.register(LIF)
+@Builder.register(nengo.LIF)
 def build_lif(model, lif, neurons, group):
     group.configure_lif(
         tau_rc=lif.tau_rc,
@@ -327,7 +326,8 @@ def build_lif(model, lif, neurons, group):
         dt=model.dt)
 
 
-@Builder.register(RectifiedLinear)
+# TODO: fix issues with ReLu before enabling it
+# @Builder.register(nengo.RectifiedLinear)
 def build_relu(model, relu, neurons, group):
     group.configure_relu(dt=model.dt)
 
@@ -485,12 +485,11 @@ def build_connection(model, conn):
             # input is on-off neuron encoded, so double/flip transform
             weights = np.column_stack([transform, -transform])
 
-            # remove rate factor added by pre-compute nodes;
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
-            weights = weights / (INTER_RATE * INTER_N * model.dt)
+            weights = weights / (INTER_RATE * INTER_N)
     elif (isinstance(conn.pre_obj, Ensemble) and
-          isinstance(conn.pre_obj.neuron_type, Direct)):
+          isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
@@ -616,7 +615,7 @@ def build_connection(model, conn):
 
             syn = CxSynapses(n1)
             gain = model.params[conn.post_obj.ensemble].gain
-            syn.set_full_weights(weights.T * gain)
+            syn.set_full_weights(weights.T * gain / model.dt)
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 
