@@ -40,6 +40,7 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
     assert np.all(scount >= lower_bound - 1)
 
 
+@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
 def test_relu_response_curves(Simulator, plt):
     n = 256
     encoders = np.ones((n, 1))
@@ -70,6 +71,7 @@ def test_relu_response_curves(Simulator, plt):
     assert np.all(actual >= scount)
 
 
+@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
 @pytest.mark.parametrize("amplitude", (0.1, 0.5, 1))
 def test_amplitude(Simulator, amplitude, seed, allclose):
     # TODO: test rectifiedlinear as well (not working at the moment due to

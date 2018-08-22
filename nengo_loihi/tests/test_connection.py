@@ -81,6 +81,7 @@ def test_node_to_neurons(precompute, allclose, Simulator, plt):
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
+@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
 @pytest.mark.parametrize("factor", [0.11, 0.26, 0.51, 1.01])
 def test_neuron_to_neuron(Simulator, factor, seed, allclose):
     # note: we use these weird factor values so that voltages don't line up
