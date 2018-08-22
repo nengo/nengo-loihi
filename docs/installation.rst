@@ -11,8 +11,9 @@ that has ``pip``.
 
 .. code-block:: bash
 
-   cd path/to/nengo-loihi
-   pip install .
+   git clone https://github.com/nengo/nengo-loihi.git
+   cd nengo-loihi
+   pip install -e .
 
 Note that the ``.`` at the end of ``pip`` command is required.
 
@@ -112,8 +113,9 @@ for running Loihi models.
 
    .. code-block:: bash
 
-      cd path/to/nengo-loihi
-      pip install .
+      git clone https://github.com/nengo/nengo-loihi.git
+      cd nengo-loihi
+      pip install -e .
 
    ``pip`` will install other requirements like Nengo automatically.
 
