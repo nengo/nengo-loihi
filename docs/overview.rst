@@ -10,22 +10,29 @@ is made accessible through an FPGA board.
 We will refer to the devices involved in
 a Loihi model using the following terms.
 
-- *Board*: The Loihi board, which contains one or more Loihi chips.
-- *Chip*: A Loihi chip, which contains several cores.
-- *Core*: A computational unit on a chip.
+**Board**
+  The Loihi board, which contains one or more Loihi chips.
+**Chip**
+  A Loihi chip, which contains several cores.
+**Core**
+  A computational unit on a chip.
   Each chip has several neuron cores, which simulate compartments,
   synapses, etc. and several Lakemont cores, which are general purpose
   CPUs for handling input/output and other general tasks.
-- *Host*: The FPGA board that the Loihi board is connected to.
+**Host**
+  The FPGA board that the Loihi board is connected to.
   The host runs a Linux-based operating system to allow programs
   to interact with the board using drivers provided by Intel.
-- *Superhost*: The PC physically connected to the FPGA board.
+**Superhost**
+  The PC physically connected to the FPGA board.
   Typically the superhost and host communicate over ethernet,
   but it is also possible to communicate over serial USB.
-- *INRC*: A superhost provided to members of the
+**INRC**
+  A superhost provided to members of the
   Intel Neuromorphic Research Community.
   Whenever we refer to the superhost, you can use the INRC.
-- *Local machine*: The computer you are currently using.
+**Local machine**
+  The computer you are currently using.
   We usually assume that your local machine is not the superhost,
   though you can work directly on the superhost.
 
