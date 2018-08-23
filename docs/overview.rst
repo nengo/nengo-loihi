@@ -22,6 +22,9 @@ a Loihi model using the following terms.
 - *Superhost*: The PC physically connected to the FPGA board.
   Typically the superhost and host communicate over ethernet,
   but it is also possible to communicate over serial USB.
+- *INRC*: A superhost provided to members of the
+  Intel Neuromorphic Research Community.
+  Whenever we refer to the superhost, you can use the INRC.
 - *Local machine*: The computer you are currently using.
   We usually assume that your local machine is not the superhost,
   though you can work directly on the superhost.
