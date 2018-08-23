@@ -329,6 +329,56 @@ to the local machine's ``~/remote/host-2`` directory.
 Superhost
 =========
 
+Plotting
+--------
+
+If you are generating plots with Matplotlib
+on the superhost or host,
+you may run into issues due to there being
+no monitor attached to those machines
+(i.e., they are "headless").
+Rather than plotting to a screen,
+you can instead save plots as files
+with ``plt.savefig``.
+You will also need to configure
+Matplotlib to use a headless backend by default.
+
+The easiest way to do this is with a ``matplotlibrc`` file.
+
+.. code-block:: bash
+
+   mkdir -p ~/.config/matplotlib
+   echo "backend: Agg" >> ~/.config/matplotlib/matplotlibrc
+
+IPython / Jupyter
+-----------------
+
+If you want to use the IPython interpreter
+or the Jupyter notebook on a superhost
+(e.g., the INRC superhost),
+you may run into issues due to the
+network file system (NFS),
+which does not work well
+with how IPython and Jupyter track command history.
+You can configure IPython and Jupyter
+to instead store command history to memory only.
+
+To do this, start by generating the configuration files.
+
+.. code-block:: bash
+
+   jupyter notebook --generate-config
+   ipython profile create
+
+Then add a line to three files to
+configure the command history for NFS.
+
+.. code-block:: bash
+
+   echo "c.NotebookNotary.db_file = ':memory:'" >> ~/.jupyter/jupyter_notebook_config.py
+   echo "c.HistoryAccessor.hist_file = ':memory:'" >> ~/.ipython/profile_default/ipython_config.py
+   echo "c.HistoryAccessor.hist_file = ':memory:'" >> ~/.ipython/profile_default/ipython_kernel_config.py
+
 Slurm cheatsheet
 ----------------
 
@@ -407,24 +457,3 @@ In the other terminal, run your job without Slurm.
 .. code-block:: bash
 
    SLURM=0 python models/my_model.py
-
-Plotting
---------
-
-If you are generating plots with Matplotlib
-on the superhost or host,
-you may run into issues due to there being
-no monitor attached to those machines
-(i.e., they are "headless").
-Rather than plotting to a screen,
-you can instead save plots as files
-with ``plt.savefig``.
-You will also need to configure
-Matplotlib to use a headless backend by default.
-
-The easiest way to do this is with a ``matplotlibrc`` file.
-
-.. code-block:: bash
-
-   mkdir -p ~/.config/matplotlib
-   echo "backend: Agg" >> ~/.config/matplotlib/matplotlibrc
