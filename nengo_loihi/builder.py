@@ -480,14 +480,14 @@ def build_connection(model, conn):
 
         assert transform.shape[1] == conn.pre.size_out
         if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
-            weights = transform
+            weights = transform / model.dt
         else:
             # input is on-off neuron encoded, so double/flip transform
             weights = np.column_stack([transform, -transform])
 
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
-            weights = weights / (INTER_RATE * INTER_N)
+            weights = weights / (INTER_RATE * INTER_N * model.dt)
     elif (isinstance(conn.pre_obj, Ensemble) and
           isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
@@ -506,7 +506,7 @@ def build_connection(model, conn):
     elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
         assert transform.ndim == 2
-        weights = transform
+        weights = transform / model.dt
         neuron_type = conn.pre_obj.ensemble.neuron_type
     else:
         raise NotImplementedError("Connection from type %r" % (
@@ -615,7 +615,7 @@ def build_connection(model, conn):
 
             syn = CxSynapses(n1)
             gain = model.params[conn.post_obj.ensemble].gain
-            syn.set_full_weights(weights.T * gain / model.dt)
+            syn.set_full_weights(weights.T * gain)
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 

@@ -1,4 +1,5 @@
 import nengo
+from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 
@@ -109,3 +110,53 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose):
     assert allclose(np.sum(sim.data[p_b] > 0, axis=0),
                     np.floor(np.sum(sim.data[p_a] > 0, axis=0) * factor),
                     atol=1)
+
+
+def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
+    with nengo.Network(seed=seed) as net:
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+        pre = nengo.Ensemble(20, 1)
+        nengo.Connection(stim, pre, synapse=None)
+
+        post = nengo.Ensemble(2, 1,
+                              gain=[1., 1.], bias=[0., 0.])
+
+        # On and off neurons
+        nengo.Connection(pre, post.neurons,
+                         synapse=None, transform=[[5], [-5]])
+
+        p_pre = nengo.Probe(pre, synapse=nengo.synapses.Alpha(0.03))
+        p_post = nengo.Probe(post.neurons)
+
+    # Compare to Nengo
+    with nengo.Simulator(net) as nengosim:
+        nengosim.run(1.0)
+
+    with Simulator(net) as sim:
+        sim.run(1.0)
+
+    t = sim.trange()
+    plt.subplot(2, 1, 1)
+    plt.title("Reference Nengo")
+    plt.plot(t, nengosim.data[p_pre], c='k')
+    plt.ylabel("Decoded pre value")
+    plt.xlabel("Time (s)")
+    plt.twinx()
+    rasterplot(t, nengosim.data[p_post])
+    plt.ylabel("post neuron number")
+    plt.subplot(2, 1, 2)
+    plt.title("Nengo Loihi")
+    plt.plot(t, sim.data[p_pre], c='k')
+    plt.ylabel("Decoded pre value")
+    plt.xlabel("Time (s)")
+    plt.twinx()
+    rasterplot(t, sim.data[p_post])
+    plt.ylabel("post neuron number")
+
+    plt.tight_layout()
+
+    # Compare the number of spikes for each neuron.
+    # We'll let them be off by 5 for now.
+    assert allclose(np.sum(sim.data[p_post], axis=0) * sim.dt,
+                    np.sum(nengosim.data[p_post], axis=0) * nengosim.dt,
+                    atol=5)
