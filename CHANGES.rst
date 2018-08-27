@@ -19,8 +19,8 @@ Release history
    - Removed
    - Fixed
 
-0.2.0 (unreleased)
-==================
+0.2.0 (August 27, 2018)
+=======================
 
 First public alpha release of Nengo Loihi!
 If you have any questions,
