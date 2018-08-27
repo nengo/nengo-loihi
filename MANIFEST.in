@@ -1,0 +1,30 @@
+global-include *.py
+include *.rst
+global-include *.sh
+include pytest.ini
+
+# Include files for snips
+recursive-include nengo_loihi *.c
+recursive-include nengo_loihi *.h
+recursive-include nengo_loihi *.template
+
+# Include this file, to ensure we can recreate source distributions
+include MANIFEST.in
+
+# Directories to include
+graft docs
+graft sandbox
+
+# Subdirectories to exclude, if they exist
+prune docs/_build
+prune dist
+prune .git
+prune .github
+prune .tox
+
+# Patterns to exclude from any directory
+global-exclude *-checkpoint.ipynb
+global-exclude *.pkl
+
+# Exclude all bytecode
+global-exclude *.pyc *.pyo *.pyd
