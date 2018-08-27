@@ -3,7 +3,6 @@ import logging
 import os
 from functools import partial
 
-import matplotlib as mpl
 import nengo.utils.numpy as npext
 import numpy as np
 import pytest
@@ -15,7 +14,6 @@ import nengo_loihi
 
 
 def pytest_configure(config):
-    mpl.use("Agg")
     TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
     if config.getoption('seed_offset'):
         TestConfig.test_seed = config.getoption('seed_offset')[0]

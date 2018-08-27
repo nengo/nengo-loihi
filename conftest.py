@@ -1,3 +1,10 @@
+import matplotlib as mpl
+
+
+def pytest_configure(config):
+    mpl.use("Agg")
+
+
 def pytest_addoption(parser):
     parser.addoption("--target", type=str, default="sim",
                      help="Platform on which to run tests ('sim' or 'loihi')")
