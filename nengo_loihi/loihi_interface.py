@@ -404,6 +404,7 @@ class LoihiSimulator(object):
         self.close()
 
     def build(self, cx_model, seed=None):
+        cx_model.validate()
         self.model = cx_model
 
         # --- allocate --

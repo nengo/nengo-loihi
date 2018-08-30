@@ -5,6 +5,7 @@ import logging
 import warnings
 
 import numpy as np
+from nengo.exceptions import BuildError
 from nengo.utils.compat import is_iterable, range
 
 from nengo_loihi.loihi_api import (
@@ -382,6 +383,11 @@ class CxModel(object):
     def get_simulator(self, seed=None):
         return CxSimulator(self, seed=seed)
 
+    def validate(self):
+        if len(self.cx_groups) == 0:
+            raise BuildError("No neurons marked for execution on-chip. "
+                             "Please mark some ensembles as on-chip.")
+
 
 class CxSimulator(object):
     """Software emulator for Loihi chip.
@@ -402,6 +408,8 @@ class CxSimulator(object):
 
     def build(self, model, seed=None):  # noqa: C901
         """Set up NumPy arrays to emulate chip memory and I/O."""
+        model.validate()
+
         if seed is None:
             seed = np.random.randint(2**31 - 1)
 
@@ -420,7 +428,7 @@ class CxSimulator(object):
         self.n_cx = sum(group.n for group in self.groups)
         self.group_cxs = {}
         cx_slice = None
-        i0 = 0
+        i0, i1 = 0, 0
         for group in self.groups:
             if group.location == 'cpu' and cx_slice is None:
                 cx_slice = slice(0, i0)
