@@ -481,8 +481,8 @@ class Simulator(object):
                         for j, s in enumerate(spike_input.spikes[sent_count]):
                             if s:
                                 for output_axon in spike_input.axon_ids:
-                                    items.append((
-                                        sent_count, *output_axon[j]))
+                                    items.append(
+                                        (sent_count,) + output_axon[j])
                         sent_count += 1
                     spike_input.sent_count = sent_count
                 if len(items) > 0:

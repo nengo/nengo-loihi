@@ -34,6 +34,7 @@ setup(
     description="Run Nengo models on the Loihi chip",
     long_description=read("README.rst"),
     zip_safe=False,
+    python_requires=">=3.4",
     setup_requires=[
         "nengo",
     ],
