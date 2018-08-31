@@ -87,7 +87,8 @@ class ChipReceiveNode(nengo.Node):
 
 class ChipReceiveNeurons(ChipReceiveNode):
     """Passes spikes directly (no on-off neuron encoding)"""
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, neuron_type=None):
+        self.neuron_type = neuron_type
         super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)
 
 
@@ -149,7 +150,8 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 dim = c.size_in
                 with chip:
                     logger.debug("Creating ChipReceiveNeurons for %s", c)
-                    receive = ChipReceiveNeurons(dim)
+                    receive = ChipReceiveNeurons(
+                        dim, neuron_type=c.pre_obj.ensemble.neuron_type)
                     nengo.Connection(receive, c.post,
                                      transform=c.transform, synapse=c.synapse)
                 with host:

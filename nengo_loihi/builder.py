@@ -482,6 +482,7 @@ def build_connection(model, conn):
         assert transform.shape[1] == conn.pre.size_out
         if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
             weights = transform / model.dt
+            neuron_type = conn.pre_obj.neuron_type
         else:
             # input is on-off neuron encoded, so double/flip transform
             weights = np.column_stack([transform, -transform])
