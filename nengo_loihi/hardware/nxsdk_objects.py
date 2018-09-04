@@ -14,6 +14,8 @@ MAX_SYNAPSE_CFGS = d(b'OA==', int)
 
 
 class Board:
+    """An entire Loihi Board, with multiple Chips"""
+
     def __init__(self, board_id=1):
         self.board_id = board_id
 
@@ -64,6 +66,8 @@ class Board:
 
 
 class Chip:
+    """A Loihi Chip on a Board, with multiple Cores."""
+
     def __init__(self, board):
         self.board = board
 
@@ -94,6 +98,8 @@ class Chip:
 
 
 class Core:
+    """A Loihi Core, implementing one or more Blocks."""
+
     def __init__(self, chip):
         self.chip = chip
         self.blocks = []
