@@ -323,8 +323,9 @@ class CxGroup(object):
 
 
 class CxSynapses(object):
-    def __init__(self, n_axons):
+    def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
+        self.label = label
         self.group = None
         self.synapse_fmt = None
         self.weights = None
@@ -332,6 +333,10 @@ class CxSynapses(object):
         self.tracing = False
         self.tracing_tau = None
         self.tracing_mag = None
+
+    def __str__(self):
+        return "%s(%s)" % (
+            type(self).__name__, self.label if self.label else '')
 
     def size(self):
         return sum(len(w) for w in self.weights)
@@ -390,13 +395,18 @@ class CxSynapses(object):
 
 
 class CxAxons(object):
-    def __init__(self, n_axons):
+    def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
+        self.label = label
         self.group = None
 
         self.target = None
         self.target_inds = slice(None)  # which synapse inputs are targeted
         # ^ TODO: this does not allow multiple pre-cx per axon, loihi does
+
+    def __str__(self):
+        return "%s(%s)" % (
+            type(self).__name__, self.label if self.label else '')
 
 
 class CxProbe(object):
