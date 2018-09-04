@@ -326,10 +326,11 @@ def build_lif(model, lif, neurons, group):
         dt=model.dt)
 
 
-# TODO: fix issues with ReLu before enabling it
-# @Builder.register(nengo.RectifiedLinear)
+@Builder.register(nengo.SpikingRectifiedLinear)
 def build_relu(model, relu, neurons, group):
-    group.configure_relu(dt=model.dt)
+    group.configure_relu(
+        vth=1./model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
+        dt=model.dt)
 
 
 @Builder.register(Node)

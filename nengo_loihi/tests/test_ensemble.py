@@ -40,16 +40,15 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
     assert np.all(scount >= lower_bound - 1)
 
 
-@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
-def test_relu_response_curves(Simulator, plt):
+def test_relu_response_curves(Simulator, plt, allclose):
     n = 256
     encoders = np.ones((n, 1))
     gain = np.zeros(n)
-    bias = np.linspace(0, 1.01, n)
+    bias = np.linspace(0, 50, n)
 
     with nengo.Network() as model:
         a = nengo.Ensemble(n, 1,
-                           neuron_type=nengo.RectifiedLinear(),
+                           neuron_type=nengo.SpikingRectifiedLinear(),
                            encoders=encoders,
                            gain=gain,
                            bias=bias)
@@ -61,29 +60,27 @@ def test_relu_response_curves(Simulator, plt):
         sim.run(t_final)
 
     scount = np.sum(sim.data[ap] > 0, axis=0)
-    actual = nengo.RectifiedLinear().rates(0., gain, bias / dt)
+    actual = nengo.SpikingRectifiedLinear().rates(0., gain, bias)
     plt.plot(bias, actual, "b", label="Ideal")
     plt.plot(bias, scount, "g", label="Loihi")
     plt.xlabel("Bias current")
     plt.ylabel("Firing rate (Hz)")
     plt.legend(loc="best")
 
-    assert np.all(actual >= scount)
+    assert allclose(actual, scount, atol=5)
 
 
-@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
 @pytest.mark.parametrize("amplitude", (0.1, 0.5, 1))
-def test_amplitude(Simulator, amplitude, seed, allclose):
-    # TODO: test rectifiedlinear as well (not working at the moment due to
-    # other reasons)
-
+@pytest.mark.parametrize(
+    "neuron_type", (nengo.SpikingRectifiedLinear, nengo.LIF))
+def test_amplitude(Simulator, amplitude, neuron_type, seed, allclose):
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([0.5])
         n = 100
         ens = nengo.Ensemble(
-            n, 1, neuron_type=nengo.LIF(amplitude=amplitude))
+            n, 1, neuron_type=neuron_type(amplitude=amplitude))
         ens2 = nengo.Ensemble(n, 1, gain=np.ones(n), bias=np.zeros(n),
-                              neuron_type=nengo.RectifiedLinear())
+                              neuron_type=nengo.SpikingRectifiedLinear())
         nengo.Connection(a, ens, synapse=None)
 
         # note: slight boost on transform so that the post neurons are pushed

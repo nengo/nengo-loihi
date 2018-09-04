@@ -44,7 +44,7 @@ if 0:
 else:
     tau_rc = np.inf
     tau_ref = 0.000
-    neuron_type = nengo.RectifiedLinear()
+    neuron_type = nengo.SpikingRectifiedLinear()
     neuron_type = LoihiLIF(tau_rc=tau_rc, tau_ref=tau_ref)
     loihi_neuron_type = LoihiLIF(tau_rc=tau_rc, tau_ref=tau_ref)
 
