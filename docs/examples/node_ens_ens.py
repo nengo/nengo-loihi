@@ -18,7 +18,7 @@ bnp = None
 nengo_loihi.set_defaults()
 with nengo.Network(seed=seed) as model:
     u = nengo.Node(
-        output=nengo.processes.WhiteSignal(tend, high=5, seed=seed + 1),
+        output=nengo.processes.WhiteSignal(tend, high=2, seed=seed + 1),
         size_out=d)
     up = nengo.Probe(u, synapse=None)
 

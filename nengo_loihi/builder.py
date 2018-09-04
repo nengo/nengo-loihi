@@ -305,6 +305,7 @@ def build_ensemble(model, ens):
         group.bias[:] = bias
         model.build(ens.neuron_type, ens.neurons, group)
 
+    # set default filter just in case no other filter gets set
     group.configure_filter(INTER_TAU, dt=model.dt, default=True)
 
     if ens.noise is not None:
@@ -492,7 +493,7 @@ def build_connection(model, conn):
     transform = get_samples(
         conn.transform, conn.size_out, d=conn.size_mid, rng=rng)
 
-    tau_s = 0.0
+    tau_s = 0.0  # `synapse is None` gets mapped to `tau_s = 0.0`
     if isinstance(conn.synapse, nengo.synapses.Lowpass):
         tau_s = conn.synapse.tau
     elif conn.synapse is not None:
@@ -549,6 +550,7 @@ def build_connection(model, conn):
 
     mid_cx = pre_cx
     mid_axon_inds = slice(None)
+    post_tau = tau_s
     if needs_interneurons and not isinstance(conn.post_obj, Neurons):
         # --- add interneurons
         assert weights.ndim == 2
@@ -601,7 +603,9 @@ def build_connection(model, conn):
             weights2 = 0.5 * gain * np.vstack([weights,
                                                -weights] * INTER_N).T
 
+        # use tau_s for filter into interneurons, and INTER_TAU for filter out
         dec_cx.configure_filter(tau_s, dt=model.dt)
+        post_tau = INTER_TAU
 
         dec_syn.set_full_weights(weights2)
         dec_cx.add_synapses(dec_syn)
@@ -655,7 +659,7 @@ def build_connection(model, conn):
         ax.target = syn
         mid_cx.add_axons(ax)
 
-        post_cx.configure_filter(tau_s, dt=model.dt)
+        post_cx.configure_filter(post_tau, dt=model.dt)
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
@@ -677,7 +681,7 @@ def build_connection(model, conn):
         ax.target = syn
         mid_cx.add_axons(ax)
 
-        post_cx.configure_filter(tau_s, dt=model.dt)
+        post_cx.configure_filter(post_tau, dt=model.dt)
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
@@ -690,6 +694,8 @@ def build_connection(model, conn):
         mid_ax.target_inds = mid_axon_inds
         mid_cx.add_axons(mid_ax)
         model.objs[conn]['mid_axons'] = mid_ax
+
+        post_cx.configure_filter(post_tau, dt=model.dt)
     elif isinstance(conn.post_obj, Node):
         raise NotImplementedError()
     else:
