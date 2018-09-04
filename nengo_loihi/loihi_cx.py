@@ -27,14 +27,73 @@ class CxGroup(object):
 
     Typically an ensemble or node, can be a special decoding ensemble. Once
     implemented, SNIPS might use this as well.
+
+    Before ``discretize`` has been called, most parameters in this class are
+    floating-point values. Calling ``discretize`` converts them to integer
+    values inplace, for use on Loihi.
+
+    Attributes
+    ----------
+    n : int
+        The number of compartments in the group.
+    label : string
+        A label for the group (for debugging purposes).
+    decayU : (n,) ndarray
+        Input (synapse) decay constant for each compartment.
+    decayV : (n,) ndarray
+        Voltage decay constant for each compartment.
+    decayU_set : bool
+        Whether decayU has been explicitly set
+    scaleU : bool
+        Scale input (U) by decayU so that the integral of U is
+        the same before and after filtering.
+    scaleV : bool
+        Scale voltage (V) by decayV so that the integral of V is
+        the same before and after filtering.
+    refractDelay : (n,) ndarray
+        Compartment refractory delays, in time steps.
+    vth : (n,) ndarray
+        Compartment voltage thresholds.
+    bias : (n,) ndarray
+        Compartment biases.
+    enableNoise : (n,) ndarray
+        Whether to enable noise for each compartment.
+    vmin : float or int
+        Minimum voltage for all compartments.
+    vmax : float or int
+        Maximum voltage for all compartments.
+    noiseMantOffset0 : float or int
+        Offset for noise generation.
+    noiseExp0 : float or int
+        Exponent for noise generation. Floating point values are base 10
+        in units of current or voltage. Integer values are in base 2.
+    noiseAtDenOrVm : {0, 1}
+        Inject noise into current (0) or voltage (1).
+    synapses : list of CxSynapse
+        CxSynapse objects projecting to these compartments.
+    named_synapses : dict
+        Dictionary mapping names to CxSynapse objects.
+    axons : list of CxAxon
+        CxAxon objects outputting from these compartments.
+    named_axons : dict
+        Dictionary mapping names to CxAxon objects.
+    probes : list of CxProbe
+        CxProbes recording information from these compartments.
+    location : {"core", "cpu"}
+        Whether these compartments are on a Loihi core
+        or handled by the Loihi x86 processor (CPU).
     """
 
     def __init__(self, n, label=None, location='core'):
         self.n = n
         self.label = label
 
-        self.decayU = np.zeros(n, dtype=np.float32)
-        self.decayV = np.zeros(n, dtype=np.float32)
+        self.decayU = np.ones(n, dtype=np.float32)  # default to no filter
+        self.decayV = np.zeros(n, dtype=np.float32)  # default to integration
+        self.decayU_set = False  # whether decayU has been explicitly set
+        self.scaleU = True
+        self.scaleV = False
+
         self.refractDelay = np.zeros(n, dtype=np.int32)
         self.vth = np.zeros(n, dtype=np.float32)
         self.bias = np.zeros(n, dtype=np.float32)
@@ -101,43 +160,53 @@ class CxGroup(object):
         assert probe.target is self
         self.probes.append(probe)
 
-    def set_decay_U(self, tau_s, dt):
-        self.decayU[:] = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
+    def configure_filter(self, tau_s, dt=0.001, default=False):
+        """Set Lowpass synaptic input filter for Cx to time constant tau_s.
 
-    def configure_filter(self, tau_s, dt=0.001):
-        """Synaptic input filter for Cx."""
+        Parameters
+        ----------
+        tau_s : float
+            `nengo.Lowpass` synapse time constant for filtering.
+        dt : float
+            Simulator time step.
+        default : bool
+            Whether we are setting the default. Will only override the
+            current value if not explicitly set (i.e. if ``not decayU_set``).
+        """
+        if default and self.decayU_set:
+            return
 
-        self.set_decay_U(tau_s, dt)
+        decayU = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
+        if self.decayU_set and not np.allclose(decayU, self.decayU):
+            raise BuildError(
+                "Cannot change tau_s on already configured neurons")
 
-    def configure_lif(
-            self, tau_s=0.005, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
-        self.set_decay_U(tau_s, dt)
+        self.decayU[:] = decayU
+        self.scaleU = decayU > 1e-15
+        self.decayU_set = not default
+
+    def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleU = True
         self.scaleV = np.all(self.decayV > 1e-15)
 
-    def configure_relu(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
-        self.set_decay_U(tau_s, dt)
+    def configure_relu(self, tau_ref=0.0, vth=1, dt=0.001):
         self.decayV[:] = 0.
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleU = True
         self.scaleV = False
 
-    def configure_nonspiking(self, tau_s=0.0, tau_ref=0.0, vth=1, dt=0.001):
-        self.set_decay_U(tau_s, dt)
+    def configure_nonspiking(self, tau_ref=0.0, vth=1, dt=0.001):
         self.decayV[:] = 1.
         self.refractDelay[:] = 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleU = True
         self.scaleV = False
 
     def discretize(self):  # noqa C901

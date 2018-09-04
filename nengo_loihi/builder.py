@@ -278,7 +278,7 @@ def build_ensemble(model, ens):
         group.bias[:] = bias
         model.build(ens.neuron_type, ens.neurons, group)
 
-    group.configure_filter(INTER_TAU, dt=model.dt)
+    group.configure_filter(INTER_TAU, dt=model.dt, default=True)
 
     if ens.noise is not None:
         raise NotImplementedError("Ensemble noise not implemented")
@@ -540,7 +540,6 @@ def build_connection(model, conn):
             gain = 1  # model.dt * INTER_RATE(=1000)
             dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
             dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
-            dec_cx.configure_filter(tau_s, dt=model.dt)
             dec_cx.bias[:] = 0
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
@@ -558,7 +557,6 @@ def build_connection(model, conn):
             dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
                              location='core')
             dec_cx.configure_relu(dt=model.dt)
-            dec_cx.configure_filter(tau_s, dt=model.dt)
             dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
                                                     [1.] * d) * INTER_N)
             if INTER_NOISE_EXP > -30:
@@ -575,6 +573,8 @@ def build_connection(model, conn):
             dec_syn = CxSynapses(n)
             weights2 = 0.5 * gain * np.vstack([weights,
                                                -weights] * INTER_N).T
+
+        dec_cx.configure_filter(tau_s, dt=model.dt)
 
         dec_syn.set_full_weights(weights2)
         dec_cx.add_synapses(dec_syn)
@@ -629,7 +629,6 @@ def build_connection(model, conn):
         mid_cx.add_axons(ax)
 
         post_cx.configure_filter(tau_s, dt=model.dt)
-        # ^ TODO: check that all conns into post use same filter
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
@@ -652,7 +651,6 @@ def build_connection(model, conn):
         mid_cx.add_axons(ax)
 
         post_cx.configure_filter(tau_s, dt=model.dt)
-        # ^ TODO: check that all conns into post use same filter
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
