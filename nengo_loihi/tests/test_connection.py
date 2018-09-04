@@ -82,7 +82,6 @@ def test_node_to_neurons(precompute, allclose, Simulator, plt):
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
-@pytest.mark.xfail(reason="RectifiedLinear disabled for now")
 @pytest.mark.parametrize("factor", [0.11, 0.26, 0.51, 1.01])
 def test_neuron_to_neuron(Simulator, factor, seed, allclose):
     # note: we use these weird factor values so that voltages don't line up
@@ -96,7 +95,7 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose):
         a = nengo.Ensemble(n, 1)
         nengo.Connection(stim, a, synapse=None)
 
-        b = nengo.Ensemble(n, 1, neuron_type=nengo.RectifiedLinear(),
+        b = nengo.Ensemble(n, 1, neuron_type=nengo.SpikingRectifiedLinear(),
                            gain=np.ones(n), bias=np.zeros(n))
         nengo.Connection(a.neurons, b.neurons, synapse=None,
                          transform=np.eye(n) * factor)

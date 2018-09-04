@@ -22,7 +22,10 @@ Release history
 0.3.0 (unreleased)
 ==================
 
+**Added**
 
+- Models can now use the ``nengo.SpikingRectifiedLinear`` neuron model
+  on both the emulator and hardware backends.
 
 0.2.0 (August 27, 2018)
 =======================
