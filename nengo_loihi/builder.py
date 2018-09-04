@@ -298,7 +298,7 @@ def build_ensemble(model, ens):
     # group.add_synapses(synapses, name='encoders')
 
     # --- encoders for interneurons
-    synapses2 = CxSynapses(2*scaled_encoders.shape[1])
+    synapses2 = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
     inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
     interscaled_encoders = scaled_encoders * inter_scale
     synapses2.set_full_weights(
@@ -544,7 +544,7 @@ def build_connection(model, conn):
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
 
-            dec_syn = CxSynapses(n)
+            dec_syn = CxSynapses(n, label="probe_decoders")
             weights2 = gain * np.vstack([weights, -weights]).T
         else:
             # use spiking interneurons for on-chip connection
@@ -570,7 +570,7 @@ def build_connection(model, conn):
                 # loihi encoders don't include radius, so handle scaling here
                 weights = weights / conn.post_obj.radius
 
-            dec_syn = CxSynapses(n)
+            dec_syn = CxSynapses(n, label="decoders")
             weights2 = 0.5 * gain * np.vstack([weights,
                                                -weights] * INTER_N).T
 
@@ -580,7 +580,7 @@ def build_connection(model, conn):
         dec_cx.add_synapses(dec_syn)
         model.objs[conn]['decoders'] = dec_syn
 
-        dec_ax0 = CxAxons(n)
+        dec_ax0 = CxAxons(n, label="decoders")
         dec_ax0.target = dec_syn
         pre_cx.add_axons(dec_ax0)
         model.objs[conn]['decode_axons'] = dec_ax0
@@ -618,13 +618,13 @@ def build_connection(model, conn):
             n2, n1 = weights.shape
             assert post_cx.n == n2
 
-            syn = CxSynapses(n1)
+            syn = CxSynapses(n1, label="neuron_weights")
             gain = model.params[conn.post_obj.ensemble].gain
             syn.set_full_weights(weights.T * gain)
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 
-        ax = CxAxons(mid_cx.n)
+        ax = CxAxons(mid_cx.n, label="neuron_weights")
         ax.target = syn
         mid_cx.add_axons(ax)
 
@@ -641,12 +641,12 @@ def build_connection(model, conn):
         # loihi encoders don't include radius, so handle scaling here
         weights = weights / conn.post_obj.radius
 
-        syn = CxSynapses(n1)
+        syn = CxSynapses(n1, label="%s::decoder_weights" % conn)
         syn.set_full_weights(weights.T)
         post_cx.add_synapses(syn)
         model.objs[conn]['weights'] = syn
 
-        ax = CxAxons(n1)
+        ax = CxAxons(n1, label="decoder_weights")
         ax.target = syn
         mid_cx.add_axons(ax)
 
@@ -655,7 +655,7 @@ def build_connection(model, conn):
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
-        mid_ax = CxAxons(mid_cx.n)
+        mid_ax = CxAxons(mid_cx.n, label="encoders")
         mid_ax.target = post_cx.named_synapses['encoders2']
         mid_ax.target_inds = mid_axon_inds
         mid_cx.add_axons(mid_ax)
