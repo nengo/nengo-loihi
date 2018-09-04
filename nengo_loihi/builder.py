@@ -292,19 +292,6 @@ def build_ensemble(model, ens):
         # scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
         scaled_encoders = encoders * gain[:, np.newaxis]
 
-    # --- encoders
-    # synapses = CxSynapses(scaled_encoders.shape[1])
-    # synapses.set_full_weights(scaled_encoders.T)
-    # group.add_synapses(synapses, name='encoders')
-
-    # --- encoders for interneurons
-    synapses2 = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
-    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
-    interscaled_encoders = scaled_encoders * inter_scale
-    synapses2.set_full_weights(
-        np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
-    group.add_synapses(synapses2, name='encoders2')
-
     model.add_group(group)
 
     model.objs[ens]['in'] = group
@@ -319,6 +306,19 @@ def build_ensemble(model, ens):
         scaled_encoders=scaled_encoders,
         gain=gain,
         bias=bias)
+
+
+def build_interencoders(model, ens):
+    """Build encoders accepting on/off interneuron input."""
+    group = model.objs[ens.neurons]['in']
+    scaled_encoders = model.params[ens].scaled_encoders
+
+    synapses = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
+    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
+    interscaled_encoders = scaled_encoders * inter_scale
+    synapses.set_full_weights(
+        np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
+    group.add_synapses(synapses, name='inter_encoders')
 
 
 @Builder.register(nengo.LIF)
@@ -655,8 +655,11 @@ def build_connection(model, conn):
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
+        if 'inter_encoders' not in post_cx.named_synapses:
+            build_interencoders(model, conn.post_obj)
+
         mid_ax = CxAxons(mid_cx.n, label="encoders")
-        mid_ax.target = post_cx.named_synapses['encoders2']
+        mid_ax.target = post_cx.named_synapses['inter_encoders']
         mid_ax.target_inds = mid_axon_inds
         mid_cx.add_axons(mid_ax)
         model.objs[conn]['mid_axons'] = mid_ax
