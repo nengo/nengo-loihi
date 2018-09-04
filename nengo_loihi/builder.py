@@ -624,9 +624,9 @@ def build_connection(model, conn):
             post_cx.add_synapses(syn)
             model.objs[conn]['weights'] = syn
 
-        ax = CxAxons(pre_cx.n)
+        ax = CxAxons(mid_cx.n)
         ax.target = syn
-        pre_cx.add_axons(ax)
+        mid_cx.add_axons(ax)
 
         post_cx.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
@@ -649,7 +649,7 @@ def build_connection(model, conn):
 
         ax = CxAxons(n1)
         ax.target = syn
-        pre_cx.add_axons(ax)
+        mid_cx.add_axons(ax)
 
         post_cx.configure_filter(tau_s, dt=model.dt)
         # ^ TODO: check that all conns into post use same filter
