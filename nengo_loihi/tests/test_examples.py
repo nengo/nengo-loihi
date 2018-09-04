@@ -100,15 +100,15 @@ def test_node_ens_ens(allclose, plt):
     plt.subplot(413)
     plt.plot(t, a[:, 0] ** 2, c="b", label="a[0]**2")
     plt.plot(t, b[:, 0], c="g", label="b[0]")
-    plt.ylim([-1, 1])
+    plt.ylim([-0.05, 1])
     plt.legend(loc=0)
 
     plt.subplot(414)
-    plt.plot(t, a[:, 0] ** 2, c="b", label="a[1]**2")
-    plt.plot(t, b[:, 0], c="g", label="b[1]")
-    plt.ylim([-1, 1])
+    plt.plot(t, a[:, 1] ** 2, c="b", label="a[1]**2")
+    plt.plot(t, b[:, 1], c="g", label="b[1]")
+    plt.ylim([-0.05, 1])
     plt.legend(loc=0)
 
     tmask = t > 0.1  # ignore transients at the beginning
-    assert allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.4, rtol=0.25)
-    assert allclose(b[tmask], a[tmask]**2, atol=0.35, rtol=0.0)
+    assert allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.1, rtol=0.1)
+    assert allclose(b[tmask], a[tmask]**2, atol=0.15, rtol=0.2)
