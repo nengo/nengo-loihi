@@ -57,6 +57,7 @@ void nengo_io(runState *s) {
     //readChannel(inChannel, count, 1);
     // printf("count %d\n", count[0]);
 
+    // --- read input values (once every IO_STEPS)
     if (s->time % IO_STEPS == 0) {
         for (int i=0; i < N_INPUTS; i++) {
             readChannel(inChannel, spike, 1);
@@ -73,6 +74,7 @@ void nengo_io(runState *s) {
         }
     }
 
+    // --- turn input values into spikes using accumulators
     for (int i=0; i < N_INPUTS; i++) {
         //printf("%d   value:%d  accum:%d\n");
         pos_accum[i] += (value[i] + (1<<15));
@@ -104,6 +106,7 @@ void nengo_io(runState *s) {
         }
     }
 
+    // --- write output values (once every IO_STEPS)
     if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
         output[0] = s->time;
 {% for n_out, core, cx in probes %}
