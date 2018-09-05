@@ -17,6 +17,7 @@ import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
+from nengo_loihi.neurons import loihi_rates
 from . import splitter
 
 logger = logging.getLogger(__name__)
@@ -406,7 +407,7 @@ def build_decoders(model, conn, rng, transform):
 
 
 def solve_for_decoders(conn, gain, bias, x, targets, rng, E=None):
-    activities = conn.pre_obj.neuron_type.rates(x, gain, bias)
+    activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias)
     if np.count_nonzero(activities) == 0:
         raise BuildError(
             "Building %s: 'activities' matrix is all zero for %s. "

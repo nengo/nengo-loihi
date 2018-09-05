@@ -8,6 +8,39 @@ from nengo.neurons import NeuronType
 from nengo.params import NumberParam
 
 
+def loihi_lif_rates(neuron_type, x, gain, bias):
+    dt = 0.001
+    j = neuron_type.current(x, gain, bias) - 1
+
+    out = np.zeros_like(j)
+    period = neuron_type.tau_ref + neuron_type.tau_rc * np.log1p(1. / j[j > 0])
+    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    return out
+
+
+def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias):
+    dt = 0.001
+    j = neuron_type.current(x, gain, bias)
+
+    out = np.zeros_like(j)
+    period = 1. / j[j > 0]
+    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    return out
+
+
+def loihi_rates(neuron_type, x, gain, bias):
+    for cls in type(neuron_type).__mro__:
+        if cls in loihi_rate_functions:
+            return loihi_rate_functions[cls](neuron_type, x, gain, bias)
+    return neuron_type.rates(x, gain, bias)
+
+
+loihi_rate_functions = {
+    nengo.LIF: loihi_lif_rates,
+    nengo.SpikingRectifiedLinear: loihi_spikingrectifiedlinear_rates,
+}
+
+
 class NIFRate(NeuronType):
     """Non-spiking version of the non-leaky integrate-and-fire (NIF) model.
 
