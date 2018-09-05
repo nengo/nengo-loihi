@@ -44,7 +44,7 @@ class ProbeDict(NengoProbeDict):
                 if key in fallback:
                     target = fallback.raw
                     break
-        assert key in target
+        assert key in target, "probed object not found"
 
         if (key not in self._cache
                 or len(self._cache[key]) != len(target[key])):
@@ -141,16 +141,173 @@ class Simulator(object):
     # is not supported by the backend. For example:
     #     unsupported = [('test_pes*', 'PES rule not implemented')]
     # would skip all tests whose names start with 'test_pes'.
-    unsupported = []
+    unsupported = [
+        # no ensembles on chip
+        ('test_circularconv.py:*', "no ensembles onchip"),
+        ('test_product.py:test_direct_mode_with_single_neuron',
+         "no ensembles onchip"),
+        ('test_connection.py:test_neuron_slicing', "no ensembles onchip"),
+        ('test_connection.py:test_boolean_indexing', "no ensembles onchip"),
+        ('test_learning_rules.py:test_pes_synapse*', "no ensembles onchip"),
+        ('test_learning_rules.py:test_pes_recurrent_slice*',
+         "no ensembles onchip"),
+        ('test_neurons.py:test_amplitude[[]LIFRate[]]', "no ensembles onchip"),
+        ('test_neurons.py:test_amplitude[[]RectifiedLinear[]]',
+         "no ensembles onchip"),
+        ('test_neurons.py:test_alif_rate', "no ensembles onchip"),
+        ('test_neurons.py:test_izhikevich', "no ensembles onchip"),
+        ('test_neurons.py:test_sigmoid_response_curves*',
+         "no ensembles onchip"),
+        ('test_node.py:test_[!i]*', "no ensembles onchip"),
+        ('test_probe.py:test_multirun', "no ensembles onchip"),
+        ('test_probe.py:test_dts', "no ensembles onchip"),
+        ('test_probe.py:test_large', "no ensembles onchip"),
+        ('test_probe.py:test_conn_output', "no ensembles onchip"),
+        ('test_processes.py:test_time', "no ensembles onchip"),
+        ('test_processes.py:test_brownnoise', "no ensembles onchip"),
+        ('test_processes.py:test_gaussian_white*', "no ensembles onchip"),
+        ('test_processes.py:test_whitesignal*', "no ensembles onchip"),
+        ('test_processes.py:test_reset', "no ensembles onchip"),
+        ('test_processes.py:test_seed', "no ensembles onchip"),
+        ('test_processes.py:test_present_input', "no ensembles onchip"),
+        ('test_processes.py:TestPiecewise*', "no ensembles onchip"),
+        ('test_simulator.py:test_steps', "no ensembles onchip"),
+        ('test_simulator.py:test_time_absolute', "no ensembles onchip"),
+        ('test_simulator.py:test_trange*', "no ensembles onchip"),
+        ('test_simulator.py:test_probe_cache', "no ensembles onchip"),
+        ('test_simulator.py:test_invalid_run_time', "no ensembles onchip"),
+        ('test_simulator.py:test_sample_every*', "no ensembles onchip"),
+        ('test_synapses.py:test_lowpass', "no ensembles onchip"),
+        ('test_synapses.py:test_alpha', "no ensembles onchip"),
+        ('test_synapses.py:test_triangle', "no ensembles onchip"),
+        ('test_synapses.py:test_linearfilter', "no ensembles onchip"),
+        ('utils/*test_ensemble.py:test_*_curves_direct_mode*',
+         "no ensembles onchip"),
+        ('utils/*test_network.py:*direct_mode_learning[learning_rule[123]*',
+         "no ensembles onchip"),
+        ('utils/*test_neurons.py:test_rates_*', "no ensembles onchip"),
+
+        # accuracy
+        ('test_actionselection.py:test_basic', "inaccurate"),
+        ('test_am_[!s]*', "integrator instability"),
+        ('test_ensemblearray.py:test_matrix_mul', "inaccurate"),
+        ('test_product.py:test_sine_waves', "inaccurate"),
+        ('test_workingmemory.py:test_inputgatedmemory', "inaccurate"),
+        ('test_cortical.py:test_convolution', "inaccurate"),
+        ('test_thalamus.py:test_routing', "inaccurate"),
+        ('test_thalamus.py:test_nondefault_routing', "inaccurate"),
+        ('test_connection.py:test_node_to_ensemble*', "inaccurate"),
+        ('test_connection.py:test_neurons_to_node*', "inaccurate"),
+        ('test_connection.py:test_function_and_transform', "inaccurate"),
+        ('test_connection.py:test_weights*', "inaccurate"),
+        ('test_connection.py:test_vector*', "inaccurate"),
+        ('test_connection.py:test_slicing*', "inaccurate"),
+        ('test_connection.py:test_function_output_size', "inaccurate"),
+        ('test_connection.py:test_function_points', "inaccurate"),
+        ('test_ensemble.py:test_scalar*', "inaccurate"),
+        ('test_ensemble.py:test_vector*', "inaccurate"),
+        ('test_learning_rules.py:test_pes_transform', "inaccurate"),
+        ('test_learning_rules.py:test_slicing', "inaccurate"),
+        ('test_neurons.py:test_alif', "inaccurate"),
+        ('test_neurons.py:test_amplitude[[]LIF[]]', "inaccurate"),
+        ('test_neurons.py:test_amplitude[[]SpikingRectifiedLinear[]]',
+         "inaccurate"),
+        ('test_presets.py:test_thresholding_preset', "inaccurate"),
+        ('test_synapses.py:test_decoders', "inaccurate"),
+
+        # builder inconsistencies
+        ('test_connection.py:test_neurons_to_ensemble*',
+         "transform shape not implemented"),
+        ('test_connection.py:test_transform_probe',
+         "transform shape not implemented"),
+        ('test_connection.py:test_list_indexing*', "indexing bug?"),
+        ('test_connection.py:test_prepost_errors', "learning bug?"),
+        ('test_ensemble.py:test_gain_bias_warning', "warning not raised"),
+        ('test_ensemble.py:*invalid_intercepts*', "BuildError not raised"),
+        ('test_learning_rules.py:test_pes_ens_*', "learning bug?"),
+        ('test_learning_rules.py:test_pes_weight_solver', "learning bug?"),
+        ('test_learning_rules.py:test_pes_neuron_*', "learning bug?"),
+        ('test_learning_rules.py:test_pes_multidim_error',
+         "dict of learning rules not handled"),
+        ('test_learning_rules.py:test_reset*', "learning bug?"),
+        ('test_neurons.py:test_lif_min_voltage*', "lif.min_voltage ignored"),
+        ('test_neurons.py:test_lif_zero_tau_ref', "lif.tau_ref ignored"),
+        ('test_probe.py:test_input_probe', "shape mismatch"),
+        ('test_probe.py:test_slice', "ObjView not handled properly"),
+        ('test_probe.py:test_update_timing', "probe bug?"),
+        ('test_solvers.py:test_nosolver*', "NoSolver bug"),
+
+        # reset bugs
+        ('test_neurons.py:test_reset*', "sim.reset not working correctly"),
+
+        # non-PES learning rules
+        ('test_learning_rules.py:test_unsupervised*',
+         "non-PES learning rules not implemented"),
+        ('test_learning_rules.py:test_dt_dependence*',
+         "non-PES learning rules not implemented"),
+        ('*voja*', "voja not implemented"),
+        ('test_learning_rules.py:test_custom_type',
+         "non-PES learning rules not implemented"),
+
+        # Nengo bug
+        ('test_simulator.py:test_entry_point',
+         "logic should be more flexible"),
+
+        # ensemble noise
+        ('test_ensemble.py:test_noise*', "ensemble.noise not implemented"),
+
+        # probe types
+        ('test_connection.py:test_dist_transform',
+         "probe type not implemented"),
+        ('test_connection.py:test_decoder_probe',
+         "probe type not implemented"),
+        ('test_probe.py:test_defaults', "probe type not implemented"),
+        ('test_probe.py:test_ensemble_encoders', "probe type not implemented"),
+
+        # probe.sample_every
+        ('test_integrator.py:test_integrator',
+         "probe.sample_every not implemented"),
+        ('test_oscillator.py:test_oscillator',
+         "probe.sample_every not implemented"),
+        ('test_ensemble.py:test_product*',
+         "probe.sample_every not implemented"),
+        ('test_neurons.py:test_dt_dependence*',
+         "probe.sample_every not implemented"),
+        ('test_probe.py:test_multiple_probes',
+         "probe.sample_every not implemented"),
+
+        # needs better place and route
+        ('test_ensemble.py:test_eval_points_heuristic*',
+         "max number of compartments exceeded"),
+        ('test_neurons.py:test_lif*', "idxBits out of range"),
+
+        # serialization / deserialization
+        ('test_cache.py:*', "model pickling not implemented"),
+        ('test_copy.py:test_pickle_model', "model pickling not implemented"),
+        ('test_simulator.py:test_signal_init_values',
+         "nengo.builder.Model instances not handled"),
+
+        # progress bars
+        ('test_simulator.py:test_simulator_progress_bars',
+         "progress bars not implemented"),
+
+        # utils.connection.target_function (deprecated)
+        ('utils/tests/test_connection.py*',
+         "target_function (deprecated) not working"),
+    ]
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=False, target=None):
+                 precompute=False, target=None, progress_bar=None):
         self.closed = True  # Start closed in case constructor raises exception
+        if progress_bar is not None:
+            raise NotImplementedError("progress bars not implemented")
 
         if model is None:
             # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
         else:
+            assert isinstance(model, Model), (
+                "model is not type 'nengo_loihi.builder.Model'")
             self.model = model
             assert self.model.dt == dt
 
@@ -295,7 +452,8 @@ class Simulator(object):
         for probe in self.model.probes:
             if probe in self.model.chip2host_params:
                 continue
-            assert probe.sample_every is None
+            assert probe.sample_every is None, (
+                "probe.sample_every not implemented")
             assert ("loihi" not in self.sims
                     or "emulator" not in self.sims)
             if "loihi" in self.sims:
@@ -329,6 +487,7 @@ class Simulator(object):
             self.seed = seed
 
         self._n_steps = 0
+        self._time = 0
 
         # clear probe data
         for probe in self.model.probes:
@@ -510,7 +669,7 @@ class Simulator(object):
         logger.info("Finished running for %d steps", steps)
         self._probe()
 
-    def trange(self, sample_every=None):
+    def trange(self, sample_every=None, dt=None):
         """Create a vector of times matching probed data.
 
         Note that the range does not start at 0 as one might expect, but at

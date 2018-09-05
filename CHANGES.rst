@@ -26,6 +26,7 @@ Release history
 
 - An error is now raised if
   a learning rule is applied to a non-decoded connection.
+  (`#103 <https://github.com/nengo/nengo-loihi/pull/103>`_)
 
 **Fixed**
 

@@ -358,7 +358,7 @@ def build_axons(n2core, core, group, axons, cx_ids):
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):
-    assert probe.key in ('u', 'v', 's')
+    assert probe.key in ('u', 'v', 's'), "probe key not found"
     key_map = {'s': 'spike'}
     key = key_map.get(probe.key, probe.key)
 
@@ -696,7 +696,7 @@ class LoihiSimulator(object):
 
     def create_io_snip(self):
         # snips must be created before connecting
-        assert not self.is_connected()
+        assert not self.is_connected(), "still connected"
 
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
         env = jinja2.Environment(

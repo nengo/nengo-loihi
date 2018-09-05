@@ -154,7 +154,7 @@ def place_ensembles(networks):
         # User-specified config takes precedence
         if config[ens].on_chip is not None:
             networks.move(ens, "chip" if config[ens].on_chip else "host")
-        # Direct mode ensembles must be off chip
+        # Direct mode ensembles must be off-chip
         elif isinstance(ens.neuron_type, nengo.Direct):
             networks.move(ens, "host")
 
