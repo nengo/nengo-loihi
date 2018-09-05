@@ -9,6 +9,8 @@ import warnings
 import jinja2
 import numpy as np
 
+from nengo.exceptions import SimulationError
+
 try:
     import nxsdk
     from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
@@ -434,7 +436,7 @@ class LoihiSimulator(object):
 
     def connect(self, attempts=10):
         if self.n2board is None:
-            raise RuntimeError("Must build model before running")
+            raise SimulationError("Must build model before running")
 
         if self.is_connected():
             return
@@ -450,7 +452,7 @@ class LoihiSimulator(object):
                 time.sleep(1)
                 logger.info("Retrying, attempt %d", i + 1)
         else:
-            raise RuntimeError("Could not connect to the board")
+            raise SimulationError("Could not connect to the board")
 
     def close(self):
         self.n2board.disconnect()

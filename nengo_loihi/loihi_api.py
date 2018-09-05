@@ -5,6 +5,8 @@ import warnings
 
 import numpy as np
 
+from nengo.exceptions import BuildError
+
 CX_PROFILES_MAX = 32
 VTH_PROFILES_MAX = 8
 SYNAPSE_FMTS_MAX = 16
@@ -112,7 +114,7 @@ class Board(object):
         elif group.location == 'cpu':
             raise NotImplementedError("CPU neurons not implemented")
         else:
-            raise ValueError("Unrecognized location %r" % group.location)
+            raise BuildError("Unrecognized location %r" % group.location)
 
     def cores(self):
         return (core for chip in self.chips for core in chip.cores)

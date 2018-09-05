@@ -747,7 +747,7 @@ def signal_probe(model, key, probe):
     weights = None
     if kwargs is not None:
         if kwargs['function'] is not None:
-            raise ValueError("Functions not supported for signal probe")
+            raise BuildError("Functions not supported for signal probe")
         weights = kwargs['transform'].T / model.dt
 
     if isinstance(probe.target, nengo.ensemble.Neurons):

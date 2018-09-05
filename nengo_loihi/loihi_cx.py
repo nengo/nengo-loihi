@@ -5,7 +5,7 @@ import logging
 import warnings
 
 import numpy as np
-from nengo.exceptions import BuildError
+from nengo.exceptions import BuildError, SimulationError
 from nengo.utils.compat import is_iterable, range
 
 from nengo_loihi.loihi_api import (
@@ -74,12 +74,12 @@ class CxGroup(object):
         MAX_SYNAPSE_BITS = 16384*64
         n_axons = sum(s.n_axons for s in self.synapses)
         if n_axons > AXONS_MAX:
-            raise ValueError("Total axons (%d) exceeded max (%d)" % (
+            raise BuildError("Total axons (%d) exceeded max (%d)" % (
                 n_axons, AXONS_MAX))
 
         synapse_bits = sum(s.bits() for s in self.synapses)
         if synapse_bits > MAX_SYNAPSE_BITS:
-            raise ValueError("Total synapse bits (%d) exceeded max (%d)" % (
+            raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
                 synapse_bits, MAX_SYNAPSE_BITS))
 
     def add_axons(self, axons, name=None):
@@ -182,7 +182,7 @@ class CxGroup(object):
                 if (vth <= VTH_MAX).all() and (np.abs(bias) <= BIAS_MAX).all():
                     break
             else:
-                raise ValueError("Could not find appropriate wgtExp")
+                raise BuildError("Could not find appropriate wgtExp")
         elif b_max > 1e-8:
             b_scale = BIAS_MAX / b_max
             while b_scale*b_max > 1:
@@ -195,7 +195,7 @@ class CxGroup(object):
 
                 b_scale /= 2.
             else:
-                raise ValueError("Could not find appropriate bias scaling")
+                raise BuildError("Could not find appropriate bias scaling")
         else:
             v_scale = np.array([VTH_MAX / (self.vth.max() + 1)])
             vth = np.round(self.vth * v_scale)
@@ -594,16 +594,16 @@ class CxSimulator(object):
         u2 = self.u[:] + self.bias
         u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
         if np.any(u2 > U_MAX):
-            raise RuntimeError("Overflow in U (max was %d)" % u2.max())
+            raise SimulationError("Overflow in U (max was %d)" % u2.max())
         if np.any(u2 < U_MIN):
-            raise RuntimeError("Underflow in U (min was %d)" % u2.min())
+            raise SimulationError("Underflow in U (min was %d)" % u2.min())
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
         if np.any(self.v > V_MAX):
-            raise RuntimeError("Overflow in V (max was %d)" % self.v.max())
+            raise SimulationError("Overflow in V (max was %d)" % self.v.max())
         if np.any(self.v < V_MIN):
-            raise RuntimeError("Underflow in V (min was %d)" % self.v.min())
+            raise SimulationError("Underflow in V (min was %d)" % self.v.min())
 
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
