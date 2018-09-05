@@ -249,7 +249,8 @@ class Simulator(object):
 
             self.loihi = self.model.get_loihi(seed=seed)
         else:
-            raise ValueError("Unrecognized target")
+            raise ValidationError("Must be 'simreal', 'sim', or 'loihi'",
+                                  attr="target")
 
         assert self.simulator or self.loihi
 
