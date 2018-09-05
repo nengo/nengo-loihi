@@ -280,6 +280,9 @@ def build_ensemble(model, ens):
 
     group.configure_filter(INTER_TAU, dt=model.dt)
 
+    if ens.noise is not None:
+        raise NotImplementedError("Ensemble noise not implemented")
+
     # Scale the encoders
     if isinstance(ens.neuron_type, nengo.Direct):
         raise NotImplementedError("Direct neurons not implemented")
