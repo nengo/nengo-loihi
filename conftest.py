@@ -3,17 +3,15 @@ import logging
 import os
 from functools import partial
 
-import nengo.utils.numpy as npext
 import matplotlib as mpl
+import nengo.utils.numpy as npext
 import numpy as np
 import pytest
 
-import nengo.conftest
 from nengo.conftest import plt, TestConfig  # noqa: F401
 from nengo.utils.compat import ensure_bytes
 
 import nengo_loihi
-
 from nengo_loihi.loihi_cx import CxSimulator
 
 
@@ -38,8 +36,8 @@ def pytest_addoption(parser):
 
 def pytest_report_header(config, startdir):
     target = config.getoption("--target")
-    return "Nengo Loihi is using {}".format(
-        "Loihi hardware" if target == "loihi" else "the Numpy simulator")
+    return "Nengo Loihi is using Loihi {}".format(
+        "hardware" if target == "loihi" else "emulator")
 
 
 def pytest_terminal_summary(terminalreporter):
@@ -58,9 +56,9 @@ def pytest_terminal_summary(terminalreporter):
 
 
 def pytest_runtest_setup(item):
-    if (getattr(item.obj, "hang", False) and
-            item.config.getvalue("--target") == "loihi" and
-            item.config.getvalue("--no-hang")):
+    if (getattr(item.obj, "hang", False)
+            and item.config.getvalue("--target") == "loihi"
+            and item.config.getvalue("--no-hang")):
         pytest.xfail("This test causes Loihi to hang indefinitely")
 
 
