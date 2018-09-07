@@ -399,15 +399,15 @@ def build_decoders(model, conn, rng, transform):
     #                   if model.seeded[conn] else solve_for_decoders)
     # decoders, solver_info = wrapped_solver(
     decoders, solver_info = solve_for_decoders(
-        conn, gain, bias, x, targets, rng=rng, E=E)
+        conn, gain, bias, x, targets, rng=rng, dt=model.dt, E=E)
 
     weights = (decoders.T if conn.solver.weights else
                multiply(transform, decoders.T))
     return eval_points, weights, solver_info
 
 
-def solve_for_decoders(conn, gain, bias, x, targets, rng, E=None):
-    activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias)
+def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
+    activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias, dt)
     if np.count_nonzero(activities) == 0:
         raise BuildError(
             "Building %s: 'activities' matrix is all zero for %s. "

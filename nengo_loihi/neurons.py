@@ -8,18 +8,18 @@ from nengo.neurons import NeuronType
 from nengo.params import NumberParam
 
 
-def loihi_lif_rates(neuron_type, x, gain, bias):
-    dt = 0.001
+def loihi_lif_rates(neuron_type, x, gain, bias, dt):
+    # discretize tau_ref as per CxGroup.configure_lif
+    tau_ref = dt * np.round(neuron_type.tau_ref / dt)
     j = neuron_type.current(x, gain, bias) - 1
 
     out = np.zeros_like(j)
-    period = neuron_type.tau_ref + neuron_type.tau_rc * np.log1p(1. / j[j > 0])
+    period = tau_ref + neuron_type.tau_rc * np.log1p(1. / j[j > 0])
     out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
     return out
 
 
-def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias):
-    dt = 0.001
+def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt):
     j = neuron_type.current(x, gain, bias)
 
     out = np.zeros_like(j)
@@ -28,10 +28,10 @@ def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias):
     return out
 
 
-def loihi_rates(neuron_type, x, gain, bias):
+def loihi_rates(neuron_type, x, gain, bias, dt):
     for cls in type(neuron_type).__mro__:
         if cls in loihi_rate_functions:
-            return loihi_rate_functions[cls](neuron_type, x, gain, bias)
+            return loihi_rate_functions[cls](neuron_type, x, gain, bias, dt)
     return neuron_type.rates(x, gain, bias)
 
 

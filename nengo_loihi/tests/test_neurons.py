@@ -34,7 +34,7 @@ def test_loihi_rates(neuron_type, Simulator, plt, allclose):
         sim.run(1.0)
 
     est_rates = sim.data[ap].mean(axis=0)
-    ref_rates = loihi_rates(neuron_type, x, gain, bias)
+    ref_rates = loihi_rates(neuron_type, x, gain, bias, dt=dt)
 
     plt.plot(x, ref_rates, "k", label="predicted")
     plt.plot(x, est_rates, "g", label="measured")
