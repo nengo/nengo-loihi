@@ -83,6 +83,8 @@ class CxGroup(object):
         Whether these compartments are on a Loihi core
         or handled by the Loihi x86 processor (CPU).
     """
+    # threshold at which U/V scaling is allowed
+    DECAY_SCALE_TH = 0.5 / 2**12  # half of one decay scaling unit
 
     def __init__(self, n, label=None, location='core'):
         self.n = n
@@ -182,8 +184,12 @@ class CxGroup(object):
                 "Cannot change tau_s on already configured neurons")
 
         self.decayU[:] = decayU
-        self.scaleU = decayU > 1e-15
+        self.scaleU = decayU > self.DECAY_SCALE_TH
         self.decayU_set = not default
+        if not self.scaleU:
+            raise BuildError(
+                "Current (U) scaling is required. Perhaps a synapse time "
+                "constant is too large in your model.")
 
     def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
@@ -191,7 +197,11 @@ class CxGroup(object):
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleV = np.all(self.decayV > 1e-15)
+        self.scaleV = np.all(self.decayV > self.DECAY_SCALE_TH)
+        if not self.scaleV:
+            raise BuildError(
+                "Voltage (V) scaling is required with LIF neurons. Perhaps "
+                "the neuron tau_rc time constant is too large.")
 
     def configure_relu(self, tau_ref=0.0, vth=1, dt=0.001):
         self.decayV[:] = 0.
