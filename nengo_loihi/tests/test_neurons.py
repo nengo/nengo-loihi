@@ -40,4 +40,4 @@ def test_loihi_rates(neuron_type, Simulator, plt, allclose):
     plt.plot(x, est_rates, "g", label="measured")
     plt.legend(loc='best')
 
-    assert allclose(est_rates, ref_rates, atol=1, rtol=0)
+    assert allclose(est_rates, ref_rates, atol=1, rtol=0, xtol=1)
