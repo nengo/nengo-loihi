@@ -121,7 +121,38 @@ def allclose(request):
         x = np.asarray(x)
         return npext.rms(x) if x.size > 0 else np.nan
 
-    def _allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
+    def _allclose(a, b, rtol=1e-5, atol=1e-8, xtol=0,
+                  equal_nan=False, print_fail=True):
+        """Check for bounded equality of two arrays (mimicking np.allclose).
+
+        Parameters
+        ----------
+        a : np.ndarray
+            First array to be compared
+        b : np.ndarray
+            Second array to be compared
+        rtol : float
+            Relative tolerance between a and b (relative to b)
+        atol : float
+            Absolute tolerance between a and b
+        xtol : int
+            Allow signals to be right or left shifted by up to *xtol*
+            indices along the first axis
+        equal_nan : bool
+            If True, nans will be considered equal to nans.
+        print_fail : bool
+            If True, print out the first 5 entries failing the allclose check
+            along the first axis.
+
+        Returns
+        -------
+        bool
+            True if the two arrays are considered close, else False.
+        """
+
+        a = np.atleast_1d(a)
+        b = np.atleast_1d(b)
+
         rmse = safe_rms(a - b)
         if not np.any(np.isnan(rmse)):
             request.node.user_properties.append(("rmse", rmse))
@@ -132,5 +163,30 @@ def allclose(request):
                 request.node.user_properties.append(
                     ("rmse_relative", rmse_relative))
 
-        return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
+        close = np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
+
+        # if xtol > 0, check that number of adjacent positions. If they are
+        # close, then we condider things close.
+        for i in range(1, xtol + 1):
+            close[i:] |= np.isclose(
+                a[i:], b[:-i], rtol=rtol, atol=atol, equal_nan=equal_nan)
+            close[:-i] |= np.isclose(
+                a[:-i], b[i:], rtol=rtol, atol=atol, equal_nan=equal_nan)
+
+            # we assume that the beginning and end of the array are close
+            # (since we're comparing to entries outside the bounds of
+            # the other array)
+            close[[i - 1, -i]] = True
+
+        result = np.all(close)
+
+        if print_fail and not result:
+            diffs = []
+            for k, ind in enumerate(zip(*(~close).nonzero())):
+                diffs.append("%s: %s %s" % (ind, a[ind], b[ind]))
+                if k > 5:
+                    break
+            print("allclose first 5 failures:\n  %s" % ("\n  ".join(diffs)))
+        return result
+
     return _allclose
