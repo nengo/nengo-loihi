@@ -42,9 +42,9 @@ void nengo_io(runState *s) {
         printf("initializing\n");
         for (int i=0; i<N_INPUTS; i++) {
             readChannel(inChannel, spike, 3);
-            s->userData[IDX_SPIKE_TARGETS+(i*3)+0] = spike[0];
-            s->userData[IDX_SPIKE_TARGETS+(i*3)+1] = spike[1];
-            s->userData[IDX_SPIKE_TARGETS+(i*3)+2] = spike[2];
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+0] = spike[0];  // core id
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+1] = spike[1];  // pos axon
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+2] = spike[2];  // neg axon
             printf("  spike target %d: (%d %d %d)\n",
                    i, spike[0], spike[1], spike[2]);
         }
@@ -58,11 +58,15 @@ void nengo_io(runState *s) {
     // printf("count %d\n", count[0]);
 
     // --- read input values (once every IO_STEPS)
-    if (s->time % IO_STEPS == 0) {
+    // Note that we do this at the *start* of an IO_STEP period (since
+    //  s->time starts at 1), so that we don't have a period at the beginning
+    //  of the simulation where we are ignoring the input.
+    if (s->time % IO_STEPS == 1 % IO_STEPS) {
         for (int i=0; i < N_INPUTS; i++) {
             readChannel(inChannel, spike, 1);
             //printf("  %d: stim value %d.%d\n", s->time, i, spike[0]);
-            value[i] = spike[0];
+            value[i] = spike[0];  // discretized version of the real value
+                                  //  to be used as input
         }
 
         // Communicate with learning snip
@@ -106,13 +110,15 @@ void nengo_io(runState *s) {
         }
     }
 
-    // --- write output values (once every IO_STEPS)
-    if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
-        output[0] = s->time;
+    if (N_OUTPUTS > 0) {
+        // --- write output values (once every IO_STEPS)
+        if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
+            output[0] = s->time;
 {% for n_out, core, cx in probes %}
-        output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+            output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
 {% endfor %}
 
-        writeChannel(outChannel, output, N_OUTPUTS);
+            writeChannel(outChannel, output, N_OUTPUTS);
+        }
     }
 }

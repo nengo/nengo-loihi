@@ -514,6 +514,9 @@ class LoihiSimulator(object):
             for core in chip.cores:
                 for inp, cx_ids in core.iterate_inputs():
                     axon_ids = inp.axon_ids[0]
+                    # axon_ids are in pairs, due to the positive and
+                    #  negative channels, but we just want the number
+                    #  of values to send
                     assert len(axon_ids) % 2 == 0
                     n_inputs += len(axon_ids) // 2
 

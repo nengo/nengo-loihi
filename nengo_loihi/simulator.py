@@ -460,12 +460,22 @@ class Simulator(object):
                 inp = receiver.cx_spike_input
                 assert len(inp.axon_ids) == 1   # TODO: handle len>1
                 axon_ids = inp.axon_ids[0]
+                # the first half are the positive channels and the second
+                #  half are the negative channels
                 half = len(axon_ids)//2
                 for i in range(len(axon_ids)//2):
+                    # we currently only handle one Loihi chip, so assert
+                    #  that chip_id is zero
                     assert axon_ids[i][0] == 0
+                    # the core_ids of the positive and negative channels
+                    #  should be the same
                     assert axon_ids[i][1] == axon_ids[half+i][1]
-                    spike_targets.extend((axon_ids[i][1], axon_ids[i][2],
-                                          axon_ids[half+i][2]))
+
+                    spike_targets.extend((
+                        axon_ids[i][1],      # the core for this input
+                        axon_ids[i][2],      # axon_id for the positive channel
+                        axon_ids[half+i][2]  # axon_id for the negative channel
+                        ))
         return spike_targets
 
     def handle_host2chip_communications(self):  # noqa: C901

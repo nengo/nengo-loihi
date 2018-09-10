@@ -179,6 +179,8 @@ def split(model, inter_rate, inter_n,          # noqa: C901
                     receive = ChipReceiveNode(dim * 2, size_out=dim)
                     nengo.Connection(receive, c.post, synapse=c.synapse)
                 with host:
+                    # TODO: check whether this max_rate makes sense and
+                    #  whether it should be dependent on dt
                     max_rate = inter_rate * inter_n
                     assert max_rate <= 1000
 
