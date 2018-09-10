@@ -5,15 +5,16 @@ import pytest
 from nengo_loihi.neurons import loihi_rates
 
 
-@pytest.mark.parametrize("neuron_type", [
+@pytest.mark.parametrize('dt', [3e-4, 1e-3])
+@pytest.mark.parametrize('neuron_type', [
     nengo.LIF(),
     nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34),
     nengo.SpikingRectifiedLinear(),
     nengo.SpikingRectifiedLinear(amplitude=0.23),
 ])
-def test_loihi_rates(neuron_type, Simulator, plt, allclose):
+def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     n = 256
-    x = np.linspace(0, 1, n)
+    x = np.linspace(-0.1, 1, n)
 
     encoders = np.ones((n, 1))
     max_rates = 400 * np.ones(n)
@@ -29,7 +30,6 @@ def test_loihi_rates(neuron_type, Simulator, plt, allclose):
                            bias=j)
         ap = nengo.Probe(a.neurons)
 
-    dt = 0.001
     with Simulator(model, dt=dt) as sim:
         sim.run(1.0)
 

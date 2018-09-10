@@ -44,8 +44,9 @@ def test_ens_ens_constant(
         sim_output[t_check], target_output[t_check], rtol=0.15, atol=0.15)
 
 
+@pytest.mark.parametrize('dt', [3e-4, 1e-3])
 @pytest.mark.parametrize('precompute', [True, False])
-def test_node_to_neurons(precompute, allclose, Simulator, plt):
+def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     tfinal = 1.0
 
     x = np.array([0.7, 0.3])
@@ -67,7 +68,7 @@ def test_node_to_neurons(precompute, allclose, Simulator, plt):
         ap = nengo.Probe(a.neurons)
         nengo.Connection(u, a.neurons, transform=A)
 
-    with Simulator(model, precompute=precompute) as sim:
+    with Simulator(model, dt=dt, precompute=precompute) as sim:
         sim.run(tfinal)
 
     tsum = 0.5
@@ -83,11 +84,12 @@ def test_node_to_neurons(precompute, allclose, Simulator, plt):
 
 
 @pytest.mark.parametrize("factor", [0.11, 0.26, 0.51, 1.01])
-def test_neuron_to_neuron(Simulator, factor, seed, allclose):
+def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
     # note: we use these weird factor values so that voltages don't line up
     # exactly with the firing threshold.  since loihi neurons fire when
     # voltage > threshold (rather than >=), if the voltages line up
     # exactly then we need an extra spike each time to push `b` over threshold
+    dt = 5e-4
 
     with nengo.Network(seed=seed) as net:
         n = 10
@@ -103,12 +105,15 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose):
         p_a = nengo.Probe(a.neurons)
         p_b = nengo.Probe(b.neurons)
 
-    with Simulator(net) as sim:
+    with Simulator(net, dt=dt) as sim:
         sim.run(1.0)
 
-    assert allclose(np.sum(sim.data[p_b] > 0, axis=0),
-                    np.floor(np.sum(sim.data[p_a] > 0, axis=0) * factor),
-                    atol=1)
+    y_ref = np.floor(np.sum(sim.data[p_a] > 0, axis=0) * factor)
+    y_sim = np.sum(sim.data[p_b] > 0, axis=0)
+    plt.plot(y_ref, c='k')
+    plt.plot(y_sim)
+
+    assert allclose(y_sim, y_ref, atol=1)
 
 
 def test_ensemble_to_neurons(Simulator, seed, allclose, plt):

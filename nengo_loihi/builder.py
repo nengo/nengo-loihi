@@ -86,9 +86,6 @@ class Model(CxModel):
     def __init__(self, dt=0.001, label=None, builder=None):
         super(Model, self).__init__()
 
-        if dt != 0.001:
-            raise NotImplementedError("`dt != 0.001` not yet supported")
-
         self.dt = dt
         self.label = label
 
