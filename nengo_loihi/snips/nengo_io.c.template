@@ -61,7 +61,7 @@ void nengo_io(runState *s) {
     // Note that we do this at the *start* of an IO_STEP period (since
     //  s->time starts at 1), so that we don't have a period at the beginning
     //  of the simulation where we are ignoring the input.
-    if (s->time % IO_STEPS == 1 % IO_STEPS) {
+    if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
         for (int i=0; i < N_INPUTS; i++) {
             readChannel(inChannel, spike, 1);
             //printf("  %d: stim value %d.%d\n", s->time, i, spike[0]);
