@@ -149,7 +149,7 @@ class Simulator(object):
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
                  precompute=True, target=None,
-                 snip_io_steps=10):
+                 snip_io_steps=1):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
