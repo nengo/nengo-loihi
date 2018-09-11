@@ -525,7 +525,7 @@ def build_connection(model, conn):
         weights = weights * neuron_type.amplitude
 
     mid_cx = pre_cx
-    mid_axon_inds = slice(None)
+    mid_axon_inds = None
     if needs_interneurons and not isinstance(conn.post_obj, Neurons):
         # --- add interneurons
         assert weights.ndim == 2
@@ -664,7 +664,7 @@ def build_connection(model, conn):
 
         mid_ax = CxAxons(mid_cx.n, label="encoders")
         mid_ax.target = post_cx.named_synapses['inter_encoders']
-        mid_ax.target_inds = mid_axon_inds
+        mid_ax.axon_to_synapse_map = mid_axon_inds
         mid_cx.add_axons(mid_ax)
         model.objs[conn]['mid_axons'] = mid_ax
     elif isinstance(conn.post_obj, Node):
