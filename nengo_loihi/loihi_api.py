@@ -28,7 +28,8 @@ V_MIN = -2**23
 def vth_to_manexp(vth):
     exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
     man = np.round(vth / 2**exp).astype(np.int32)
-    assert ((man >= 0) & (man <= VTH_MAN_MAX)).all()
+    assert (man > 0).all()
+    assert (man <= VTH_MAN_MAX).all()
     return man, exp
 
 
@@ -36,7 +37,8 @@ def bias_to_manexp(bias):
     r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
     exp = np.ceil(np.log2(r)).astype(np.int32)
     man = np.round(bias / 2**exp).astype(np.int32)
-    assert ((exp >= 0) & (exp <= BIAS_EXP_MAX)).all()
+    assert (exp >= 0).all()
+    assert (exp <= BIAS_EXP_MAX).all()
     assert (np.abs(man) <= BIAS_MAN_MAX).all()
     return man, exp
 
@@ -309,10 +311,13 @@ class CxProfile(Profile):
         self.enableNoise = enableNoise
 
     def validate(self, core=None):
-        assert 0 <= self.decayU <= self.DECAY_U_MAX
-        assert 0 <= self.decayV <= self.DECAY_V_MAX
-        assert 1 <= self.refractDelay <= self.REFRACT_DELAY_MAX
-        assert 0 <= self.enableNoise <= 1
+        assert self.decayU >= 0
+        assert self.decayU <= self.DECAY_U_MAX
+        assert self.decayV >= 0
+        assert self.decayV <= self.DECAY_V_MAX
+        assert self.refractDelay >= 1
+        assert self.refractDelay <= self.REFRACT_DELAY_MAX
+        assert self.enableNoise in (0, 1)
 
 
 class VthProfile(Profile):
@@ -331,7 +336,8 @@ class VthProfile(Profile):
         self.vth = vth
 
     def validate(self, core=None):
-        assert 0 < self.vth <= VTH_MAN_MAX
+        assert self.vth > 0
+        assert self.vth <= VTH_MAN_MAX
         # if core is not None:
         #     assert self.realVth < core.dendrite_shared_cfg.v_max
 
