@@ -423,14 +423,51 @@ class CxSynapses(object):
 
 
 class CxAxons(object):
+    """A group of axons, targeting a specific CxSynapses object.
+
+    Attributes
+    ----------
+    cx_atoms : list of length ``group.n``
+        Atom (weight index) associated with each group compartment.
+    cx_to_axon_map : list of length ``group.n``
+        Index of the axon in `target` targeted by each group compartment.
+    group : CxGroup
+        Parent CxGroup for this object (set in `CxGroup.add_axons`).
+    n_axons : int
+        The number of outgoing axons.
+    target : CxSynapses
+        Target synapses for these axons.
+    """
+
+    class Spike(object):
+        """A spike, targeting a particular axon within a CxSynapses object.
+
+        The CxSynapses target is implicit, given by the CxAxons object that
+        creates this Spike.
+
+        Parameters
+        ----------
+        axon_id : int
+            The index of the axon within the targeted CxSynapses object.
+        atom : int, optional (Default: 0)
+            An index into the target CxSynapses weights. This allows spikes
+            targeting a particular axon to use different weights.
+        """
+
+        __slots__ = ['axon_id', 'atom']
+
+        def __init__(self, axon_id, atom=0):
+            self.axon_id = axon_id
+            self.atom = atom
+
     def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
         self.label = label
         self.group = None
 
         self.target = None
-        self.target_inds = slice(None)  # which synapse inputs are targeted
-        # ^ TODO: this does not allow multiple pre-cx per axon, loihi does
+        self.cx_to_axon_map = None
+        self.cx_atoms = None
 
     def __str__(self):
         return "%s(%s)" % (
@@ -444,6 +481,24 @@ class CxAxons(object):
     def axon_slots(self):
         """The total number of axonCfg slots used by all axons."""
         return self.slots_per_axon * self.n_axons
+
+    def set_axon_map(self, cx_to_axon_map, cx_atoms=None):
+        self.cx_to_axon_map = cx_to_axon_map
+        self.cx_atoms = cx_atoms
+
+    def map_cx_axons(self, cx_idxs):
+        return (self.cx_to_axon_map[cx_idxs]
+                if self.cx_to_axon_map is not None else cx_idxs)
+
+    def map_cx_atoms(self, cx_idxs):
+        return (self.cx_atoms[cx_idxs] if self.cx_atoms is not None else
+                [0 for _ in cx_idxs])
+
+    def map_cx_spikes(self, cx_idxs):
+        axon_ids = self.map_cx_axons(cx_idxs)
+        atoms = self.map_cx_atoms(cx_idxs)
+        return [self.Spike(axon_id, atom=atom) if axon_id >= 0 else None
+                for axon_id, atom in zip(axon_ids, atoms)]
 
 
 class CxProbe(object):
@@ -649,11 +704,11 @@ class CxSimulator(object):
         self.ref = np.hstack([group.refractDelay for group in self.groups])
 
         # --- allocate synapse memory
-        self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
-                     for group in self.groups for synapses in group.synapses}
+        self.axons_in = {synapses: [] for group in self.groups
+                         for synapses in group.synapses}
         self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
                   for group in self.groups for synapses in group.synapses
-                  if synapses.tracing}
+                  if synapses.tracing}  # synapse traces
 
         # --- noise
         enableNoise = np.hstack([
@@ -760,39 +815,37 @@ class CxSimulator(object):
         self.q[:-1] = self.q[1:]  # advance delays
         self.q[-1] = 0
 
-        for a_in in self.a_in.values():
-            a_in[:] = 0
+        # --- clear spikes going in to each synapse
+        for axons_in_spikes in self.axons_in.values():
+            axons_in_spikes.clear()
 
+        # --- inputs pass spikes to synapses
         if self.t >= 1:  # input spikes take one time-step to arrive
             for input in self.inputs:
                 for axons in input.axons:
-                    synapses = axons.target
-                    assert axons.target_inds == slice(None)
-                    self.a_in[synapses] += input.spikes[self.t - 1]
+                    cx_idxs = input.spikes[self.t - 1].nonzero()[0]
+                    spikes = axons.map_cx_spikes(cx_idxs)
+                    self.axons_in[axons.target].extend(spikes)
 
+        # --- axons pass spikes to synapses
         for group in self.groups:
             for axons in group.axons:
-                synapses = axons.target
-                s_in = self.a_in[synapses]
+                cx_idxs = self.s[self.group_cxs[axons.group]].nonzero()[0]
+                spikes = axons.map_cx_spikes(cx_idxs)
+                self.axons_in[axons.target].extend(spikes)
 
-                a_slice = self.group_cxs[axons.group]
-                sa = self.s[a_slice]
-                np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
-
+        # --- synapse spikes use weights to modify compartment input
         for group in self.groups:
             for synapses in group.synapses:
-                s_in = self.a_in[synapses]
-
                 b_slice = self.group_cxs[synapses.group]
                 weights = synapses.weights
                 indices = synapses.indices
                 qb = self.q[:, b_slice]
                 # delays = np.zeros(qb.shape[1], dtype=np.int32)
 
-                for i in s_in.nonzero()[0]:
-                    for _ in range(s_in[i]):  # faster than mult since likely 1
-                        qb[0, indices[i]] += weights[i]
-                    # qb[delays[indices[i]], indices[i]] += weights[i]
+                for spike in self.axons_in[synapses]:
+                    assert spike.atom == 0
+                    qb[0, indices[spike.axon_id]] += weights[spike.axon_id]
 
                 if synapses.tracing:
                     z = self.z[synapses]
@@ -802,7 +855,8 @@ class CxSimulator(object):
                     decay = np.exp(-1.0 / tau)
                     z *= decay
 
-                    z += mag * s_in
+                    for spike in self.axons_in[synapses]:
+                        z[spike.axon_id] += mag
 
         # --- updates
         q0 = self.q[0, :]

@@ -343,16 +343,18 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
             )
 
 
-def build_axons(n2core, core, group, axons, cx_idxs):
+def build_axons(n2core, core, group, axons, cx_ids):
     tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapses(axons.target)
-    taxon_idxs = np.asarray(tsyn_idxs)[axons.target_inds]
     n2board = n2core.parent.parent
     tchip_id = n2board.n2Chips[tchip_idx].id
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
-    assert axons.n_axons == len(cx_idxs) == len(taxon_idxs)
-    for i in range(axons.n_axons):
-        n2core.createDiscreteAxon(
-            cx_idxs[i], tchip_id, tcore_id, int(taxon_idxs[i]))
+
+    cx_idxs = np.arange(len(cx_ids))
+    spikes = axons.map_cx_spikes(cx_idxs)
+    for cx_id, spike in zip(cx_ids, spikes):
+        taxon_idx = int(spike.axon_id)
+        taxon_id = int(tsyn_idxs[taxon_idx])
+        n2core.createDiscreteAxon(cx_id, tchip_id, tcore_id, taxon_id)
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):
