@@ -1,3 +1,4 @@
+from nengo.exceptions import ValidationError
 import numpy as np
 
 from nengo_loihi.loihi_api import (
@@ -85,6 +86,10 @@ def one_to_one_allocator(cx_model):
     chip = board.new_chip()
 
     for group in cx_model.cx_groups:
+        if group.n > 1024:
+            raise ValidationError("Group does not fit on one chip",
+                                  "n_neurons")
+
         core = chip.new_core()
         core.add_group(group)
 

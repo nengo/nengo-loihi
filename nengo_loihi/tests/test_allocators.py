@@ -1,4 +1,7 @@
+import nengo
+from nengo.exceptions import ValidationError
 import numpy as np
+import pytest
 
 from nengo_loihi.allocators import core_stdp_pre_cfgs
 from nengo_loihi.loihi_api import Board
@@ -28,3 +31,20 @@ def test_core_stdp_pre_cfgs():
     profiles, ret_idxs = core_stdp_pre_cfgs(core)
     assert len(profiles) == 3
     assert ret_idxs == profile_idxs
+
+
+@pytest.mark.xfail(pytest.config.getoption("--target") != "loihi",
+                   reason="Limits are not checked on emulator")
+def test_group_size(Simulator):
+    with nengo.Network() as net:
+        nengo.Ensemble(1024, 1)
+
+    # n_neurons within limit, no problem
+    with Simulator(net) as sim:
+        sim.run_steps(5)
+
+    with nengo.Network() as net:
+        nengo.Ensemble(1025, 1)
+    with pytest.raises(ValidationError):
+        with Simulator(net):
+            pass
