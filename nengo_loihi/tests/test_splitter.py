@@ -123,7 +123,7 @@ def test_place_inter_network_connection():
     networks.move(onchip, "chip")
     networks.move(offchip, "host")
 
-    place_internetwork_connections(networks)
+    place_internetwork_connections(networks, networks.original.all_connections)
     assert onoff not in networks
     assert offon not in networks
     assert networks.location(onon) == "chip"
@@ -301,7 +301,7 @@ def test_split_host_to_learning_rule():
     networks.needs_sender[ens_conn.learning_rule] = "ens_pes_target"
     networks.needs_sender[neurons_conn.learning_rule] = "neurons_pes_target"
 
-    split_host_to_learning_rules(networks)
+    split_host_to_learning_rules(networks, networks.original.all_connections)
     assert on2on_ens not in networks
     assert on2on_neurons not in networks
     assert sorted([type(obj).__name__ for obj in networks.adds]) == [

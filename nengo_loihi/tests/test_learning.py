@@ -61,21 +61,18 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
 
 def test_multiple_pes(allclose, plt, seed, Simulator):
     n_errors = 5
-    targets = np.linspace(-1, 1, n_errors)
+    targets = np.linspace(-0.9, 0.9, n_errors)
     with nengo.Network(seed=seed) as model:
         pre_ea = nengo.networks.EnsembleArray(200, n_ensembles=n_errors)
-        errors = nengo.Node(size_in=n_errors)
         output = nengo.Node(size_in=n_errors)
 
         target = nengo.Node(targets)
-        nengo.Connection(target, errors, transform=-1)
-        nengo.Connection(output, errors)
 
         for i in range(n_errors):
             conn = nengo.Connection(
                 pre_ea.ea_ensembles[i],
                 output[i],
-                learning_rule_type=nengo.PES(learning_rate=1e-3),
+                learning_rule_type=nengo.PES(learning_rate=5e-4),
             )
             nengo.Connection(target[i], conn.learning_rule, transform=-1)
             nengo.Connection(output[i], conn.learning_rule)
@@ -90,5 +87,4 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
         plt.axhline(target, **style)
 
     for i, target in enumerate(targets):
-        assert allclose(sim.data[probe][t > 0.8, i], target,
-                        atol=0.05, rtol=0.05)
+        assert allclose(sim.data[probe][t > 0.8, i], target, atol=0.1)

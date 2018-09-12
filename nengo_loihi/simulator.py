@@ -214,6 +214,8 @@ class Simulator(object):
          "inaccurate"),
         ('test_presets.py:test_thresholding_preset', "inaccurate"),
         ('test_synapses.py:test_decoders', "inaccurate"),
+        ('test_actionselection.py:test_basic', "inaccurate"),
+        ('test_actionselection.py:test_thalamus', "inaccurate"),
 
         # builder inconsistencies
         ('test_connection.py:test_neurons_to_ensemble*',
@@ -280,6 +282,17 @@ class Simulator(object):
         ('test_ensemble.py:test_eval_points_heuristic*',
          "max number of compartments exceeded"),
         ('test_neurons.py:test_lif*', "idxBits out of range"),
+        ('test_basalganglia.py:test_basal_ganglia',
+         "output_axons exceedecd max"),
+        ('test_cortical.py:test_connect', "total synapse bits exceeded max"),
+        ('test_cortical.py:test_transform', "total synapse bits exceeded max"),
+        ('test_cortical.py:test_translate', "total synapse bits exceeded max"),
+        ('test_memory.py:test_run', "total synapse bits exceeded max"),
+        ('test_memory.py:test_run_decay', "total synapse bits exceeded max"),
+        ('test_state.py:test_memory_run', "total synapse bits exceeded max"),
+        ('test_state.py:test_memory_run_decay',
+         "total synapse bits exceeded max"),
+        ('test_bind.py:test_run', "exceeded max cores per chip on loihi"),
 
         # serialization / deserialization
         ('test_cache.py:*', "model pickling not implemented"),
@@ -294,10 +307,25 @@ class Simulator(object):
         # utils.connection.target_function (deprecated)
         ('utils/tests/test_connection.py*',
          "target_function (deprecated) not working"),
+
+        # removing passthroughs changes test behaviour
+        ('test_connection.py:test_zero_activities_error',
+         "decoded connection optimized away"),
+        ('test_connection.py:test_function_returns_none_error',
+         "decoded connection optimized away"),
     ]
 
-    def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=False, target=None, progress_bar=None):
+    def __init__(  # noqa: C901
+            self,
+            network,
+            dt=0.001,
+            seed=None,
+            model=None,
+            precompute=False,
+            target=None,
+            progress_bar=None,
+            remove_passthrough=True
+    ):
         self.closed = True  # Start closed in case constructor raises exception
         if progress_bar is not None:
             raise NotImplementedError("progress bars not implemented")
@@ -327,7 +355,12 @@ class Simulator(object):
 
             # split the host into one, two or three networks
             self.networks = split(
-                network, precompute, max_rate, self.model.inter_tau)
+                network,
+                precompute,
+                max_rate,
+                self.model.inter_tau,
+                remove_passthrough=remove_passthrough,
+            )
             network = self.networks.chip
 
             self.model.chip2host_params = self.networks.chip2host_params
