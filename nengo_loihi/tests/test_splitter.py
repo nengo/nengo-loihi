@@ -1,6 +1,7 @@
 import numpy as np
 
 import nengo
+import nengo.utils.matplotlib
 import pytest
 
 import nengo_loihi
@@ -39,7 +40,7 @@ def test_interneuron_structures():
     assert conn.pre is stim
     assert conn.function is conn_func
     assert conn.solver is solver
-    assert conn.synapse is None   # TODO: should this be synapse?
+    assert conn.synapse is None
     assert np.allclose(conn.transform, transform / radius)
 
     host, chip, _, _, _ = splitter.split(model, inter_rate, inter_n,
@@ -51,19 +52,18 @@ def test_interneuron_structures():
     assert conn.pre is stim
     assert conn.function is conn_func
     assert conn.solver is solver
-    assert conn.synapse is synapse   # TODO: should this be None?
+    assert conn.synapse is None
     assert np.allclose(conn.transform, transform / radius)
 
 
 def test_no_interneuron_input():
-    synapse = 0.1
     with nengo.Network() as model:
         nengo_loihi.add_params(model)
 
         stim = nengo.Node(np.sin)
         ens = nengo.Ensemble(n_neurons=1, dimensions=1)
-        nengo.Connection(stim, ens, synapse=synapse)
-        probe = nengo.Probe(stim, synapse=synapse)
+        nengo.Connection(stim, ens, synapse=0.1)
+        probe = nengo.Probe(stim)
 
     host, chip, h2c, _, _ = splitter.split(model, inter_rate=1000, inter_n=1,
                                            spiking_interneurons_on_host=False)
@@ -78,23 +78,30 @@ def test_no_interneuron_input():
     assert np.allclose(sim.data[probe], [q[1] for q in sender.queue])
 
 
-@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
-                    reason="Loihi only test")
-def test_no_interneurons_running(Simulator, seed, plt):
-
-    synapse = 0.1
+@pytest.mark.parametrize('precompute', [False, True])
+def test_input_interneurons_running(Simulator, allclose, plt, precompute):
+    synapse = 0.05
     with nengo.Network() as model:
-        stim = nengo.Node(lambda t: 0 if t%1.0 < 0.5 else 1)
-        ens = nengo.Ensemble(n_neurons=100, dimensions=1)
-        nengo.Connection(stim, ens, synapse=synapse)
+        stim = nengo.Node(lambda t: 1 if t%0.5 < 0.25 else 0)
+        ens = nengo.Ensemble(n_neurons=1, dimensions=1,
+                             encoders=[[1]],
+                             intercepts=[0],
+                             max_rates=[100])
+        c = nengo.Connection(stim, ens, synapse=synapse)
         p_stim = nengo.Probe(stim)
-        p_neurons = nengo.Probe(ens.neurons)
-    with Simulator(model, precompute=False) as sim:
-        sim.run(2.0)
+        p_neurons = nengo.Probe(ens.neurons, synapse=0.1)
+    with Simulator(model, precompute=precompute) as sim:
+        sim.run(1.0)
+    c.synapse = None   # TODO: input synapses are currently ignored!
+    with nengo.Simulator(model) as ref:
+        ref.run(1.0)
 
-    nengo.utils.matplotlib.rasterplot(sim.trange(), sim.data[p_neurons])
     plt.plot(sim.trange(), sim.data[p_stim])
+    plt.plot(sim.trange(), sim.data[p_neurons], label='nengo_loihi')
+    plt.plot(sim.trange(), ref.data[p_neurons], label='nengo')
+    plt.legend(loc='best')
 
+    assert allclose(sim.data[p_neurons], ref.data[p_neurons], atol=20.0)
 
 
 

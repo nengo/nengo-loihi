@@ -216,7 +216,7 @@ def split(model, inter_rate, inter_n,          # noqa: C901
                                          solver=c.solver,
                                          eval_points=c.eval_points,
                                          scale_eval_points=c.scale_eval_points,
-                                         synapse=c.synapse,
+                                         synapse=None,
                                          transform=c.transform * scaling)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
