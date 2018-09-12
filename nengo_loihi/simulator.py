@@ -1,6 +1,5 @@
 import collections
 import logging
-import timeit
 import warnings
 
 import numpy as np
@@ -434,14 +433,11 @@ class Simulator(object):
                 targets = self.determine_spike_targets()
                 self.loihi.nengo_io_h2c.write(len(targets), targets)
 
-                start = timeit.default_timer()
                 for i in range(steps):
                     self.host_sim.run_steps(1)
                     if i % self.snip_io_steps == 0:
                         self.handle_host2chip_communications()
                         self.handle_chip2host_communications()
-                end = timeit.default_timer()
-                self.time_per_step = (end - start) / steps
 
                 logger.info("Waiting for completion")
                 self.loihi.wait_for_completion()
