@@ -21,7 +21,7 @@ def test_interneuron_structures():
             return x
         solver = nengo.solvers.NoSolver(None)
         synapse = nengo.synapses.Lowpass(0.1)
-        transform = np.random.uniform(-1, 1, (D,D))
+        transform = np.random.uniform(-1, 1, (D, D))
         nengo.Connection(stim, ens,
                          function=conn_func,
                          solver=solver,
@@ -32,7 +32,7 @@ def test_interneuron_structures():
     inter_n = 1
 
     host, chip, _, _, _ = splitter.split(model, inter_rate, inter_n,
-                                  spiking_interneurons_on_host=True)
+                                         spiking_interneurons_on_host=True)
 
     assert len(host.all_ensembles) == 1
     assert len(host.all_connections) == 2
@@ -44,7 +44,7 @@ def test_interneuron_structures():
     assert np.allclose(conn.transform, transform / radius)
 
     host, chip, _, _, _ = splitter.split(model, inter_rate, inter_n,
-                                     spiking_interneurons_on_host=False)
+                                         spiking_interneurons_on_host=False)
 
     assert len(host.all_ensembles) == 0
     assert len(host.all_connections) == 1
@@ -80,13 +80,13 @@ def test_no_interneuron_input():
 
 @pytest.mark.parametrize('precompute', [False, True])
 def test_input_interneurons_running(Simulator, allclose, plt, precompute):
-    synapse = 0.05
+    synapse = 0.1
     with nengo.Network() as model:
-        stim = nengo.Node(lambda t: 1 if t%0.5 < 0.25 else 0)
+        stim = nengo.Node(lambda t: 1 if t % 0.5 < 0.25 else 0)
         ens = nengo.Ensemble(n_neurons=1, dimensions=1,
                              encoders=[[1]],
                              intercepts=[0],
-                             max_rates=[100])
+                             max_rates=[40])
         c = nengo.Connection(stim, ens, synapse=synapse)
         p_stim = nengo.Probe(stim)
         p_neurons = nengo.Probe(ens.neurons, synapse=0.1)
@@ -96,14 +96,13 @@ def test_input_interneurons_running(Simulator, allclose, plt, precompute):
     with nengo.Simulator(model) as ref:
         ref.run(1.0)
 
-    plt.plot(sim.trange(), sim.data[p_stim])
     plt.plot(sim.trange(), sim.data[p_neurons], label='nengo_loihi')
     plt.plot(sim.trange(), ref.data[p_neurons], label='nengo')
     plt.legend(loc='best')
+    plt.twinx()
+    plt.plot(sim.trange(), sim.data[p_stim])
 
-    assert allclose(sim.data[p_neurons], ref.data[p_neurons], atol=20.0)
+    rmse = np.sqrt(np.mean((sim.data[p_neurons]-ref.data[p_neurons])**2))
+    assert rmse < 5
 
-
-
-
-
+    assert allclose(sim.data[p_neurons], ref.data[p_neurons], atol=11.0)
