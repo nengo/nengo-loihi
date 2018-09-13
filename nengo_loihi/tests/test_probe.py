@@ -38,3 +38,13 @@ def test_voltage_decode(allclose, Simulator, seed, plt, dim):
     plt.plot(sim.trange(), sim.data[p_stim])
 
     assert allclose(sim.data[p_stim], sim.data[p_a], atol=0.3)
+
+
+def test_repeated_probes(Simulator):
+    with nengo.Network() as net:
+        ens = nengo.Ensemble(1024, 1)
+        nengo.Probe(ens.neurons)
+
+    for _ in range(5):
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.1)

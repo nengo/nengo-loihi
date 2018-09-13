@@ -27,6 +27,10 @@ Release history
 - Models can now use the ``nengo.SpikingRectifiedLinear`` neuron model
   on both the emulator and hardware backends.
 
+**Fixed**
+
+- Manually reset spike probes when Simulator is initialized.
+
 0.2.0 (August 27, 2018)
 =======================
 

@@ -16,12 +16,14 @@ try:
     from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
     from nxsdk.arch.n2a.graph.graph import N2Board
     from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
+    from nxsdk.arch.n2a.graph.probes import N2SpikeProbe
 except ImportError:
     exc_info = sys.exc_info()
 
     def no_nxsdk(*args, **kwargs):
         raise exc_info[1]
-    nxsdk = N2Board = BasicSpikeGenerator = TraceCfgGen = no_nxsdk
+    nxsdk = N2Board = BasicSpikeGenerator = TraceCfgGen = N2SpikeProbe = (
+        no_nxsdk)
 
 from nengo_loihi.allocators import one_to_one_allocator
 from nengo_loihi.loihi_api import (
@@ -396,6 +398,10 @@ class LoihiSimulator(object):
 
         if seed is not None:
             warnings.warn("Seed will be ignored when running on Loihi")
+
+        # probeDict is a class attribute, so might contain things left over
+        # from previous simulators
+        N2SpikeProbe.probeDict.clear()
 
         self.build(cx_model, seed=seed)
 
