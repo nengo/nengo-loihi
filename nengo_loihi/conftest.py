@@ -27,12 +27,13 @@ def pytest_terminal_summary(terminalreporter):
     all_rmses = []
     for passed_test in tr.stats.get("passed", []):
         for name, val in passed_test.user_properties:
-            if name == "rmse":
+            if name == "rmse_relative":
                 all_rmses.append(val)
 
     if len(all_rmses) > 0:
-        tr.write_sep("=", "root mean squared error for allclose checks")
-        tr.write_line("mean rmse: %.5f +/- %.4f" % (
+        tr.write_sep(
+            "=", "relative root mean squared error for allclose checks")
+        tr.write_line("mean relative rmse: %.5f +/- %.4f" % (
             np.mean(all_rmses), np.std(all_rmses)))
 
 
@@ -101,9 +102,20 @@ def seed(request):
 
 @pytest.fixture
 def allclose(request):
+    def safe_rms(x):
+        x = np.asarray(x)
+        return npext.rms(x) if x.size > 0 else np.nan
+
     def _allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
-        rmse = npext.rmse(a, b)
+        rmse = safe_rms(a - b)
         if not np.any(np.isnan(rmse)):
             request.node.user_properties.append(("rmse", rmse))
+
+            ab_rms = safe_rms(a) + safe_rms(b)
+            rmse_relative = (2 * rmse / ab_rms) if ab_rms > 0 else np.nan
+            if not np.any(np.isnan(rmse_relative)):
+                request.node.user_properties.append(
+                    ("rmse_relative", rmse_relative))
+
         return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
     return _allclose
