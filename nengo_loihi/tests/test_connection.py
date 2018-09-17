@@ -3,6 +3,8 @@ from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 
+import nengo_loihi
+
 
 @pytest.mark.parametrize('weight_solver', [False, True])
 @pytest.mark.parametrize('target_value', [-0.75, 0.4, 1.0])
@@ -159,3 +161,59 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     assert allclose(np.sum(sim.data[p_post], axis=0) * sim.dt,
                     np.sum(nengosim.data[p_post], axis=0) * nengosim.dt,
                     atol=5)
+
+
+@pytest.mark.parametrize('pre_on_chip', [True, False])
+def test_neurons_to_ensemble(pre_on_chip, Simulator, seed, rng, allclose, plt):
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.add_params(net)
+
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+
+        pre_max_rate = 100
+        n_pre = 50
+        pre = nengo.Ensemble(n_pre, 1,
+                             max_rates=pre_max_rate * np.ones(n_pre),
+                             intercepts=np.linspace(-1, 0.9, n_pre))
+        net.config[pre].on_chip = pre_on_chip
+        nengo.Connection(stim, pre, synapse=None)
+
+        pre_max = pre_max_rate * n_pre
+        n_post = 51
+        post_encoders = np.ones((n_post, n_pre))
+        post = nengo.Ensemble(n_post, n_pre,
+                              radius=pre_max,
+                              encoders=post_encoders,
+                              normalize_encoders=False,
+                              max_rates=nengo.dists.Uniform(100, 150),
+                              intercepts=nengo.dists.Uniform(0, 0.5),
+                              )
+
+        nengo.Connection(pre.neurons, post, synapse=0.005)
+
+        p_pre = nengo.Probe(pre, synapse=nengo.synapses.Alpha(0.03))
+        p_post = nengo.Probe(post, synapse=nengo.synapses.Alpha(0.03))
+
+    with nengo.Simulator(net) as nengosim:
+        nengosim.run(1.0)
+
+    with Simulator(net, precompute=False) as sim:
+        sim.run(1.0)
+
+    y0 = nengosim.data[p_post].sum(axis=1)
+    y1 = sim.data[p_post].sum(axis=1)
+
+    t = sim.trange()
+    plt.subplot(2, 1, 1)
+    plt.plot(t, nengosim.data[p_pre], c='k')
+    plt.plot(t, sim.data[p_pre], c='g')
+    plt.ylabel("Decoded pre value")
+    plt.xlabel("Time (s)")
+
+    plt.subplot(2, 1, 2)
+    plt.plot(t, y0, c='k')
+    plt.plot(t, y1, c='g')
+    plt.ylabel("Decoded post value")
+    plt.xlabel("Time (s)")
+
+    assert allclose(y1, y0, rtol=1e-1, atol=0.05 * y0.max())
