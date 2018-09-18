@@ -328,20 +328,8 @@ def build_encoders(name, model, ens, scale=1.):
     group = model.objs[ens.neurons]['in']
     scaled_encoders = model.params[ens].scaled_encoders * scale
 
-    if scaled_encoders.ndim == 4:
-        # convolutional encoders
-        import nengo_loihi.conv
-        assert isinstance(ens, nengo_loihi.conv.Conv2dEnsemble)
-        ni, nj, nk = ens.input_shape
-        assert scaled_encoders.shape[0] == nk, "Filter and image channels must match"
-
-        synapses = CxSynapses(ni * nj, label="conv_encoders")
-        synapses.set_conv2d_weights(scaled_encoders, ens.input_shape,
-                                    strides=ens.strides, mode=ens.mode)
-    else:
-        synapses = CxSynapses(scaled_encoders.shape[1], label="encoders")
-        synapses.set_full_weights(scaled_encoders.T)
-
+    synapses = CxSynapses(scaled_encoders.shape[1], label="encoders")
+    synapses.set_full_weights(scaled_encoders.T)
     group.add_synapses(synapses, name=name)
 
 

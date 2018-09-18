@@ -1,50 +1,73 @@
-import collections
-import warnings
-
 import numpy as np
 
 import nengo
-import nengo.utils.numpy as npext
-from nengo.builder import Builder, Signal
-from nengo.builder.operator import Copy, DotInc, Reset
-from nengo.dists import Distribution, get_samples
-from nengo.ensemble import Ensemble
-from nengo.exceptions import BuildError, NengoWarning
-from nengo.neurons import Direct
-from nengo.utils.builder import default_n_eval_points
-from nengo.builder.ensemble import BuiltEnsemble, gen_eval_points, get_activities, get_gain_bias
+from nengo.base import NengoObject
+from nengo.builder import Signal
+from nengo.builder.connection import BuiltConnection, slice_signal
+from nengo.builder.operator import ElementwiseInc, Reset
+from nengo.connection import PrePostParam
+from nengo.ensemble import Neurons
+from nengo.exceptions import BuildError
+from nengo.params import Default
+from nengo.synapses import Lowpass, SynapseParam
 
-import nengo_dl
+try:
+    import nengo_dl
+except ImportError:
+    nengo_dl = None
 
 import nengo_loihi
-from nengo_loihi.builder import INTER_TAU
-from nengo_loihi.loihi_cx import CxGroup
+from nengo_loihi.loihi_cx import CxGroup, CxSpikeInput, CxSynapses, CxAxons
+from nengo_loihi.splitter import ChipReceiveNeurons
 
 
-class Conv2dEnsemble(nengo.Ensemble):
+class Conv2dConnection(nengo.Connection):
 
-    conv_encoders = nengo.params.NdarrayParam(
-        'conv_encoders', shape=('*', '*', '*', '*'))
+    probeable = ('output', 'input', 'weights')
 
-    def __init__(self, input_shape, weights, strides=(1, 1), mode='valid', **ens_params):
+    pre = PrePostParam('pre', nonzero_size_out=True)
+    post = PrePostParam('post', nonzero_size_in=True)
+    synapse = SynapseParam('synapse', default=Lowpass(tau=0.005))
+    weights = nengo.params.NdarrayParam(
+        'weights', shape=('*', '*', '*', '*'))
+
+    @classmethod
+    def get_output_shape(cls, input_shape, weight_shape,
+                         strides=(1, 1), mode='valid'):
         ni, nj, nk = input_shape
-        nc, si, sj, nf = weights.shape
+        nc, si, sj, nf = weight_shape
         sti, stj = strides
         nyi = 1 + (ni - si) // sti
         nyj = 1 + (nj - sj) // stj
-        nyk = nf
         assert nk == nc
+        return (nyi, nyj, nf)
 
-        self.conv2d_encoders = weights
+    def __init__(self, pre, post, input_shape=None, weights=None,
+                 strides=(1, 1), mode='valid', synapse=Default,
+                 seed=None, label=None):
+        NengoObject.__init__(self, label, seed)
+
+        if input_shape is None:
+            n = pre.size_out
+            input_shape = (n, 1, 1)
+        if weights is None:
+            _, _, nc = input_shape
+            weights = np.ones((nc, 1, 1, 1))
+
+        self.pre = pre
+        self.post = post
+        self.synapse = synapse
+        self.weights = weights
+
         self.input_shape = input_shape
-        self.output_shape = (nyi, nyj, nf)
+        self.output_shape = self.get_output_shape(
+            input_shape, weights.shape, strides=strides, mode=mode)
         self.strides = strides
         self.mode = mode
 
-        n_neurons = nyi * nyj * nyk
-        dimensions = ni * nj * nk
-        super(Conv2dEnsemble, self).__init__(
-            n_neurons, dimensions, **ens_params)
+        assert post.size_in == np.prod(self.output_shape)
+
+        self.synapse = synapse
 
 
 class Conv2d(nengo.builder.Operator):
@@ -94,173 +117,164 @@ class Conv2d(nengo.builder.Operator):
         return step_conv2d
 
 
-@nengo_dl.builder.Builder.register(Conv2d)
-class Conv2dBuilder(nengo_dl.builder.OpBuilder):
-    def __init__(self, ops, signals, config):
-        super(Conv2dBuilder, self).__init__(ops, signals, config)
+if nengo_dl is not None:
+    @nengo_dl.builder.Builder.register(Conv2d)
+    class Conv2dBuilder(nengo_dl.builder.OpBuilder):
+        def __init__(self, ops, signals, config):
+            super(Conv2dBuilder, self).__init__(ops, signals, config)
 
-        assert len(ops) == 1
-        self.W_data = signals.combine([op.W for op in ops])
-        self.X_data = signals.combine([op.X for op in ops])
-        self.Y_data = signals.combine([op.Y for op in ops])
+            assert len(ops) == 1
+            self.W_data = signals.combine([op.W for op in ops])
+            self.X_data = signals.combine([op.X for op in ops])
+            self.Y_data = signals.combine([op.Y for op in ops])
 
-        self.x_shape = ops[0].x_shape
-        self.strides = ops[0].strides
-        self.mode = ops[0].mode
+            self.x_shape = ops[0].x_shape
+            self.strides = ops[0].strides
+            self.mode = ops[0].mode
 
-    def build_step(self, signals):
-        import tensorflow as tf
-        assert self.mode == 'valid'
+        def build_step(self, signals):
+            import tensorflow as tf
+            assert self.mode == 'valid'
 
-        strides = self.strides
-        x_shape = self.x_shape
+            strides = self.strides
+            x_shape = self.x_shape
 
-        W = signals.gather(self.W_data)
-        X = signals.gather(self.X_data)
+            W = signals.gather(self.W_data)
+            X = signals.gather(self.X_data)
 
-        assert W.shape[-1] == 1
-        W = W[..., 0]
+            W = tf.transpose(W, (1, 2, 0, 3))  # (si, sj, nc, nf)
+            X = tf.transpose(X, (1, 0))  # put batch size first
+            X = tf.reshape(X, (X.shape[0],) + x_shape)
 
-        X = tf.transpose(X, (1, 0))  # put batch size first
+            Y = tf.nn.convolution(
+                input=X,
+                filter=W,
+                strides=strides,
+                padding='VALID',
+                data_format='NHWC')
 
-        W = tf.transpose(W, (1, 2, 0, 3))  # (si, sj, nc, nf)
-        X = tf.reshape(X, (X.shape[0],) + x_shape)
-
-        Y = tf.nn.convolution(
-            input=X,
-            filter=W,
-            strides=strides,
-            padding='VALID',
-            data_format='NHWC')
-
-        signals.scatter(self.Y_data, Y, mode='inc')
+            signals.scatter(self.Y_data, Y, mode='inc')
 
 
-@nengo.builder.Builder.register(Conv2dEnsemble)
-def build_conv_ensemble(model, ens):
-    # Create random number generator
-    rng = np.random.RandomState(model.seeds[ens])
+@nengo.builder.Builder.register(Conv2dConnection)
+def build_conv2d_connection(model, conn):
+    def get_prepost_signal(is_pre):
+        target = conn.pre_obj if is_pre else conn.post_obj
+        key = 'out' if is_pre else 'in'
 
-    eval_points = gen_eval_points(ens, ens.eval_points, rng=rng)
+        if target not in model.sig:
+            raise BuildError("Building %s: the %r object %s is not in the "
+                             "model, or has a size of zero."
+                             % (conn, 'pre' if is_pre else 'post', target))
+        if key not in model.sig[target]:
+            raise BuildError(
+                "Building %s: the %r object %s has a %r size of zero."
+                % (conn, 'pre' if is_pre else 'post', target, key))
 
-    # Set up signal
-    model.sig[ens]['in'] = Signal(np.zeros(ens.dimensions),
-                                  name="%s.input" % ens)
-    model.add_op(Reset(model.sig[ens]['in']))
+        return model.sig[target][key]
 
-    # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng)
+    model.sig[conn]['in'] = get_prepost_signal(is_pre=True)
+    model.sig[conn]['out'] = get_prepost_signal(is_pre=False)
+    assert isinstance(conn.pre_obj, Neurons)
+    assert isinstance(conn.post_obj, Neurons)
 
-    if isinstance(ens.neuron_type, Direct):
-        model.sig[ens.neurons]['in'] = Signal(
-            np.zeros(ens.dimensions), name='%s.neuron_in' % ens)
-        model.sig[ens.neurons]['out'] = model.sig[ens.neurons]['in']
-        model.add_op(Reset(model.sig[ens.neurons]['in']))
-    else:
-        model.sig[ens.neurons]['in'] = Signal(
-            np.zeros(ens.n_neurons), name="%s.neuron_in" % ens)
-        model.sig[ens.neurons]['out'] = Signal(
-            np.zeros(ens.n_neurons), name="%s.neuron_out" % ens)
-        model.sig[ens.neurons]['bias'] = Signal(
-            bias, name="%s.bias" % ens, readonly=True)
-        model.add_op(Copy(model.sig[ens.neurons]['bias'],
-                          model.sig[ens.neurons]['in']))
-        # This adds the neuron's operator and sets other signals
-        model.build(ens.neuron_type, ens.neurons)
+    signal_size = conn.size_out
+    post_slice = conn.post_slice
 
-    # # Set up encoders
-    # if isinstance(ens.neuron_type, Direct):
-    #     encoders = np.identity(ens.dimensions)
-    # elif isinstance(ens.encoders, Distribution):
-    #     encoders = get_samples(
-    #         ens.encoders, ens.n_neurons, ens.dimensions, rng=rng)
-    # else:
-    #     encoders = npext.array(ens.encoders, min_dims=2, dtype=np.float64)
-    # if ens.normalize_encoders:
-    #     encoders /= npext.norm(encoders, axis=1, keepdims=True)
-    # encoders = None
-    encoders = np.zeros((0, 0))
-    model.sig[ens]['encoders'] = Signal(
-        encoders, name="%s.encoders" % ens, readonly=True)
+    weights = conn.weights
+    in_signal = model.sig[conn]['in']
+    in_signal = slice_signal(model, in_signal, conn.pre_slice)
 
-    # # Scale the encoders
-    # if isinstance(ens.neuron_type, Direct):
-    #     scaled_encoders = encoders
-    # else:
-    #     scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
-    scaled_encoders = encoders
-
-    assert np.all(gain == gain[0]), "All gains must be the same"
-    scaled_conv2d_encoders = ens.conv2d_encoders * gain[0]
-
-    model.sig[ens]['conv2d_encoders'] = Signal(
-        scaled_conv2d_encoders,
-        name="%s.scaled_conv2d_encoders" % ens,
-        readonly=True)
-
-    # Inject noise if specified
-    if ens.noise is not None:
-        model.build(ens.noise, sig_out=model.sig[ens.neurons]['in'], inc=True)
-
-    # Create output signal, using built Neurons
+    # Add operator for applying weights
+    model.sig[conn]['weights'] = Signal(
+        weights, name="%s.weights" % conn, readonly=True)
+    signal = Signal(np.zeros(signal_size), name="%s.weighted" % conn)
+    model.add_op(Reset(signal))
     model.add_op(Conv2d(
-        model.sig[ens]['conv2d_encoders'],
-        model.sig[ens]['in'],
-        model.sig[ens.neurons]['in'],
-        x_shape=ens.input_shape,
-        strides=ens.strides,
-        mode=ens.mode,
-        tag="%s conv2d encoding" % ens))
+        model.sig[conn]['weights'],
+        in_signal,
+        signal,
+        x_shape=conn.input_shape,
+        strides=conn.strides,
+        mode=conn.mode,
+        tag="%s.conv2d_weights" % conn))
 
-    # Output is neural output
-    model.sig[ens]['out'] = model.sig[ens.neurons]['out']
+    # Add operator for filtering
+    if conn.synapse is not None:
+        signal = model.build(conn.synapse, signal)
 
-    model.params[ens] = BuiltEnsemble(eval_points=eval_points,
-                                      encoders=encoders,
-                                      intercepts=intercepts,
-                                      max_rates=max_rates,
-                                      scaled_encoders=scaled_encoders,
-                                      gain=gain,
-                                      bias=bias)
+    # Store the weighted-filtered output in case we want to probe it
+    model.sig[conn]['weighted'] = signal
+
+    # Apply neuron gains
+    gains = Signal(model.params[conn.post_obj.ensemble].gain[post_slice],
+                   name="%s.gains" % conn)
+    model.add_op(ElementwiseInc(
+        gains, signal, model.sig[conn]['out'][post_slice],
+        tag="%s.gains_elementwiseinc" % conn))
+
+    model.params[conn] = BuiltConnection(eval_points=None,
+                                         solver_info=None,
+                                         transform=None,
+                                         weights=weights)
 
 
-@nengo_loihi.builder.Builder.register(Conv2dEnsemble)
-def build_conv_ensemble_nengo_loihi(model, ens):
-    # Create random number generator
-    rng = np.random.RandomState(model.seeds[ens])
+@nengo_loihi.builder.Builder.register(Conv2dConnection)
+def build_conv2d_connection_nengo_loihi(model, conn):
+    pre_cx = model.objs[conn.pre_obj]['out']
+    post_cx = model.objs[conn.post_obj]['in']
+    assert isinstance(pre_cx, (CxGroup, CxSpikeInput))
+    assert isinstance(post_cx, CxGroup)
 
-    eval_points = gen_eval_points(ens, ens.eval_points, rng=rng)
+    tau_s = 0.0
+    if isinstance(conn.synapse, nengo.synapses.Lowpass):
+        tau_s = conn.synapse.tau
+    elif conn.synapse is not None:
+        raise NotImplementedError("Cannot handle non-Lowpass synapses")
 
-    # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng)
+    # --- pre
+    assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
+    assert conn.pre_slice == slice(None)
 
-    if isinstance(ens.neuron_type, nengo.Direct):
-        raise NotImplementedError()
-    else:
-        group = CxGroup(ens.n_neurons, label='%s' % ens)
-        group.bias[:] = bias
-        model.build(ens.neuron_type, ens.neurons, group)
+    weights = conn.weights
+    input_shape = conn.input_shape
 
-    group.configure_filter(INTER_TAU, dt=model.dt, default=True)
+    # Account for nengo spike height of 1/dt
+    weights = weights / model.dt
 
-    if ens.noise is not None:
-        raise NotImplementedError("Ensemble noise not implemented")
+    if isinstance(conn.pre_obj, ChipReceiveNeurons):
+        neuron_type = conn.pre_obj.neuron_type
+    elif isinstance(conn.pre_obj, Neurons):
+        neuron_type = conn.pre_obj.ensemble.neuron_type
 
-    # Set up encoders
+    if neuron_type is not None and hasattr(neuron_type, 'amplitude'):
+        weights = weights * neuron_type.amplitude
+
+    # --- post
+    assert isinstance(conn.post_obj, Neurons)
+    assert conn.post_slice == slice(None)
+
+    gain = model.params[conn.post_obj.ensemble].gain
     assert np.all(gain == gain[0]), "All gains must be the same"
-    encoders = ens.conv2d_encoders
-    scaled_encoders = encoders * gain[0]
+    weights = weights * gain[0]
 
-    model.add_group(group)
+    ni, nj, nk = input_shape
+    synapses = CxSynapses(ni * nj, label="conv2d_weights")
+    synapses.set_conv2d_weights(
+        weights, input_shape, strides=conn.strides, mode=conn.mode)
+    post_cx.add_synapses(synapses)
+    model.objs[conn]['weights'] = synapses
 
-    model.objs[ens]['in'] = group
-    model.objs[ens]['out'] = group
-    model.objs[ens.neurons]['in'] = group
-    model.objs[ens.neurons]['out'] = group
-    model.params[ens] = BuiltEnsemble(eval_points=eval_points,
-                                      encoders=encoders,
-                                      intercepts=intercepts,
-                                      max_rates=max_rates,
-                                      scaled_encoders=scaled_encoders,
-                                      gain=gain,
-                                      bias=bias)
+    ax = CxAxons(ni * nj, label="conv2d_weights")
+    ax.target = synapses
+    ax.cx_to_axon_map = np.arange(ni * nj * nk) // nk
+    ax.cx_atoms = np.arange(ni * nj * nk) % nk
+    pre_cx.add_axons(ax)
+
+    post_cx.configure_filter(tau_s, dt=model.dt)
+
+    model.params[conn] = BuiltConnection(
+        eval_points=None,
+        solver_info=None,
+        transform=None,
+        weights=weights)

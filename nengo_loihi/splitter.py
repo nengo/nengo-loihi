@@ -94,6 +94,7 @@ class ChipReceiveNeurons(ChipReceiveNode):
 
 def split(model, inter_rate, inter_n):  # noqa: C901
     """Split a model into code running on the host and on-chip"""
+    from nengo_loihi.conv import Conv2dConnection
 
     logger.info("Splitting model into host and chip parts")
     host = nengo.Network(seed=model.seed)
@@ -152,8 +153,15 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                     logger.debug("Creating ChipReceiveNeurons for %s", c)
                     receive = ChipReceiveNeurons(
                         dim, neuron_type=c.pre_obj.ensemble.neuron_type)
-                    nengo.Connection(receive, c.post,
-                                     transform=c.transform, synapse=c.synapse)
+                    if isinstance(c, Conv2dConnection):
+                        Conv2dConnection(
+                            receive, c.post, input_shape=c.input_shape,
+                            weights=c.weights, strides=c.strides, mode=c.mode,
+                            synapse=c.synapse, seed=c.seed, label=c.label)
+                    else:
+                        nengo.Connection(receive, c.post,
+                                         transform=c.transform,
+                                         synapse=c.synapse)
                 with host:
                     logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim)

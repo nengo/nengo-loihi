@@ -7,9 +7,14 @@ import scipy.signal
 import nengo
 from nengo.dists import Uniform
 
+try:
+    import nengo_dl
+except ImportError:
+    nengo_dl = None
+
 import nengo_loihi
 import nengo_loihi.loihi_cx as loihi_cx
-from nengo_loihi.conv import Conv2dEnsemble
+from nengo_loihi.conv import Conv2dConnection
 from nengo_loihi.neurons import loihi_rates
 
 from nengo_extras.matplotlib import tile, imshow
@@ -159,7 +164,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
-def test_conv_ensemble(Simulator, seed, rng, plt):
+def test_conv_connection(Simulator, seed, rng, plt):
     # load data
     with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
         test10 = pickle.load(f)
@@ -212,36 +217,34 @@ def test_conv_ensemble(Simulator, seed, rng, plt):
 
         input_shape = (ni, nj, nk)
         filters = np.vstack([filters, -filters])
+        output_shape = Conv2dConnection.get_output_shape(
+            input_shape, filters.shape, strides=(sti, stj))
         gain, bias = neuron_type.gain_bias(max_rates=100, intercepts=0)
         gain = gain * 0.01  # account for `a` max_rates
-        b = Conv2dEnsemble(input_shape, filters, strides=(sti, stj),
+        b = nengo.Ensemble(np.prod(output_shape), 1,
                            neuron_type=neuron_type,
-                           # max_rates=nengo.dists.Choice([100]),
-                           # intercepts=nengo.dists.Choice([0]),
                            gain=nengo.dists.Choice([gain[0]]),
                            bias=nengo.dists.Choice([bias[0]]),
                            label='b')
-        ab = nengo.Connection(a.neurons, b, synapse=tau_s, label='Conn(a->b)')
-        # model.config[ab].atoms =
+        ab = Conv2dConnection(a.neurons, b.neurons, input_shape, filters,
+                              strides=(sti, stj), synapse=tau_s,
+                              label='Conn(a->b)')
 
         bp = nengo.Probe(b.neurons)
-
-        output_shape = b.output_shape
 
     with nengo.Simulator(model, dt=dt, optimize=False) as sim:
         sim.run(pres_time)
     ref_out = sim.data[bp].mean(axis=0).reshape(output_shape)
 
     ndl_out = np.zeros_like(ref_out)
-    # import nengo_dl
-    # with nengo_dl.Simulator(model, dt=dt) as sim:
-    #     sim.run(pres_time)
-    # ndl_out = sim.data[bp].mean(axis=0).reshape(output_shape)
+    if nengo_dl is not None:
+        with nengo_dl.Simulator(model, dt=dt) as sim:
+            sim.run(pres_time)
+        ndl_out = sim.data[bp].mean(axis=0).reshape(output_shape)
 
-    sim_out = np.zeros_like(ref_out)
-    # with Simulator(model, dt=dt) as sim:
-    #     sim.run(pres_time)
-    # sim_out = sim.data[bp].mean(axis=0).reshape(output_shape)
+    with Simulator(model, dt=dt) as sim:
+        sim.run(pres_time)
+    sim_out = sim.data[bp].mean(axis=0).reshape(output_shape)
 
     out_max = max(ref_out.max(), sim_out.max())
 
