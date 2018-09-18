@@ -104,6 +104,9 @@ class Model(CxModel):
         self.builder = Builder() if builder is None else builder
         self.build_callback = None
 
+        # limit for clipping intercepts, to avoid neurons with high gains
+        self.intercept_limit = 0.95
+
     def __str__(self):
         return "Model: %s" % self.label
 
@@ -215,7 +218,7 @@ def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
     return eval_points
 
 
-def get_gain_bias(ens, rng=np.random):
+def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
     if ens.gain is not None and ens.bias is not None:
         gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
         bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
@@ -227,8 +230,27 @@ def get_gain_bias(ens, rng=np.random):
                                   "Solving for one given the other is not "
                                   "implemented yet." % ens)
     else:
+        int_distorarray = ens.intercepts
+        if isinstance(int_distorarray, nengo.dists.Uniform):
+            if int_distorarray.high > intercept_limit:
+                warnings.warn(
+                    "Intercepts are larger than intercept limit (%g). "
+                    "High intercept values cause issues when discretizing "
+                    "the model for running on Loihi." % intercept_limit)
+                int_distorarray = nengo.dists.Uniform(
+                    min(int_distorarray.low, intercept_limit),
+                    min(int_distorarray.high, intercept_limit))
+
         max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
-        intercepts = get_samples(ens.intercepts, ens.n_neurons, rng=rng)
+        intercepts = get_samples(int_distorarray, ens.n_neurons, rng=rng)
+
+        if np.any(intercepts > intercept_limit):
+            intercepts[intercepts > intercept_limit] = intercept_limit
+            warnings.warn(
+                "Intercepts are larger than intercept limit (%g). "
+                "High intercept values cause issues when discretizing "
+                "the model for running on Loihi." % intercept_limit)
+
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
         if gain is not None and (
                 not np.all(np.isfinite(gain)) or np.any(gain <= 0.)):
@@ -273,7 +295,8 @@ def build_ensemble(model, ens):
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
 
     # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng)
+    gain, bias, max_rates, intercepts = get_gain_bias(
+        ens, rng, model.intercept_limit)
 
     if isinstance(ens.neuron_type, nengo.Direct):
         raise NotImplementedError()
