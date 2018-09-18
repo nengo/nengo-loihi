@@ -83,7 +83,8 @@ class Model(CxModel):
     seeds : dict
         Mapping from objects to the integer seed assigned to that object.
     """
-    def __init__(self, dt=0.001, label=None, builder=None):
+    def __init__(self, dt=0.001, label=None, builder=None,
+                 intercept_limit=1.0):
         super(Model, self).__init__()
 
         if dt != 0.001:
@@ -103,6 +104,8 @@ class Model(CxModel):
 
         self.builder = Builder() if builder is None else builder
         self.build_callback = None
+
+        self.intercept_limit = intercept_limit
 
     def __str__(self):
         return "Model: %s" % self.label
@@ -215,7 +218,7 @@ def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
     return eval_points
 
 
-def get_gain_bias(ens, rng=np.random):
+def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
     if ens.gain is not None and ens.bias is not None:
         gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
         bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
@@ -227,8 +230,18 @@ def get_gain_bias(ens, rng=np.random):
                                   "Solving for one given the other is not "
                                   "implemented yet." % ens)
     else:
+
+        inter = ens.intercepts
+        if isinstance(inter, nengo.dists.Uniform):
+            if inter.high > intercept_limit:
+                inter = nengo.dists.Uniform(min(inter.low, intercept_limit),
+                                            min(inter.high, intercept_limit))
+
         max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
-        intercepts = get_samples(ens.intercepts, ens.n_neurons, rng=rng)
+        intercepts = get_samples(inter, ens.n_neurons, rng=rng)
+
+        intercepts = np.minimum(intercepts, intercept_limit)
+
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
         if gain is not None and (
                 not np.all(np.isfinite(gain)) or np.any(gain <= 0.)):
@@ -273,7 +286,8 @@ def build_ensemble(model, ens):
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
 
     # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng)
+    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng,
+                                                      model.intercept_limit)
 
     if isinstance(ens.neuron_type, nengo.Direct):
         raise NotImplementedError()
