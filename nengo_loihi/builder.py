@@ -234,13 +234,18 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
         inter = ens.intercepts
         if isinstance(inter, nengo.dists.Uniform):
             if inter.high > intercept_limit:
+                logger.warn('Intercepts are larger than intercept_limit=%g' %
+                            intercept_limit)
                 inter = nengo.dists.Uniform(min(inter.low, intercept_limit),
                                             min(inter.high, intercept_limit))
 
         max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
         intercepts = get_samples(inter, ens.n_neurons, rng=rng)
 
-        intercepts = np.minimum(intercepts, intercept_limit)
+        if np.max(intercepts) > intercept_limit:
+            intercepts = np.minimum(intercepts, intercept_limit)
+            logger.warn('Intercepts are larger than intercept_limit=%g' %
+                        intercept_limit)
 
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
         if gain is not None and (
