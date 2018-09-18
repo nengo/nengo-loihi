@@ -639,7 +639,6 @@ class CxSpikeInput(object):
         return self.spikes.shape[1]
 
     def add_axons(self, axons):
-        assert axons.n_axons == self.n
         self.axons.append(axons)
 
     def add_probe(self, probe):
