@@ -24,6 +24,123 @@ home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, 'tests')
 
 
+def test_pop_tiny(request, plt, seed, rng, allclose):
+    target = request.config.getoption("--target")
+
+    tau_rc = 0.02
+    tau_ref = 0.001
+    tau_s = 0.0
+    dt = 0.001
+
+    encode_type = nengo.SpikingRectifiedLinear()
+    encode_gain = 1./dt
+    encode_bias = 0.
+    neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
+    neuron_gain = 1.
+    neuron_bias = 1.
+
+    pres_time = 0.1
+
+    filters = np.array([[-0.5, 2., -0.25],
+                        [-0.25, 2., -0.5],
+                        [-0.5, 3., -0.5],
+                        [-0.0, 2., -0.25]]).reshape(4, 1, 1, 3)
+    filters = np.transpose(filters, (1, 2, 3, 0))
+    sti, stj = 1, 1
+
+    test_x = np.array([[1, 5, 1],
+                       [2, 1, 2]])
+    test_x = test_x / (test_x.max() + 0.001)
+
+    # --- compute nengo_loihi outputs
+    inp_biases = test_x[:, :, None]
+    nk = inp_biases.shape[-1]  # number of channels
+    ni, nj = test_x.shape
+    nc, si, sj, nf = filters.shape
+    nij = ni * nj
+    nyi = 1 + (ni - si) // sti
+    nyj = 1 + (nj - sj) // stj
+    out_size = nyi * nyj * nf
+    assert out_size <= 1024
+
+    model = loihi_cx.CxModel()
+
+    # input group
+    inp = loihi_cx.CxGroup(ni * nj * nk, label='inp')
+    assert inp.n <= 1024
+    inp.configure_relu()
+    inp.bias[:] = inp_biases.ravel()
+
+    inp_ax = loihi_cx.CxAxons(nij, label='inp_ax')
+    inp_ax.cx_to_axon_map = np.tile(np.arange(nij), nk)
+    inp_ax.cx_atoms = np.concatenate([
+        i * np.ones(nij, dtype=int) for i in range(nk)])
+    inp.add_axons(inp_ax)
+
+    inp_probe = loihi_cx.CxProbe(target=inp, key='s')
+    inp.add_probe(inp_probe)
+
+    model.add_group(inp)
+
+    # conv group
+    neurons = loihi_cx.CxGroup(out_size, label='neurons')
+    assert neurons.n <= 1024
+    neurons.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
+    neurons.configure_filter(tau_s, dt=dt)
+    neurons.bias[:] = neuron_bias
+
+    synapses = loihi_cx.CxSynapses(ni*nj, label='synapses')
+    input_shape = (ni, nj, nk)
+    synapses.set_conv2d_weights(filters, input_shape, strides=(sti, stj))
+    neurons.add_synapses(synapses)
+
+    out_probe = loihi_cx.CxProbe(target=neurons, key='s')
+    neurons.add_probe(out_probe)
+
+    inp_ax.target = synapses
+    model.add_group(neurons)
+
+    # simulation
+    model.discretize()
+
+    n_steps = int(pres_time / dt)
+    if target == 'loihi':
+        with model.get_loihi(seed=seed) as sim:
+            sim.run_steps(n_steps)
+
+            sim_inp = np.column_stack([
+                p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
+            sim_out = np.column_stack([
+                p.timeSeries.data for p in sim.board.probe_map[out_probe]])
+    else:
+        sim = model.get_simulator(seed=seed)
+        sim.run_steps(n_steps)
+
+        sim_inp = sim.probe_outputs[inp_probe]
+        sim_out = sim.probe_outputs[out_probe]
+
+    sim_inp = np.sum(sim_inp, axis=0) * (dt / pres_time)
+    sim_inp.shape = (nk * ni, nj)
+
+    sim_out = np.sum(sim_out, axis=0) * (dt / pres_time)
+    sim_out.shape = (nyi, nyj, nf)
+    sim_out = np.transpose(sim_out, (2, 0, 1))
+
+    out_max = sim_out.max()
+
+    # --- plot results
+    rows = 1
+    cols = 2
+
+    ax = plt.subplot(rows, cols, 1)
+    imshow(sim_inp, vmin=0, vmax=1, ax=ax)
+
+    ax = plt.subplot(rows, cols, 2)
+    tile(sim_out, vmin=0, vmax=out_max, grid=True, ax=ax)
+
+    print(sim_out)
+
+
 def test_conv2d_weights(request, plt, seed, rng, allclose):
     target = request.config.getoption("--target")
 
