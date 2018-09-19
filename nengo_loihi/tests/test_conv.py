@@ -150,12 +150,12 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     ax = plt.subplot(rows, cols, 2)
     tile(ref_out, vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    # ax = plt.subplot(rows, cols, 3)
-    # imshow(sim_inp, vmin=0, vmax=1, ax=ax)
-
     ax = plt.subplot(rows, cols, 3)
-    plt.hist(ref_out.ravel(), bins=31)
-    plt.hist(sim_out.ravel(), bins=31)
+    imshow(sim_inp, vmin=0, vmax=1, ax=ax)
+
+    # ax = plt.subplot(rows, cols, 3)
+    # plt.hist(ref_out.ravel(), bins=31)
+    # plt.hist(sim_out.ravel(), bins=31)
 
     ax = plt.subplot(rows, cols, 4)
     # tile(sim_out, vmin=0, vmax=1, cols=8, ax=ax)
