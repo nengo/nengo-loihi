@@ -147,13 +147,15 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=True, target=None, intercept_limit=0.95):
+                 precompute=True, target=None,
+                 intercept_limit=0.95, force_weights=False):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
             # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt),
-                               intercept_limit=intercept_limit)
+                               intercept_limit=intercept_limit,
+                               force_weights=force_weights)
         else:
             self.model = model
 

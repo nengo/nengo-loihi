@@ -84,7 +84,7 @@ class Model(CxModel):
         Mapping from objects to the integer seed assigned to that object.
     """
     def __init__(self, dt=0.001, label=None, builder=None,
-                 intercept_limit=1.0):
+                 intercept_limit=1.0, force_weights=False):
         super(Model, self).__init__()
 
         if dt != 0.001:
@@ -106,6 +106,9 @@ class Model(CxModel):
         self.build_callback = None
 
         self.intercept_limit = intercept_limit
+        self.force_weights = force_weights
+
+        self.solvers = {}
 
     def __str__(self):
         return "Model: %s" % self.label
@@ -412,7 +415,7 @@ def build_decoders(model, conn, rng, transform):
 
     x = np.dot(eval_points, encoders.T / conn.pre_obj.radius)
     E = None
-    if conn.solver.weights:
+    if model.solvers[conn].weights:
         E = model.params[conn.post_obj].scaled_encoders.T[conn.post_slice]
         # include transform in solved weights
         targets = multiply(targets, transform.T)
@@ -421,14 +424,14 @@ def build_decoders(model, conn, rng, transform):
     #                   if model.seeded[conn] else solve_for_decoders)
     # decoders, solver_info = wrapped_solver(
     decoders, solver_info = solve_for_decoders(
-        conn, gain, bias, x, targets, rng=rng, dt=model.dt, E=E)
+        model, conn, gain, bias, x, targets, rng=rng, dt=model.dt, E=E)
 
-    weights = (decoders.T if conn.solver.weights else
+    weights = (decoders.T if model.solvers[conn].weights else
                multiply(transform, decoders.T))
     return eval_points, weights, solver_info
 
 
-def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
+def solve_for_decoders(model, conn, gain, bias, x, targets, rng, dt, E=None):
     activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias, dt)
     if np.count_nonzero(activities) == 0:
         raise BuildError(
@@ -436,7 +439,8 @@ def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
             "This is because no evaluation points fall in the firing "
             "ranges of any neurons." % (conn, conn.pre_obj))
 
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
+    decoders, solver_info = model.solvers[conn](activities,
+                                                targets, rng=rng, E=E)
     return decoders, solver_info
 
 
@@ -461,10 +465,14 @@ def build_solver(model, solver, conn, rng, transform):
 def build_no_solver(model, solver, conn, rng, transform):
     activities = np.zeros((1, conn.pre_obj.n_neurons))
     targets = np.zeros((1, conn.size_mid))
-    E = np.zeros((1, conn.post_obj.n_neurons)) if solver.weights else None
+    if model.solvers[conn].weights:
+        E = np.zeros((1, conn.post_obj.n_neurons))
+    else:
+        E = None
     # No need to invoke the cache for NoSolver
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
-    weights = (decoders.T if conn.solver.weights else
+    decoders, solver_info = model.solvers[conn](activities,
+                                                targets, rng=rng, E=E)
+    weights = (decoders.T if model.solvers[conn].weights else
                multiply(transform, decoders.T))
     return None, weights, solver_info
 
@@ -473,6 +481,16 @@ def build_no_solver(model, solver, conn, rng, transform):
 def build_connection(model, conn):
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
+
+    model.solvers[conn] = conn.solver
+    if model.force_weights:
+        if isinstance(conn.pre_obj, nengo.Ensemble):
+            if isinstance(conn.post_obj, nengo.Ensemble):
+                if conn.solver.weights is False:
+                    if isinstance(conn.solver, nengo.solvers.LstsqL2):
+                        s = nengo.solvers.LstsqL2(reg=conn.solver.reg,
+                                                  weights=True)
+                        model.solvers[conn] = s
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
@@ -521,7 +539,7 @@ def build_connection(model, conn):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
-            conn.solver, conn, rng, transform)
+            model.solvers[conn], conn, rng, transform)
 
         # the decoder solver assumes a spike height of 1/dt; that isn't the
         # case on loihi, so we need to undo that scaling
@@ -529,7 +547,7 @@ def build_connection(model, conn):
 
         neuron_type = conn.pre_obj.neuron_type
 
-        if not conn.solver.weights:
+        if not model.solvers[conn].weights:
             needs_interneurons = True
     elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
@@ -655,7 +673,7 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
-    elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
+    elif isinstance(conn.post_obj, Ensemble) and model.solvers[conn].weights:
         assert isinstance(post_cx, CxGroup)
         assert weights.ndim == 2
         n2, n1 = weights.shape
