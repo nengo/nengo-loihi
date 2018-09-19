@@ -142,6 +142,8 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
 
 
 def test_conv2d_weights(request, plt, seed, rng, allclose):
+    pop_type = 32
+
     target = request.config.getoption("--target")
 
     # load data
@@ -220,7 +222,8 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     kernel = np.array([filters, -filters])  # two channels, pos and neg
     kernel = np.transpose(kernel, (0, 2, 3, 1))
     input_shape = (ni, nj, nk)
-    synapses.set_conv2d_weights(kernel, input_shape, strides=(sti, stj))
+    synapses.set_conv2d_weights(kernel, input_shape,
+                                strides=(sti, stj), pop_type=pop_type)
     neurons.add_synapses(synapses)
 
     out_probe = loihi_cx.CxProbe(target=neurons, key='s')
