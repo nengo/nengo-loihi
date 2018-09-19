@@ -870,6 +870,7 @@ class CxSimulator(object):
                     # qb[0, indices[spike.axon_id]] += weights[spike.axon_id]
                     cx_base = synapses.axon_cx_base(spike.axon_id)
                     if cx_base is None:
+                        assert False
                         continue
 
                     weights, indices = synapses.axon_weights_indices(
