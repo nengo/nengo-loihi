@@ -32,7 +32,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
         test10 = pickle.load(f)
 
     test_x, test_y = test10[0][0].reshape(28, 28), test10[1][0]
-    test_x = test_x[3:25, 3:25]
+    test_x = test_x[3:24, 3:24]
     test_x = 1.999 * test_x - 0.999
 
     filters = Gabor(freq=Uniform(0.5, 1)).generate(8, (7, 7), rng=rng)
