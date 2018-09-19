@@ -131,18 +131,6 @@ class CxGroup(object):
             assert name not in self.named_synapses
             self.named_synapses[name] = synapses
 
-        AXONS_MAX = 4096
-        n_axons = sum(s.n_axons for s in self.synapses)
-        if n_axons > AXONS_MAX:
-            raise BuildError("Total axons (%d) exceeded max (%d)" % (
-                n_axons, AXONS_MAX))
-
-        MAX_SYNAPSE_BITS = 16384*64
-        synapse_bits = sum(s.bits() for s in self.synapses)
-        if synapse_bits > MAX_SYNAPSE_BITS:
-            raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
-                synapse_bits, MAX_SYNAPSE_BITS))
-
     def add_axons(self, axons, name=None):
         """Add a CxAxons object to ensemble."""
 
@@ -152,12 +140,6 @@ class CxGroup(object):
         if name is not None:
             assert name not in self.named_axons
             self.named_axons[name] = axons
-
-        AXONS_MAX = 4096
-        n_axons = sum(a.axon_slots() for a in self.axons)
-        if n_axons > AXONS_MAX:
-            raise BuildError("Total axons (%d) exceeded max (%d)" % (
-                n_axons, AXONS_MAX))
 
     def add_probe(self, probe):
         """Add a CxProbe object to ensemble."""
@@ -324,6 +306,25 @@ class CxGroup(object):
         for p in self.probes:
             if p.key == 'v' and p.weights is not None:
                 p.weights /= v_scale[0]
+
+    def validate(self):
+        IN_AXONS_MAX = 4096
+        n_axons = sum(s.n_axons for s in self.synapses)
+        if n_axons > IN_AXONS_MAX:
+            raise BuildError("Input axons (%d) exceeded max (%d)" % (
+                n_axons, IN_AXONS_MAX))
+
+        MAX_SYNAPSE_BITS = 16384*64
+        synapse_bits = sum(s.bits() for s in self.synapses)
+        if synapse_bits > MAX_SYNAPSE_BITS:
+            raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
+                synapse_bits, MAX_SYNAPSE_BITS))
+
+        OUT_AXONS_MAX = 4096
+        n_axons = sum(a.axon_slots() for a in self.axons)
+        if n_axons > OUT_AXONS_MAX:
+            raise BuildError("Output axons (%d) exceeded max (%d)" % (
+                n_axons, OUT_AXONS_MAX))
 
 
 class CxSynapses(object):
@@ -679,6 +680,9 @@ class CxModel(object):
         if len(self.cx_groups) == 0:
             raise BuildError("No neurons marked for execution on-chip. "
                              "Please mark some ensembles as on-chip.")
+
+        for group in self.cx_groups:
+            group.validate()
 
 
 class CxSimulator(object):
