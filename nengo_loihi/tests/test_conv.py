@@ -17,11 +17,15 @@ home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, 'tests')
 
 
-def test_conv2d_weights(plt, rng, allclose):
+def test_conv2d_weights(request, plt, seed, rng, allclose):
+    target = request.config.getoption("--target")
+
+    # load data
     with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
         test10 = pickle.load(f)
 
     test_x, test_y = test10[0][0].reshape(28, 28), test10[1][0]
+    test_x = test_x[3:25, 3:25]
     test_x = 1.999 * test_x - 0.999
 
     filters = Gabor().generate(8, (7, 7), rng=rng)
@@ -66,6 +70,7 @@ def test_conv2d_weights(plt, rng, allclose):
 
     # input group
     inp = loihi_cx.CxGroup(ni * nj * nk)
+    assert inp.n <= 1024
     inp.configure_relu()
     inp.bias[:] = inp_biases.ravel()
 
@@ -82,6 +87,7 @@ def test_conv2d_weights(plt, rng, allclose):
 
     # conv group
     neurons = loihi_cx.CxGroup(out_size)
+    assert neurons.n <= 1024
     neurons.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
@@ -100,15 +106,28 @@ def test_conv2d_weights(plt, rng, allclose):
     model.add_group(neurons)
 
     # simulation
-    sim = model.get_simulator()
-    sim_inp = []
-    for i in range(int(pres_time / dt)):
-        sim.step()
+    model.discretize()
 
-    sim_inp = np.sum(sim.probe_outputs[inp_probe], axis=0) / pres_time
-    sim_inp.shape = (2 * 28, 28)
+    n_steps = int(pres_time / dt)
+    if target == 'loihi':
+        with model.get_loihi(seed=seed) as sim:
+            sim.run_steps(n_steps)
 
-    sim_out = np.sum(sim.probe_outputs[out_probe], axis=0) / pres_time
+            sim_inp = np.column_stack([
+                p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
+            sim_out = np.column_stack([
+                p.timeSeries.data for p in sim.board.probe_map[out_probe]])
+    else:
+        sim = model.get_simulator(seed=seed)
+        sim.run_steps(n_steps)
+
+        sim_inp = sim.probe_outputs[inp_probe]
+        sim_out = sim.probe_outputs[out_probe]
+
+    sim_inp = np.sum(sim_inp, axis=0) / pres_time
+    sim_inp.shape = (nk * ni, nj)
+
+    sim_out = np.sum(sim_out, axis=0) / pres_time
     sim_out.shape = (nyi, nyj, nf)
     sim_out = np.transpose(sim_out, (2, 0, 1))
 
