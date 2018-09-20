@@ -14,7 +14,7 @@ except ImportError:
 
 import nengo_loihi
 import nengo_loihi.loihi_cx as loihi_cx
-from nengo_loihi.conv import Conv2D
+from nengo_loihi.conv import Conv2D, Conv2dComputer, ImageShape
 from nengo_loihi.neurons import loihi_rates
 
 from nengo_extras.matplotlib import tile, imshow
@@ -54,8 +54,8 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
 
     # --- compute nengo_loihi outputs
     inp_biases = test_x[:, :, None]
-    nk = inp_biases.shape[-1]  # number of channels
-    ni, nj = test_x.shape
+    inp_shape = ImageShape.from_shape(inp_biases.shape, channels_last=True)
+    ni, nj, nk = inp_shape.shape(channels_last=True)
     nc, si, sj, nf = filters.shape
     nij = ni * nj
     nyi = 1 + (ni - si) // sti
@@ -72,9 +72,7 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     inp.bias[:] = inp_biases.ravel()
 
     inp_ax = loihi_cx.CxAxons(nij, label='inp_ax')
-    inp_ax.cx_to_axon_map = np.tile(np.arange(nij), nk)
-    inp_ax.cx_atoms = np.concatenate([
-        i * np.ones(nij, dtype=int) for i in range(nk)])
+    inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
     inp.add_axons(inp_ax)
 
     inp_probe = loihi_cx.CxProbe(target=inp, key='s')
@@ -89,9 +87,12 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(ni * nj, label='synapses')
-    input_shape = (ni, nj, nk)
-    synapses.set_conv2d_weights(filters, input_shape, strides=(sti, stj))
+    synapses = loihi_cx.CxSynapses(inp_shape.n_pixels, label='synapses')
+    conv_computer = Conv2dComputer(
+        inp_shape, filters, filters_last=True, strides=(sti, stj))
+    weights, indices, axon_to_weight_map, cx_bases = conv_computer.weights()
+    synapses.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases)
     neurons.add_synapses(synapses)
 
     out_probe = loihi_cx.CxProbe(target=neurons, key='s')
@@ -143,6 +144,7 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
 
 def test_conv2d_weights(request, plt, seed, rng, allclose):
     pop_type = 32
+    out_channels_last = False
 
     target = request.config.getoption("--target")
 
@@ -185,9 +187,14 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
 
     # --- compute nengo_loihi outputs
     inp_biases = np.array([test_x, -test_x])
-    nk = inp_biases.shape[0]  # number of channels
-    ni, nj = test_x.shape
-    nij = ni * nj
+    inp_shape = ImageShape.from_shape(inp_biases.shape, channels_last=False)
+
+    kernel = np.array([filters, -filters])  # two channels, pos and neg
+    # kernel = np.transpose(kernel, (0, 2, 3, 1))
+    conv_computer = Conv2dComputer(
+        inp_shape, kernel, filters_last=False, strides=(sti, stj))
+
+    ni, nj, nk = inp_shape.shape(channels_last=True)
     out_size = ref_out.size
     nf, nyi, nyj = ref_out.shape
     assert out_size <= 1024
@@ -195,15 +202,13 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     model = loihi_cx.CxModel()
 
     # input group
-    inp = loihi_cx.CxGroup(ni * nj * nk, label='inp')
+    inp = loihi_cx.CxGroup(inp_shape.size, label='inp')
     assert inp.n <= 1024
     inp.configure_relu()
     inp.bias[:] = inp_biases.ravel()
 
-    inp_ax = loihi_cx.CxAxons(nij, label='inp_ax')
-    inp_ax.cx_to_axon_map = np.tile(np.arange(nij), nk)
-    inp_ax.cx_atoms = np.concatenate([
-        i * np.ones(nij, dtype=int) for i in range(nk)])
+    inp_ax = loihi_cx.CxAxons(inp_shape.n_pixels, label='inp_ax')
+    inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
     inp.add_axons(inp_ax)
 
     inp_probe = loihi_cx.CxProbe(target=inp, key='s')
@@ -218,12 +223,12 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(ni * nj, label='synapses')
-    kernel = np.array([filters, -filters])  # two channels, pos and neg
-    kernel = np.transpose(kernel, (0, 2, 3, 1))
-    input_shape = (ni, nj, nk)
-    synapses.set_conv2d_weights(kernel, input_shape,
-                                strides=(sti, stj), pop_type=pop_type)
+    synapses = loihi_cx.CxSynapses(inp_shape.n_pixels, label='synapses')
+    weights, indices, axon_to_weight_map, cx_bases = conv_computer.weights(
+        channels_last=out_channels_last)
+    synapses.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
+
     neurons.add_synapses(synapses)
 
     out_probe = loihi_cx.CxProbe(target=neurons, key='s')
@@ -255,8 +260,11 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     sim_inp.shape = (nk * ni, nj)
 
     sim_out = np.sum(sim_out, axis=0) / pres_time
-    sim_out.shape = (nyi, nyj, nf)
-    sim_out = np.transpose(sim_out, (2, 0, 1))
+    if out_channels_last:
+        sim_out.shape = (nyi, nyj, nf)
+        sim_out = np.transpose(sim_out, (2, 0, 1))
+    else:
+        sim_out.shape = (nf, nyi, nyj)
 
     out_max = max(ref_out.max(), sim_out.max())
 

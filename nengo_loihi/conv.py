@@ -369,3 +369,195 @@ def build_conv2d_connection(model, conn):
         solver_info=None,
         transform=None,
         weights=weights)
+
+
+class ImageShape(object):
+    def __init__(self, rows, cols, channels, channels_last=True):
+        self.rows = rows
+        self.cols = cols
+        self.channels = channels
+        self.channels_last = channels_last
+
+    def _channels_last(self, channels_last=None):
+        return self.channels_last if channels_last is None else channels_last
+
+    @property
+    def n_pixels(self):
+        return self.rows * self.cols
+
+    @property
+    def size(self):
+        return self.rows * self.cols * self.channels
+
+    @classmethod
+    def from_shape(cls, shape, channels_last=True):
+        if channels_last:
+            ni, nj, nc = shape
+        else:
+            nc, ni, nj = shape
+        return cls(ni, nj, nc, channels_last=channels_last)
+
+    def shape(self, channels_last=None):
+        if self._channels_last(channels_last):
+            return (self.rows, self.cols, self.channels)
+        else:
+            return (self.channels, self.rows, self.cols)
+
+    def channel_idxs(self, channels_last=None):
+        """Return the channel indices (atoms) for this image shape.
+
+        Parameters
+        ----------
+        channels_last : bool (default: True)
+            Whether the output indices should assume the channels are
+            first (False) or last (True).
+        """
+        ni, nj, nc = self.shape(channels_last=True)
+        idxs = np.arange(ni * nj * nc, dtype=int)
+        return ((idxs % nc) if self._channels_last(channels_last) else
+                (idxs // (ni * nj)))
+
+    def pixel_idxs(self, channels_last=None):
+        """Return the pixel indices for this image shape.
+
+        Parameters
+        ----------
+        channels_last : bool (default: True)
+            Whether the output indices should assume the channels are
+            first (False) or last (True).
+        """
+        ni, nj, nc = self.shape(channels_last=True)
+        idxs = np.arange(ni * nj * nc, dtype=int)
+        return ((idxs // nc) if self._channels_last(channels_last) else
+                (idxs % (ni * nj)))
+
+    # def reshape(self, x, x_channels_last=True
+
+
+class Conv2dComputer(object):
+    def __init__(self, input_shape, filters, filters_last=True, strides=(1, 1),
+                 mode='valid'):
+        assert filters.ndim == 4
+
+        self.input_shape = input_shape
+        self.filters = filters
+        self.filters_last = filters_last
+        self.strides = strides
+        self.mode = mode
+
+    def filters_shape(self, filters_last=None):
+        if self.filters_last:
+            nc, si, sj, nf = self.filters.shape
+        else:
+            nc, nf, si, sj = self.filters.shape
+
+        filters_last = (self.filters_last if filters_last is None else
+                        filters_last)
+        return (nc, si, sj, nf) if filters_last else (nc, nf, si, sj)
+
+    def output_shape(self, channels_last=True):
+        ni = self.input_shape.rows
+        nj = self.input_shape.cols
+        _, si, sj, nf = self.filters_shape(filters_last=True)
+        assert ni >= si and nj >= sj
+        sti, stj = self.strides
+
+        if self.mode == 'valid':
+            assert ni >= si and nj >= sj
+            nyi = 1 + (ni - si) // sti
+            nyj = 1 + (nj - sj) // stj
+        else:
+            raise NotImplementedError(self.mode)
+
+        return (nyi, nyj, nf) if channels_last else (nf, nyi, nyj)
+
+    def weights(self, corr=True, channels_last=None):
+        # TODO: It appears from my old code that there is an upper limit on
+        # CxBase of 256 (bug), so I had to make extra sets of reduntant weights
+        # with indices to work around this. If using pop32 axons then I could
+        # put the filters as the major index to avoid this that way.
+        import itertools
+
+        channels_last = (self.filters_last if channels_last is None else
+                         channels_last)
+
+        ni, nj, nk = self.input_shape.shape(channels_last=True)
+        nc, si, sj, nf = self.filters_shape(filters_last=True)
+        filters = self.filters
+        filters = (filters if self.filters_last else
+                   np.transpose(filters, (0, 2, 3, 1)))  # has filters last
+
+        sti, stj = self.strides
+        assert nk == nc, "Input channels must equal kernel channels"
+
+        if corr:
+            # flip weights to do correlation
+            filters = filters[:, ::-1, ::-1, :]
+
+        nyi, nyj, _ = self.output_shape(channels_last=True)
+
+        # compute number of used input pixels
+        nxi = (nyi - 1)*sti + 1
+        nxj = (nyj - 1)*stj + 1
+
+        weights = []
+        indices = []
+        cx_bases = np.zeros(ni*nj, dtype=int)
+        axon_to_weight_map = np.zeros(ni*nj, dtype=int)
+        weights_map = {}
+        for i, j in itertools.product(range(ni), range(nj)):
+            ij = i*nj + j
+
+            # unstrided cx indices that this input axon would map to
+            # if strides == 1 and mode == 'full'
+            ri0, ri1 = i+1-si, i+1
+            rj0, rj1 = j+1-sj, j+1
+            ri = np.arange(ri0, ri1)
+            rj = np.arange(rj0, rj1)
+            # ^ TODO: padding
+
+            wmask_i = (ri >= 0) & (ri < nxi) & (ri % sti == 0)
+            wmask_j = (rj >= 0) & (rj < nxj) & (rj % stj == 0)
+
+            if wmask_i.sum() == 0 or wmask_j.sum() == 0:
+                # this axon is not needed, so indicate this in cx_bases and skip
+                cx_bases[ij] = -2048
+                continue
+
+            weight_key = (tuple(wmask_i), tuple(wmask_j))
+            if weight_key not in weights_map:
+                w = filters[:, wmask_i[:, None]*wmask_j, :]
+                assert w.size == nc * wmask_i.sum() * wmask_j.sum() * nf
+                assert w.shape == (nc, wmask_i.sum() * wmask_j.sum(), nf)
+
+                if channels_last:
+                    w = w.reshape(nc, -1)
+                    inds = (np.zeros((nc, 1, 1, 1), dtype=int) +
+                            nyj*nf*np.arange(wmask_i.sum())[:, None, None] +
+                            nf*np.arange(wmask_j.sum())[:, None] +
+                            np.arange(nf)).reshape(nc, -1)
+                else:
+                    w = np.transpose(w, (0, 2, 1)).reshape(nc, -1)
+                    inds = (np.zeros((nc, 1, 1, 1), dtype=int) +
+                            nyi*nyj*np.arange(nf)[:, None, None] +
+                            nyj*np.arange(wmask_i.sum())[:, None] +
+                            np.arange(wmask_j.sum())).reshape(nc, -1)
+
+                weights_map[weight_key] = len(weights)
+                weights.append(w)
+                indices.append(inds)
+
+            axon_to_weight_map[ij] = weights_map[weight_key]
+
+            assert ri[wmask_i][0] % sti == 0, "true if mode == 'valid'"
+            yi0 = ri[wmask_i][0] // sti
+            yj0 = rj[wmask_j][0] // stj
+            if channels_last:
+                cx_bases[ij] = (yi0*nyj + yj0) * nf
+            else:
+                cx_bases[ij] = yi0*nyj + yj0
+
+            inds = indices[axon_to_weight_map[ij]]
+            assert (cx_bases[ij] + inds < nyi*nyj*nf).all()
+
+        return weights, indices, axon_to_weight_map, cx_bases
