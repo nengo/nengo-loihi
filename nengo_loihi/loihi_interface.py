@@ -18,6 +18,7 @@ try:
     from nxsdk.arch.n2a.graph.graph import N2Board
     from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
     from nxsdk.arch.n2a.graph.probes import N2SpikeProbe
+    from nxsdk.arch.n2a.graph.nodesets.output_axon import OutputAxon
 
 except ImportError:
     exc_info = sys.exc_info()
@@ -409,17 +410,15 @@ def build_axons(n2core, core, group, axons, cx_ids):
                 srcCxId=cx_id,
                 dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
         elif synapses.pop_type == 16:  # pop16
-            srcRelCxId = 0  # TODO: what is this needed for??
             assert 0 <= atom < n_populations
-            n2core.createPop16Axon(
-                popId=atom, srcCxId=cx_id, srcRelCxId=srcRelCxId,
-                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
+            n2core.axons.append(OutputAxon.pop16Axon(
+                srcCxId=cx_id, srcRelCxId=atom,
+                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
         elif synapses.pop_type == 32:  # pop32
-            srcRelCxId = 0  # TODO: what is this needed for??
             assert 0 <= atom < n_populations
-            n2core.createPop32Axon(
-                popId=atom, srcCxId=cx_id, srcRelCxId=srcRelCxId,
-                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
+            n2core.axons.append(OutputAxon.pop32Axon(
+                srcCxId=cx_id, srcRelCxId=atom,
+                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
         else:
             raise ValueError("Unrecognized pop_type: %d" % (synapses.pop_type))
 
