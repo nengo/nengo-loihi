@@ -373,47 +373,76 @@ class CxSynapses(object):
     def max_ind(self):
         return max(i.max() if len(i) > 0 else -1 for i in self.indices)
 
-    def compute_idx_bits(self):
+    def idx_bits(self):
         idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
         assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
         idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
                        if v >= idxBits)
         return idxBits
 
-    def get_weights_indices(self, axon_idx, pop_idx=0):
-        weight_idx = (self.axon_to_weight_map[axon_idx]
-                      if self.axon_to_weight_map is not None else axon_idx)
+    def idxs_per_synapse(self):
+        return 2 if self.tracing else 1
+
+    def atom_bits_extra(self):
+        atom_bits = self.atom_bits()
+        assert atom_bits <= 9, "Cannot have more than 9 atom bits"
+        return max(atom_bits - 5, 0)  # has 5 bits by default
+
+    def atom_bits(self):
+        max_populations = max(w.shape[0] for w in self.weights)
+        return int(np.ceil(np.log2(max_populations)))
+
+    def axon_bits(self):
+        return 10 - self.atom_bits_extra()
+
+    def axon_populations(self, axon_idx):
+        weight_idx = self.axon_weight_idx(axon_idx)
+        return self.weights[weight_idx].shape[0]
+
+    def axon_weight_idx(self, axon_idx):
+        return (self.axon_to_weight_map[axon_idx]
+                if self.axon_to_weight_map is not None else axon_idx)
+
+    def axon_weights_indices(self, axon_idx, pop_idx=0):
+        weight_idx = self.axon_weight_idx(axon_idx)
         w = self.weights[weight_idx]
         i = self.indices[weight_idx]
         return w[pop_idx, :], i[pop_idx, :]
 
-    def get_cx_base(self, axon_idx):
+    def axon_cx_base(self, axon_idx):
         if self.cx_base is None:
             return 0
         cx_base = self.cx_base[axon_idx]
         return cx_base if cx_base > -1024 else None
 
     def _set_weights_indices(self, weights, indices=None):
-        self.weights = [np.array(w, copy=False, dtype=np.float32, ndmin=2)
-                        for w in weights]
-        assert all(w.ndim == 2 for w in self.weights), (
+        weights = [np.array(w, copy=False, dtype=np.float32, ndmin=2)
+                   for w in weights]
+        assert all(w.ndim == 2 for w in weights), (
             "Weights must be shape (n_axons,) (n_populations, n_compartments)")
+        assert all(w.shape[0] == weights[0].shape[0] for w in weights), (
+            "All axon weights must have the same number of populations")
+        self.weights = weights
 
         if indices is None:
-            indices = [np.zeros((w.shape[0], 1)) + np.arange(w.shape[1])
+            indices = [np.zeros((w.shape[0], 1), dtype=np.int32) +
+                       np.arange(w.shape[1], dtype=np.int32)
                        for w in self.weights]
-        self.indices = [np.array(i, copy=False, dtype=np.int32, ndmin=2)
-                        for i in indices]
-        assert all(i.ndim == 2 for i in self.indices), (
+        indices = [np.array(i, copy=False, dtype=np.int32, ndmin=2)
+                   for i in indices]
+        assert all(i.ndim == 2 for i in indices), (
             "Indices must be shape (n_axons,) (n_populations, n_compartments)")
-        assert len(self.weights) == len(self.indices)
+        assert all(i.shape == w.shape for i, w in zip(indices, weights)), (
+            "Indices shapes must match weights shapes")
+        assert len(weights) == len(indices)
+        self.indices = indices
 
     def set_full_weights(self, weights):
         self._set_weights_indices(weights)
         assert len(self.weights) == self.n_axons, (
             "Full weights must have different weights for each axon")
 
-        idxBits = self.compute_idx_bits()
+        idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
@@ -423,7 +452,7 @@ class CxSynapses(object):
         self._set_weights_indices(weights, indices)
         assert len(self.weights) == self.n_axons
 
-        idxBits = self.compute_idx_bits()
+        idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
@@ -508,7 +537,7 @@ class CxSynapses(object):
         self.axon_to_weight_map = axon_to_weight_map
         self.cx_base = cx_base
 
-        idxBits = self.compute_idx_bits()
+        idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
@@ -819,11 +848,11 @@ class CxSimulator(object):
 
                 for spike in self.axons_in[synapses]:
                     # qb[0, indices[spike.axon_id]] += weights[spike.axon_id]
-                    cx_base = synapses.get_cx_base(spike.axon_id)
+                    cx_base = synapses.axon_cx_base(spike.axon_id)
                     if cx_base is None:
                         continue
 
-                    weights, indices = synapses.get_weights_indices(
+                    weights, indices = synapses.axon_weights_indices(
                         spike.axon_id, pop_idx=spike.atom)
                     qb[0, cx_base + indices] += weights
 
