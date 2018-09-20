@@ -326,6 +326,15 @@ class CxGroup(object):
             raise BuildError("Output axons (%d) exceeded max (%d)" % (
                 n_axons, OUT_AXONS_MAX))
 
+        for synapses in self.synapses:
+            synapses.validate()
+
+        for axons in self.axons:
+            axons.validate()
+
+        for probe in self.probes:
+            probe.validate()
+
 
 class CxSynapses(object):
     """
@@ -356,7 +365,7 @@ class CxSynapses(object):
         self.synapse_fmt = None
         self.weights = None
         self.indices = None
-        self.cx_base = None
+        self.axon_cx_bases = None
         self.axon_to_weight_map = None
         self.tracing = False
         self.tracing_tau = None
@@ -401,7 +410,10 @@ class CxSynapses(object):
         return int(np.ceil(np.log2(max_populations)))
 
     def axon_bits(self):
-        return 10 - self.atom_bits_extra()
+        if self.pop_type == 16:
+            return 10 - self.atom_bits_extra()
+        else:
+            return 12
 
     def axon_populations(self, axon_idx):
         weight_idx = self.axon_weight_idx(axon_idx)
@@ -411,16 +423,16 @@ class CxSynapses(object):
         return (self.axon_to_weight_map[axon_idx]
                 if self.axon_to_weight_map is not None else axon_idx)
 
-    def axon_weights_indices(self, axon_idx, pop_idx=0):
+    def axon_weights_indices(self, axon_idx, atom=0):
         weight_idx = self.axon_weight_idx(axon_idx)
         w = self.weights[weight_idx]
         i = self.indices[weight_idx]
-        return w[pop_idx, :], i[pop_idx, :]
+        return w[atom, :], i[atom, :]
 
     def axon_cx_base(self, axon_idx):
-        if self.cx_base is None:
+        if self.axon_cx_bases is None:
             return 0
-        cx_base = self.cx_base[axon_idx]
+        cx_base = self.axon_cx_bases[axon_idx]
         return cx_base if cx_base > -1024 else None
 
     def _set_weights_indices(self, weights, indices=None):
@@ -464,90 +476,15 @@ class CxSynapses(object):
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
-    def set_conv2d_weights(self, kernel, input_shape, strides=(1, 1),
-                           mode='valid', corr=True, pop_type=None):
-        # TODO: It appears from my old code that there is an upper limit on
-        # CxBase of 256 (bug), so I had to make extra sets of reduntant weights
-        # with indices to work around this. If using pop32 axons then I could
-        # put the filters as the major index to avoid this that way.
-        import itertools
-
-        assert kernel.ndim == 4, "kernel must be (channels, si, sj, filters)"
-        assert len(input_shape) == 3, "input_shape must be (ni, nj, channels)"
-        ni, nj, nk = input_shape
-        nc, si, sj, nf = kernel.shape
-        sti, stj = strides
-        assert nk == nc, "Input channels must equal kernel channels"
-        assert ni*nj == self.n_axons
-
-        if corr:
-            kernel = kernel[:, ::-1, ::-1, :]  # flip weights to do correlation
-
-        if mode == 'valid':
-            assert ni >= si and nj >= sj
-            nyi = 1 + (ni - si) // sti
-            nyj = 1 + (nj - sj) // stj
-        else:
-            raise NotImplementedError(mode)
-
-        # compute number of used input pixels
-        nxi = (nyi - 1)*sti + 1
-        nxj = (nyj - 1)*stj + 1
-
-        weights = []
-        indices = []
-        cx_base = np.zeros(ni*nj, dtype=int)
-        axon_to_weight_map = np.zeros(ni*nj, dtype=int)
-        weights_map = {}
-        for i, j in itertools.product(range(ni), range(nj)):
-            ij = i*nj + j
-
-            # unstrided cx indices that this input axon would map to
-            # if strides == 1 and mode == 'full'
-            ri0, ri1 = i+1-si, i+1
-            rj0, rj1 = j+1-sj, j+1
-            ri = np.arange(ri0, ri1)
-            rj = np.arange(rj0, rj1)
-            # ^ TODO: padding
-
-            wmask_i = (ri >= 0) & (ri < nxi) & (ri % sti == 0)
-            wmask_j = (rj >= 0) & (rj < nxj) & (rj % stj == 0)
-
-            if wmask_i.sum() == 0 or wmask_j.sum() == 0:
-                # this axon is not needed, so indicate this in cx_base and skip
-                cx_base[ij] = -2048
-                continue
-
-            weight_key = (tuple(wmask_i), tuple(wmask_j))
-            if weight_key not in weights_map:
-                w = kernel[:, wmask_i[:, None]*wmask_j, :].reshape(nc, -1)
-                assert w.size == nc * wmask_i.sum() * wmask_j.sum() * nf
-                inds = (np.zeros((nc, 1, 1, 1), dtype=int) +
-                        nyj*nf*np.arange(wmask_i.sum())[:, None, None] +
-                        nf*np.arange(wmask_j.sum())[:, None] +
-                        np.arange(nf)).reshape(nc, -1)
-
-                weights_map[weight_key] = len(weights)
-                weights.append(w)
-                indices.append(inds)
-
-            axon_to_weight_map[ij] = weights_map[weight_key]
-
-            assert ri[wmask_i][0] % sti == 0, "true if mode == 'valid'"
-            yi0 = ri[wmask_i][0] // sti
-            yj0 = rj[wmask_j][0] // stj
-            cx_base[ij] = (yi0*nyj + yj0) * nf
-
-            inds = indices[axon_to_weight_map[ij]]
-            assert (cx_base[ij] + inds < nyi*nyj*nf).all()
-
+    def set_population_weights(self, weights, indices, axon_to_weight_map,
+                               cx_bases, pop_type=None):
         self._set_weights_indices(weights, indices)
         self.axon_to_weight_map = axon_to_weight_map
-        self.cx_base = cx_base
+        self.axon_cx_bases = cx_bases
         self.pop_type = 16 if pop_type is None else pop_type
 
         idxBits = self.idx_bits()
-        self.format(compression=3, idxBits=idxBits, fanoutType=1,
+        self.format(compression=0, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
     def set_learning(self, tracing_tau=2, tracing_mag=1.0):
@@ -565,6 +502,13 @@ class CxSynapses(object):
         if self.synapse_fmt is None:
             self.synapse_fmt = SynapseFmt()
         self.synapse_fmt.set(**kwargs)
+
+    def validate(self):
+        if self.axon_cx_bases is not None:
+            assert np.all(self.axon_cx_bases < 256), "CxBase cannot be > 256"
+        if self.pop_type == 16:
+            if self.axon_cx_bases is not None:
+                assert np.all(self.axon_cx_bases % 4 == 0)
 
 
 class Spike(object):
@@ -594,6 +538,10 @@ class CxAxons(object):
     def pop_type(self):
         return self.target.pop_type
 
+    def set_axon_map(self, cx_to_axon_map, cx_atoms=None):
+        self.cx_to_axon_map = cx_to_axon_map
+        self.cx_atoms = cx_atoms
+
     def slots_per_axon(self):
         """The number of axonCfg slots occupied by each axon."""
         return 2 if self.pop_type == 32 else 1
@@ -602,16 +550,32 @@ class CxAxons(object):
         """The total number of axonCfg slots used by all axons."""
         return self.slots_per_axon() * self.n_axons
 
-    def map_cx_spikes(self, cx_idxs):
+    def map_cx_axons(self, cx_idxs):
         axon_idxs = (self.cx_to_axon_map[cx_idxs]
                      if self.cx_to_axon_map is not None else cx_idxs)
         axon_ids = (self.axon_to_synapse_map[axon_idxs]
                     if self.axon_to_synapse_map is not None else axon_idxs)
+        return axon_ids
+
+    def map_cx_atoms(self, cx_idxs):
         atoms = (self.cx_atoms[cx_idxs]
                  if self.cx_atoms is not None else [0 for _ in cx_idxs])
-        return [Spike(axon_id, atom=atom)
-                  for axon_id, atom in zip(axon_ids, atoms)]
+        return atoms
 
+    def map_cx_spikes(self, cx_idxs):
+        axon_ids = self.map_cx_axons(cx_idxs)
+        atoms = self.map_cx_atoms(cx_idxs)
+        return [Spike(axon_id, atom=atom)
+                for axon_id, atom in zip(axon_ids, atoms)]
+
+    def validate(self):
+        if isinstance(self.target, CxSynapses):
+            if self.cx_atoms is not None:
+                cx_idxs = np.arange(len(self.cx_atoms))
+                axon_ids = self.map_cx_axons(cx_idxs)
+                for atom, axon_id in zip(self.cx_atoms, axon_ids):
+                    n_populations = self.target.axon_populations(axon_id)
+                    assert 0 <= atom < n_populations
 
 
 class CxProbe(object):
@@ -626,6 +590,9 @@ class CxProbe(object):
         self.synapse = synapse
         self.use_snip = False
         self.snip_info = None
+
+    def validate(self):
+        pass
 
 
 class CxSpikeInput(object):
@@ -877,7 +844,7 @@ class CxSimulator(object):
                         continue
 
                     weights, indices = synapses.axon_weights_indices(
-                        spike.axon_id, pop_idx=spike.atom)
+                        spike.axon_id, atom=spike.atom)
                     qb[0, cx_base + indices] += weights
 
                 if synapses.tracing:

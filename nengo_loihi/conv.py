@@ -21,64 +21,149 @@ from nengo_loihi.loihi_cx import CxGroup, CxSpikeInput, CxSynapses, CxAxons
 from nengo_loihi.splitter import ChipReceiveNeurons
 
 
+class ImageShape(object):
+    def __init__(self, rows, cols, channels, channels_last=True):
+        self.rows = rows
+        self.cols = cols
+        self.channels = channels
+        self.channels_last = channels_last
+
+    def _channels_last(self, channels_last=None):
+        return self.channels_last if channels_last is None else channels_last
+
+    @property
+    def n_pixels(self):
+        return self.rows * self.cols
+
+    @property
+    def size(self):
+        return self.rows * self.cols * self.channels
+
+    @classmethod
+    def from_shape(cls, shape, channels_last=True):
+        if channels_last:
+            ni, nj, nc = shape
+        else:
+            nc, ni, nj = shape
+        return cls(ni, nj, nc, channels_last=channels_last)
+
+    def shape(self, channels_last=None):
+        if self._channels_last(channels_last):
+            return (self.rows, self.cols, self.channels)
+        else:
+            return (self.channels, self.rows, self.cols)
+
+    def channel_idxs(self, channels_last=None):
+        """Return the channel indices (atoms) for this image shape.
+
+        Parameters
+        ----------
+        channels_last : bool (default: True)
+            Whether the output indices should assume the channels are
+            first (False) or last (True).
+        """
+        ni, nj, nc = self.shape(channels_last=True)
+        idxs = np.arange(ni * nj * nc, dtype=int)
+        return ((idxs % nc) if self._channels_last(channels_last) else
+                (idxs // (ni * nj)))
+
+    def pixel_idxs(self, channels_last=None):
+        """Return the pixel indices for this image shape.
+
+        Parameters
+        ----------
+        channels_last : bool (default: True)
+            Whether the output indices should assume the channels are
+            first (False) or last (True).
+        """
+        ni, nj, nc = self.shape(channels_last=True)
+        idxs = np.arange(ni * nj * nc, dtype=int)
+        return ((idxs // nc) if self._channels_last(channels_last) else
+                (idxs % (ni * nj)))
+
+
 # TODO: create a generic superclass for distributions/these (since it's a bit
 # weird to call this a Distribution)
 class Conv2D(Distribution):
-    @classmethod
-    def get_output_shape(cls, input_shape, weight_shape,
-                         strides=(1, 1), mode='valid'):
-        assert mode == "valid"
+    def __init__(self, n_filters, input_shape, kernel_size=3, strides=1,
+                 mode="valid", correlate=True, output_channels_last=None,
+                 kernel=nengo_dl.dists.Glorot()):
+        if not isinstance(input_shape, ImageShape):
+            input_shape = ImageShape.from_shape(input_shape,
+                                                channels_last=True)
 
-        ni, nj, nk = input_shape
-        nc, si, sj, nf = weight_shape
-        sti, stj = strides
-        nyi = 1 + (ni - si) // sti
-        nyj = 1 + (nj - sj) // stj
-        assert nk == nc
-        return nyi, nyj, nf
-
-    def __init__(self, n_filters, input_shape, kernel_size=3,
-                 strides=1, mode="valid", kernel=nengo_dl.dists.Glorot()):
         self.n_filters = n_filters
         self.input_shape = input_shape
         self.kernel_size = kernel_size if is_iterable(kernel_size) else (
             kernel_size, kernel_size)
         self.strides = strides if is_iterable(strides) else (strides, strides)
         self.mode = mode
+        self.correlate = correlate
         self.kernel = kernel
 
+        assert self.correlate, "correlate==False not implemented"
         if self.kernel is not None and not isinstance(self.kernel,
                                                       Distribution):
-            assert self.kernel.shape == (
-                input_shape[-1], self.kernel_size[0], self.kernel_size[1],
-                self.n_filters)
+            assert self.kernel.shape == self.kernel_shape
 
-    def sample(self, n, d=None, rng=np.random):
-        # note: n/d ignored, redo as part of superclass refactoring
+        # --- compute output shape
+        ni = self.input_shape.rows
+        nj = self.input_shape.cols
+        nc, si, sj, nf = self.kernel_shape
+        assert nc == self.input_shape.channels
+        assert ni >= si and nj >= sj
+        sti, stj = self.strides
 
-        # return kernel with shape
-        # (in_channels, filter_height, filter_width, out_channels)
+        if self.mode == 'valid':
+            assert ni >= si and nj >= sj
+            nyi = 1 + (ni - si) // sti
+            nyj = 1 + (nj - sj) // stj
+        else:
+            raise NotImplementedError(self.mode)
 
+        if output_channels_last is None:
+            output_channels_last = self.input_shape.channels_last
+        self.output_shape = ImageShape(
+            nyi, nyj, nf, channels_last=output_channels_last)
+
+    @classmethod
+    def from_kernel(cls, kernel, input_shape, **kwargs):
+        nc, si, sj, nf = kernel.shape
+        return cls(nf, input_shape, kernel_size=(si, sj), kernel=kernel,
+                   **kwargs)
+
+    def copy(self, kernel=None):
+        """Make a copy, with an (optional) new kernel."""
+        if kernel is None:
+            kernel = self.kernel.copy()
+
+        cls = type(self)
+        new = cls.from_kernel(
+            kernel, self.input_shape, strides=self.strides, mode=self.mode,
+            correlate=self.correlate,
+            output_channels_last=self.output_shape.channels_last)
+        return new
+
+    @property
+    def kernel_shape(self):
         # TODO: change the kernel shape to the more standard
         # (filter_height, filter_width, in_channels, out_channels)
-        shape = (self.input_shape[-1],) + self.kernel_size + (self.n_filters,)
-        return np.reshape(
-            get_samples(self.kernel, shape[0], d=np.prod(shape[1:]),
-                        rng=rng),
-            shape)
+        return (self.input_shape.channels,) + self.kernel_size + (self.n_filters,)
+
+    def sample(self, n, d=None, rng=np.random):
+        shape = self.kernel_shape
+        x = get_samples(self.kernel, shape[0], d=np.prod(shape[1:]), rng=rng)
+        return np.reshape(x, shape)
 
 
 class Conv2DInc(nengo.builder.Operator):
-    def __init__(self, W, X, Y, x_shape, strides=(1, 1), mode='valid',
-                 tag=None):
+    def __init__(self, W, X, Y, conv2d_transform, tag=None):
         super(Conv2DInc, self).__init__(tag=tag)
 
         self.W = W
         self.X = X
         self.Y = Y
-        self.x_shape = x_shape
-        self.strides = strides
-        self.mode = mode
+        self.conv2d_transform = conv2d_transform
 
         self.sets = []
         self.incs = [Y]
@@ -90,8 +175,11 @@ class Conv2DInc(nengo.builder.Operator):
 
     def make_step(self, signals, dt, rng):
         import scipy.signal
-        mode = self.mode
-        sti, stj = self.strides
+        assert self.conv2d_transform.correlate
+        mode = self.conv2d_transform.mode
+        sti, stj = self.conv2d_transform.strides
+        x_shape = self.conv2d_transform.input_shape
+        y_shape = self.conv2d_transform.output_shape
 
         def conv2d(x, w, sti=sti, stj=stj, mode=mode):
             return scipy.signal.correlate2d(x, w, mode=mode)[::sti, ::stj]
@@ -99,13 +187,17 @@ class Conv2DInc(nengo.builder.Operator):
         W = signals[self.W]
         X = signals[self.X]
         Y = signals[self.Y]
-        x_shape = self.x_shape
         nc, _, _, nf = W.shape
 
         # find output shape
-        X = X.reshape(x_shape)
-        y0 = conv2d(X[:, :, 0], W[0, :, :, 0])
-        Y = Y.reshape(y0.shape + (nf,))
+        X = X.reshape(x_shape.shape())
+        if not x_shape.channels_last:
+            X = np.transpose(X, (1, 2, 0))
+
+        # y0 = conv2d(X[:, :, 0], W[0, :, :, 0])
+        Y = Y.reshape(y_shape.shape())
+        if not y_shape.channels_last:
+            Y = np.transpose(Y, (1, 2, 0))
 
         def step_conv2d():
             for f in range(nf):
@@ -126,23 +218,24 @@ if nengo_dl is not None:
             self.X_data = signals.combine([op.X for op in ops])
             self.Y_data = signals.combine([op.Y for op in ops])
 
-            self.x_shape = ops[0].x_shape
-            self.strides = ops[0].strides
-            self.mode = ops[0].mode
+            self.conv2d_transform = ops[0].conv2d_transform
 
         def build_step(self, signals):
             import tensorflow as tf
-            assert self.mode == 'valid'
+            assert self.conv2d_transform.mode == 'valid'
 
-            strides = self.strides
-            x_shape = self.x_shape
+            strides = self.conv2d_transform.strides
+            x_shape = self.conv2d_transform.input_shape
+            y_shape = self.conv2d_transform.output_shape
 
             W = signals.gather(self.W_data)
             X = signals.gather(self.X_data)
 
             W = tf.transpose(W, (1, 2, 0, 3))  # (si, sj, nc, nf)
             X = tf.transpose(X, (1, 0))  # put batch size first
-            X = tf.reshape(X, (X.shape[0],) + x_shape)
+            X = tf.reshape(X, (X.shape[0],) + x_shape.shape())
+            if not x_shape.channels_last:
+                X = tf.transpose(X, (0, 2, 3, 1))
 
             Y = tf.nn.convolution(
                 input=X,
@@ -150,6 +243,9 @@ if nengo_dl is not None:
                 strides=strides,
                 padding='VALID',
                 data_format='NHWC')
+
+            if not y_shape.channels_last:
+                Y = tf.transpose(Y, (0, 3, 1, 2))
 
             signals.scatter(self.Y_data, Y, mode='inc')
 
@@ -251,8 +347,7 @@ def build_connection(model, conn):
     if isinstance(conn.transform, Conv2D):
         assert not isinstance(conn.pre_obj, Ensemble)
         model.add_op(Conv2DInc(
-            model.sig[conn]["weights"], in_signal, signal,
-            conn.transform.input_shape, strides=conn.transform.strides))
+            model.sig[conn]["weights"], in_signal, signal, conn.transform))
     else:
         op = ElementwiseInc if weights.ndim < 2 else DotInc
         model.add_op(op(model.sig[conn]['weights'],
@@ -326,6 +421,8 @@ def build_conv2d_connection(model, conn):
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
     assert conn.pre_slice == slice(None)
 
+    assert isinstance(conn.transform, Conv2D)
+
     weights = get_samples(conn.transform, None, rng=rng)
     input_shape = conn.transform.input_shape
 
@@ -348,18 +445,20 @@ def build_conv2d_connection(model, conn):
     assert np.all(gain == gain[0]), "All gains must be the same"
     weights = weights * gain[0]
 
-    ni, nj, nk = input_shape
-    synapses = CxSynapses(ni * nj, label="conv2d_weights")
-    synapses.set_conv2d_weights(
-        weights, input_shape, strides=conn.transform.strides,
-        mode=conn.transform.mode)
+    pop_type = 32  # TODO: pick this
+    weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
+        conn.transform.copy(weights))
+
+    synapses = CxSynapses(input_shape.n_pixels, label="conv2d_weights")
+    synapses.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
     post_cx.add_synapses(synapses)
     model.objs[conn]['weights'] = synapses
 
-    ax = CxAxons(ni * nj, label="conv2d_weights")
+    ax = CxAxons(input_shape.n_pixels, label="conv2d_weights")
     ax.target = synapses
-    ax.cx_to_axon_map = np.arange(ni * nj * nk) // nk
-    ax.cx_atoms = np.arange(ni * nj * nk) % nk
+    ax.cx_to_axon_map = input_shape.pixel_idxs()
+    ax.cx_atoms = input_shape.channel_idxs()
     pre_cx.add_axons(ax)
 
     post_cx.configure_filter(tau_s, dt=model.dt)
@@ -369,3 +468,91 @@ def build_conv2d_connection(model, conn):
         solver_info=None,
         transform=None,
         weights=weights)
+
+
+def conv2d_loihi_weights(conv2d_transform):
+    # TODO: It appears from my old code that there is an upper limit on
+    # CxBase of 256 (bug), so I had to make extra sets of reduntant weights
+    # with indices to work around this. If using pop32 axons then I could
+    # put the filters as the major index to avoid this that way.
+    import itertools
+
+    kernel = conv2d_transform.kernel
+    output_channels_last = conv2d_transform.output_shape.channels_last
+
+    ni, nj, nk = conv2d_transform.input_shape.shape(channels_last=True)
+    nc, si, sj, nf = conv2d_transform.kernel_shape
+    sti, stj = conv2d_transform.strides
+    assert nk == nc, "Input channels must equal kernel channels"
+
+    if conv2d_transform.correlate:
+        # flip weights to do correlation
+        kernel = kernel[:, ::-1, ::-1, :]
+
+    nyi, nyj, _ = conv2d_transform.output_shape.shape(channels_last=True)
+
+    # compute number of used input pixels
+    nxi = (nyi - 1)*sti + 1
+    nxj = (nyj - 1)*stj + 1
+
+    weights = []
+    indices = []
+    cx_bases = np.zeros(ni*nj, dtype=int)
+    axon_to_weight_map = np.zeros(ni*nj, dtype=int)
+    weights_map = {}
+    for i, j in itertools.product(range(ni), range(nj)):
+        ij = i*nj + j
+
+        # unstrided cx indices that this input axon would map to
+        # if strides == 1 and mode == 'full'
+        ri0, ri1 = i+1-si, i+1
+        rj0, rj1 = j+1-sj, j+1
+        ri = np.arange(ri0, ri1)
+        rj = np.arange(rj0, rj1)
+        # ^ TODO: padding
+
+        wmask_i = (ri >= 0) & (ri < nxi) & (ri % sti == 0)
+        wmask_j = (rj >= 0) & (rj < nxj) & (rj % stj == 0)
+
+        if wmask_i.sum() == 0 or wmask_j.sum() == 0:
+            # this axon is not needed, so indicate this in cx_bases and skip
+            cx_bases[ij] = -2048
+            continue
+
+        weight_key = (tuple(wmask_i), tuple(wmask_j))
+        if weight_key not in weights_map:
+            w = kernel[:, wmask_i[:, None]*wmask_j, :]
+            assert w.size == nc * wmask_i.sum() * wmask_j.sum() * nf
+            assert w.shape == (nc, wmask_i.sum() * wmask_j.sum(), nf)
+
+            if output_channels_last:
+                w = w.reshape(nc, -1)
+                inds = (np.zeros((nc, 1, 1, 1), dtype=int) +
+                        nyj*nf*np.arange(wmask_i.sum())[:, None, None] +
+                        nf*np.arange(wmask_j.sum())[:, None] +
+                        np.arange(nf)).reshape(nc, -1)
+            else:
+                w = np.transpose(w, (0, 2, 1)).reshape(nc, -1)
+                inds = (np.zeros((nc, 1, 1, 1), dtype=int) +
+                        nyi*nyj*np.arange(nf)[:, None, None] +
+                        nyj*np.arange(wmask_i.sum())[:, None] +
+                        np.arange(wmask_j.sum())).reshape(nc, -1)
+
+            weights_map[weight_key] = len(weights)
+            weights.append(w)
+            indices.append(inds)
+
+        axon_to_weight_map[ij] = weights_map[weight_key]
+
+        assert ri[wmask_i][0] % sti == 0, "true if mode == 'valid'"
+        yi0 = ri[wmask_i][0] // sti
+        yj0 = rj[wmask_j][0] // stj
+        if output_channels_last:
+            cx_bases[ij] = (yi0*nyj + yj0) * nf
+        else:
+            cx_bases[ij] = yi0*nyj + yj0
+
+        inds = indices[axon_to_weight_map[ij]]
+        assert (cx_bases[ij] + inds < nyi*nyj*nf).all()
+
+    return weights, indices, axon_to_weight_map, cx_bases
