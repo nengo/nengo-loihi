@@ -132,12 +132,12 @@ class CxGroup(object):
             self.named_synapses[name] = synapses
 
         AXONS_MAX = 4096
-        MAX_SYNAPSE_BITS = 16384*64
         n_axons = sum(s.n_axons for s in self.synapses)
         if n_axons > AXONS_MAX:
             raise BuildError("Total axons (%d) exceeded max (%d)" % (
                 n_axons, AXONS_MAX))
 
+        MAX_SYNAPSE_BITS = 16384*64
         synapse_bits = sum(s.bits() for s in self.synapses)
         if synapse_bits > MAX_SYNAPSE_BITS:
             raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
@@ -152,6 +152,12 @@ class CxGroup(object):
         if name is not None:
             assert name not in self.named_axons
             self.named_axons[name] = axons
+
+        AXONS_MAX = 4096
+        n_axons = sum(a.axon_slots() for a in self.axons)
+        if n_axons > AXONS_MAX:
+            raise BuildError("Total axons (%d) exceeded max (%d)" % (
+                n_axons, AXONS_MAX))
 
     def add_probe(self, probe):
         """Add a CxProbe object to ensemble."""
@@ -354,13 +360,14 @@ class CxSynapses(object):
         self.tracing = False
         self.tracing_tau = None
         self.tracing_mag = None
+        self.pop_type = 0  # one of (0, 16, 32) for discrete, pop16, pop32
 
     def __str__(self):
         return "%s(%s)" % (
             type(self).__name__, self.label if self.label else '')
 
     def size(self):
-        return sum(len(w) for w in self.weights)
+        return sum(w.size for w in self.weights)
 
     def bits(self):
         return sum(self.synapse_fmt.bits_per_axon(len(w))
@@ -457,7 +464,7 @@ class CxSynapses(object):
                     numSynapses=63, wgtBits=7)
 
     def set_conv2d_weights(self, kernel, input_shape, strides=(1, 1),
-                           mode='valid', corr=True):
+                           mode='valid', corr=True, pop_type=None):
         # TODO: It appears from my old code that there is an upper limit on
         # CxBase of 256 (bug), so I had to make extra sets of reduntant weights
         # with indices to work around this. If using pop32 axons then I could
@@ -536,6 +543,7 @@ class CxSynapses(object):
         self._set_weights_indices(weights, indices)
         self.axon_to_weight_map = axon_to_weight_map
         self.cx_base = cx_base
+        self.pop_type = 16 if pop_type is None else pop_type
 
         idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
@@ -577,6 +585,22 @@ class CxAxons(object):
         self.cx_atoms = None
         self.axon_to_synapse_map = None
 
+    def __str__(self):
+        return "%s(%s)" % (
+            type(self).__name__, self.label if self.label else '')
+
+    @property
+    def pop_type(self):
+        return self.target.pop_type
+
+    def slots_per_axon(self):
+        """The number of axonCfg slots occupied by each axon."""
+        return 2 if self.pop_type == 32 else 1
+
+    def axon_slots(self):
+        """The total number of axonCfg slots used by all axons."""
+        return self.slots_per_axon() * self.n_axons
+
     def map_cx_spikes(self, cx_idxs):
         axon_idxs = (self.cx_to_axon_map[cx_idxs]
                      if self.cx_to_axon_map is not None else cx_idxs)
@@ -587,9 +611,6 @@ class CxAxons(object):
         return [Spike(axon_id, atom=atom)
                   for axon_id, atom in zip(axon_ids, atoms)]
 
-    def __str__(self):
-        return "%s(%s)" % (
-            type(self).__name__, self.label if self.label else '')
 
 
 class CxProbe(object):
