@@ -69,12 +69,12 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     model = loihi_cx.CxModel()
 
     # input group
-    inp = loihi_cx.CxGroup(ni * nj * nk)
+    inp = loihi_cx.CxGroup(ni * nj * nk, label='inp')
     assert inp.n <= 1024
     inp.configure_relu()
     inp.bias[:] = inp_biases.ravel()
 
-    inp_ax = loihi_cx.CxAxons(nij)
+    inp_ax = loihi_cx.CxAxons(nij, label='inp_ax')
     inp_ax.cx_to_axon_map = np.tile(np.arange(nij), nk)
     inp_ax.cx_atoms = np.concatenate([
         i * np.ones(nij, dtype=int) for i in range(nk)])
@@ -86,13 +86,13 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     model.add_group(inp)
 
     # conv group
-    neurons = loihi_cx.CxGroup(out_size)
+    neurons = loihi_cx.CxGroup(out_size, label='neurons')
     assert neurons.n <= 1024
     neurons.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(ni*nj)
+    synapses = loihi_cx.CxSynapses(ni*nj, label='synapses')
     kernel = np.array([filters, -filters])  # two channels, pos and neg
     kernel = np.transpose(kernel, (0, 2, 3, 1))
     input_shape = (ni, nj, nk)

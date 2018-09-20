@@ -296,40 +296,87 @@ def build_input(n2core, core, spike_input, cx_idxs):
 
 
 def build_synapses(n2core, core, group, synapses, cx_idxs):
-    syn_idxs = core.synapse_axons[synapses]
-    assert len(syn_idxs) == len(synapses.weights)
+    axon_ids = core.synapse_axons[synapses]
+    # assert len(syn_idxs) == len(synapses.weights)
 
     synapse_fmt_idx = core.synapse_fmt_idxs[synapses]
     stdp_pre_cfg_idx = core.stdp_pre_cfg_idxs[synapses]
 
+    atom_bits = synapses.atom_bits()
+    axon_bits = synapses.axon_bits()
+    atom_bits_extra = synapses.atom_bits_extra()
+
     target_cxs = set()
-    s0 = core.synapse_entries[synapses][0]
-    for a, syn_idx in enumerate(syn_idxs):
-        wa = synapses.weights[a] // synapses.synapse_fmt.scale
-        ia = synapses.indices[a]
-        assert len(wa) == len(ia)
+    synapse_map = {}  # map weight_idx to (ptr, pop_size, len)
+    total_synapse_ptr = int(core.synapse_entries[synapses][0])
+    for axon_idx, axon_id in enumerate(axon_ids):
+        assert axon_id <= 2**axon_bits
 
-        assert np.all(wa <= 255) and np.all(wa >= -256), str(wa)
-        for k, (w, i) in enumerate(zip(wa, ia)):
-            n2core.synapses[s0 + k].configure(
-                CIdx=cx_idxs[i],
-                Wgt=w,
-                synFmtId=synapse_fmt_idx,
-                LrnEn=int(synapses.tracing),
-            )
-            target_cxs.add(cx_idxs[i])
+        weight_idx = int(synapses.axon_weight_idx(axon_idx))
+        cx_base = synapses.axon_cx_base(axon_idx)
 
-        n2core.synapseMap[syn_idx].synapsePtr = s0
-        n2core.synapseMap[syn_idx].synapseLen = len(wa)
-        n2core.synapseMap[syn_idx].discreteMapEntry.configure()
+        if weight_idx not in synapse_map:
+            weights = synapses.weights[weight_idx]
+            indices = synapses.indices[weight_idx]
+            weights = weights // synapses.synapse_fmt.scale
+            assert weights.ndim == 2
+            assert weights.shape == indices.shape
+            assert np.all(weights <= 255) and np.all(weights >= -256), str(weights)
+            n_populations, n_cxs = weights.shape
+
+            synapse_map[weight_idx] = (
+                total_synapse_ptr, n_populations, n_cxs)
+
+            for p in range(n_populations):
+                for q in range(n_cxs):
+                    cx_idx = cx_idxs[indices[p, q]]
+                    n2core.synapses[total_synapse_ptr].configure(
+                        CIdx=cx_idx,
+                        Wgt=weights[p, q],
+                        synFmtId=synapse_fmt_idx,
+                        LrnEn=int(synapses.tracing),
+                    )
+                    target_cxs.add(cx_idx)
+                    total_synapse_ptr += 1
+
+        synapse_ptr, n_populations, n_cxs = synapse_map[weight_idx]
+        assert n_populations <= 2**atom_bits
+
+        if cx_base is None:
+            # this is a dummy axon with no weights, so set n_cxs to 0
+            synapse_ptr = 0
+            n_cxs = 0
+            cx_base = 0
+        else:
+            cx_base = int(cx_base)
+
+        assert cx_base <= 256, "Currently limited by hardware"
+        n2core.synapseMap[axon_id].synapsePtr = synapse_ptr
+        n2core.synapseMap[axon_id].synapseLen = n_cxs
+        if synapses.pop_type == 0:  # discrete
+            assert n_populations == 1
+            n2core.synapseMap[axon_id].discreteMapEntry.configure(
+                cxBase=cx_base)
+        elif synapses.pop_type == 16:  # pop16
+            n2core.synapseMap[axon_id].popSize = n_populations
+            assert cx_base % 4 == 0
+            n2core.synapseMap[axon_id].population16MapEntry.configure(
+                cxBase=cx_base//4, atomBits=atom_bits_extra)
+        elif synapses.pop_type == 32:  # pop32
+            n2core.synapseMap[axon_id].popSize = n_populations
+            n2core.synapseMap[axon_id].population32MapEntry.configure(
+                cxBase=cx_base)
+        else:
+            raise ValueError("Unrecognized pop_type: %d" % (synapses.pop_type))
 
         if synapses.tracing:
             assert core.stdp_pre_profile_idx is not None
             assert stdp_pre_cfg_idx is not None
-            n2core.synapseMap[syn_idx+1].singleTraceEntry.configure(
+            n2core.synapseMap[axon_id+1].singleTraceEntry.configure(
                 preProfile=core.stdp_pre_profile_idx, tcs=stdp_pre_cfg_idx)
 
-        s0 += len(wa)
+    assert total_synapse_ptr == core.synapse_entries[synapses][1], (
+        "Synapse pointer did not align with precomputed synapses length")
 
     if synapses.tracing:
         assert core.stdp_profile_idx is not None
@@ -341,16 +388,40 @@ def build_synapses(n2core, core, group, synapses, cx_idxs):
             )
 
 
-def build_axons(n2core, core, group, axons, cx_idxs):
-    tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapses(axons.target)
-    taxon_idxs = np.asarray(tsyn_idxs)[axons.target_inds]
+def build_axons(n2core, core, group, axons, cx_ids):
+    synapses = axons.target
+    tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapses(synapses)
     n2board = n2core.parent.parent
     tchip_id = n2board.n2Chips[tchip_idx].id
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
-    assert axons.n_axons == len(cx_idxs) == len(taxon_idxs)
-    for i in range(axons.n_axons):
-        n2core.createDiscreteAxon(
-            cx_idxs[i], tchip_id, tcore_id, int(taxon_idxs[i]))
+
+    cx_idxs = np.arange(len(cx_ids))
+    spikes = axons.map_cx_spikes(cx_idxs)
+    for cx_id, spike in zip(cx_ids, spikes):
+        taxon_idx = int(spike.axon_id)
+        taxon_id = int(tsyn_idxs[taxon_idx])
+        atom = int(spike.atom)
+        n_populations = synapses.axon_populations(taxon_idx)
+
+        if synapses.pop_type == 0:  # discrete
+            assert atom == 0
+            n2core.createDiscreteAxon(
+                srcCxId=cx_id,
+                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
+        elif synapses.pop_type == 16:  # pop16
+            srcRelCxId = 0  # TODO: what is this needed for??
+            assert 0 <= atom < n_populations
+            n2core.createPop16Axon(
+                popId=atom, srcCxId=cx_id, srcRelCxId=srcRelCxId,
+                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
+        elif synapses.pop_type == 32:  # pop32
+            srcRelCxId = 0  # TODO: what is this needed for??
+            assert 0 <= atom < n_populations
+            n2core.createPop32Axon(
+                popId=atom, srcCxId=cx_id, srcRelCxId=srcRelCxId,
+                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
+        else:
+            raise ValueError("Unrecognized pop_type: %d" % (synapses.pop_type))
 
 
 def build_probe(n2core, core, group, probe, cx_idxs):
