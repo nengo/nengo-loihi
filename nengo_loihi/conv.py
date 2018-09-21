@@ -37,7 +37,7 @@ class Conv2D(Distribution):
         assert nk == nc
         return nyi, nyj, nf
 
-    def __init__(self, n_filters, input_shape=None, kernel_size=3,
+    def __init__(self, n_filters, input_shape, kernel_size=3,
                  strides=1, mode="valid", kernel=nengo_dl.dists.Glorot()):
         self.n_filters = n_filters
         self.input_shape = input_shape
@@ -47,6 +47,11 @@ class Conv2D(Distribution):
         self.mode = mode
         self.kernel = kernel
 
+        if self.kernel is not None and not isinstance(self.kernel,
+                                                      Distribution):
+            assert self.kernel.shape == (
+                input_shape[-1], self.kernel_size[0], self.kernel_size[1],
+                self.n_filters)
 
     def sample(self, n, d=None, rng=np.random):
         # note: n/d ignored, redo as part of superclass refactoring
@@ -303,6 +308,9 @@ def build_connection(model, conn):
 
 
 def build_conv2d_connection(model, conn):
+    # Create random number generator
+    rng = np.random.RandomState(model.seeds[conn])
+
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
     assert isinstance(pre_cx, (CxGroup, CxSpikeInput))
@@ -318,7 +326,7 @@ def build_conv2d_connection(model, conn):
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
     assert conn.pre_slice == slice(None)
 
-    weights = get_samples(conn.transform, None)
+    weights = get_samples(conn.transform, None, rng=rng)
     input_shape = conn.transform.input_shape
 
     # Account for nengo spike height of 1/dt
