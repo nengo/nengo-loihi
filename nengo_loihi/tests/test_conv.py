@@ -25,35 +25,52 @@ test_dir = os.path.join(home_dir, 'tests')
 
 
 def test_pop_tiny(request, plt, seed, rng, allclose):
-    target = request.config.getoption("--target")
+    nc = 2
+    pop_type = 32
+    out_channels_last = True
 
     tau_rc = 0.02
     tau_ref = 0.001
     tau_s = 0.0
     dt = 0.001
 
-    encode_type = nengo.SpikingRectifiedLinear()
-    encode_gain = 1. / dt
-    encode_bias = 0.
-    neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
-    neuron_gain = 1.
     neuron_bias = 1.
 
-    pres_time = 0.1
+    pres_time = 0.4
 
-    filters = np.array([[-0.5, 2., -0.25],
-                        [-0.25, 2., -0.5],
-                        [-0.5, 3., -0.5],
-                        [-0.0, 2., -0.25]]).reshape(4, 1, 1, 3)
-    filters = np.transpose(filters, (1, 2, 3, 0))
     sti, stj = 1, 1
 
-    test_x = np.array([[1, 5, 1],
-                       [2, 1, 2]])
+    if nc == 1:
+        filters = np.array([[-0.5, 2., -0.25],
+                            [-0.75, 2., -1.0],
+                            [-0.5, 3., -0.5],
+                            [-1.0, 6., -0.25]]).reshape(1, 4, 1, 3)
+        filters = np.transpose(filters, (0, 2, 3, 1))
+
+        test_x = np.array([[1, 5, 1],
+                           [2, 1, 2]])
+        test_x = test_x[:, :, None]
+    elif nc == 2:
+        filters = np.array([[[-0.5, 2., -0.2],
+                             [-0.7, 2., -1.0],
+                             [-0.5, 3., -0.5],
+                             [-1.0, 6., -0.2]],
+                            [[-1.0, 2., -1.0],
+                             [-0.5, 2., -0.5],
+                             [-0.8, 3., -0.2],
+                             [-1.0, 4., -0.2]]]).reshape(2, 4, 1, 3)
+        filters = np.transpose(filters, (0, 2, 3, 1))
+
+        test_x = np.array([[[1, 5, 1],
+                            [2, 1, 2]],
+                           [[0, 3, 1],
+                            [4, 2, 1]]])
+        test_x = np.transpose(test_x, (1, 2, 0))
+
     test_x = test_x / (test_x.max() + 0.001)
 
     # --- compute nengo_loihi outputs
-    inp_biases = test_x[:, :, None]
+    inp_biases = test_x
     inp_shape = ImageShape.from_shape(inp_biases.shape, channels_last=True)
     ni, nj, nk = inp_shape.shape(channels_last=True)
     nc, si, sj, nf = filters.shape
@@ -90,9 +107,10 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     synapses = loihi_cx.CxSynapses(inp_shape.n_pixels, label='synapses')
     conv_computer = Conv2dComputer(
         inp_shape, filters, filters_last=True, strides=(sti, stj))
-    weights, indices, axon_to_weight_map, cx_bases = conv_computer.weights()
+    weights, indices, axon_to_weight_map, cx_bases = conv_computer.weights(
+        channels_last=out_channels_last)
     synapses.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases)
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
     neurons.add_synapses(synapses)
 
     out_probe = loihi_cx.CxProbe(target=neurons, key='s')
@@ -105,6 +123,7 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     model.discretize()
 
     n_steps = int(pres_time / dt)
+    target = request.config.getoption("--target")
     if target == 'loihi':
         with model.get_loihi(seed=seed) as sim:
             sim.run_steps(n_steps)
@@ -124,8 +143,11 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     sim_inp.shape = (nk * ni, nj)
 
     sim_out = np.sum(sim_out, axis=0) * (dt / pres_time)
-    sim_out.shape = (nyi, nyj, nf)
-    sim_out = np.transpose(sim_out, (2, 0, 1))
+    if out_channels_last:
+        sim_out.shape = (nyi, nyj, nf)
+        sim_out = np.transpose(sim_out, (2, 0, 1))
+    else:
+        sim_out.shape = (nf, nyi, nyj)
 
     out_max = sim_out.max()
 
@@ -139,14 +161,25 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     ax = plt.subplot(rows, cols, 2)
     tile(sim_out, vmin=0, vmax=out_max, grid=True, ax=ax)
 
-    print(sim_out)
+    print("sim_out:\n%r" % (sim_out[:, :, 0],))
+
+    # ref_out determined by emulator running code known to work
+    if nc == 1:
+        ref_out = np.array([[0.06  , 0.02  ],
+                            [0.055 , 0.    ],
+                            [0.0825, 0.0225],
+                            [0.125 , 0.04  ]])
+    elif nc == 2:
+        ref_out = np.array([[0.0975, 0.02  ],
+                            [0.0825, 0.02  ],
+                            [0.125 , 0.055 ],
+                            [0.1675, 0.0825]])
+    assert np.array_equal(sim_out[:, :, 0], ref_out)
 
 
 def test_conv2d_weights(request, plt, seed, rng, allclose):
     pop_type = 32
     out_channels_last = False
-
-    target = request.config.getoption("--target")
 
     # load data
     with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
@@ -241,6 +274,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     model.discretize()
 
     n_steps = int(pres_time / dt)
+    target = request.config.getoption("--target")
     if target == 'loihi':
         with model.get_loihi(seed=seed) as sim:
             sim.run_steps(n_steps)
