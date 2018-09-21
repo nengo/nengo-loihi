@@ -10,6 +10,7 @@ from . import loihi_interface
 
 from .simulator import Simulator
 from .config import add_params, set_defaults
+from .conv import Conv2D
 
 logger = logging.getLogger(__name__)
 try:

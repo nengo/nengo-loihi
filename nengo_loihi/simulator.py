@@ -172,9 +172,11 @@ class Simulator(object):
                 self.host2chip_senders = h2c
                 self.model.chip2host_params.update(c2h_params)
                 self.host_pre_sim = nengo.Simulator(host_pre,
-                                                    progress_bar=False)
+                                                    progress_bar=False,
+                                                    optimize=False)
                 self.host_post_sim = nengo.Simulator(host,
-                                                     progress_bar=False)
+                                                     progress_bar=False,
+                                                     optimize=False)
             else:
                 # we need online communication
                 host, chip, h2c, c2h_params, c2h = splitter.split(
@@ -183,7 +185,8 @@ class Simulator(object):
                 self.chip2host_receivers = c2h
                 self.host2chip_senders = h2c
                 self.model.chip2host_params.update(c2h_params)
-                self.host_sim = nengo.Simulator(host, progress_bar=False)
+                self.host_sim = nengo.Simulator(host, progress_bar=False,
+                                                optimize=False)
 
             # Build the network into the model
             self.model.build(network)
