@@ -10,6 +10,7 @@ from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
+from nengo_loihi.loihi_cx import CxGroup
 import nengo_loihi.config as config
 import nengo_loihi.splitter as splitter
 
@@ -602,14 +603,15 @@ class Simulator(object):
                 for cx_probe, probe in self.cx_probe2probe.items():
                     x = data[snip_range[cx_probe]]
                     if cx_probe.key == 's':
-                        if isinstance(probe.target, nengo.ensemble.Neurons):
-                            t_ref = probe.target.ensemble.neuron_type.tau_ref
-                            assert t_ref == 0.002
-                            # TODO: generalize this to other tau_ref values
-                            x = (x == 384)
+                        if isinstance(cx_probe.target, CxGroup):
+                            refract_delays = cx_probe.target.refractDelay
                         else:
-                            # interneurons have a refractory period of 1 step
-                            x = (x == 128)
+                            refract_delays = 1
+
+                        # Loihi uses the voltage value to indicate where we
+                        # are in the refractory period. We want to find neurons
+                        # starting their refractory period.
+                        x = (x == refract_delays * 128)
                     if cx_probe.weights is not None:
                         x = np.dot(x, cx_probe.weights)
                     receiver = self.chip2host_receivers.get(probe, None)
