@@ -3,6 +3,8 @@ from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 
+from nengo_loihi.config import add_params
+
 
 @pytest.mark.parametrize('weight_solver', [False, True])
 @pytest.mark.parametrize('target_value', [-0.75, 0.4, 1.0])
@@ -175,3 +177,47 @@ def test_node_no_synapse_warning(Simulator):
     with pytest.warns(UserWarning):
         with Simulator(model):
             pass
+
+
+def test_dists(Simulator, seed):
+    # check that distributions on connection transforms are handled correctly
+
+    with nengo.Network(seed=seed) as net:
+        a = nengo.Node([1])
+        b = nengo.Ensemble(50, 1, radius=2)
+        conn0 = nengo.Connection(a, b, transform=nengo.dists.Uniform(-1, 1))
+        c = nengo.Ensemble(50, 1)
+        nengo.Connection(b, c, transform=nengo.dists.Uniform(-1, 1),
+                         seed=seed + 3)
+        d = nengo.Ensemble(50, 1)
+        conn1 = nengo.Connection(c.neurons, d.neurons,
+                                 transform=nengo.dists.Uniform(-1, 1))
+
+        add_params(net)
+        net.config[d].on_chip = False
+
+        p0 = nengo.Probe(c)
+        p1 = nengo.Probe(d)
+        p2 = nengo.Probe(b.neurons)
+
+    with Simulator(net) as sim:
+        sim.run(1.0)
+
+    with Simulator(net) as sim2:
+        sim2.run(1.0)
+
+    assert np.allclose(sim.data[p0], sim2.data[p0])
+    assert np.allclose(sim.data[p1], sim2.data[p1])
+    assert np.allclose(sim.data[p2], sim2.data[p2])
+
+    conn0.seed = seed + 1
+    with Simulator(net) as sim2:
+        sim2.run(1.0)
+
+    assert not np.allclose(sim.data[p2], sim2.data[p2])
+
+    conn0.seed = None
+    conn1.seed = seed + 1
+    with Simulator(net) as sim2:
+        sim2.run(1.0)
+    assert not np.allclose(sim.data[p1], sim2.data[p1])
