@@ -396,3 +396,31 @@ def test_conv_connection(Simulator, seed, rng, plt, allclose):
     tile(np.transpose(sim_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
+
+
+def test_backends(Simulator, seed, rng):
+    with nengo.Network(seed=seed) as net:
+        a = nengo.Node(rng.uniform(0, 1, size=16))
+        b = nengo.Ensemble(128, 8, neuron_type=nengo.SpikingRectifiedLinear())
+        # (4, 4, 1) -> (2, 2, 2)
+        nengo.Connection(
+            a, b, transform=nengo_loihi.Conv2D(
+                2, input_shape=(4, 4, 1),
+                kernel=rng.uniform(-0.5, 0.5, size=(1, 3, 3, 2))))
+        p = nengo.Probe(b.neurons)
+
+    with nengo.Simulator(net, optimize=False) as sim:
+        sim.run(1.0)
+
+    with nengo_dl.Simulator(net) as sim_dl:
+        sim_dl.run(1.0)
+
+    with Simulator(net) as sim_loihi:
+        sim_loihi.run(1.0)
+
+    assert np.allclose(sim.data[p], sim_dl.data[p])
+
+    # loihi spikes are not exactly the same, but should be close-ish
+    p0 = np.sum(sim.data[p] > 0, axis=0)
+    p1 = np.sum(sim_loihi.data[p] > 0, axis=0)
+    assert np.allclose(p0, p1, atol=2)
