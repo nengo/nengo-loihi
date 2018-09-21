@@ -197,10 +197,14 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
 
                     # scale the input spikes based on the radius of the
                     # target ensemble
+                    seed = model.seed if c.seed is None else c.seed
+                    transform = nengo.dists.get_samples(
+                        c.transform,
+                        n=c.size_out,
+                        d=c.size_mid,
+                        rng=np.random.RandomState(seed=seed))
                     if isinstance(c.post_obj, nengo.Ensemble):
-                        scaling = 1.0 / c.post_obj.radius
-                    else:
-                        scaling = 1.0
+                        transform = transform / c.post_obj.radius
 
                     logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim * 2)
@@ -210,7 +214,7 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                                      eval_points=c.eval_points,
                                      scale_eval_points=c.scale_eval_points,
                                      synapse=None,
-                                     transform=c.transform * scaling)
+                                     transform=transform)
                     nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
@@ -221,15 +225,22 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                 nengo.Connection(receive, c.post, synapse=c.synapse)
             with chip:
                 logger.debug("Creating Probe for %s", c)
+                seed = model.seed if c.seed is None else c.seed
+                transform = nengo.dists.get_samples(
+                    c.transform,
+                    n=c.size_out,
+                    d=c.size_mid,
+                    rng=np.random.RandomState(seed=seed))
+
                 if (isinstance(c.pre, nengo.ensemble.Neurons) and
-                        c.transform.ndim == 2):
+                        transform.ndim == 2):
                     # decoders manually specified in the transform
                     # should be handled like a normal decoder
                     probe = nengo.Probe(
                         c.pre.ensemble,
                         synapse=None,
-                        solver=nengo.solvers.NoSolver(c.transform.T))
-                    dims = c.transform.shape[0]
+                        solver=nengo.solvers.NoSolver(transform.T))
+                    dims = transform.shape[0]
                     chip2host_params[probe] = dict(
                         learning_rule_type=c.learning_rule_type,
                         function=lambda x, dims=dims: np.zeros(dims),
@@ -242,7 +253,7 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                         function=c.function,
                         eval_points=c.eval_points,
                         scale_eval_points=c.scale_eval_points,
-                        transform=c.transform
+                        transform=transform
                     )
                 chip2host_receivers[probe] = receive
                 if c.learning_rule_type is not None:

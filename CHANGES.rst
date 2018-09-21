@@ -26,6 +26,7 @@ Release history
 
 - Models can now use the ``nengo.SpikingRectifiedLinear`` neuron model
   on both the emulator and hardware backends.
+- Added support for Distributions on Connection transforms.
 
 **Fixed**
 
