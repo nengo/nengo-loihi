@@ -14,7 +14,7 @@ except ImportError:
 
 import nengo_loihi
 import nengo_loihi.loihi_cx as loihi_cx
-from nengo_loihi.conv import Conv2dConnection
+from nengo_loihi.conv import Conv2D
 from nengo_loihi.neurons import loihi_rates
 
 from nengo_extras.matplotlib import tile, imshow
@@ -33,7 +33,7 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     dt = 0.001
 
     encode_type = nengo.SpikingRectifiedLinear()
-    encode_gain = 1./dt
+    encode_gain = 1. / dt
     encode_bias = 0.
     neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
     neuron_gain = 1.
@@ -89,7 +89,7 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(ni*nj, label='synapses')
+    synapses = loihi_cx.CxSynapses(ni * nj, label='synapses')
     input_shape = (ni, nj, nk)
     synapses.set_conv2d_weights(filters, input_shape, strides=(sti, stj))
     neurons.add_synapses(synapses)
@@ -162,7 +162,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     dt = 0.001
 
     encode_type = nengo.SpikingRectifiedLinear()
-    encode_gain = 1./dt
+    encode_gain = 1. / dt
     encode_bias = 0.
     neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
     neuron_gain = 1.
@@ -218,7 +218,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     neurons.configure_filter(tau_s, dt=dt)
     neurons.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(ni*nj, label='synapses')
+    synapses = loihi_cx.CxSynapses(ni * nj, label='synapses')
     kernel = np.array([filters, -filters])  # two channels, pos and neg
     kernel = np.transpose(kernel, (0, 2, 3, 1))
     input_shape = (ni, nj, nk)
@@ -337,7 +337,7 @@ def test_conv_connection(Simulator, seed, rng, plt):
 
         input_shape = (ni, nj, nk)
         filters = np.vstack([filters, -filters])
-        output_shape = Conv2dConnection.get_output_shape(
+        output_shape = Conv2D.get_output_shape(
             input_shape, filters.shape, strides=(sti, stj))
         gain, bias = neuron_type.gain_bias(max_rates=100, intercepts=0)
         gain = gain * 0.01  # account for `a` max_rates
@@ -346,9 +346,13 @@ def test_conv_connection(Simulator, seed, rng, plt):
                            gain=nengo.dists.Choice([gain[0]]),
                            bias=nengo.dists.Choice([bias[0]]),
                            label='b')
-        ab = Conv2dConnection(a.neurons, b.neurons, input_shape, filters,
-                              strides=(sti, stj), synapse=tau_s,
-                              label='Conn(a->b)')
+        # ab = Conv2dConnection(a.neurons, b.neurons, input_shape, filters,
+        #                       strides=(sti, stj), synapse=tau_s,
+        #                       label='Conn(a->b)')
+        ab = nengo.Connection(
+            a.neurons, b.neurons, synapse=tau_s, transform=Conv2D(
+                filters.shape[-1], input_shape=input_shape, strides=(sti, stj),
+                kernel_size=7, kernel=filters))
 
         bp = nengo.Probe(b.neurons)
 

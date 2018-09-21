@@ -15,6 +15,7 @@ from nengo.utils.builder import default_n_eval_points
 from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
+from nengo_loihi import conv
 from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
 from nengo_loihi.neurons import loihi_rates
@@ -493,6 +494,11 @@ def build_no_solver(model, solver, conn, rng, transform):
 
 @Builder.register(Connection)  # noqa: C901
 def build_connection(model, conn):
+    if isinstance(conn.transform, conv.Conv2D):
+        # TODO: integrate these into the same function
+        conv.build_conv2d_connection(model, conn)
+        return
+
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
 

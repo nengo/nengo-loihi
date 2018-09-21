@@ -171,12 +171,12 @@ class Simulator(object):
 
             if precompute:
                 self.host_pre_sim = nengo.Simulator(
-                    host_pre, dt=self.dt, progress_bar=False)
+                    host_pre, dt=self.dt, progress_bar=False, optimize=False)
                 self.host_post_sim = nengo.Simulator(
-                    host, dt=self.dt, progress_bar=False)
+                    host, dt=self.dt, progress_bar=False, optimize=False)
             else:
                 self.host_sim = nengo.Simulator(
-                    host, dt=self.dt, progress_bar=False)
+                    host, dt=self.dt, progress_bar=False, optimize=False)
 
             # Build the network into the model
             self.model.build(network)
