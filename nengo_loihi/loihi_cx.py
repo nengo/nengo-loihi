@@ -308,6 +308,14 @@ class CxGroup(object):
                 p.weights /= v_scale[0]
 
     def validate(self):
+        if self.location == 'cpu':
+            return  # none of these checks currently apply to Lakemont
+
+        N_CX_MAX = 1024
+        if self.n > N_CX_MAX:
+            raise BuildError("Number of compartments (%d) exceeded max (%d)" %
+                             (self.n, N_CX_MAX))
+
         IN_AXONS_MAX = 4096
         n_axons = sum(s.n_axons for s in self.synapses)
         if n_axons > IN_AXONS_MAX:
