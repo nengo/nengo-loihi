@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("val", (-0.75, -0.5, 0, 0.5, 0.75))
 @pytest.mark.parametrize("type", ("array", "func"))
 def test_input_node(allclose, Simulator, val, type):
