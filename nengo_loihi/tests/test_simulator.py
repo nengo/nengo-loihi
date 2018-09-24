@@ -75,11 +75,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         nengo.Connection(pre, post, function=function,
                          solver=nengo.solvers.LstsqL2(weights=True))
 
-    loihi_model = nengo_loihi.builder.Model(dt=dt)
-    if dt > 1. / (loihi_model.inter_rate * loihi_model.inter_n):
-        loihi_model.inter_rate = 1. / (dt * loihi_model.inter_n)
-
-    with Simulator(model, model=loihi_model, precompute=False) as sim:
+    with Simulator(model, precompute=False) as sim:
         sim.run(1.0)
 
     x = sim.data[stim_p]
