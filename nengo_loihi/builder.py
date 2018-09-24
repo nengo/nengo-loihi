@@ -22,23 +22,6 @@ from . import splitter
 
 logger = logging.getLogger(__name__)
 
-# Filter on intermediary neurons
-INTER_TAU = 0.005
-# ^TODO: how to choose this filter? Need it since all input will be spikes,
-#   but maybe don't want double filtering if connection has a filter
-
-# firing rate of inter neurons
-INTER_RATE = 100
-
-# number of inter neurons
-INTER_N = 10
-
-# noise exponent for inter neurons
-INTER_NOISE_EXP = -2
-
-# voltage threshold for non-spiking neurons (i.e. voltage decoders)
-VTH_NONSPIKING = 10
-
 
 class Model(CxModel):
     """The data structure for the chip/simulator.
@@ -101,8 +84,45 @@ class Model(CxModel):
         self.builder = Builder() if builder is None else builder
         self.build_callback = None
 
+        # --- other (typically standard) parameters
+        # Filter on intermediary neurons
+        self.inter_tau = 0.005
+        # ^TODO: how to choose this filter? Even though the input is spikes,
+        # it may not be absolutely necessary since tau_rc provides a filter,
+        # and maybe we don't want double filtering if connection has a filter
+
+        # firing rate of inter neurons
+        self._inter_rate = None
+
+        # number of inter neurons
+        self.inter_n = 10
+
+        # noise exponent for inter neurons
+        self.inter_noise_exp = -2
+
+        # voltage threshold for non-spiking neurons (i.e. voltage decoders)
+        self.vth_nonspiking = 10
+
         # limit for clipping intercepts, to avoid neurons with high gains
         self.intercept_limit = 0.95
+
+    @property
+    def inter_rate(self):
+        return (1. / (self.dt * self.inter_n) if self._inter_rate is None else
+                self._inter_rate)
+
+    @inter_rate.setter
+    def inter_rate(self, inter_rate):
+        self._inter_rate = inter_rate
+
+    @property
+    def inter_scale(self):
+        """Scaling applied to input from interneurons.
+
+        Such that if all `inter_n` interneurons are firing at their max rate
+        `inter_rate`, then the total output when averaged over time will be 1.
+        """
+        return 1. / (self.dt * self.inter_rate * self.inter_n)
 
     def __str__(self):
         return "Model: %s" % self.label
@@ -303,7 +323,7 @@ def build_ensemble(model, ens):
         model.build(ens.neuron_type, ens.neurons, group)
 
     # set default filter just in case no other filter gets set
-    group.configure_filter(INTER_TAU, dt=model.dt, default=True)
+    group.configure_filter(model.inter_tau, dt=model.dt, default=True)
 
     if ens.noise is not None:
         raise NotImplementedError("Ensemble noise not implemented")
@@ -339,8 +359,7 @@ def build_interencoders(model, ens):
     scaled_encoders = model.params[ens].scaled_encoders
 
     synapses = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
-    inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
-    interscaled_encoders = scaled_encoders * inter_scale
+    interscaled_encoders = scaled_encoders * model.inter_scale
     synapses.set_full_weights(
         np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
     group.add_synapses(synapses, name='inter_encoders')
@@ -517,7 +536,7 @@ def build_connection(model, conn):
 
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
-            weights = weights / (INTER_RATE * INTER_N * model.dt)
+            weights = weights * model.inter_scale
 
             if conn.synapse is None:
                 warnings.warn(
@@ -572,7 +591,7 @@ def build_connection(model, conn):
 
             gain = 1  # model.dt * INTER_RATE(=1000)
             dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
-            dec_cx.configure_nonspiking(dt=model.dt, vth=VTH_NONSPIKING)
+            dec_cx.configure_nonspiking(dt=model.dt, vth=model.vth_nonspiking)
             dec_cx.bias[:] = 0
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
@@ -584,17 +603,18 @@ def build_connection(model, conn):
             post_d = conn.post_obj.size_in
             post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
             assert len(post_inds) == conn.size_out == d
-            mid_axon_inds = np.hstack([post_inds, post_d+post_inds] * INTER_N)
+            mid_axon_inds = np.hstack([post_inds,
+                                       post_inds + post_d] * model.inter_n)
 
-            gain = model.dt * INTER_RATE
-            dec_cx = CxGroup(2 * d * INTER_N, label='%s' % conn,
+            gain = model.dt * model.inter_rate
+            dec_cx = CxGroup(2 * d * model.inter_n, label='%s' % conn,
                              location='core')
             dec_cx.configure_relu(dt=model.dt)
             dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
-                                                    [1.] * d) * INTER_N)
-            if INTER_NOISE_EXP > -30:
+                                                    [1.] * d) * model.inter_n)
+            if model.inter_noise_exp > -30:
                 dec_cx.enableNoise[:] = 1
-                dec_cx.noiseExp0 = INTER_NOISE_EXP
+                dec_cx.noiseExp0 = model.inter_noise_exp
                 dec_cx.noiseAtDendOrVm = 1
             model.add_group(dec_cx)
             model.objs[conn]['decoded'] = dec_cx
@@ -605,11 +625,11 @@ def build_connection(model, conn):
 
             dec_syn = CxSynapses(n, label="decoders")
             weights2 = 0.5 * gain * np.vstack([weights,
-                                               -weights] * INTER_N).T
+                                               -weights] * model.inter_n).T
 
         # use tau_s for filter into interneurons, and INTER_TAU for filter out
         dec_cx.configure_filter(tau_s, dt=model.dt)
-        post_tau = INTER_TAU
+        post_tau = model.inter_tau
 
         dec_syn.set_full_weights(weights2)
         dec_cx.add_synapses(dec_syn)
@@ -765,8 +785,7 @@ def conn_probe(model, probe):
 
     d = conn.size_out
     if isinstance(probe.target, Node):
-        inter_scale = 1. / (model.dt * INTER_RATE * INTER_N)
-        w = np.diag(inter_scale * np.ones(d))
+        w = np.diag(model.inter_scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:
         # probed values are scaled by the target ensemble's radius

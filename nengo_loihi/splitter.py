@@ -182,7 +182,8 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                     nengo.Connection(receive, c.post, synapse=c.synapse)
                 with host:
                     max_rate = inter_rate * inter_n
-                    if max_rate > (1. / dt):
+                    rtol = 1e-8  # allow for floating point inaccuracies
+                    if max_rate > (1. / dt) * (1 + rtol):
                         raise BuildError(
                             "Simulator `dt` must be <= %s (got %s)" % (
                                 1. / max_rate, dt))
