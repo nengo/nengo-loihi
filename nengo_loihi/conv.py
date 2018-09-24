@@ -88,12 +88,11 @@ class Conv2D(Distribution):
     def __init__(self, n_filters, input_shape, kernel_size=3, strides=1,
                  mode="valid", correlate=True, output_channels_last=None,
                  kernel=nengo_dl.dists.Glorot()):
-        if not isinstance(input_shape, ImageShape):
-            input_shape = ImageShape.from_shape(input_shape,
-                                                channels_last=True)
-
         self.n_filters = n_filters
-        self.input_shape = input_shape
+        self.input_shape = (
+            input_shape if isinstance(input_shape, ImageShape)
+            else ImageShape.from_shape(
+                input_shape, channels_last=output_channels_last))
         self.kernel_size = kernel_size if is_iterable(kernel_size) else (
             kernel_size, kernel_size)
         self.strides = strides if is_iterable(strides) else (strides, strides)
@@ -148,7 +147,8 @@ class Conv2D(Distribution):
     def kernel_shape(self):
         # TODO: change the kernel shape to the more standard
         # (filter_height, filter_width, in_channels, out_channels)
-        return (self.input_shape.channels,) + self.kernel_size + (self.n_filters,)
+        return (self.input_shape.channels,) + self.kernel_size + (
+        self.n_filters,)
 
     def sample(self, n, d=None, rng=np.random):
         shape = self.kernel_shape
@@ -222,7 +222,6 @@ if nengo_dl is not None:
 
         def build_step(self, signals):
             import tensorflow as tf
-            assert self.conv2d_transform.mode == 'valid'
 
             strides = self.conv2d_transform.strides
             x_shape = self.conv2d_transform.input_shape
@@ -234,18 +233,16 @@ if nengo_dl is not None:
             W = tf.transpose(W, (1, 2, 0, 3))  # (si, sj, nc, nf)
             X = tf.transpose(X, (1, 0))  # put batch size first
             X = tf.reshape(X, (X.shape[0],) + x_shape.shape())
-            if not x_shape.channels_last:
-                X = tf.transpose(X, (0, 2, 3, 1))
 
             Y = tf.nn.convolution(
                 input=X,
                 filter=W,
                 strides=strides,
-                padding='VALID',
-                data_format='NHWC')
+                padding=self.conv2d_transform.mode.upper(),
+                data_format='NHWC' if x_shape.channels_last else "NCHW")
 
-            if not y_shape.channels_last:
-                Y = tf.transpose(Y, (0, 3, 1, 2))
+            if x_shape.channels_last != y_shape.channels_last:
+                raise NotImplementedError()
 
             signals.scatter(self.Y_data, Y, mode='inc')
 
