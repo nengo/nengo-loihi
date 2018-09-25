@@ -38,39 +38,40 @@ train_data = load(["cifar-data/data_batch_1", "cifar-data/data_batch_2",
                    "cifar-data/data_batch_3", "cifar-data/data_batch_4"])
 test_data = load(["cifar-data/data_batch_5"])
 
-
-with nengo.Network() as net:
-    # def conv_layer(x, *args, activation="relu", **kwargs):
-    #     conv = nengo_loihi.Conv2D(*args, **kwargs)
-    #     if activation is None:
-    #         layer = nengo.Node(size_in=conv.output_shape.size)
-    #     else:
-    #         layer = nengo.Ensemble(conv.output_shape.size, 1).neurons
-    #     nengo.Connection(x, layer, transform=conv)
-    #
-    #     print("LAYER")
-    #     print(conv.input_shape.shape(), "->", conv.output_shape.shape())
-    #
-    #     return layer, conv
-
-    def conv_layer(x, filters, input_shape, activation=tf.nn.relu,
-                   kernel_size=3, **kwargs):
-        layer, conn = nengo_dl.tensor_layer(
-            x, tf.layers.conv2d, shape_in=input_shape.shape(),
-            kernel_size=kernel_size, filters=filters,
-            activation=activation, return_conn=True,
-            data_format=("channels_last" if input_shape.channels_last else
-                         "channels_first"),
-            **kwargs)
-        net.config[conn].trainable = True if activation is None else False
-
-        conv = nengo_loihi.Conv2D(filters, input_shape,
-                                  kernel_size=kernel_size, **kwargs)
+with nengo.Network(seed=0) as net:
+    def conv_layer(x, *args, activation="relu", **kwargs):
+        conv = nengo_loihi.Conv2D(*args, **kwargs)
+        if activation is None:
+            layer = nengo.Node(size_in=conv.output_shape.size)
+        else:
+            layer = nengo.Ensemble(conv.output_shape.size, 1).neurons
+        nengo.Connection(x, layer, transform=conv)
 
         print("LAYER")
         print(conv.input_shape.shape(), "->", conv.output_shape.shape())
 
         return layer, conv
+
+
+    # def conv_layer(x, filters, input_shape, activation=tf.nn.relu,
+    #                kernel_size=3, **kwargs):
+    #
+    #     layer, conn = nengo_dl.tensor_layer(
+    #         x, tf.layers.conv2d, shape_in=input_shape.shape(),
+    #         kernel_size=kernel_size, filters=filters,
+    #         activation=activation, return_conn=True,
+    #         data_format=("channels_last" if input_shape.channels_last else
+    #                      "channels_first"),
+    #         **kwargs)
+    #     net.config[conn].trainable = False
+    #
+    #     conv = nengo_loihi.Conv2D(filters, input_shape,
+    #                               kernel_size=kernel_size, **kwargs)
+    #
+    #     print("LAYER")
+    #     print(conv.input_shape.shape(), "->", conv.output_shape.shape())
+    #
+    #     return layer, conv
 
 
     nengo_loihi.add_params(net)
@@ -101,8 +102,8 @@ with nengo.Network() as net:
         transform[i, i, :, :] = 1 / conv.output_shape.n_pixels
     transform = np.reshape(transform, (-1, 10))
     output1 = nengo.Node(size_in=10)
-    conn = nengo.Connection(layer, output1, transform=transform.T)
-    net.config[conn].trainable = True
+    avg_conn = nengo.Connection(layer, output1, transform=transform.T)
+    net.config[avg_conn].trainable = False
 
     output = nengo.Probe(output1)
 
@@ -119,8 +120,7 @@ def objective(outputs, targets):
         labels=targets, logits=outputs)
 
 
-with nengo_dl.Simulator(net, minibatch_size=64,
-                        tensorboard="./tensorboard") as sim:
+with nengo_dl.Simulator(net, minibatch_size=64, seed=0) as sim:
     print("pre err", sim.loss(
         {input: test_data["data"]}, {output: test_data["labels"]}, class_err))
 
