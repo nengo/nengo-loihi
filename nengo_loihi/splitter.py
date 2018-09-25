@@ -191,7 +191,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                         intercepts=[-1] * dim + [-1] * dim)
 
                     # scale the input spikes based on the radius of the
-                    #  target ensemble
+                    # target ensemble
                     if isinstance(c.post_obj, nengo.Ensemble):
                         scaling = 1.0 / c.post_obj.radius
                     else:
@@ -216,13 +216,29 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                 nengo.Connection(receive, c.post, synapse=c.synapse)
             with chip:
                 logger.debug("Creating Probe for %s", c)
-                probe = nengo.Probe(c.pre, synapse=None, solver=c.solver)
-                chip2host_params[probe] = dict(
-                    learning_rule_type=c.learning_rule_type,
-                    function=c.function,
-                    eval_points=c.eval_points,
-                    scale_eval_points=c.scale_eval_points,
-                    transform=c.transform)
+                if (isinstance(c.pre, nengo.ensemble.Neurons) and
+                        c.transform.ndim == 2):
+                    # decoders manually specified in the transform
+                    # should be handled like a normal decoder
+                    probe = nengo.Probe(
+                        c.pre.ensemble,
+                        synapse=None,
+                        solver=nengo.solvers.NoSolver(c.transform.T))
+                    dims = c.transform.shape[0]
+                    chip2host_params[probe] = dict(
+                        learning_rule_type=c.learning_rule_type,
+                        function=lambda x, dims=dims: np.zeros(dims),
+                        transform=np.array(1),
+                    )
+                else:
+                    probe = nengo.Probe(c.pre, synapse=None, solver=c.solver)
+                    chip2host_params[probe] = dict(
+                        learning_rule_type=c.learning_rule_type,
+                        function=c.function,
+                        eval_points=c.eval_points,
+                        scale_eval_points=c.scale_eval_points,
+                        transform=c.transform
+                    )
                 chip2host_receivers[probe] = receive
                 if c.learning_rule_type is not None:
                     modulated_conns[c] = probe
@@ -249,7 +265,7 @@ def base_obj(obj):
     return obj
 
 
-def split_pre_from_host(host_model):    # noqa: C901
+def split_pre_from_host(host_model):  # noqa: C901
     assert len(host_model.networks) == 0
     logger.info("Splitting pre model from host")
 
