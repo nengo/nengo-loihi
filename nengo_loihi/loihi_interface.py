@@ -499,7 +499,7 @@ class LoihiSimulator(object):
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
 
-    def create_io_snip(self):
+    def create_io_snip(self, io_steps):
         # snips must be created before connecting
         assert not self.is_connected()
 
@@ -517,6 +517,17 @@ class LoihiSimulator(object):
         for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
             if core.learning_coreid:
                 n_errors += 1
+
+        n_inputs = 0
+        for chip in self.board.chips:
+            for core in chip.cores:
+                for inp, cx_ids in core.iterate_inputs():
+                    axon_ids = inp.axon_ids[0]
+                    # axon_ids are in pairs, due to the positive and
+                    #  negative channels, but we just want the number
+                    #  of values to send
+                    assert len(axon_ids) % 2 == 0
+                    n_inputs += len(axon_ids) // 2
 
         n_outputs = 1
         probes = []
@@ -542,6 +553,8 @@ class LoihiSimulator(object):
         code = template.render(
             n_outputs=n_outputs,
             n_errors=n_errors,
+            n_inputs=n_inputs,
+            io_steps=io_steps,
             cores=cores,
             probes=probes,
         )
@@ -568,13 +581,15 @@ class LoihiSimulator(object):
             phase="preLearnMgmt",
         )
 
-        size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
+        size = n_inputs + n_errors*2
         logger.debug("Creating nengo_io_h2c channel")
+        # double the size of the buffers so we don't have to be in lock-step
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
-                                                       "int", size)
+                                                       "int", size*2)
         logger.debug("Creating nengo_io_c2h channel")
+        # double the size of the buffers so we don't have to be in lock-step
         self.nengo_io_c2h = self.n2board.createChannel(b'nengo_io_c2h',
-                                                       "int", n_outputs)
+                                                       "int", n_outputs*2)
         self.nengo_io_h2c.connect(None, nengo_io)
         self.nengo_io_c2h.connect(nengo_io, None)
         self.nengo_io_c2h_count = n_outputs

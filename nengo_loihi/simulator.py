@@ -148,7 +148,8 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=True, target=None):
+                 precompute=True, target=None,
+                 snip_io_steps=1):
         self.closed = True  # Start closed in case constructor raises exception
 
         if model is None:
@@ -158,6 +159,14 @@ class Simulator(object):
             self.model = model
 
         self.precompute = precompute
+        self.snip_io_steps = snip_io_steps
+
+        if target is None:
+            try:
+                import nxsdk
+                target = 'loihi'
+            except ImportError:
+                target = 'sim'
 
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
@@ -178,8 +187,10 @@ class Simulator(object):
                                                      progress_bar=False)
             else:
                 # we need online communication
+                spiking_interneurons_on_host = target != 'loihi'
                 host, chip, h2c, c2h_params, c2h = splitter.split(
-                    network, INTER_RATE, INTER_N)
+                    network, INTER_RATE, INTER_N,
+                    spiking_interneurons_on_host=spiking_interneurons_on_host)
                 network = chip
                 self.chip2host_receivers = c2h
                 self.host2chip_senders = h2c
@@ -205,13 +216,6 @@ class Simulator(object):
 
         self.loihi = None
         self.simulator = None
-
-        if target is None:
-            try:
-                import nxsdk
-                target = 'loihi'
-            except ImportError:
-                target = 'sim'
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
@@ -391,7 +395,7 @@ class Simulator(object):
 
         self.run_steps(1)
 
-    def run_steps(self, steps):
+    def run_steps(self, steps):  # noqa: C901
         """Simulate for the given number of ``dt`` steps.
 
         Parameters
@@ -425,17 +429,19 @@ class Simulator(object):
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
             elif self.host_sim is not None:
-                self.loihi.create_io_snip()
+                self.loihi.create_io_snip(io_steps=self.snip_io_steps)
                 self.loihi.run_steps(steps, async=True)
+
+                targets = self.determine_spike_targets()
+                self.loihi.nengo_io_h2c.write(len(targets), targets)
+
                 for i in range(steps):
                     self.host_sim.run_steps(1)
-                    self.handle_host2chip_communications()
-                    self.handle_chip2host_communications()
+                    if i % self.snip_io_steps == 0:
+                        self.handle_host2chip_communications()
+                        self.handle_chip2host_communications()
 
                 logger.info("Waiting for completion")
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
                 logger.info("done")
             else:
@@ -444,6 +450,31 @@ class Simulator(object):
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)
         self._probe()
+
+    def determine_spike_targets(self):
+        spike_targets = []
+        for sender, receiver in self.host2chip_senders.items():
+            if not isinstance(receiver, splitter.PESModulatoryTarget):
+                inp = receiver.cx_spike_input
+                assert len(inp.axon_ids) == 1   # TODO: handle len>1
+                axon_ids = inp.axon_ids[0]
+                # the first half are the positive channels and the second
+                #  half are the negative channels
+                half = len(axon_ids)//2
+                for i in range(len(axon_ids)//2):
+                    # we currently only handle one Loihi chip, so assert
+                    #  that chip_id is zero
+                    assert axon_ids[i][0] == 0
+                    # the core_ids of the positive and negative channels
+                    #  should be the same
+                    assert axon_ids[i][1] == axon_ids[half+i][1]
+
+                    spike_targets.extend((
+                        axon_ids[i][1],      # the core for this input
+                        axon_ids[i][2],      # axon_id for the positive channel
+                        axon_ids[half+i][2]  # axon_id for the negative channel
+                        ))
+        return spike_targets
 
     def handle_host2chip_communications(self):  # noqa: C901
         if self.simulator is not None:
@@ -514,33 +545,16 @@ class Simulator(object):
                         del sender.queue[:]
 
                     else:
+                        latest = None
                         for t, x in sender.queue:
-                            receiver.receive(t, x)
+                            latest = x
                         del sender.queue[:]
-                        spike_input = receiver.cx_spike_input
-                        sent_count = spike_input.sent_count
-                        axon_ids = spike_input.axon_ids
-                        spikes = spike_input.spikes
-                        while sent_count < len(spikes):
-                            for j, s in enumerate(spikes[sent_count]):
-                                if s:
-                                    for output_axon in axon_ids:
-                                        to_send.append(output_axon[j])
-                            sent_count += 1
-                        spike_input.sent_count = sent_count
+                        if latest is not None:
+                            msg = (x * (1 << 15)).astype(int)
+                            to_send.extend(msg.tolist())
 
-                max_spikes = self.loihi.snip_max_spikes_per_step
-                if len(to_send) > max_spikes:
-                    warnings.warn("Too many spikes (%d) sent in one time "
-                                  "step.  Increase the value of "
-                                  "snip_max_spikes_per_step (currently "
-                                  "set to %d)" % (len(to_send), max_spikes))
-                    del to_send[max_spikes:]
-
-                msg = [len(to_send)]
-                for spike in to_send:
-                    assert spike[0] == 0
-                    msg.extend(spike[1:3])
+                msg = []
+                msg.extend(to_send)
                 for error in errors:
                     assert len(error) == 2
                     msg.extend(error)
@@ -620,7 +634,8 @@ class Simulator(object):
                         receiver.receive(self.dt*(time_step), x)
                     else:
                         # onchip probes
-                        self.snip_probes[probe].append(x)
+                        x = np.repeat([x], self.snip_io_steps, axis=0)
+                        self.snip_probes[probe].extend(x)
             else:
                 raise NotImplementedError()
 

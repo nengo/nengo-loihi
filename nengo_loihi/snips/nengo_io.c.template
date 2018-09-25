@@ -2,8 +2,16 @@
 #include <string.h>
 #include "nengo_io.h"
 
+#define N_INPUTS {{ n_inputs }}
 #define N_OUTPUTS {{ n_outputs }}
 #define N_ERRORS {{ n_errors }}
+
+#define IDX_SPIKE_TARGETS (N_ERRORS * 2)
+#define IDX_VALUES (IDX_SPIKE_TARGETS + (N_INPUTS*3))
+#define IDX_POS_ACCUMULATORS (IDX_VALUES + (N_INPUTS*3)*4)
+#define IDX_NEG_ACCUMULATORS (IDX_POS_ACCUMULATORS + (N_INPUTS*3)*4)
+
+#define IO_STEPS {{ io_steps }}
 
 int guard_io(runState *s) {
     return 1;
@@ -17,41 +25,100 @@ void nengo_io(runState *s) {
     int inChannel = getChannelID("nengo_io_h2c");
     int outChannel = getChannelID("nengo_io_c2h");
     int32_t count[1];
-    int32_t spike[2];
+    int32_t spike[3];
     int32_t error[2];
     int32_t output[N_OUTPUTS];
+
+    int32_t *value = (int32_t*)(s->userData+IDX_VALUES);
+    int32_t *pos_accum = (int32_t*)(s->userData+IDX_POS_ACCUMULATORS);
+    int32_t *neg_accum = (int32_t*)(s->userData+IDX_NEG_ACCUMULATORS);
 
     if (inChannel == -1 || outChannel == -1) {
         printf("Got an invalid channel ID\n");
         return;
     }
 
-    if (s->time % 100 == 0) {
+    if (s->time == 1) {
+        printf("initializing\n");
+        for (int i=0; i<N_INPUTS; i++) {
+            readChannel(inChannel, spike, 3);
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+0] = spike[0];  // core id
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+1] = spike[1];  // pos axon
+            s->userData[IDX_SPIKE_TARGETS+(i*3)+2] = spike[2];  // neg axon
+            printf("  spike target %d: (%d %d %d)\n",
+                   i, spike[0], spike[1], spike[2]);
+        }
+    }
+
+    if (s->time % 1000 == 0) {
         printf("time %d\n", s->time);
     }
 
-    readChannel(inChannel, count, 1);
+    //readChannel(inChannel, count, 1);
     // printf("count %d\n", count[0]);
 
-    for (int i=0; i < count[0]; i++) {
-        readChannel(inChannel, spike, 2);
-        // printf("send spike %d.%d\n", spike[0], spike[1]);
-        coreId = (CoreId) { .id=spike[0] };
-        nx_send_discrete_spike(s->time, coreId, spike[1]);
+    // --- read input values (once every IO_STEPS)
+    // Note that we do this at the *start* of an IO_STEP period (since
+    //  s->time starts at 1), so that we don't have a period at the beginning
+    //  of the simulation where we are ignoring the input.
+    if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
+        for (int i=0; i < N_INPUTS; i++) {
+            readChannel(inChannel, spike, 1);
+            //printf("  %d: stim value %d.%d\n", s->time, i, spike[0]);
+            value[i] = spike[0];  // discretized version of the real value
+                                  //  to be used as input
+        }
+
+        // Communicate with learning snip
+        for (int i=0; i < N_ERRORS; i++) {
+            readChannel(inChannel, error, 2);
+            // printf("send error %d.%d\n", error[0], error[1]);
+            s->userData[0] = error[0];
+            s->userData[1] = error[1];
+        }
     }
 
-    // Communicate with learning snip
-    for (int i=0; i < N_ERRORS; i++) {
-        readChannel(inChannel, error, 2);
-        // printf("send error %d.%d\n", error[0], error[1]);
-        s->userData[0] = error[0];
-        s->userData[1] = error[1];
+    // --- turn input values into spikes using accumulators
+    for (int i=0; i < N_INPUTS; i++) {
+        //printf("%d   value:%d  accum:%d\n");
+        pos_accum[i] += (value[i] + (1<<15));
+        if (pos_accum[i] >= (1<<16)) {
+            uint8_t core = s->userData[IDX_SPIKE_TARGETS+(i*3)];
+            uint8_t cx = s->userData[IDX_SPIKE_TARGETS+(i*3)+1];
+            //printf("  spike %d.%d\n", core, cx);
+
+            coreId = (CoreId) { .id=core };
+            nx_send_discrete_spike(s->time, coreId, cx);
+
+            pos_accum[i] -= (1<<16);
+        } else if (pos_accum[i] < 0) {
+            pos_accum[i] = 0;
+        }
+
+        neg_accum[i] += (-value[i] + (1<<15));
+        if (neg_accum[i] >= (1<<16)) {
+            uint8_t core = s->userData[IDX_SPIKE_TARGETS+(i*3)];
+            uint8_t cx = s->userData[IDX_SPIKE_TARGETS+(i*3)+2];
+            //printf("  spike %d.%d\n", core, cx);
+
+            coreId = (CoreId) { .id=core };
+            nx_send_discrete_spike(s->time, coreId, cx);
+
+            neg_accum[i] -= (1<<16);
+        } else if (neg_accum[i] < 0) {
+            neg_accum[i] = 0;
+        }
     }
 
-    output[0] = s->time;
+    if (N_OUTPUTS > 0) {
+        // --- write output values (once every IO_STEPS)
+        if ((IO_STEPS==1) || (s->time % IO_STEPS == 1)) {
+            output[0] = s->time;
 {% for n_out, core, cx in probes %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+            output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
 {% endfor %}
 
-    writeChannel(outChannel, output, N_OUTPUTS);
+            writeChannel(outChannel, output, N_OUTPUTS);
+        }
+    }
 }
