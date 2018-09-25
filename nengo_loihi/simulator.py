@@ -1,4 +1,3 @@
-import collections
 import logging
 import warnings
 
@@ -7,6 +6,7 @@ import numpy as np
 import nengo
 import nengo.utils.numpy as npext
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
+from nengo.simulator import ProbeDict as NengoProbeDict
 from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model, INTER_RATE, INTER_N
@@ -17,7 +17,7 @@ import nengo_loihi.splitter as splitter
 logger = logging.getLogger(__name__)
 
 
-class ProbeDict(collections.Mapping):
+class ProbeDict(NengoProbeDict):
     """Map from Probe -> ndarray
 
     This is more like a view on the dict that the simulator manipulates.
@@ -26,50 +26,43 @@ class ProbeDict(collections.Mapping):
     is readonly, which is more appropriate for its purpose.
     """
 
-    def __init__(self, raw, host_probe_dict=None):
-        super(ProbeDict, self).__init__()
-        self.raw = raw
+    def __init__(self, raw):
+        super(ProbeDict, self).__init__(raw=raw)
         self.fallbacks = []
-        self._cache = {}
 
-    def add_fallback_dict(self, fallback):
+    def add_fallback(self, fallback):
+        assert isinstance(fallback, NengoProbeDict)
         self.fallbacks.append(fallback)
 
     def __getitem__(self, key):
+        target = self.raw
+        if key not in target:
+            for fallback in self.fallbacks:
+                if key in fallback:
+                    target = fallback.raw
+                    break
+        assert key in target
+
         if (key not in self._cache or
-                len(self._cache[key]) != len(self.raw[key])):
-            if key in self.raw:
-                rval = self.raw[key]
-                if isinstance(rval, list):
-                    rval = np.asarray(rval)
-                    rval.setflags(write=False)
-                self._cache[key] = rval
-            else:
-                for fallback in self.fallbacks:
-                    if key in fallback:
-                        return fallback[key]
-                raise KeyError(key)
+                len(self._cache[key]) != len(target[key])):
+            rval = target[key]
+            if isinstance(rval, list):
+                rval = np.asarray(rval)
+                rval.setflags(write=False)
+            self._cache[key] = rval
         return self._cache[key]
 
     def __iter__(self):
-        # TODO: this should also include self.host_probe_dict
-        return iter(self.raw)
+        for k in self.raw:
+            yield k
+        for fallback in self.fallbacks:
+            for k in fallback:
+                yield k
 
     def __len__(self):
-        # TODO: this should also include self.host_probe_dict
-        return len(self.raw)
+        return len(self.raw) + sum(len(d) for d in self.fallbacks)
 
-    def __repr__(self):
-        # TODO: this should also include self.host_probe_dict
-        return repr(self.raw)
-
-    def __str__(self):
-        # TODO: this should also include self.host_probe_dict
-        return str(self.raw)
-
-    def reset(self):
-        # TODO: this should also include self.host_probe_dict
-        self._cache.clear()
+    # TODO: Should we override __repr__ and __str__?
 
 
 class Simulator(object):
@@ -192,10 +185,10 @@ class Simulator(object):
         self._probe_outputs = self.model.params
         self.data = ProbeDict(self._probe_outputs)
         if precompute:
-            self.data.add_fallback_dict(self.host_pre_sim.data)
-            self.data.add_fallback_dict(self.host_post_sim.data)
+            self.data.add_fallback(self.host_pre_sim.data)
+            self.data.add_fallback(self.host_post_sim.data)
         elif self.host_sim is not None:
-            self.data.add_fallback_dict(self.host_sim.data)
+            self.data.add_fallback(self.host_sim.data)
 
         if seed is None:
             if network is not None and network.seed is not None:
