@@ -631,7 +631,8 @@ class Simulator(object):
                         receiver.receive(self.dt*(time_step), x)
                     else:
                         # onchip probes
-                        self.snip_probes[probe].append(x)
+                        x = np.repeat([x], self.snip_io_steps, axis=0)
+                        self.snip_probes[probe].extend(x)
             else:
                 raise NotImplementedError()
 
