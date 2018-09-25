@@ -211,7 +211,7 @@ def build_core(n2core, core):  # noqa: C901
 
         for group, cx_idxs, ax_range in core.iterate_groups():
             build_group(n2core, core, group, cx_idxs, ax_range)
-            n_cx = max(max(cx_idxs), n_cx)
+            n_cx = max(max(cx_idxs) + 1, n_cx)
 
     for inp, cx_idxs in core.iterate_inputs():
         build_input(n2core, core, inp, cx_idxs)
