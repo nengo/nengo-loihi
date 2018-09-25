@@ -90,7 +90,7 @@ def seed(request):
 @pytest.fixture
 def allclose(request):
     def _allclose(a, b, rtol=1e-5, atol=1e-8, equal_nan=False):
-        rmse = npext.rmse(a, b)
+        rmse = 2 * npext.rmse(a, b) / (npext.rms(a) + npext.rms(b))
         if not np.any(np.isnan(rmse)):
             request.node.user_properties.append(("rmse", rmse))
         return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)

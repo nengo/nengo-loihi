@@ -131,18 +131,6 @@ class CxGroup(object):
             assert name not in self.named_synapses
             self.named_synapses[name] = synapses
 
-        AXONS_MAX = 4096
-        MAX_SYNAPSE_BITS = 16384*64
-        n_axons = sum(s.n_axons for s in self.synapses)
-        if n_axons > AXONS_MAX:
-            raise BuildError("Total axons (%d) exceeded max (%d)" % (
-                n_axons, AXONS_MAX))
-
-        synapse_bits = sum(s.bits() for s in self.synapses)
-        if synapse_bits > MAX_SYNAPSE_BITS:
-            raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
-                synapse_bits, MAX_SYNAPSE_BITS))
-
     def add_axons(self, axons, name=None):
         """Add a CxAxons object to ensemble."""
 
@@ -152,8 +140,6 @@ class CxGroup(object):
         if name is not None:
             assert name not in self.named_axons
             self.named_axons[name] = axons
-
-        assert axons.n_axons == self.n, "Axons currently only one-to-one"
 
     def add_probe(self, probe):
         """Add a CxProbe object to ensemble."""
@@ -321,8 +307,65 @@ class CxGroup(object):
             if p.key == 'v' and p.weights is not None:
                 p.weights /= v_scale[0]
 
+    def validate(self):
+        if self.location == 'cpu':
+            return  # none of these checks currently apply to Lakemont
+
+        N_CX_MAX = 1024
+        if self.n > N_CX_MAX:
+            raise BuildError("Number of compartments (%d) exceeded max (%d)" %
+                             (self.n, N_CX_MAX))
+
+        IN_AXONS_MAX = 4096
+        n_axons = sum(s.n_axons for s in self.synapses)
+        if n_axons > IN_AXONS_MAX:
+            raise BuildError("Input axons (%d) exceeded max (%d)" % (
+                n_axons, IN_AXONS_MAX))
+
+        MAX_SYNAPSE_BITS = 16384*64
+        synapse_bits = sum(s.bits() for s in self.synapses)
+        if synapse_bits > MAX_SYNAPSE_BITS:
+            raise BuildError("Total synapse bits (%d) exceeded max (%d)" % (
+                synapse_bits, MAX_SYNAPSE_BITS))
+
+        OUT_AXONS_MAX = 4096
+        n_axons = sum(a.axon_slots() for a in self.axons)
+        if n_axons > OUT_AXONS_MAX:
+            raise BuildError("Output axons (%d) exceeded max (%d)" % (
+                n_axons, OUT_AXONS_MAX))
+
+        for synapses in self.synapses:
+            synapses.validate()
+
+        for axons in self.axons:
+            axons.validate()
+
+        for probe in self.probes:
+            probe.validate()
+
 
 class CxSynapses(object):
+    """
+    Attributes
+    ----------
+    n_axons : int
+        Number of input axons to this group of synapses.
+    group : CxGroup
+        The CxGroup (compartments) that these synapses input into.
+    synapse_fmt : SynapseFmt
+        The synapse format object for these synapses.
+    weights : (n_axons,) list of (n_populations, n_compartments) ndarray
+        The synapse weights. Organized as a list of arrays so each axon
+        can have a different number of target compartments.
+    indices : (population, axon, compartment) ndarray
+        The synapse indices.
+    tracing : bool
+        Whether synaptic tracing is enabled for these synapses.
+    tracing_tau : float
+        The tracing time constant.
+    tracing_mag : float
+        The tracing increment magnitude.
+    """
     def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
         self.label = label
@@ -330,16 +373,19 @@ class CxSynapses(object):
         self.synapse_fmt = None
         self.weights = None
         self.indices = None
+        self.axon_cx_bases = None
+        self.axon_to_weight_map = None
         self.tracing = False
         self.tracing_tau = None
         self.tracing_mag = None
+        self.pop_type = 0  # one of (0, 16, 32) for discrete, pop16, pop32
 
     def __str__(self):
         return "%s(%s)" % (
             type(self).__name__, self.label if self.label else '')
 
     def size(self):
-        return sum(len(w) for w in self.weights)
+        return sum(w.size for w in self.weights)
 
     def bits(self):
         return sum(self.synapse_fmt.bits_per_axon(len(w))
@@ -352,29 +398,101 @@ class CxSynapses(object):
     def max_ind(self):
         return max(i.max() if len(i) > 0 else -1 for i in self.indices)
 
-    def set_full_weights(self, weights):
-        self.weights = [w.astype(np.float32) for w in weights]
-        self.indices = [np.arange(w.size) for w in weights]
-        assert weights.shape[0] == self.n_axons
-
+    def idx_bits(self):
         idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
         assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
         idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
                        if v >= idxBits)
+        return idxBits
+
+    def idxs_per_synapse(self):
+        return 2 if self.tracing else 1
+
+    def atom_bits_extra(self):
+        atom_bits = self.atom_bits()
+        assert atom_bits <= 9, "Cannot have more than 9 atom bits"
+        return max(atom_bits - 5, 0)  # has 5 bits by default
+
+    def atom_bits(self):
+        max_populations = max(w.shape[0] for w in self.weights)
+        return int(np.ceil(np.log2(max_populations)))
+
+    def axon_bits(self):
+        if self.pop_type == 16:
+            return 10 - self.atom_bits_extra()
+        else:
+            return 12
+
+    def axon_populations(self, axon_idx):
+        weight_idx = self.axon_weight_idx(axon_idx)
+        return self.weights[weight_idx].shape[0]
+
+    def axon_weight_idx(self, axon_idx):
+        return (self.axon_to_weight_map[axon_idx]
+                if self.axon_to_weight_map is not None else axon_idx)
+
+    def axon_weights_indices(self, axon_idx, atom=0):
+        weight_idx = self.axon_weight_idx(axon_idx)
+        w = self.weights[weight_idx]
+        i = self.indices[weight_idx]
+        return w[atom, :], i[atom, :]
+
+    def axon_cx_base(self, axon_idx):
+        if self.axon_cx_bases is None:
+            return 0
+        cx_base = self.axon_cx_bases[axon_idx]
+        return cx_base if cx_base > -1024 else None
+
+    def _set_weights_indices(self, weights, indices=None):
+        weights = [np.array(w, copy=False, dtype=np.float32, ndmin=2)
+                   for w in weights]
+        assert all(w.ndim == 2 for w in weights), (
+            "Weights must be shape (n_axons,) (n_populations, n_compartments)")
+        assert all(w.shape[0] == weights[0].shape[0] for w in weights), (
+            "All axon weights must have the same number of populations")
+        self.weights = weights
+
+        if indices is None:
+            indices = [np.zeros((w.shape[0], 1), dtype=np.int32) +
+                       np.arange(w.shape[1], dtype=np.int32)
+                       for w in self.weights]
+        indices = [np.array(i, copy=False, dtype=np.int32, ndmin=2)
+                   for i in indices]
+        assert all(i.ndim == 2 for i in indices), (
+            "Indices must be shape (n_axons,) (n_populations, n_compartments)")
+        assert all(i.shape == w.shape for i, w in zip(indices, weights)), (
+            "Indices shapes must match weights shapes")
+        assert len(weights) == len(indices)
+        self.indices = indices
+
+    def set_full_weights(self, weights):
+        self._set_weights_indices(weights)
+        assert len(self.weights) == self.n_axons, (
+            "Full weights must have different weights for each axon")
+
+        idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
     def set_diagonal_weights(self, diag):
-        diag = diag.ravel()
-        self.weights = [d.reshape(1).astype(np.float32) for d in diag]
-        self.indices = [np.array([i]) for i in range(len(diag))]
+        weights = diag.ravel()
+        indices = list(range(len(weights)))
+        self._set_weights_indices(weights, indices)
         assert len(self.weights) == self.n_axons
 
-        idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
-        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
-        idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
-                       if v >= idxBits)
+        idxBits = self.idx_bits()
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
+                    numSynapses=63, wgtBits=7)
+
+    def set_population_weights(self, weights, indices, axon_to_weight_map,
+                               cx_bases, pop_type=None):
+        self._set_weights_indices(weights, indices)
+        self.axon_to_weight_map = axon_to_weight_map
+        self.axon_cx_bases = cx_bases
+        self.pop_type = 16 if pop_type is None else pop_type
+
+        idxBits = self.idx_bits()
+        self.format(compression=0, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
     def set_learning(self, tracing_tau=2, tracing_mag=1.0):
@@ -393,6 +511,19 @@ class CxSynapses(object):
             self.synapse_fmt = SynapseFmt()
         self.synapse_fmt.set(**kwargs)
 
+    def validate(self):
+        assert np.all(self.axon_cx_bases < 256), "CxBase cannot be > 256"
+        if self.pop_type == 16:
+            assert np.all(self.axon_cx_bases % 4 == 0)
+
+
+class Spike(object):
+    __slots__ = ['axon_id', 'atom']
+
+    def __init__(self, axon_id, atom=0):
+        self.axon_id = axon_id
+        self.atom = atom
+
 
 class CxAxons(object):
     def __init__(self, n_axons, label=None):
@@ -401,12 +532,56 @@ class CxAxons(object):
         self.group = None
 
         self.target = None
-        self.target_inds = slice(None)  # which synapse inputs are targeted
-        # ^ TODO: this does not allow multiple pre-cx per axon, loihi does
+        self.cx_to_axon_map = None
+        self.cx_atoms = None
+        self.axon_to_synapse_map = None
 
     def __str__(self):
         return "%s(%s)" % (
             type(self).__name__, self.label if self.label else '')
+
+    @property
+    def pop_type(self):
+        return self.target.pop_type
+
+    def set_axon_map(self, cx_to_axon_map, cx_atoms=None):
+        self.cx_to_axon_map = cx_to_axon_map
+        self.cx_atoms = cx_atoms
+
+    def slots_per_axon(self):
+        """The number of axonCfg slots occupied by each axon."""
+        return 2 if self.pop_type == 32 else 1
+
+    def axon_slots(self):
+        """The total number of axonCfg slots used by all axons."""
+        return self.slots_per_axon() * self.n_axons
+
+    def map_cx_axons(self, cx_idxs):
+        axon_idxs = (self.cx_to_axon_map[cx_idxs]
+                     if self.cx_to_axon_map is not None else cx_idxs)
+        axon_ids = (self.axon_to_synapse_map[axon_idxs]
+                    if self.axon_to_synapse_map is not None else axon_idxs)
+        return axon_ids
+
+    def map_cx_atoms(self, cx_idxs):
+        atoms = (self.cx_atoms[cx_idxs]
+                 if self.cx_atoms is not None else [0 for _ in cx_idxs])
+        return atoms
+
+    def map_cx_spikes(self, cx_idxs):
+        axon_ids = self.map_cx_axons(cx_idxs)
+        atoms = self.map_cx_atoms(cx_idxs)
+        return [Spike(axon_id, atom=atom)
+                for axon_id, atom in zip(axon_ids, atoms)]
+
+    def validate(self):
+        if isinstance(self.target, CxSynapses):
+            if self.cx_atoms is not None:
+                cx_idxs = np.arange(len(self.cx_atoms))
+                axon_ids = self.map_cx_axons(cx_idxs)
+                for atom, axon_id in zip(self.cx_atoms, axon_ids):
+                    n_populations = self.target.axon_populations(axon_id)
+                    assert 0 <= atom < n_populations
 
 
 class CxProbe(object):
@@ -422,6 +597,9 @@ class CxProbe(object):
         self.use_snip = False
         self.snip_info = None
 
+    def validate(self):
+        pass
+
 
 class CxSpikeInput(object):
     def __init__(self, spikes):
@@ -435,7 +613,6 @@ class CxSpikeInput(object):
         return self.spikes.shape[1]
 
     def add_axons(self, axons):
-        assert axons.n_axons == self.n
         self.axons.append(axons)
 
     def add_probe(self, probe):
@@ -476,6 +653,9 @@ class CxModel(object):
         if len(self.cx_groups) == 0:
             raise BuildError("No neurons marked for execution on-chip. "
                              "Please mark some ensembles as on-chip.")
+
+        for group in self.cx_groups:
+            group.validate()
 
 
 class CxSimulator(object):
@@ -588,11 +768,11 @@ class CxSimulator(object):
         self.ref = np.hstack([group.refractDelay for group in self.groups])
 
         # --- allocate synapse memory
-        self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
-                     for group in self.groups for synapses in group.synapses}
+        self.axons_in = {synapses: [] for group in self.groups
+                         for synapses in group.synapses}
         self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
                   for group in self.groups for synapses in group.synapses
-                  if synapses.tracing}
+                  if synapses.tracing}  # synapse traces
 
         # --- noise
         enableNoise = np.hstack([
@@ -629,38 +809,40 @@ class CxSimulator(object):
         self.q[:-1] = self.q[1:]  # advance delays
         self.q[-1] = 0
 
-        for a_in in self.a_in.values():
-            a_in[:] = 0
+        # --- clear spikes going in to each synapse
+        for axons_in_spikes in self.axons_in.values():
+            axons_in_spikes.clear()
 
+        # --- inputs pass spikes to synapses
         for input in self.inputs:
             for axons in input.axons:
-                synapses = axons.target
-                assert axons.target_inds == slice(None)
-                self.a_in[synapses] += input.spikes[self.t]
+                cx_idxs = input.spikes[self.t].nonzero()[0]
+                spikes = axons.map_cx_spikes(cx_idxs)
+                self.axons_in[axons.target].extend(spikes)
 
+        # --- axons pass spikes to synapses
         for group in self.groups:
             for axons in group.axons:
-                synapses = axons.target
-                s_in = self.a_in[synapses]
+                cx_idxs = self.s[self.group_cxs[axons.group]].nonzero()[0]
+                spikes = axons.map_cx_spikes(cx_idxs)
+                self.axons_in[axons.target].extend(spikes)
 
-                a_slice = self.group_cxs[axons.group]
-                sa = self.s[a_slice]
-                np.add.at(s_in, axons.target_inds, sa)  # allows repeat inds
-
+        # --- synapse spikes use weights to modify compartment input
         for group in self.groups:
             for synapses in group.synapses:
-                s_in = self.a_in[synapses]
-
                 b_slice = self.group_cxs[synapses.group]
-                weights = synapses.weights
-                indices = synapses.indices
                 qb = self.q[:, b_slice]
                 # delays = np.zeros(qb.shape[1], dtype=np.int32)
 
-                for i in s_in.nonzero()[0]:
-                    for _ in range(s_in[i]):  # faster than mult since likely 1
-                        qb[0, indices[i]] += weights[i]
-                    # qb[delays[indices[i]], indices[i]] += weights[i]
+                for spike in self.axons_in[synapses]:
+                    # qb[0, indices[spike.axon_id]] += weights[spike.axon_id]
+                    cx_base = synapses.axon_cx_base(spike.axon_id)
+                    if cx_base is None:
+                        continue
+
+                    weights, indices = synapses.axon_weights_indices(
+                        spike.axon_id, atom=spike.atom)
+                    qb[0, cx_base + indices] += weights
 
                 if synapses.tracing:
                     z = self.z[synapses]
@@ -670,7 +852,8 @@ class CxSimulator(object):
                     decay = np.exp(-1.0 / tau)
                     z *= decay
 
-                    z += mag * s_in
+                    for spike in self.axons_in[synapses]:
+                        z[spike.axon_id] += mag
 
         # --- updates
         q0 = self.q[0, :]

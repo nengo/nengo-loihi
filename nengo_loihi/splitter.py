@@ -153,7 +153,8 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                     receive = ChipReceiveNeurons(
                         dim, neuron_type=c.pre_obj.ensemble.neuron_type)
                     nengo.Connection(receive, c.post,
-                                     transform=c.transform, synapse=c.synapse)
+                                     transform=c.transform,
+                                     synapse=c.synapse)
                 with host:
                     logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim)
@@ -192,10 +193,12 @@ def split(model, inter_rate, inter_n):  # noqa: C901
 
                     # scale the input spikes based on the radius of the
                     #  target ensemble
-                    if isinstance(c.post_obj, nengo.Ensemble):
-                        scaling = 1.0 / c.post_obj.radius
-                    else:
-                        scaling = 1.0
+                    transform = c.transform
+                    if (isinstance(c.post_obj, nengo.Ensemble) and
+                            c.post_obj.radius != 1.0):
+                        assert not isinstance(transform,
+                                              nengo.dists.Distribution)
+                        transform = transform / c.post_obj.radius
 
                     logger.debug("Creating HostSendNode for %s", c)
                     send = HostSendNode(dim * 2)
@@ -205,7 +208,7 @@ def split(model, inter_rate, inter_n):  # noqa: C901
                                      eval_points=c.eval_points,
                                      scale_eval_points=c.scale_eval_points,
                                      synapse=None,
-                                     transform=c.transform * scaling)
+                                     transform=transform)
                     nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive
         elif pre_onchip and not post_onchip:
