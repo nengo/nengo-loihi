@@ -15,7 +15,7 @@ def test_pes_comm_channel(allclose, Simulator, seed, plt, N):
 
         b = nengo.Node(None, size_in=1, size_out=1)
 
-        nengo.Connection(stim, a, synapse=None)
+        nengo.Connection(stim, a)
         conn = nengo.Connection(
             a, b, function=lambda x: 0, synapse=0.01,
             learning_rule_type=nengo.PES(learning_rate=1e-3))

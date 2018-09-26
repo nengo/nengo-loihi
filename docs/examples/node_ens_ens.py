@@ -23,7 +23,7 @@ with nengo.Network(seed=seed) as model:
     up = nengo.Probe(u, synapse=None)
 
     a = nengo.Ensemble(100, d, label='a')
-    nengo.Connection(u, a, synapse=None)
+    nengo.Connection(u, a)
     ap = nengo.Probe(a)
     anp = nengo.Probe(a.neurons)
     avp = nengo.Probe(a.neurons[:5], 'voltage')
