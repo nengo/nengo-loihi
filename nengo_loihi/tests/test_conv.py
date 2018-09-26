@@ -92,8 +92,8 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
     inp.add_axons(inp_ax)
 
-    inp_probe = loihi_cx.CxProbe(target=inp, key='s')
-    inp.add_probe(inp_probe)
+    # inp_probe = loihi_cx.CxProbe(target=inp, key='s')
+    # inp.add_probe(inp_probe)
 
     model.add_group(inp)
 
@@ -129,19 +129,19 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
         with model.get_loihi(seed=seed) as sim:
             sim.run_steps(n_steps)
 
-            sim_inp = np.column_stack([
-                p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
+            # sim_inp = np.column_stack([
+            #     p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
             sim_out = np.column_stack([
                 p.timeSeries.data for p in sim.board.probe_map[out_probe]])
     else:
         sim = model.get_simulator(seed=seed)
         sim.run_steps(n_steps)
 
-        sim_inp = sim.probe_outputs[inp_probe]
+        # sim_inp = sim.probe_outputs[inp_probe]
         sim_out = sim.probe_outputs[out_probe]
 
-    sim_inp = np.sum(sim_inp, axis=0) * (dt / pres_time)
-    sim_inp.shape = (nk * ni, nj)
+    # sim_inp = np.sum(sim_inp, axis=0) * (dt / pres_time)
+    # sim_inp.shape = (nk * ni, nj)
 
     sim_out = np.sum(sim_out, axis=0) * (dt / pres_time)
     if out_channels_last:
@@ -157,7 +157,8 @@ def test_pop_tiny(request, plt, seed, rng, allclose):
     cols = 2
 
     ax = plt.subplot(rows, cols, 1)
-    imshow(sim_inp, vmin=0, vmax=1, ax=ax)
+    # imshow(sim_inp, vmin=0, vmax=1, ax=ax)
+    plt.hist(sim_out.ravel(), bins=11)
 
     ax = plt.subplot(rows, cols, 2)
     tile(sim_out, vmin=0, vmax=out_max, grid=True, ax=ax)
@@ -246,8 +247,8 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
     inp.add_axons(inp_ax)
 
-    inp_probe = loihi_cx.CxProbe(target=inp, key='s')
-    inp.add_probe(inp_probe)
+    # inp_probe = loihi_cx.CxProbe(target=inp, key='s')
+    # inp.add_probe(inp_probe)
 
     model.add_group(inp)
 
@@ -281,19 +282,19 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
         with model.get_loihi(seed=seed) as sim:
             sim.run_steps(n_steps)
 
-            sim_inp = np.column_stack([
-                p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
+            # sim_inp = np.column_stack([
+            #     p.timeSeries.data for p in sim.board.probe_map[inp_probe]])
             sim_out = np.column_stack([
                 p.timeSeries.data for p in sim.board.probe_map[out_probe]])
     else:
         sim = model.get_simulator(seed=seed)
         sim.run_steps(n_steps)
 
-        sim_inp = sim.probe_outputs[inp_probe]
+        # sim_inp = sim.probe_outputs[inp_probe]
         sim_out = sim.probe_outputs[out_probe]
 
-    sim_inp = np.sum(sim_inp, axis=0) / pres_time
-    sim_inp.shape = (nk * ni, nj)
+    # sim_inp = np.sum(sim_inp, axis=0) / pres_time
+    # sim_inp.shape = (nk * ni, nj)
 
     sim_out = np.sum(sim_out, axis=0) / pres_time
     if out_channels_last:

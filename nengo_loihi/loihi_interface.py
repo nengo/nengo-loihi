@@ -396,6 +396,7 @@ def build_axons(n2core, core, group, axons, cx_ids):
     tchip_id = n2board.n2Chips[tchip_idx].id
     tcore_id = n2board.n2Chips[tchip_idx].n2Cores[tcore_idx].id
 
+    axon_idx = 0
     cx_idxs = np.arange(len(cx_ids))
     spikes = axons.map_cx_spikes(cx_idxs)
     for cx_id, spike in zip(cx_ids, spikes):
@@ -410,15 +411,34 @@ def build_axons(n2core, core, group, axons, cx_ids):
                 srcCxId=cx_id,
                 dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id)
         elif synapses.pop_type == 16:  # pop16
-            assert 0 <= atom < n_populations
-            n2core.axons.append(OutputAxon.pop16Axon(
-                srcCxId=cx_id, srcRelCxId=atom,
-                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
+            # assert 0 <= atom < n_populations
+            # n2core.axons.append(OutputAxon.pop16Axon(
+            #     srcCxId=cx_id, srcRelCxId=atom,
+            #     dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
+
+            # workaround until axon compiler supports pop16
+            assert len(core.groups) == 1 and group is core.groups[0]
+            assert len(group.axons) == 1 and axons is group.axons[0]
+            assert len(group.probes) == 0
+            n2core.axonMap[cx_id].configure(ptr=axon_idx, len=1, atom=atom)
+            n2core.axonCfg[axon_idx].pop16.configure(
+                coreId=tcore_id, axonId=taxon_id)
+            axon_idx += 1
         elif synapses.pop_type == 32:  # pop32
-            assert 0 <= atom < n_populations
-            n2core.axons.append(OutputAxon.pop32Axon(
-                srcCxId=cx_id, srcRelCxId=atom,
-                dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
+            # assert 0 <= atom < n_populations
+            # n2core.axons.append(OutputAxon.pop32Axon(
+            #     srcCxId=cx_id, srcRelCxId=atom,
+            #     dstChipId=tchip_id, dstCoreId=tcore_id, dstSynMapId=taxon_id))
+
+            # workaround until axon compiler supports pop32
+            assert len(core.groups) == 1 and group is core.groups[0]
+            assert len(group.axons) == 1 and axons is group.axons[0]
+            assert len(group.probes) == 0
+            n2core.axonMap[cx_id].configure(ptr=axon_idx, len=2, atom=atom)
+            n2core.axonCfg[axon_idx].pop32_0.configure(
+                coreId=tcore_id, axonId=taxon_id)
+            n2core.axonCfg[axon_idx+1].pop32_1.configure()
+            axon_idx += 2
         else:
             raise ValueError("Unrecognized pop_type: %d" % (synapses.pop_type))
 
