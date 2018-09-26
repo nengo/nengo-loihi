@@ -695,6 +695,7 @@ class CxSimulator(object):
             self.error("Overflow in U (max was %d)" % u2.max())
         if np.any(u2 < U_MIN):
             self.error("Underflow in U (min was %d)" % u2.min())
+        u2 = np.clip(u2, a_min=U_MIN, a_max=U_MAX, out=u2)
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
@@ -702,6 +703,7 @@ class CxSimulator(object):
             self.error("Overflow in V (max was %d)" % self.v.max())
         if np.any(self.v < V_MIN):
             self.error("Underflow in V (min was %d)" % self.v.min())
+        self.v = np.clip(self.v, a_min=V_MIN, a_max=V_MAX, out=self.v)
 
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
