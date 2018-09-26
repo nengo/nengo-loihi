@@ -536,9 +536,14 @@ class LoihiSimulator(object):
         # --- generate custom code
         # Determine which cores have learning
         n_errors = 0
+        total_error_len = 0
+        max_error_len = 0
         for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
             if core.learning_coreid:
+                error_len = core.groups[0].n // 2
+                max_error_len = max(error_len, max_error_len)
                 n_errors += 1
+                total_error_len += 2 + error_len
 
         n_outputs = 1
         probes = []
@@ -564,6 +569,7 @@ class LoihiSimulator(object):
         code = template.render(
             n_outputs=n_outputs,
             n_errors=n_errors,
+            max_error_len=max_error_len,
             cores=cores,
             probes=probes,
         )
@@ -590,7 +596,7 @@ class LoihiSimulator(object):
             phase="preLearnMgmt",
         )
 
-        size = self.snip_max_spikes_per_step * 2 + 1 + n_errors*2
+        size = self.snip_max_spikes_per_step * 2 + 1 + total_error_len
         logger.debug("Creating nengo_io_h2c channel")
         self.nengo_io_h2c = self.n2board.createChannel(b'nengo_io_h2c',
                                                        "int", size)
