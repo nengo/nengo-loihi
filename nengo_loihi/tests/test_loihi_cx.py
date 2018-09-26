@@ -1,6 +1,8 @@
+from nengo.exceptions import SimulationError
 import numpy as np
+import pytest
 
-from nengo_loihi.loihi_cx import CxGroup, CxProbe, CxModel
+from nengo_loihi.loihi_cx import CxGroup, CxModel, CxProbe, CxSimulator
 
 
 def test_simulator_noise(request, plt, seed):
@@ -35,3 +37,18 @@ def test_simulator_noise(request, plt, seed):
 
     plt.plot(y)
     plt.yticks(())
+
+
+def test_strict_mode():
+    # Tests should be run in strict mode
+    assert CxSimulator.strict
+
+    with pytest.raises(SimulationError):
+        CxSimulator.error("Error in emulator")
+    CxSimulator.strict = False
+    with pytest.warns(UserWarning):
+        CxSimulator.error("Error in emulator")
+
+    # Strict mode is a global setting so we set it back to True
+    # for subsequent test runs.
+    CxSimulator.strict = True

@@ -1,8 +1,11 @@
 import matplotlib as mpl
 
+from nengo_loihi.loihi_cx import CxSimulator
+
 
 def pytest_configure(config):
     mpl.use("Agg")
+    CxSimulator.strict = True
 
 
 def pytest_addoption(parser):

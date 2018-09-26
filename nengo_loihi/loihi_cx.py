@@ -489,11 +489,20 @@ class CxSimulator(object):
         A seed for all stochastic operations done in this simulator.
     """
 
+    strict = False
+
     def __init__(self, model, seed=None):
         self.build(model, seed=seed)
 
         self._probe_filters = {}
         self._probe_filter_pos = {}
+
+    @classmethod
+    def error(cls, msg):
+        if cls.strict:
+            raise SimulationError(msg)
+        else:
+            warnings.warn(msg)
 
     def build(self, model, seed=None):  # noqa: C901
         """Set up NumPy arrays to emulate chip memory and I/O."""
@@ -683,16 +692,16 @@ class CxSimulator(object):
         u2 = self.u[:] + self.bias
         u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
         if np.any(u2 > U_MAX):
-            raise SimulationError("Overflow in U (max was %d)" % u2.max())
+            self.error("Overflow in U (max was %d)" % u2.max())
         if np.any(u2 < U_MIN):
-            raise SimulationError("Underflow in U (min was %d)" % u2.min())
+            self.error("Underflow in U (min was %d)" % u2.min())
 
         # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
         if np.any(self.v > V_MAX):
-            raise SimulationError("Overflow in V (max was %d)" % self.v.max())
+            self.error("Overflow in V (max was %d)" % self.v.max())
         if np.any(self.v < V_MIN):
-            raise SimulationError("Underflow in V (min was %d)" % self.v.min())
+            self.error("Underflow in V (min was %d)" % self.v.min())
 
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
