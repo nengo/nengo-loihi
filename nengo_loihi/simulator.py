@@ -414,12 +414,12 @@ class Simulator(object):
             if self.precompute:
                 self.host_pre_sim.run_steps(steps)
                 self.handle_host2chip_communications()
-                self.loihi.run_steps(steps)
+                self.loihi.run_steps(steps, blocking=True)
                 self.handle_chip2host_communications()
                 self.host_post_sim.run_steps(steps)
             elif self.host_sim is not None:
                 self.loihi.create_io_snip()
-                self.loihi.run_steps(steps, async=True)
+                self.loihi.run_steps(steps, blocking=False)
                 for i in range(steps):
                     self.host_sim.run_steps(1)
                     self.handle_host2chip_communications()
@@ -432,7 +432,7 @@ class Simulator(object):
                 self.loihi.wait_for_completion()
                 logger.info("done")
             else:
-                self.loihi.run_steps(steps)
+                self.loihi.run_steps(steps, blocking=True)
 
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)

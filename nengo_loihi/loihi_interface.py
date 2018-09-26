@@ -451,10 +451,10 @@ class LoihiSimulator(object):
             for k, n2core in enumerate(n2chip.n2Cores):
                 print("  Core %d, id=%d" % (k, n2core.id))
 
-    def run_steps(self, steps, async=False):
+    def run_steps(self, steps, blocking=True):
         # NOTE: we need to call connect() after snips are created
         self.connect()
-        self.n2board.run(steps, aSync=async)
+        self.n2board.run(steps, aSync=not blocking)
 
     def wait_for_completion(self):
         self.n2board.finishRun()
