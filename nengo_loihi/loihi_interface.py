@@ -1,5 +1,6 @@
 from __future__ import division
 
+from distutils.version import LooseVersion
 import logging
 import os
 import sys
@@ -17,6 +18,7 @@ try:
     from nxsdk.arch.n2a.graph.graph import N2Board
     from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
     from nxsdk.arch.n2a.graph.probes import N2SpikeProbe
+
 except ImportError:
     exc_info = sys.exc_info()
 
@@ -384,6 +386,8 @@ class LoihiSimulator(object):
     """
 
     def __init__(self, cx_model, seed=None, snip_max_spikes_per_step=50):
+        self.check_nxsdk_version()
+
         self.n2board = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
@@ -410,6 +414,24 @@ class LoihiSimulator(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    @staticmethod
+    def check_nxsdk_version():
+        # raise exception if nxsdk not installed
+        if callable(nxsdk):
+            nxsdk()
+
+        # if installed, check version
+        version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
+        minimum = LooseVersion("0.7.0")
+        max_tested = LooseVersion("0.7.0")
+        if version < minimum:
+            raise ImportError("nengo-loihi requires nxsdk>=%s, found %s"
+                              % (minimum, version))
+        elif version > max_tested:
+            warnings.warn("nengo-loihi has not been tested with your nxsdk "
+                          "version (%s); latest fully supported version is "
+                          "%s" % (version, max_tested))
 
     def build(self, cx_model, seed=None):
         cx_model.validate()
