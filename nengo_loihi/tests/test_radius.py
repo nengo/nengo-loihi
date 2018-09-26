@@ -10,7 +10,7 @@ def test_radius_probe(Simulator, seed, radius):
         ens = nengo.Ensemble(n_neurons=100, dimensions=1,
                              radius=radius,
                              intercepts=nengo.dists.Uniform(-0.95, 0.95))
-        nengo.Connection(stim, ens, synapse=None)
+        nengo.Connection(stim, ens)
         p = nengo.Probe(ens, synapse=0.1)
     with Simulator(model, precompute=True) as sim:
         sim.run(0.5)
@@ -30,7 +30,7 @@ def test_radius_ens_ens(Simulator, seed, radius1, radius2, weights):
         b = nengo.Ensemble(n_neurons=100, dimensions=1,
                            radius=radius2,
                            intercepts=nengo.dists.Uniform(-0.95, 0.95))
-        nengo.Connection(stim, a, synapse=None)
+        nengo.Connection(stim, a)
         nengo.Connection(a, b, synapse=0.01, transform=radius2 / radius1,
                          solver=nengo.solvers.LstsqL2(weights=weights))
         p = nengo.Probe(b, synapse=0.1)

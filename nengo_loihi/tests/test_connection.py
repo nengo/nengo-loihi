@@ -65,7 +65,7 @@ def test_node_to_neurons(precompute, allclose, Simulator, plt):
         a = nengo.Ensemble(len(y), 1, label='a',
                            neuron_type=neuron_type, gain=gain, bias=bias)
         ap = nengo.Probe(a.neurons)
-        nengo.Connection(u, a.neurons, synapse=None, transform=A)
+        nengo.Connection(u, a.neurons, transform=A)
 
     with Simulator(model, precompute=precompute) as sim:
         sim.run(tfinal)
@@ -93,7 +93,7 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose):
         n = 10
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
         a = nengo.Ensemble(n, 1)
-        nengo.Connection(stim, a, synapse=None)
+        nengo.Connection(stim, a)
 
         b = nengo.Ensemble(n, 1, neuron_type=nengo.SpikingRectifiedLinear(),
                            gain=np.ones(n), bias=np.zeros(n))
@@ -115,7 +115,7 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     with nengo.Network(seed=seed) as net:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
         pre = nengo.Ensemble(20, 1)
-        nengo.Connection(stim, pre, synapse=None)
+        nengo.Connection(stim, pre)
 
         post = nengo.Ensemble(2, 1,
                               gain=[1., 1.], bias=[0., 0.])
@@ -159,3 +159,14 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     assert allclose(np.sum(sim.data[p_post], axis=0) * sim.dt,
                     np.sum(nengosim.data[p_post], axis=0) * nengosim.dt,
                     atol=5)
+
+
+def test_node_no_synapse_warning(Simulator):
+    with nengo.Network() as model:
+        n = nengo.Node([0, 0])
+        a = nengo.Ensemble(100, 2)
+        nengo.Connection(n, a, synapse=None)
+
+    with pytest.warns(UserWarning):
+        with Simulator(model):
+            pass

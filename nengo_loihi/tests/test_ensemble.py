@@ -73,7 +73,7 @@ def test_relu_response_curves(Simulator, plt, allclose):
 @pytest.mark.parametrize("amplitude", (0.1, 0.5, 1))
 @pytest.mark.parametrize(
     "neuron_type", (nengo.SpikingRectifiedLinear, nengo.LIF))
-def test_amplitude(Simulator, amplitude, neuron_type, seed, allclose):
+def test_amplitude(Simulator, amplitude, neuron_type, seed, plt, allclose):
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([0.5])
         n = 100
@@ -81,7 +81,7 @@ def test_amplitude(Simulator, amplitude, neuron_type, seed, allclose):
             n, 1, neuron_type=neuron_type(amplitude=amplitude))
         ens2 = nengo.Ensemble(n, 1, gain=np.ones(n), bias=np.zeros(n),
                               neuron_type=nengo.SpikingRectifiedLinear())
-        nengo.Connection(a, ens, synapse=None)
+        nengo.Connection(a, ens)
 
         # note: slight boost on transform so that the post neurons are pushed
         # over threshold, rather than ==threshold
@@ -99,14 +99,23 @@ def test_amplitude(Simulator, amplitude, neuron_type, seed, allclose):
     with Simulator(net, precompute=True) as sim:
         sim.run(1)
 
+    spikemean1 = np.mean(sim.data[neuron_p], axis=0)
+    spikemean2 = np.mean(sim.data[neuron2_p], axis=0)
+
+    plt.subplot(211)
+    plt.plot(sim.trange(), sim.data[ens_p])
+    plt.subplot(212)
+    i = np.argsort(spikemean1)
+    plt.plot(spikemean1[i])
+    plt.plot(spikemean2[i], linestyle='--')
+
     assert allclose(sim.data[ens_p][sim.trange() > 0.9], 0.5, atol=0.05)
     assert np.max(sim.data[neuron_p]) == amplitude / sim.dt
 
     # the identity neuron-to-neuron connection causes `ens2` to fire at
     # `amplitude` * the firing rate of `ens` (i.e., the same overall firing
     # rate as `ens`)
-    assert allclose(np.mean(sim.data[neuron_p], axis=0),
-                    np.mean(sim.data[neuron2_p], axis=0), atol=1)
+    assert allclose(spikemean1, spikemean2, atol=1)
 
     # note: one-timestep delay, despite synapse=None
     assert allclose(sim.data[neuron_p][:-1], sim.data[indirect_p][1:])
