@@ -2,6 +2,7 @@ import os
 import pickle
 
 import numpy as np
+import pytest
 import scipy.signal
 
 import nengo
@@ -24,10 +25,11 @@ home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, 'tests')
 
 
-def test_pop_tiny(request, plt, seed, rng, allclose):
+@pytest.mark.parametrize('pop_type, out_channels_last', [
+    (16, True), (32, True), (32, False)])
+def test_pop_tiny(pop_type, out_channels_last, request, plt, seed, rng,
+                  allclose):
     nc = 2
-    pop_type = 32
-    out_channels_last = True
 
     tau_rc = 0.02
     tau_ref = 0.001
