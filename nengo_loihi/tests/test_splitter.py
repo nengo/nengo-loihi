@@ -4,7 +4,7 @@ import numpy as np
 
 
 @pytest.mark.parametrize("pre_dims", [1, 3])
-@pytest.mark.parametrize("post_dims", [1])
+@pytest.mark.parametrize("post_dims", [1, 3])
 @pytest.mark.parametrize("learn", [True, False])
 @pytest.mark.parametrize("use_solver", [True, False])
 def test_manual_decoders(

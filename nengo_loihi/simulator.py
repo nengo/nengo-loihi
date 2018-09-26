@@ -426,9 +426,6 @@ class Simulator(object):
                     self.handle_chip2host_communications()
 
                 logger.info("Waiting for completion")
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
-                self.loihi.nengo_io_h2c.write(1, [0])
                 self.loihi.wait_for_completion()
                 logger.info("done")
             else:
@@ -490,7 +487,8 @@ class Simulator(object):
                 for sender, receiver in self.host2chip_senders.items():
                     if isinstance(receiver, splitter.PESModulatoryTarget):
                         for t, x in sender.queue:
-                            x = int(100 * x)  # >128 is an issue on chip
+                            x = (100 * x).astype(int)
+                            x = np.clip(x, -100, 100, out=x)
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_cx = self.model.objs[conn]['decoded']
@@ -503,7 +501,7 @@ class Simulator(object):
 
                             assert coreid is not None
 
-                            errors.append([coreid, x])
+                            errors.append([coreid, len(x)] + x.tolist())
                         del sender.queue[:]
 
                     else:
@@ -535,7 +533,6 @@ class Simulator(object):
                     assert spike[0] == 0
                     msg.extend(spike[1:3])
                 for error in errors:
-                    assert len(error) == 2
                     msg.extend(error)
                 self.loihi.nengo_io_h2c.write(len(msg), msg)
 
