@@ -1,9 +1,10 @@
-# TODO: add some more advanced discretization logic, or modify the training
-# in some way that will result in weights more amenable to discretization
-
-# TODO: I believe the performance used to be better, (currently around 12%
-# error) and was negatively impacted by some recent change, but need to
-# track that down
+"""
+NOTES:
+- Occasionally, the training for the original network can fail to converge
+  (the loss stops going down at the start of training, and remains around 500).
+  I believe this is due to bad random weights chosen for the initial kernels.
+  In this case, simply restart the training and it should work.
+"""
 
 import collections
 import gzip
@@ -205,19 +206,10 @@ if not channels_last:
 
 neuron_type = SoftLIFRate(amplitude=amp, sigma=0.01)
 layer_dicts = [
-    # dict(layer_func=tf.layers.conv2d, neuron_type=nengo.RectifiedLinear(), filters=2, kernel_size=1),
-    # dict(layer_func=tf.layers.conv2d, neuron_type=neuron_type, filters=32, kernel_size=3),
-    # dict(layer_func=tf.layers.conv2d, neuron_type=neuron_type, filters=64, kernel_size=3, strides=2),
-    # dict(layer_func=tf.layers.conv2d, neuron_type=neuron_type, filters=128, kernel_size=3, strides=2),
-    # dict(layer_func=tf.layers.dense, units=10),
-    # dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
-    # dict(layer_func=TfConv2d('layer2', 32, kernel_size=3), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfDense('layer5', 10)),
     dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
     dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
     dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
     dict(layer_func=TfDense('layer_out', 10)),
 ]
 
@@ -296,8 +288,8 @@ with nengo_dl.Simulator(net, minibatch_size=256) as sim:
                   n_epochs=10)
         sim.save_params(checkpoint_base)
 
-    print("error after training: %.2f%%" %
-          sim.loss(test_inputs, test_targets, classification_error))
+        print("error after training: %.2f%%" %
+              sim.loss(test_inputs, test_targets, classification_error))
 
     # store trained parameters back into the network
     for fn_layer, _ in layers:
@@ -366,9 +358,24 @@ with nengo.Network() as nengo_net:
         else:
             output_shape = func.output_shape(func.shape_in)
             assert output_shape.size == fn_layer.size_out
-            y = nengo.Node(size_in=output_shape.size, label=func.name)
-            yy.append(y)
-            yslices.append(ImageSlice(output_shape))
+            if 0:  # node works on emulator, on Loihi we need something on-chip
+                y = nengo.Node(size_in=output_shape.size, label=func.name)
+                yy.append(y)
+                yslices.append(ImageSlice(output_shape))
+                out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
+            else:
+                min_range = -30
+                max_range = 0
+                max_rate = 300.
+                gain = max_rate / (max_range - min_range)
+                bias = -gain * min_range
+                y = nengo.Ensemble(output_shape.size, 1, label=func.name,
+                                   neuron_type=nengo.SpikingRectifiedLinear(),
+                                   gain=nengo.dists.Choice([gain]),
+                                   bias=nengo.dists.Choice([bias]))
+                yy.append(y.neurons)
+                yslices.append(ImageSlice(output_shape))
+                out_p = nengo.Probe(y.neurons, synapse=nengo.Alpha(0.01))
 
         assert len(yy) == len(yslices)
 
@@ -382,7 +389,7 @@ with nengo.Network() as nengo_net:
         xx = yy
         xslices = yslices
 
-    out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
+    # out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
 
 n_presentations = 5
 with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=True) as sim:
