@@ -5,7 +5,8 @@ import numpy as np
 
 import nengo
 import nengo.utils.numpy as npext
-from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
+from nengo.exceptions import (
+    BuildError, ReadonlyError, SimulatorClosed, ValidationError)
 from nengo.simulator import ProbeDict as NengoProbeDict
 from nengo.utils.compat import ResourceWarning
 
@@ -159,8 +160,13 @@ class Simulator(object):
             config.add_params(network)
 
             # split the host into two networks
+            max_rate = self.model.inter_rate * self.model.inter_n
+            rtol = 1e-8  # allow for floating point inaccuracies
+            if max_rate > (1. / self.dt) * (1 + rtol):
+                raise BuildError("Simulator `dt` must be <= %s (got %s)"
+                                 % (1. / max_rate, self.dt))
             host, chip, h2c, c2h_params, c2h = splitter.split(
-                network, self.model.inter_rate, self.model.inter_n, self.dt)
+                network, max_rate, self.model.inter_tau)
 
             if precompute:
                 host_pre = splitter.split_pre_from_host(host)

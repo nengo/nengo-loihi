@@ -168,17 +168,6 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
                     atol=5)
 
 
-def test_node_no_synapse_warning(Simulator):
-    with nengo.Network() as model:
-        n = nengo.Node([0, 0])
-        a = nengo.Ensemble(100, 2)
-        nengo.Connection(n, a, synapse=None)
-
-    with pytest.warns(UserWarning):
-        with Simulator(model):
-            pass
-
-
 def test_dists(Simulator, seed):
     # check that distributions on connection transforms are handled correctly
 
@@ -221,3 +210,14 @@ def test_dists(Simulator, seed):
     with Simulator(net) as sim2:
         sim2.run(1.0)
     assert not np.allclose(sim.data[p1], sim2.data[p1])
+
+
+def test_long_tau(Simulator):
+    with nengo.Network() as model:
+        u = nengo.Node(0)
+        x = nengo.Ensemble(100, 1)
+        nengo.Connection(u, x, synapse=0.1)
+        nengo.Connection(x, x, synapse=0.1)
+
+    with Simulator(model) as sim:
+        sim.run(0.002)  # Ensure it at least runs
