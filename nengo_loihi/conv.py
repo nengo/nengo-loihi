@@ -95,6 +95,10 @@ class ImageShape(object):
         else:
             return (self.channels, self.rows, self.cols)
 
+    def flatten(self):
+        channels = self.size
+        return ImageShape(1, 1, channels, channels_last=True)
+
     def channel_idxs(self, channels_last=None):
         """Return the channel indices (atoms) for this image shape.
 
@@ -122,6 +126,56 @@ class ImageShape(object):
         idxs = np.arange(ni * nj * nc, dtype=int)
         return ((idxs // nc) if self._channels_last(channels_last) else
                 (idxs % (ni * nj)))
+
+    def split_channels(self, max_size):
+        max_nc_per_split = max_size // (self.rows * self.cols)
+        assert max_nc_per_split >= 1
+        n_split = -(-self.channels // max_nc_per_split)  # ceiling division
+        nc_per_split = -(-self.channels // n_split)  # ceiling division
+        return [ImageSlice(self, channel_slice=slice(i, i+nc_per_split))
+                for i in range(0, self.channels, nc_per_split)]
+
+
+class ImageSlice(ImageShape):
+    def __init__(self, full_shape, row_slice=slice(None),
+                 col_slice=slice(None), channel_slice=slice(None)):
+        self.full_shape = full_shape
+        self.row_slice = row_slice
+        self.col_slice = col_slice
+        self.channel_slice = channel_slice
+        super(ImageSlice, self).__init__(
+            len(self.row_idxs()), len(self.col_idxs()),
+            len(self.channel_idxs()), channels_last=full_shape.channels_last)
+
+    def channel_slice_only(self):
+        return self.row_slice == slice(None) and self.col_slice == slice(None)
+
+    def row_idxs(self):
+        return list(range(self.full_shape.rows))[self.row_slice]
+
+    def col_idxs(self):
+        return list(range(self.full_shape.cols))[self.col_slice]
+
+    def channel_idxs(self):
+        return list(range(self.full_shape.channels))[self.channel_slice]
+
+    def flatten(self):
+        assert self.channel_slice_only()
+        channels = self.size
+        full_shape = ImageShape(1, 1, channels, channels_last=True)
+        if self.rows == 1 and self.cols == 1:
+            return ImageSlice(full_shape, channel_slice=self.channel_slice)
+        elif self.channels_last:
+            raise NotImplementedError()
+        else:
+            nij = self.rows * self.cols
+            mulindex = lambda x, m: x*m if x is not None else x
+            channel_slice = slice(
+                mulindex(self.channel_slice.start, nij),
+                mulindex(self.channel_slice.stop, nij),
+                mulindex(self.channel_slice.step, nij))
+
+        return ImageSlice(full_shape, channel_slice=channel_slice)
 
 
 # TODO: create a generic superclass for distributions/these (since it's a bit
