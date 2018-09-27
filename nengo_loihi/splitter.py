@@ -1,7 +1,6 @@
 import logging
 
 import nengo
-from nengo.exceptions import BuildError
 import numpy as np
 
 from nengo_loihi import loihi_cx
@@ -93,7 +92,7 @@ class ChipReceiveNeurons(ChipReceiveNode):
         super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)
 
 
-def split(model, inter_rate, inter_n, dt):  # noqa: C901
+def split(model, max_rate, inter_tau):  # noqa: C901
     """Split a model into code running on the host and on-chip"""
 
     logger.info("Splitting model into host and chip parts")
@@ -179,15 +178,8 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                 with chip:
                     logger.debug("Creating ChipReceiveNode for %s", c)
                     receive = ChipReceiveNode(dim * 2, size_out=dim)
-                    nengo.Connection(receive, c.post, synapse=c.synapse)
+                    nengo.Connection(receive, c.post, synapse=inter_tau)
                 with host:
-                    max_rate = inter_rate * inter_n
-                    rtol = 1e-8  # allow for floating point inaccuracies
-                    if max_rate > (1. / dt) * (1 + rtol):
-                        raise BuildError(
-                            "Simulator `dt` must be <= %s (got %s)" % (
-                                1. / max_rate, dt))
-
                     logger.debug("Creating NIF ensemble for %s", c)
                     ens = nengo.Ensemble(
                         2 * dim, dim, neuron_type=NIF(tau_ref=0.0),
@@ -213,7 +205,7 @@ def split(model, inter_rate, inter_n, dt):  # noqa: C901
                                      solver=c.solver,
                                      eval_points=c.eval_points,
                                      scale_eval_points=c.scale_eval_points,
-                                     synapse=None,
+                                     synapse=c.synapse,
                                      transform=transform)
                     nengo.Connection(ens.neurons, send, synapse=None)
                 host2chip_senders[send] = receive

@@ -538,13 +538,6 @@ def build_connection(model, conn):
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
             weights = weights * model.inter_scale
-
-            if conn.synapse is None:
-                warnings.warn(
-                    "No synapse set on Node connection. Since Node values are "
-                    "converted to spikes to transmit to Loihi, not having a "
-                    "synapse can cause increased spike noise. Consider using "
-                    "a synapse.")
     elif (isinstance(conn.pre_obj, Ensemble) and
           isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()

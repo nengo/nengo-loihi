@@ -3,19 +3,19 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize('n_neurons', [400, 600])
+@pytest.mark.parametrize('n_per_dim', [120, 200])
 @pytest.mark.parametrize('dims', [1, 3])
-def test_pes_comm_channel(allclose, plt, seed, Simulator, n_neurons, dims):
+def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     scale = np.linspace(1, 0, dims + 1)[:-1]
     input_fn = lambda t: np.sin(t * 2 * np.pi) * scale
 
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(input_fn)
 
-        pre = nengo.Ensemble(n_neurons, dims)
+        pre = nengo.Ensemble(n_per_dim * dims, dims)
         post = nengo.Node(None, size_in=dims)
 
-        nengo.Connection(stim, pre)
+        nengo.Connection(stim, pre, synapse=None)
         conn = nengo.Connection(
             pre, post,
             function=lambda x: np.zeros(dims),
@@ -27,7 +27,7 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_neurons, dims):
         nengo.Connection(stim, error, transform=-1)
         nengo.Connection(error, conn.learning_rule)
 
-        p_stim = nengo.Probe(stim)
+        p_stim = nengo.Probe(stim, synapse=0.02)
         p_pre = nengo.Probe(pre, synapse=0.02)
         p_post = nengo.Probe(post, synapse=0.02)
 
@@ -55,10 +55,10 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_neurons, dims):
 
     assert allclose(sim.data[p_pre][t > 0.1],
                     sim.data[p_stim][t > 0.1],
-                    atol=0.2,
-                    rtol=0.2)
+                    atol=0.15,
+                    rtol=0.15)
     assert np.min(errors) < 0.3, "Not able to fit correctly"
-    assert m_best > (0.3 if n_neurons / dims < 150 else 0.6)
+    assert m_best > (0.3 if n_per_dim < 150 else 0.6)
 
 
 def test_multiple_pes(allclose, plt, seed, Simulator):
