@@ -21,12 +21,54 @@ from nengo_loihi.loihi_cx import CxGroup, CxSpikeInput, CxSynapses, CxAxons
 from nengo_loihi.splitter import ChipReceiveNeurons
 
 
+def numpy_conv2d(x, kernel, strides=(1, 1), mode='valid', channels_last=True):
+    assert mode == 'valid'
+    if channels_last:
+        ni, nj, nc = x.shape[-3:]
+    else:
+        nc, ni, nj = x.shape[-3:]
+
+    nc2, si, sj, nf = kernel.shape
+    sti, stj = strides
+    assert nc2 == nc
+
+    if mode == 'valid':
+        assert ni >= si and nj >= sj
+        nyi = 1 + (ni - si) // sti
+        nyj = 1 + (nj - sj) // stj
+    else:
+        raise NotImplementedError(self.mode)
+
+    nxi = (nyi - 1)*sti + si
+    nxj = (nyj - 1)*stj + sj
+
+    y_shape = (nyi, nyj, nf) if channels_last else (nf, nyi, nyj)
+    y = np.zeros(x.shape[:-3] + y_shape)
+
+    for i in range(si):
+        for j in range(sj):
+            wij = kernel[:, i, j, :]
+            if channels_last:
+                xij = x[i:nxi-si+i+1:sti, j:nxj-sj+j+1:stj, :]
+                y[:, :, :] += np.dot(xij, wij)
+            else:
+                xij = x[..., :, i:nxi-si+i+1:sti, j:nxj-sj+j+1:stj]
+                y[..., :, :, :] += np.tensordot(wij, xij, axes=([0], [-3]))
+
+    return y
+
+
 class ImageShape(object):
     def __init__(self, rows, cols, channels, channels_last=True):
         self.rows = rows
         self.cols = cols
         self.channels = channels
         self.channels_last = channels_last
+
+    def __str__(self):
+        return "%s(rows=%d, cols=%d, ch=%d, ch_last=%d)" % (
+            type(self).__name__, self.rows, self.cols, self.channels,
+            self.channels_last)
 
     def _channels_last(self, channels_last=None):
         return self.channels_last if channels_last is None else channels_last
@@ -179,35 +221,24 @@ class Conv2DInc(nengo.builder.Operator):
         return 'conv2d(%s, %s) -> %s' % (self.W, self.X, self.Y)
 
     def make_step(self, signals, dt, rng):
-        import scipy.signal
         assert self.conv2d_transform.correlate
         mode = self.conv2d_transform.mode
-        sti, stj = self.conv2d_transform.strides
+        strides = self.conv2d_transform.strides
         x_shape = self.conv2d_transform.input_shape
         y_shape = self.conv2d_transform.output_shape
-
-        def conv2d(x, w, sti=sti, stj=stj, mode=mode):
-            return scipy.signal.correlate2d(x, w, mode=mode)[::sti, ::stj]
+        assert x_shape.channels_last == y_shape.channels_last
 
         W = signals[self.W]
         X = signals[self.X]
         Y = signals[self.Y]
-        nc, _, _, nf = W.shape
 
-        # find output shape
         X = X.reshape(x_shape.shape())
-        if not x_shape.channels_last:
-            X = np.transpose(X, (1, 2, 0))
-
-        # y0 = conv2d(X[:, :, 0], W[0, :, :, 0])
         Y = Y.reshape(y_shape.shape())
-        if not y_shape.channels_last:
-            Y = np.transpose(Y, (1, 2, 0))
 
         def step_conv2d():
-            for f in range(nf):
-                for c in range(nc):
-                    Y[:, :, f] += conv2d(X[:, :, c], W[c, :, :, f])
+            y = numpy_conv2d(X, W, strides=strides, mode=mode,
+                             channels_last=x_shape.channels_last)
+            Y[...] += y
 
         return step_conv2d
 
