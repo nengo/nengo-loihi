@@ -89,8 +89,10 @@ class Conv2D(Distribution):
                  mode="valid", correlate=True, output_channels_last=None,
                  kernel=nengo_dl.dists.Glorot()):
         if not isinstance(input_shape, ImageShape):
-            input_shape = ImageShape.from_shape(input_shape,
-                                                channels_last=True)
+            in_channels_last = (output_channels_last
+                                if output_channels_last is not None else True)
+            input_shape = ImageShape.from_shape(
+                input_shape, channels_last=in_channels_last)
 
         self.n_filters = n_filters
         self.input_shape = input_shape
@@ -104,7 +106,8 @@ class Conv2D(Distribution):
         assert self.correlate, "correlate==False not implemented"
         if self.kernel is not None and not isinstance(self.kernel,
                                                       Distribution):
-            assert self.kernel.shape == self.kernel_shape
+            assert self.kernel.shape == self.kernel_shape, "%s %s" % (
+                self.kernel.shape, self.kernel_shape)
 
         # --- compute output shape
         ni = self.input_shape.rows
@@ -148,7 +151,9 @@ class Conv2D(Distribution):
     def kernel_shape(self):
         # TODO: change the kernel shape to the more standard
         # (filter_height, filter_width, in_channels, out_channels)
-        return (self.input_shape.channels,) + self.kernel_size + (self.n_filters,)
+
+        return (self.input_shape.channels,) + self.kernel_size + (
+            self.n_filters,)
 
     def sample(self, n, d=None, rng=np.random):
         shape = self.kernel_shape
@@ -214,40 +219,42 @@ if nengo_dl is not None:
             super(Conv2DIncBuilder, self).__init__(ops, signals, config)
 
             assert len(ops) == 1
-            self.W_data = signals.combine([op.W for op in ops])
-            self.X_data = signals.combine([op.X for op in ops])
-            self.Y_data = signals.combine([op.Y for op in ops])
 
-            self.conv2d_transform = ops[0].conv2d_transform
+            self.conv = ops[0].conv2d_transform
+
+            self.W_data = signals.combine([op.W for op in ops])
+            self.W_data = self.W_data.reshape(
+                (self.conv.input_shape.channels,) + self.conv.kernel_size +
+                (self.conv.n_filters,))
+            self.X_data = signals.combine([op.X for op in ops])
+            self.X_data = self.X_data.reshape(
+                self.conv.input_shape.shape())
+            self.Y_data = signals.combine([op.Y for op in ops])
 
         def build_step(self, signals):
             import tensorflow as tf
-            assert self.conv2d_transform.mode == 'valid'
-
-            strides = self.conv2d_transform.strides
-            x_shape = self.conv2d_transform.input_shape
-            y_shape = self.conv2d_transform.output_shape
 
             W = signals.gather(self.W_data)
             X = signals.gather(self.X_data)
 
             W = tf.transpose(W, (1, 2, 0, 3))  # (si, sj, nc, nf)
-            X = tf.transpose(X, (1, 0))  # put batch size first
-            X = tf.reshape(X, (X.shape[0],) + x_shape.shape())
-            if not x_shape.channels_last:
-                X = tf.transpose(X, (0, 2, 3, 1))
+            X = tf.transpose(X, (3, 0, 1, 2))  # put batch size first
 
             Y = tf.nn.convolution(
                 input=X,
                 filter=W,
-                strides=strides,
-                padding='VALID',
-                data_format='NHWC')
+                strides=self.conv.strides,
+                padding=self.conv.mode.upper(),
+                data_format=("NHWC" if self.conv.input_shape.channels_last else
+                             "NCHW"))
 
-            if not y_shape.channels_last:
-                Y = tf.transpose(Y, (0, 3, 1, 2))
+            if (self.conv.input_shape.channels_last !=
+                    self.conv.output_shape.channels_last):
+                raise NotImplementedError()
 
-            signals.scatter(self.Y_data, Y, mode='inc')
+            Y = tf.transpose(Y, (1, 2, 3, 0))  # move batch back to end
+
+            signals.scatter(self.Y_data, Y, mode="inc")
 
 
 @nengo.builder.Builder.register(nengo.Connection)  # noqa: C901
