@@ -499,8 +499,8 @@ def conv2d_loihi_weights(conv2d_transform):
     nyi, nyj, _ = conv2d_transform.output_shape.shape(channels_last=True)
 
     # compute number of used input pixels
-    nxi = (nyi - 1)*sti + 1
-    nxj = (nyj - 1)*stj + 1
+    ri_max = (nyi - 1)*sti + 1
+    rj_max = (nyj - 1)*stj + 1
 
     weights = []
     indices = []
@@ -518,8 +518,8 @@ def conv2d_loihi_weights(conv2d_transform):
         rj = np.arange(rj0, rj1)
         # ^ TODO: padding
 
-        wmask_i = (ri >= 0) & (ri < nxi) & (ri % sti == 0)
-        wmask_j = (rj >= 0) & (rj < nxj) & (rj % stj == 0)
+        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % sti == 0)
+        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % stj == 0)
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
             # this axon is not needed, so indicate this in cx_bases and skip
