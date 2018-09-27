@@ -22,7 +22,39 @@ import nengo_dl
 from nengo_dl import SoftLIFRate
 
 import nengo_loihi
-from nengo_loihi.conv import Conv2D
+from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice
+
+
+def split_transform(transform, in_slice=None, out_slice=None):
+    a_slice = slice(None)
+    b_slice = slice(None)
+
+    if isinstance(transform, Conv2D):
+        if in_slice is not None:
+            assert in_slice.channel_slice_only()
+            a_slice = in_slice.channel_slice
+        if out_slice is not None:
+            assert out_slice.channel_slice_only()
+            b_slice = out_slice.channel_slice
+
+        kernel = transform.kernel[a_slice, :, :, b_slice]
+        nc = kernel.shape[0]
+        input_shape = ImageShape(
+            transform.input_shape.rows, transform.input_shape.cols, nc,
+            channels_last=transform.input_shape.channels_last)
+        return transform.from_kernel(
+            kernel, input_shape, strides=transform.strides,
+            mode=transform.mode, correlate=transform.correlate,
+            output_channels_last=transform.output_shape.channels_last)
+    else:
+        if in_slice is not None:
+            assert in_slice.channel_slice_only()
+            a_slice = in_slice.flatten().channel_slice
+        if out_slice is not None:
+            assert out_slice.channel_slice_only()
+            b_slice = out_slice.flatten().channel_slice
+
+        return transform[b_slice, a_slice]
 
 
 class TfConv2d(object):
@@ -36,23 +68,25 @@ class TfConv2d(object):
         self.strides = strides if is_iterable(strides) else (strides, strides)
         self.padding = 'VALID'
 
+        self.kernel = None
         self.shape_in = None
 
-        self.kernel = None
-
-    def output_shape(self, input_shape):
+    def output_shape(self, input_shape=None):
+        if input_shape is None:
+            assert self.shape_in is not None
+            input_shape = self.shape_in
         conv2d = Conv2D(
             self.n_filters,
             input_shape,
             kernel_size=self.kernel_size,
             strides=self.strides,
         )
-        return conv2d.output_shape.shape(channels_last=True)
+        return conv2d.output_shape
 
     def pre_build(self, shape_in, shape_out):
-        assert self.shape_in is not None
-        assert np.prod(self.shape_in) == shape_in[1]
-        ni, nj, nc = self.shape_in
+        assert isinstance(self.shape_in, ImageShape)
+        assert shape_in[1] == self.shape_in.size
+        ni, nj, nc = self.shape_in.shape(channels_last=True)
         nf = self.n_filters
         si, sj = self.kernel_size
         self.kernel = tf.get_variable('kernel_%s' % self.name,
@@ -61,10 +95,16 @@ class TfConv2d(object):
 
     def __call__(self, t, x):
         batch_size = x.get_shape()[0].value
-        x = tf.reshape(x, (batch_size,) + self.shape_in)
-        strides = (1,) + self.strides + (1,)  # 1 for examples, channels
+        x = tf.reshape(x, (batch_size,) + self.shape_in.shape())
+
+        # make strides 1 for examples, channels
+        channels_last = self.shape_in.channels_last
+        strides = ((1,) + self.strides + (1,) if channels_last else
+                   (1, 1) + self.strides)
+
+        data_format = 'NHWC' if channels_last else 'NCHW'
         y = tf.nn.conv2d(x, self.kernel, strides, self.padding,
-                         data_format='NHWC')
+                         data_format=data_format)
         return tf.reshape(y, (batch_size, -1))
 
     def save_params(self, sess):
@@ -77,20 +117,23 @@ class TfConv2d(object):
         return Conv2D.from_kernel(kernel, self.shape_in,
                                   strides=self.strides,
                                   mode=self.padding.lower(),
-                                  correlate=True,
-                                  output_channels_last=True)
+                                  correlate=True)
 
 
 class TfDense(object):
     def __init__(self, name, n_outputs):
         self.name = name
         self.n_outputs = n_outputs
+
+        self.weights = None
         self.shape_in = None
 
     def output_shape(self, input_shape):
-        return (self.n_outputs,)
+        return ImageShape(1, 1, self.n_outputs, channels_last=True)
 
     def pre_build(self, shape_in, shape_out):
+        assert isinstance(self.shape_in, ImageShape)
+        assert shape_in[1] == self.shape_in.size
         assert shape_out[1] == self.n_outputs
         n_inputs = shape_in[1]
         n_outputs = self.n_outputs
@@ -135,6 +178,7 @@ def has_checkpoint(checkpoint_base):
 
 checkpoint_base = './checkpoints/mnist_convnet'
 RETRAIN = False
+# RETRAIN = True
 
 amp = 0.01
 
@@ -152,6 +196,12 @@ for data in (train_data, test_data):
     one_hot[np.arange(data[0].shape[0]), data[1]] = 1
     data[1] = one_hot
 
+channels_last = False
+input_shape = ImageShape(28, 28, 1, channels_last=channels_last)
+test_images = test_data[0].reshape((-1,) + input_shape.shape(channels_last=True))
+if not channels_last:
+    test_images = np.transpose(test_images, (0, 3, 1, 2))
+
 
 neuron_type = SoftLIFRate(amplitude=amp, sigma=0.01)
 layer_dicts = [
@@ -160,11 +210,15 @@ layer_dicts = [
     # dict(layer_func=tf.layers.conv2d, neuron_type=neuron_type, filters=64, kernel_size=3, strides=2),
     # dict(layer_func=tf.layers.conv2d, neuron_type=neuron_type, filters=128, kernel_size=3, strides=2),
     # dict(layer_func=tf.layers.dense, units=10),
-    dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear()),
-    dict(layer_func=TfConv2d('layer2', 32, kernel_size=3), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfDense('layer5', 10)),
+    # dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
+    # dict(layer_func=TfConv2d('layer2', 32, kernel_size=3), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfDense('layer5', 10)),
+    dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
+    dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfDense('layer_out', 10)),
 ]
 
 # build the network
@@ -176,15 +230,16 @@ with nengo.Network(seed=0) as net:
     nengo_dl.configure_settings(trainable=False)
 
     # the input node that will be used to feed in input images
-    inp = nengo.Node([0] * 28 * 28, label='input')
+    inp = nengo.Node([0] * input_shape.size, label='input')
 
     layers = []
-    shape_in = (28, 28, 1)
+    shape_in = input_shape
     x = inp
     for layer_dict in layer_dicts:
         layer_dict = dict(layer_dict)  # so we can pop
         layer_func = layer_dict.pop('layer_func', None)
         layer_neuron = layer_dict.pop('neuron_type', None)
+        on_chip = layer_dict.pop('on_chip', True)
 
         shape_out = None
         fn_layer = None
@@ -195,16 +250,19 @@ with nengo.Network(seed=0) as net:
             layer_func.shape_in = shape_in
             shape_out = layer_func.output_shape(shape_in)
 
-            size_in = np.prod(shape_in) if shape_in else x.size_out
-            size_out = np.prod(shape_out) if shape_out else size_in
+            size_in = shape_in.size if shape_in else x.size_out
+            size_out = shape_out.size if shape_out else size_in
             y = nengo_dl.TensorNode(layer_func,
-                                    size_in=size_in, size_out=size_out)
+                                    size_in=size_in, size_out=size_out,
+                                    label=layer_func.name)
             nengo.Connection(x, y)
             x = y
             fn_layer = x
 
         if layer_neuron is not None:
             y = nengo.Ensemble(x.size_out, 1, neuron_type=layer_neuron).neurons
+            y.image_shape = shape_out if shape_out is not None else shape_in
+            y.on_chip = on_chip
             nengo.Connection(x, y)
             x = y
             neuron_layer = x
@@ -235,7 +293,7 @@ with nengo_dl.Simulator(net, minibatch_size=256) as sim:
         sim.train(train_inputs, train_targets,
                   tf.train.RMSPropOptimizer(learning_rate=0.001),
                   objective=crossentropy,
-                  n_epochs=1)
+                  n_epochs=10)
         sim.save_params(checkpoint_base)
 
     print("error after training: %.2f%%" %
@@ -248,23 +306,31 @@ with nengo_dl.Simulator(net, minibatch_size=256) as sim:
 del net  # so we don't accidentally use it
 del x
 
+# --- Spiking network
 with nengo.Network() as nengo_net:
+    nengo_loihi.add_params(nengo_net)  # allow setting on_chip
+
     nengo_net.config[nengo.Ensemble].max_rates = nengo.dists.Choice([100])
     nengo_net.config[nengo.Ensemble].intercepts = nengo.dists.Choice([0])
 
     nengo_net.config[nengo.Connection].synapse = 0.005
-    # nengo_net.config[nengo.Connection].synapse = nengo.Alpha(0.003)
 
-    # presentation_time = 0.001
-    presentation_time = 0.2
+    presentation_time = 0.1
     inp = nengo.Node(
-        nengo.processes.PresentInput(test_data[0], presentation_time),
-        size_in=0, size_out=28 * 28)
+        nengo.processes.PresentInput(
+            test_images.reshape(test_images.shape[0], -1), presentation_time),
+        size_in=0, size_out=test_images[0].size, label='input')
     inp_p = nengo.Probe(inp)
-    x = inp
+    xx = [inp]
+    xslices = [ImageSlice(input_shape)]
 
     for fn_layer, neuron_layer in layers:
+        func = fn_layer.tensor_func
+        name = func.name
+
         # --- create neuron layer
+        yy = []
+        yslices = []
         if neuron_layer is not None:
             layer_neurons = neuron_layer.ensemble.neuron_type
             if isinstance(layer_neurons, SoftLIFRate):
@@ -277,24 +343,50 @@ with nengo.Network() as nengo_net:
             else:
                 raise ValueError("Unsupported neuron type %s" % layer_neurons)
 
-            y = nengo.Ensemble(neuron_layer.size_out, 1,
-                               neuron_type=layer_neurons).neurons
+            image_shape = neuron_layer.image_shape
+            if not neuron_layer.on_chip:
+                y = nengo.Ensemble(
+                    image_shape.size, 1,
+                    neuron_type=layer_neurons,
+                    label="%s" % (func.name,))
+                nengo_net.config[y].on_chip = False
+                yy.append(y.neurons)
+                yslices.append(ImageSlice(image_shape))
+            else:
+                split_slices = image_shape.split_channels(max_size=1024)
+                for image_slice in split_slices:
+                    assert image_slice.size <= 1024
+                    idxs = image_slice.channel_idxs()
+                    y = nengo.Ensemble(
+                        image_slice.size, 1,
+                        neuron_type=layer_neurons,
+                        label="%s_%d:%d" % (func.name, min(idxs), max(idxs)))
+                    yy.append(y.neurons)
+                    yslices.append(image_slice)
         else:
-            y = nengo.Node(size_in=fn_layer.size_out)
+            output_shape = func.output_shape(func.shape_in)
+            assert output_shape.size == fn_layer.size_out
+            y = nengo.Node(size_in=output_shape.size, label=func.name)
+            yy.append(y)
+            yslices.append(ImageSlice(output_shape))
+
+        assert len(yy) == len(yslices)
 
         # --- create function layer
-        transform = fn_layer.tensor_func.transform()
-        nengo.Connection(x, y, transform=transform)
-        x = y
+        transform = func.transform()
+        for xi, (x, xslice) in enumerate(zip(xx, xslices)):
+            for yi, (y, yslice) in enumerate(zip(yy, yslices)):
+                transform_xy = split_transform(transform, xslice, yslice)
+                nengo.Connection(x, y, transform=transform_xy)
 
-    out_p = nengo.Probe(x, synapse=nengo.Alpha(0.01))
+        xx = yy
+        xslices = yslices
 
+    out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
 
 n_presentations = 5
-# with nengo.Simulator(nengo_net, dt=0.001, optimize=False, progress_bar=False) as sim:
 with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=True) as sim:
     sim.run(n_presentations * presentation_time)
-
 
 # --- fancy plots
 plt.figure()
