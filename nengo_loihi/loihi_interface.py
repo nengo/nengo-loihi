@@ -251,11 +251,11 @@ def build_group(n2core, core, group, cx_idxs, ax_range):
     for synapses in group.synapses:
         build_synapses(n2core, core, group, synapses, cx_idxs)
 
-    logger.debug("- Building %d synapses", len(group.axons))
+    logger.debug("- Building %d axons", len(group.axons))
     for axons in group.axons:
         build_axons(n2core, core, group, axons, cx_idxs)
 
-    logger.debug("- Building %d synapses", len(group.probes))
+    logger.debug("- Building %d probes", len(group.probes))
     for probe in group.probes:
         build_probe(n2core, core, group, probe, cx_idxs)
 
