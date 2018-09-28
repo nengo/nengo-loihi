@@ -261,7 +261,10 @@ class Core(object):
 
     def add_synapses(self, synapses):
         synapse_fmt = synapses.synapse_fmt
-        synapse_fmt_idx = self.add_synapse_fmt(synapse_fmt)
+        try:
+            synapse_fmt_idx = self.synapseFmts.index(synapse_fmt)
+        except ValueError:
+            synapse_fmt_idx = self.add_synapse_fmt(synapse_fmt)
         self.synapse_fmt_idxs[synapses] = synapse_fmt_idx
 
         a0 = 0
@@ -342,9 +345,15 @@ class VthProfile(Profile):
         #     assert self.realVth < core.dendrite_shared_cfg.v_max
 
 
-class SynapseFmt(object):
+class SynapseFmt(Profile):
     INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
     WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
+
+    params = ('wgtLimitMant', 'wgtLimitExp', 'wgtExp', 'discMaxWgt',
+              'learningCfg', 'tagBits', 'dlyBits', 'wgtBits',
+              'reuseSynData', 'numSynapses', 'cIdxOffset', 'cIdxMult',
+              'skipBits', 'idxBits', 'synType', 'fanoutType',
+              'compression', 'stdpProfile', 'ignoreDly')
 
     def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
                  learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
