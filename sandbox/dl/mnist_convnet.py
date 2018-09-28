@@ -370,7 +370,7 @@ with nengo.Network() as nengo_net:
     # out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
 
 n_presentations = 5
-with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=True) as sim:
+with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=False) as sim:
     sim.run(n_presentations * presentation_time)
 
 class_output = sim.data[out_p]
