@@ -23,39 +23,7 @@ import nengo_dl
 from nengo_dl import SoftLIFRate
 
 import nengo_loihi
-from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice
-
-
-def split_transform(transform, in_slice=None, out_slice=None):
-    a_slice = slice(None)
-    b_slice = slice(None)
-
-    if isinstance(transform, Conv2D):
-        if in_slice is not None:
-            assert in_slice.channel_slice_only()
-            a_slice = in_slice.channel_slice
-        if out_slice is not None:
-            assert out_slice.channel_slice_only()
-            b_slice = out_slice.channel_slice
-
-        kernel = transform.kernel[a_slice, :, :, b_slice]
-        nc = kernel.shape[0]
-        input_shape = ImageShape(
-            transform.input_shape.rows, transform.input_shape.cols, nc,
-            channels_last=transform.input_shape.channels_last)
-        return transform.from_kernel(
-            kernel, input_shape, strides=transform.strides,
-            mode=transform.mode, correlate=transform.correlate,
-            output_channels_last=transform.output_shape.channels_last)
-    else:
-        if in_slice is not None:
-            assert in_slice.channel_slice_only()
-            a_slice = in_slice.flatten().channel_slice
-        if out_slice is not None:
-            assert out_slice.channel_slice_only()
-            b_slice = out_slice.flatten().channel_slice
-
-        return transform[b_slice, a_slice]
+from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice, split_transform
 
 
 class TfConv2d(object):

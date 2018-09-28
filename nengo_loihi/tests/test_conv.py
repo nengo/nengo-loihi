@@ -15,7 +15,8 @@ except ImportError:
 
 import nengo_loihi
 import nengo_loihi.loihi_cx as loihi_cx
-from nengo_loihi.conv import Conv2D, ImageShape, conv2d_loihi_weights
+from nengo_loihi.conv import (
+    Conv2D, ImageShape, ImageSlice, conv2d_loihi_weights, split_transform)
 from nengo_loihi.neurons import loihi_rates
 
 from nengo_extras.matplotlib import tile, imshow
@@ -537,3 +538,118 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
     # loihi spikes are not exactly the same, but should be close-ish
     assert allclose(p0, p1, rtol=0.15, atol=1)
+
+
+def test_conv_split(Simulator, rng, plt, allclose):
+    channels_last = False
+
+    # load data
+    with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
+        test10 = pickle.load(f)
+
+    input_shape = ImageShape(28, 28, 1, channels_last=channels_last)
+    test_x = test10[0][0].reshape(input_shape.shape(channels_last=True))
+    test_y = test10[1][0]
+    if not input_shape.channels_last:
+        test_x = np.transpose(test_x, (2, 0, 1))
+
+    n_filters = 8
+    kernel_size = (7, 7)
+    kernel = Gabor(freq=Uniform(0.5, 1)).generate(
+        n_filters, kernel_size, rng=rng)
+    kernel = kernel[None, :, :, :]  # single channel
+    kernel = np.transpose(kernel, (0, 2, 3, 1))  # filters last
+    strides = (2, 2)
+
+    seed = 3  # fix seed to do the same computation for both channel positions
+    rng = np.random.RandomState(seed+1)
+
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.add_params(net)
+
+        a = nengo.Node(test_x.ravel())
+
+        # --- make population to turn image into spikes
+        nc = 1
+        in_kernel = np.array([1.]).reshape((1, 1, 1, nc))
+        transform = nengo_loihi.Conv2D.from_kernel(in_kernel, input_shape)
+        b = nengo.Ensemble(transform.output_shape.size, 1,
+                           neuron_type=nengo.SpikingRectifiedLinear(),
+                           max_rates=nengo.dists.Choice([50]),
+                           intercepts=nengo.dists.Choice([0]))
+        net.config[b].on_chip = False
+        nengo.Connection(a, b.neurons, transform=transform)
+        in_shape = transform.output_shape
+
+        transform = nengo_loihi.Conv2D.from_kernel(
+            kernel, in_shape, strides=strides)
+        out_shape = transform.output_shape
+        split_slices = out_shape.split_channels(max_size=1024, max_channels=4)
+
+        # --- make convolution population, split across ensembles
+        cc = []
+        cp = []
+        out_shapes = []
+        xslice = ImageSlice(in_shape)
+        for yslice in split_slices:
+            transform_xy = split_transform(transform, xslice, yslice)
+            out_shapes.append(transform_xy.output_shape)
+            c = nengo.Ensemble(transform_xy.output_shape.size, 1,
+                               neuron_type=nengo.LIF(),
+                               max_rates=nengo.dists.Choice([15]),
+                               intercepts=nengo.dists.Choice([0]))
+            nengo.Connection(b.neurons, c.neurons, transform=transform_xy)
+            cc.append(c)
+            cp.append(nengo.Probe(c.neurons))
+
+    with nengo.Simulator(net, optimize=False) as sim_nengo:
+        sim_nengo.run(1.0)
+
+    with Simulator(net, seed=seed) as sim_loihi:
+        sim_loihi.run(1.0)
+
+    nengo_out = []
+    loihi_out = []
+    for p, out_shape_i in zip(cp, out_shapes):
+        nengo_out.append(
+            (sim_nengo.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape()))
+        loihi_out.append(
+            (sim_loihi.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape()))
+
+    if channels_last:
+        nengo_out = np.concatenate(nengo_out, axis=2)
+        loihi_out = np.concatenate(loihi_out, axis=2)
+
+        # put channels first to display them separately
+        nengo_out = np.transpose(nengo_out, (2, 0, 1))
+        loihi_out = np.transpose(loihi_out, (2, 0, 1))
+    else:
+        nengo_out = np.concatenate(nengo_out, axis=0)
+        loihi_out = np.concatenate(loihi_out, axis=0)
+
+    out_max = np.maximum(nengo_out.max(), loihi_out.max())
+
+    # --- plot results
+    rows = 2
+    cols = 3
+
+    ax = plt.subplot(rows, cols, 1)
+    imshow(test_x[0, :, :], vmin=0, vmax=1, ax=ax)
+
+    ax = plt.subplot(rows, cols, 2)
+    tile(np.transpose(kernel[0], (2, 0, 1)), cols=8, ax=ax)
+
+    ax = plt.subplot(rows, cols, 3)
+    plt.hist(nengo_out.ravel(), bins=31)
+    plt.hist(loihi_out.ravel(), bins=31)
+
+    ax = plt.subplot(rows, cols, 4)
+    tile(nengo_out, vmin=0, vmax=out_max, cols=8, ax=ax)
+
+    # ax = plt.subplot(rows, cols, 5)
+    # tile(np.transpose(ndl_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
+
+    ax = plt.subplot(rows, cols, 6)
+    tile(loihi_out, vmin=0, vmax=out_max, cols=8, ax=ax)
+
+    assert allclose(loihi_out, nengo_out, atol=0.05*out_max, rtol=0.15)
