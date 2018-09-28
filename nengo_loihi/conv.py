@@ -127,10 +127,12 @@ class ImageShape(object):
         return ((idxs // nc) if self._channels_last(channels_last) else
                 (idxs % (ni * nj)))
 
-    def split_channels(self, max_size):
-        max_nc_per_split = max_size // (self.rows * self.cols)
-        assert max_nc_per_split >= 1
-        n_split = -(-self.channels // max_nc_per_split)  # ceiling division
+    def split_channels(self, max_size=None, max_channels=1024):
+        if max_size is not None:
+            max_size_channels = max_size // (self.rows * self.cols)
+            max_channels = min(max_channels, max_size_channels)
+        assert max_channels >= 1
+        n_split = -(-self.channels // max_channels)  # ceiling division
         nc_per_split = -(-self.channels // n_split)  # ceiling division
         return [ImageSlice(self, channel_slice=slice(i, i+nc_per_split))
                 for i in range(0, self.channels, nc_per_split)]

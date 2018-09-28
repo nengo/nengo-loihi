@@ -345,7 +345,8 @@ with nengo.Network() as nengo_net:
                 yy.append(y.neurons)
                 yslices.append(ImageSlice(image_shape))
             else:
-                split_slices = image_shape.split_channels(max_size=1024)
+                split_slices = image_shape.split_channels(
+                    max_size=1024, max_channels=16)
                 for image_slice in split_slices:
                     assert image_slice.size <= 1024
                     idxs = image_slice.channel_idxs()
