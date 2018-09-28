@@ -373,6 +373,17 @@ n_presentations = 5
 with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=True) as sim:
     sim.run(n_presentations * presentation_time)
 
+class_output = sim.data[out_p]
+steps_per_pres = int(presentation_time / sim.dt)
+preds = []
+for i in range(0, class_output.shape[0], steps_per_pres):
+    c = class_output[i:i + steps_per_pres]
+    c = c[int(0.5 * steps_per_pres):]  # take last part
+    pred = np.argmax(c.sum(axis=0))
+    preds.append(pred)
+
+print("Predictions: %s" % (preds,))
+
 # --- fancy plots
 plt.figure()
 
