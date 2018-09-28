@@ -444,11 +444,28 @@ class Simulator(object):
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
+        from nengo_loihi.loihi_api import overflow_signed
+
+        def scale_error(x):
+            LEARN_ERROR_SCALE = 100.
+            x = np.round(LEARN_ERROR_SCALE * x).astype(np.int32)
+            if np.any(x > 127):
+                print("Learning error > 127, clipping (max %s)"
+                      % (x.max()))
+            if np.any(x < -127):
+                print("Learning error < -127, clipping (min %s)"
+                      % (x.min()))
+            x = np.clip(x, -127, 127, out=x)
+            return x
+
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
-                    learning_rate = 50  # This is set to match hardware
+                    learning_rate = 2**-4  # empirically matches hardware,
+                                           # but where does it come from??
+                                           # There's a 2**-7 learning rate
+                                           # set on stdpProfileCfg.
                     if isinstance(receiver, PESModulatoryTarget):
                         for t, x in sender.queue:
                             probe = receiver.target
@@ -457,12 +474,22 @@ class Simulator(object):
                             assert dec_syn.tracing
 
                             z = self.simulator.z[dec_syn]
+                            x = scale_error(x)
                             x = np.hstack([-x, x])
 
                             delta_w = np.outer(z, x) * learning_rate
 
+                            syn_fmt = dec_syn.synapse_fmt
+                            assert syn_fmt.isMixed
+                            bits = syn_fmt.realWgtBits - syn_fmt.isMixed + syn_fmt.realWgtExp
                             for i, w in enumerate(dec_syn.weights):
                                 w += delta_w[i].astype('int32')
+                                if np.any(w >= 2**bits) or np.any(w < -2**bits):
+                                    print("Weight clipping")
+                                np.clip(w, -2**bits, 2**bits - 1, out=w)
+                                # _, o = overflow_signed(w, bits=bits, out=w, return_hits=True)
+                                # if np.any(o):
+                                #     print("Weight overflow")
                     else:
                         for t, x in sender.queue:
                             receiver.receive(t, x)
@@ -495,8 +522,7 @@ class Simulator(object):
                 for sender, receiver in self.host2chip_senders.items():
                     if isinstance(receiver, PESModulatoryTarget):
                         for t, x in sender.queue:
-                            x = (100 * x).astype(int)
-                            x = np.clip(x, -100, 100, out=x)
+                            x = scale_error(x)
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_cx = self.model.objs[conn]['decoded']
