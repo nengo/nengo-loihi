@@ -204,6 +204,7 @@ class Simulator(object):
                 target = 'loihi'
             except ImportError:
                 target = 'sim'
+        self.target = target
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
