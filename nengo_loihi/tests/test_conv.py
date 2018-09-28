@@ -483,3 +483,57 @@ def test_backends(Simulator, seed, rng):
     p0 = np.sum(sim.data[p] > 0, axis=0)
     p1 = np.sum(sim_loihi.data[p] > 0, axis=0)
     assert np.allclose(p0, p1, atol=2)
+
+
+@pytest.mark.xfail  # Pop spikes not yet sent to board
+@pytest.mark.parametrize('channels_last', [True, False])
+def test_conv_input(channels_last, Simulator, plt, allclose):
+    input_shape = ImageShape(4, 4, 1, channels_last=channels_last)
+    seed = 3  # fix seed to do the same computation for both channel positions
+    rng = np.random.RandomState(seed+1)
+
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.add_params(net)
+
+        a = nengo.Node(rng.uniform(0, 1, size=input_shape.size))
+
+        nc = 2
+        kernel = np.array([1., -1.]).reshape((1, 1, 1, nc))
+        transform = nengo_loihi.Conv2D.from_kernel(kernel, input_shape)
+        b = nengo.Ensemble(transform.output_shape.size, 1,
+                           neuron_type=nengo.SpikingRectifiedLinear(),
+                           max_rates=nengo.dists.Choice([50]),
+                           intercepts=nengo.dists.Choice([0]))
+        net.config[b].on_chip = False
+        nengo.Connection(a, b.neurons, transform=transform)
+        output_shape = transform.output_shape
+
+        nf = 4
+        kernel = rng.uniform(-0.005, 0.005, size=(nc, 3, 3, nf))
+        transform = nengo_loihi.Conv2D.from_kernel(kernel, output_shape)
+        c = nengo.Ensemble(transform.output_shape.size, 1,
+                           neuron_type=nengo.LIF(),
+                           max_rates=nengo.dists.Choice([100]),
+                           intercepts=nengo.dists.Choice([0]))
+        nengo.Connection(b.neurons, c.neurons, transform=transform)
+        output_shape = transform.output_shape
+
+        p = nengo.Probe(c.neurons)
+
+    with nengo.Simulator(net, optimize=False) as sim:
+        sim.run(1.0)
+
+    with Simulator(net, seed=seed) as sim_loihi:
+        sim_loihi.run(1.0)
+
+    p0 = np.sum(sim.data[p] > 0, axis=0).reshape(output_shape.shape())
+    p1 = np.sum(sim_loihi.data[p] > 0, axis=0).reshape(output_shape.shape())
+    if not output_shape.channels_last:
+        p0 = np.transpose(p0, (1, 2, 0))
+        p1 = np.transpose(p1, (1, 2, 0))
+
+    plt.plot(p0.ravel(), 'k')
+    plt.plot(p1.ravel(), 'b--')
+
+    # loihi spikes are not exactly the same, but should be close-ish
+    assert allclose(p0, p1, rtol=0.15, atol=1)
