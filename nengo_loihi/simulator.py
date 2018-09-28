@@ -216,6 +216,7 @@ class Simulator(object):
                 target = 'loihi'
             except ImportError:
                 target = 'sim'
+        self.target = target
 
         logger.info("Simulator target is %r", target)
         logger.info("Simulator precompute is %r", self.precompute)
