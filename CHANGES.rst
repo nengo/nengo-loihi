@@ -22,6 +22,13 @@ Release history
 0.5.0 (unreleased)
 ==================
 
+**Changed**
+
+- PES learning in Nengo Loihi more closely matches learning in core Nengo.
+  (`#139 <https://github.com/nengo/nengo-loihi/pull/139>`__)
+- Learning in the emulator more closely matches learning on hardware.
+  (`#139 <https://github.com/nengo/nengo-loihi/pull/139>`__)
+
 **Fixed**
 
 - We integrate current (U) and voltage (V) more accurately now by accounting

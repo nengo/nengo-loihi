@@ -22,6 +22,22 @@ BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 Q_BITS = 21  # number of bits for synapse accumulator
 U_BITS = 23  # number of bits for cx input (u)
 
+LEARN_BITS = 15  # number of bits in learning accumulator (not incl. sign)
+LEARN_FRAC = 7  # extra least-significant bits added to weights for learning
+
+
+def learn_overflow_bits(n_factors):
+    """Compute number of bits with which learning will overflow.
+
+    Parameters
+    ----------
+    n_factors : int
+        The number of learning factors (pre/post terms in the learning rule).
+    """
+    factor_bits = 7  # number of bits per factor
+    mantissa_bits = 3  # number of bits for learning rate mantissa
+    return factor_bits*n_factors + mantissa_bits - LEARN_BITS
+
 
 def overflow_signed(x, bits=7, out=None):
     """Compute overflow on an array of signed integers.
@@ -86,16 +102,10 @@ def bias_to_manexp(bias):
     return man, exp
 
 
-def tracing_mag_int_frac(synapses):
-    mag = synapses.tracing_mag
-    mag = mag / (synapses.size() / 100)
-
+def tracing_mag_int_frac(mag):
+    """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    # TODO: how does mag_frac actually work???
-    #  It's the x in x/128, I believe
     mag_frac = int(128 * (mag - mag_int))
-    # mag_frac = min(int(round(1./mag_frac)), 128)
-
     return mag_int, mag_frac
 
 
@@ -155,6 +165,23 @@ def shift(x, s, **kwargs):
         return np.right_shift(x, -s, **kwargs)
     else:
         return np.left_shift(x, s, **kwargs)
+
+
+def scale_pes_errors(error, scale=1.):
+    """Scale PES errors based on a scaling factor, round and clip."""
+    error = scale * error
+    error = np.round(error).astype(np.int32)
+    q = error > 127
+    if np.any(q):
+        warnings.warn("Max PES error (%0.2e) greater than chip max (%0.2e). "
+                      "Clipping." % (error.max() / scale, 127. / scale))
+        error[q] = 127
+    q = error < -127
+    if np.any(q):
+        warnings.warn("Min PES error (%0.2e) less than chip min (%0.2e). "
+                      "Clipping." % (error.min() / scale, -127. / scale))
+        error[q] = -127
+    return error
 
 
 class CxSlice(object):
@@ -556,6 +583,11 @@ class SynapseFmt(Profile):
     def isMixed(self):
         return self.fanoutType == 1
 
+    @property
+    def shift_bits(self):
+        """Number of bits the -256..255 weight is right-shifted by."""
+        return 8 - self.realWgtBits + self.isMixed
+
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
         bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
@@ -594,24 +626,48 @@ class SynapseFmt(Profile):
         assert 0 <= self.idxBits < 8
         assert 1 <= self.fanoutType < 4
 
-    def discretize_weights(self, w, dtype=np.int32):
-        s = 8 - self.realWgtBits + self.isMixed
+    def discretize_weights(
+            self, w, dtype=np.int32, lossy_shift=True, check_result=True):
+        """Takes weights and returns their quantized values with wgtExp.
+
+        The actual weight to be put on the chip is this returned value
+        divided by the ``scale`` attribute.
+
+        Parameters
+        ----------
+        w : float ndarray
+            Weights to be discretized, in the range -255 to 255.
+        dtype : np.dtype, optional (Default: np.int32)
+            Data type for discretized weights.
+        lossy_shift : bool, optional (Default: True)
+            Whether to mimic the two-part weight shift that currently happens
+            on the chip, which can lose information for small wgtExp.
+        check_results : bool, optional (Default: True)
+            Whether to check that the discretized weights fall in
+            the valid range for weights on the chip (-256 to 255).
+        """
+        s = self.shift_bits
         m = 2**(8 - s) - 1
 
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
         s2 = s + self.wgtExp
-        if s2 < 0:
-            warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
 
-            # round before `s2` right shift, since just shifting would floor
-            # everything resulting in weights biased towards being smaller
-            w = (np.round(w * 2.**s2) / 2**s2).clip(-m, m).astype(dtype)
+        if lossy_shift:
+            if s2 < 0:
+                warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
 
-        shift(w, s2, out=w)
-        np.left_shift(w, 6, out=w)
+                # Round before `s2` right shift. Just shifting would floor
+                # everything resulting in weights biased towards being smaller.
+                w = (np.round(w * 2.**s2) / 2**s2).clip(-m, m).astype(dtype)
 
-        ws = w // self.scale
-        assert np.all(ws <= 255) and np.all(ws >= -256)
+            shift(w, s2, out=w)
+            np.left_shift(w, 6, out=w)
+        else:
+            shift(w, 6 + s2, out=w)
+
+        if check_result:
+            ws = w // self.scale
+            assert np.all(ws <= 255) and np.all(ws >= -256)
 
         return w
 

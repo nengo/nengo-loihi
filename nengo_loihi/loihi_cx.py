@@ -14,7 +14,11 @@ from nengo_loihi.loihi_api import (
     bias_to_manexp,
     decay_int,
     decay_magnitude,
+    LEARN_FRAC,
+    learn_overflow_bits,
     overflow_signed,
+    scale_pes_errors,
+    shift,
     SynapseFmt,
     tracing_mag_int_frac,
     Q_BITS, U_BITS,
@@ -265,7 +269,7 @@ class CxGroup(object):
         w_maxs = [s.max_abs_weight() for s in self.synapses]
         w_max = max(w_maxs) if len(w_maxs) > 0 else 0
         b_max = np.abs(self.bias).max()
-        wgtExp = -7
+        wgtExp = 0
 
         if w_max > 1e-8:
             w_scale = (255. / w_max)
@@ -311,7 +315,10 @@ class CxGroup(object):
         discretize(self.bias, bias_man * 2**bias_exp)
 
         for i, synapse in enumerate(self.synapses):
-            if w_maxs[i] > 1e-16:
+            if synapse.tracing:
+                wgtExp2 = synapse.learning_wgt_exp
+                dWgtExp = wgtExp - wgtExp2
+            elif w_maxs[i] > 1e-16:
                 dWgtExp = int(np.floor(np.log2(w_max / w_maxs[i])))
                 assert dWgtExp >= 0
                 wgtExp2 = max(wgtExp - dWgtExp, -6)
@@ -323,9 +330,46 @@ class CxGroup(object):
                 ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
                 discretize(w, synapse.synapse_fmt.discretize_weights(
                     w * ws * 2**dWgtExp))
-            # TODO: scale this properly, hardcoded for now
+
+            # discretize learning
             if synapse.tracing:
-                synapse.synapse_fmt.wgtExp = 4
+                synapse.tracing_tau = int(np.round(synapse.tracing_tau))
+
+                if is_iterable(w_scale):
+                    assert np.all(w_scale == w_scale[0])
+                w_scale_i = w_scale[0] if is_iterable(w_scale) else w_scale
+
+                # incorporate weight scale and difference in weight exponents
+                # to learning rate, since these affect speed at which we learn
+                ws = w_scale_i * 2**dWgtExp
+                synapse.learning_rate *= ws
+
+                # Loihi down-scales learning factors based on the number of
+                # overflow bits. Increasing learning rate maintains true rate.
+                synapse.learning_rate *= 2**learn_overflow_bits(2)
+
+                # TODO: Currently, Loihi learning rate fixed at 2**-7.
+                # We should explore adjusting it for better performance.
+                lscale = 2**-7 / synapse.learning_rate
+                synapse.learning_rate *= lscale
+                synapse.tracing_mag /= lscale
+
+                # discretize learning rate into mantissa and exponent
+                lr_exp = int(np.floor(np.log2(synapse.learning_rate)))
+                lr_int = int(np.round(synapse.learning_rate * 2**(-lr_exp)))
+                synapse.learning_rate = lr_int * 2**lr_exp
+                synapse._lr_int = lr_int
+                synapse._lr_exp = lr_exp
+                assert lr_exp >= -7
+
+                # discretize tracing mag into integer and fractional components
+                mag_int, mag_frac = tracing_mag_int_frac(synapse.tracing_mag)
+                if mag_int > 127:
+                    warnings.warn("Trace increment exceeds upper limit "
+                                  "(learning rate may be too large)")
+                    mag_int = 127
+                    mag_frac = 127
+                synapse.tracing_mag = mag_int + mag_frac / 128.
 
         # --- noise
         assert (v_scale[0] == v_scale).all()
@@ -395,12 +439,16 @@ class CxSynapses(object):
         can have a different number of target compartments.
     indices : (population, axon, compartment) ndarray
         The synapse indices.
+    learning_rate : float
+        The learning rate.
+    learning_wgt_exp : int
+        The weight exponent used on this connection if learning is enabled.
     tracing : bool
         Whether synaptic tracing is enabled for these synapses.
-    tracing_tau : float
-        The tracing time constant.
+    tracing_tau : int
+        Decay time constant for the learning trace, in timesteps (not seconds).
     tracing_mag : float
-        The tracing increment magnitude.
+        Magnitude by which the learning trace is increased for each spike.
     """
     def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
@@ -411,6 +459,9 @@ class CxSynapses(object):
         self.indices = None
         self.axon_cx_bases = None
         self.axon_to_weight_map = None
+
+        self.learning_rate = 1.
+        self.learning_wgt_exp = None
         self.tracing = False
         self.tracing_tau = None
         self.tracing_mag = None
@@ -541,16 +592,22 @@ class CxSynapses(object):
                     numSynapses=63,
                     wgtBits=7)
 
-    def set_learning(self, tracing_tau=2, tracing_mag=1.0):
+    def set_learning(
+            self, learning_rate=1., tracing_tau=2, tracing_mag=1.0, wgt_exp=4):
         assert tracing_tau == int(tracing_tau), "tracing_tau must be integer"
+
         self.tracing = True
         self.tracing_tau = int(tracing_tau)
         self.tracing_mag = tracing_mag
         self.format(learningCfg=1, stdpProfile=0)
         # ^ stdpProfile hard-coded for now (see loihi_interface)
 
-        mag_int, _ = tracing_mag_int_frac(self)
-        assert int(mag_int) < 2**7
+        self.train_epoch = 2
+        self.learn_epoch_k = 1
+        self.learn_epoch = self.train_epoch * 2**self.learn_epoch_k
+
+        self.learning_rate = learning_rate * self.learn_epoch
+        self.learning_wgt_exp = wgt_exp
 
     def format(self, **kwargs):
         if self.synapse_fmt is None:
@@ -882,9 +939,64 @@ class CxSimulator(object):
         # --- allocate synapse memory
         self.axons_in = {synapses: [] for group in self.groups
                          for synapses in group.synapses}
-        self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
-                  for group in self.groups for synapses in group.synapses
-                  if synapses.tracing}  # synapse traces
+
+        learning_synapses = [
+            synapses for group in self.groups
+            for synapses in group.synapses if synapses.tracing]
+        self.z = {synapses: np.zeros(synapses.n_axons, dtype=group_dtype)
+                  for synapses in learning_synapses}  # synapse traces
+        self.z_spikes = {synapses: set() for synapses in learning_synapses}
+        # Currently, PES learning only happens on Nodes, where we have
+        # pairs of on/off neurons. Therefore, the number of error dimensions
+        # is half the number of neurons.
+        self.pes_errors = {synapses: np.zeros(group.n//2, dtype=group_dtype)
+                           for synapses in learning_synapses}
+        self.pes_error_scale = getattr(model, 'pes_error_scale', 1.)
+
+        if group_dtype == np.int32:
+            def stochastic_round(x, dtype=group_dtype, rng=self.rng,
+                                 clip=None, name="values"):
+                x_sign = np.sign(x).astype(dtype)
+                x_frac, x_int = np.modf(np.abs(x))
+                p = rng.rand(*x.shape)
+                y = x_int.astype(dtype) + (x_frac > p)
+                if clip is not None:
+                    q = y > clip
+                    if np.any(q):
+                        warnings.warn("Clipping %s" % name)
+                    y[q] = clip
+                return x_sign * y
+
+            def trace_round(x, dtype=group_dtype, rng=self.rng):
+                return stochastic_round(
+                    x, dtype=dtype, rng=rng, clip=127, name="synapse trace")
+
+            def weight_update(synapses, delta_ws):
+                synapse_fmt = synapses.synapse_fmt
+                wgt_exp = synapse_fmt.realWgtExp
+                shift_bits = synapse_fmt.shift_bits
+                overflow = learn_overflow_bits(n_factors=2)
+                for w, delta_w in zip(synapses.weights, delta_ws):
+                    product = shift(
+                        delta_w * synapses._lr_int,
+                        LEARN_FRAC + synapses._lr_exp - overflow)
+                    learn_w = shift(w, LEARN_FRAC - wgt_exp) + product
+                    learn_w[:] = stochastic_round(
+                        learn_w * 2**(-LEARN_FRAC - shift_bits),
+                        clip=2**(8 - shift_bits) - 1,
+                        name="learning weights")
+                    w[:] = np.left_shift(learn_w, wgt_exp + shift_bits)
+
+        elif group_dtype == np.float32:
+            def trace_round(x, dtype=group_dtype):
+                return x  # no rounding
+
+            def weight_update(synapses, delta_ws):
+                for w, delta_w in zip(synapses.weights, delta_ws):
+                    w += synapses.learning_rate * delta_w
+
+        self.trace_round = trace_round
+        self.weight_update = weight_update
 
         # --- noise
         enableNoise = np.hstack([
@@ -966,15 +1078,15 @@ class CxSimulator(object):
         for cx_spike_input, t, spike_idxs in spikes:
             cx_spike_input.add_spikes(t, spike_idxs)
 
-        learning_rate = 50  # This is set to match hardware
+        # TODO: these are sent every timestep, but learning only happens every
+        # `tepoch * 2**learn_k` timesteps (see CxSynapses). Need to average.
+        for pes_errors in self.pes_errors.values():
+            pes_errors[:] = 0
+
         for synapses, t, e in errors:
-            z = self.z[synapses]
-            x = np.hstack([-e, e])
-
-            delta_w = np.outer(z, x) * learning_rate
-
-            for i, w in enumerate(synapses.weights):
-                w += delta_w[i].astype('int32')
+            pes_errors = self.pes_errors[synapses]
+            assert pes_errors.shape == e.shape
+            pes_errors += scale_pes_errors(e, scale=self.pes_error_scale)
 
     def step(self):  # noqa: C901
         """Advance the simulation by 1 step (``dt`` seconds)."""
@@ -1020,16 +1132,30 @@ class CxSimulator(object):
                         spike.axon_id, atom=spike.atom)
                     qb[0, cx_base + indices] += weights
 
-                if synapses.tracing:
-                    z = self.z[synapses]
-                    tau = synapses.tracing_tau
-                    mag = synapses.tracing_mag
-
-                    decay = np.exp(-1.0 / tau)
-                    z *= decay
-
+                # --- learning trace
+                z_spikes = self.z_spikes.get(synapses, None)
+                if z_spikes is not None:
                     for spike in self.axons_in[synapses]:
-                        z[spike.axon_id] += mag
+                        if spike.axon_id in z_spikes:
+                            self.error("Synaptic trace spikes lost")
+                        z_spikes.add(spike.axon_id)
+
+                z = self.z.get(synapses, None)
+                if z is not None and self.t % synapses.train_epoch == 0:
+                    tau = synapses.tracing_tau
+                    decay = np.exp(-synapses.train_epoch / tau)
+                    zi = decay*z
+                    zi[list(z_spikes)] += synapses.tracing_mag
+                    z[:] = self.trace_round(zi)
+                    z_spikes.clear()
+
+                # --- learning update
+                pes_e = self.pes_errors.get(synapses, None)
+                if pes_e is not None and self.t % synapses.learn_epoch == 0:
+                    assert z is not None
+                    x = np.hstack([-pes_e, pes_e])
+                    delta_w = np.outer(z, x)
+                    self.weight_update(synapses, delta_w)
 
         # --- updates
         q0 = self.q[0, :]

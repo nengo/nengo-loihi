@@ -10,7 +10,7 @@ from nengo.builder.connection import BuiltConnection
 from nengo.dists import Distribution, get_samples
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
-from nengo.exceptions import BuildError
+from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
 from nengo.utils.builder import default_n_eval_points
 import nengo.utils.numpy as npext
@@ -109,6 +109,13 @@ class Model(CxModel):
 
         # limit for clipping intercepts, to avoid neurons with high gains
         self.intercept_limit = 0.95
+
+        # scaling for PES errors, before rounding and clipping to -127..127
+        self.pes_error_scale = 100.
+
+        # learning weight exponent for PES (controls the maximum weight
+        # magnitude/weight resolution)
+        self.pes_wgt_exp = 4
 
         # Will be provided by Simulator
         self.chip2host_params = {}
@@ -657,18 +664,41 @@ def build_connection(model, conn):
         model.objs[conn]['decode_axons'] = dec_ax0
 
         if conn.learning_rule_type is not None:
-            if isinstance(conn.learning_rule_type, nengo.PES):
-                pes_learn_rate = conn.learning_rule_type.learning_rate
-                # scale learning rates to roughly match Nengo
-                # 1e-4 is the Nengo core default learning rate
-                pes_learn_rate *= 4 / 1e-4
-                assert isinstance(conn.learning_rule_type.pre_synapse,
-                                  nengo.synapses.Lowpass)
-                pes_pre_syn = conn.learning_rule_type.pre_synapse.tau
-                # scale pre_syn.tau from s to ms
-                pes_pre_syn *= 1e3
-                dec_syn.set_learning(tracing_tau=pes_pre_syn,
-                                     tracing_mag=pes_learn_rate)
+            rule_type = conn.learning_rule_type
+            if isinstance(rule_type, nengo.PES):
+                if not isinstance(rule_type.pre_synapse,
+                                  nengo.synapses.Lowpass):
+                    raise ValidationError(
+                        "Loihi only supports `Lowpass` pre-synapses for "
+                        "learning rules", attr='pre_synapse', obj=rule_type)
+
+                tracing_tau = rule_type.pre_synapse.tau / model.dt
+
+                # Nengo builder scales PES learning rate by `dt / n_neurons`
+                n_neurons = (conn.pre_obj.n_neurons
+                             if isinstance(conn.pre_obj, Ensemble)
+                             else conn.pre_obj.size_in)
+                learning_rate = rule_type.learning_rate * model.dt / n_neurons
+
+                # Account for scaling to put integer error in range [-127, 127]
+                learning_rate /= model.pes_error_scale
+
+                # Tracing mag set so that the magnitude of the pre trace
+                # is independent of the pre tau. `dt` factor accounts for
+                # Nengo's `dt` spike scaling. Where is the second `dt` from?
+                # Maybe the fact that post interneurons have `vth = 1/dt`?
+                tracing_mag = -np.expm1(-1. / tracing_tau) / model.dt**2
+
+                # learning weight exponent controls the maximum weight
+                # magnitude/weight resolution
+                wgt_exp = model.pes_wgt_exp
+
+                dec_syn.set_learning(
+                    learning_rate=learning_rate,
+                    tracing_mag=tracing_mag,
+                    tracing_tau=tracing_tau,
+                    wgt_exp=wgt_exp,
+                )
             else:
                 raise NotImplementedError()
 
