@@ -61,13 +61,15 @@ def split_transform(transform, in_slice=None, out_slice=None):
 class TfConv2d(object):
     KERNEL_IDX = 0
 
-    def __init__(self, name, n_filters, kernel_size=(3, 3), strides=(1, 1)):
+    def __init__(self, name, n_filters, kernel_size=(3, 3), strides=(1, 1),
+                 initializer=None):
         self.name = name
         self.n_filters = n_filters
         self.kernel_size = kernel_size if is_iterable(kernel_size) else (
             kernel_size, kernel_size)
         self.strides = strides if is_iterable(strides) else (strides, strides)
         self.padding = 'VALID'
+        self.initializer = initializer
 
         self.kernel = None
         self.shape_in = None
@@ -92,7 +94,7 @@ class TfConv2d(object):
         si, sj = self.kernel_size
         self.kernel = tf.get_variable('kernel_%s' % self.name,
                                       shape=(si, sj, nc, nf),
-                                      initializer=None)
+                                      initializer=self.initializer)
 
     def __call__(self, t, x):
         batch_size = x.get_shape()[0].value
@@ -206,10 +208,17 @@ if not channels_last:
 
 neuron_type = SoftLIFRate(amplitude=amp, sigma=0.01)
 layer_dicts = [
-    dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
-    dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
+    # dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfDense('layer_out', 10)),
+    dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
+         neuron_type=nengo.RectifiedLinear(), on_chip=False),
+    # ^ Has to be one channel input for now since we can't send pop spikes to chip
+    dict(layer_func=TfConv2d('layer2', 32, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
     dict(layer_func=TfDense('layer_out', 10)),
 ]
 
@@ -365,7 +374,7 @@ with nengo.Network() as nengo_net:
                 yslices.append(ImageSlice(output_shape))
                 out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
             else:
-                min_range = -30
+                min_range = -10
                 max_range = 0
                 max_rate = 300.
                 gain = max_rate / (max_range - min_range)
@@ -413,4 +422,5 @@ plt.subplot(2, 1, 2)
 plt.plot(sim.trange(), sim.data[out_p])
 plt.legend(['%d' % i for i in range(10)], loc='best')
 
-plt.show()
+plt.savefig('mnist_convnet_%s.png' % sim.target)
+# plt.show()
