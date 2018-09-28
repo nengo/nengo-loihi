@@ -357,11 +357,11 @@ class CxSynapses(object):
         return sum(len(w) for w in self.weights)
 
     def bits(self):
-        return sum(self.synapse_fmt.bits_per_axon(len(w))
+        return sum(self.synapse_fmt.bits_per_axon(w.size)
                    for w in self.weights)
 
     def max_abs_weight(self):
-        return max(np.abs(w).max() if len(w) > 0 else -np.inf
+        return max(np.abs(w).max() if w.size > 0 else -np.inf
                    for w in self.weights)
 
     def max_ind(self):
