@@ -185,12 +185,15 @@ class ImageSlice(ImageShape):
 class Conv2D(Distribution):
     def __init__(self, n_filters, input_shape, kernel_size=3, strides=1,
                  mode="valid", correlate=True, output_channels_last=None,
-                 kernel=nengo_dl.dists.Glorot()):
+                 kernel=None):
         if not isinstance(input_shape, ImageShape):
             in_channels_last = (output_channels_last
                                 if output_channels_last is not None else True)
             input_shape = ImageShape.from_shape(
                 input_shape, channels_last=in_channels_last)
+        if kernel is None:
+            kernel = (nengo_dl.dists.Glorot() if nengo_dl else
+                      nengo.dists.Uniform(-1, 1))
 
         self.n_filters = n_filters
         self.input_shape = input_shape
