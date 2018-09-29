@@ -119,8 +119,9 @@ class Model(CxModel):
     def inter_scale(self):
         """Scaling applied to input from interneurons.
 
-        Such that if all `inter_n` interneurons are firing at their max rate
-        `inter_rate`, then the total output when averaged over time will be 1.
+        Such that if all ``inter_n`` interneurons are firing at
+        their max rate ``inter_rate``, then the total output when
+        averaged over time will be 1.
         """
         return 1. / (self.dt * self.inter_rate * self.inter_n)
 
