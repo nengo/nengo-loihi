@@ -7,10 +7,12 @@ NOTES:
 """
 
 import collections
+from functools import partial
 import gzip
 import os
 import pickle
 from urllib.request import urlretrieve
+import tempfile
 import zipfile
 
 import numpy as np
@@ -41,6 +43,9 @@ class TfConv2d(object):
 
         self.kernel = None
         self.shape_in = None
+
+    def __str__(self):
+        return '%s(%s)' % (type(self).__name__, self.name)
 
     def output_shape(self, input_shape=None):
         if input_shape is None:
@@ -125,8 +130,8 @@ class TfDense(object):
 
 def crossentropy(outputs, targets):
     """Cross-entropy loss function (for training)."""
-    return tf.nn.softmax_cross_entropy_with_logits_v2(
-        logits=outputs, labels=targets)
+    return tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits_v2(
+        logits=outputs, labels=targets))
 
 
 def classification_error(outputs, targets):
@@ -135,6 +140,23 @@ def classification_error(outputs, targets):
         tf.cast(tf.not_equal(tf.argmax(outputs[:, -1], axis=-1),
                              tf.argmax(targets[:, -1], axis=-1)),
                 tf.float32))
+
+
+def percentile_rate_l2_loss(x, y, weight=1.0, target=0.0, percentile=99.):
+    # x axes are (batch examples, time (==1), neurons)
+    assert len(x.shape) == 3
+    rates = tf.contrib.distributions.percentile(x, percentile, axis=(0, 1))
+    return weight * tf.nn.l2_loss(rates - target)
+
+
+def percentile_l2_loss_range(x, y, weight=1.0, min=0.0, max=np.inf,
+                             percentile=99.):
+    # x axes are (batch examples, time (==1), neurons)
+    assert len(x.shape) == 3
+    neuron_p = tf.contrib.distributions.percentile(x, percentile, axis=(0, 1))
+    low_error = tf.maximum(0.0, min - neuron_p)
+    high_error = tf.maximum(0.0, neuron_p - max)
+    return weight * tf.nn.l2_loss(low_error + high_error)
 
 
 def has_checkpoint(checkpoint_base):
@@ -147,11 +169,41 @@ def has_checkpoint(checkpoint_base):
     return len(files) > 0
 
 
+def get_layer_rates(sim, input_data, rate_probes, amplitude=None):
+    '''Collect firing rates on internal layers'''
+    assert len(input_data) == 1
+    in_p, in_x = next(iter(input_data.items()))
+    assert in_x.ndim == 3
+    n_steps = in_x.shape[1]
+
+    tmpdir = tempfile.TemporaryDirectory()
+    sim.save_params(os.path.join(tmpdir.name, "tmp"),
+                    include_local=True, include_global=False)
+
+    sim.run_steps(n_steps,
+                       input_feeds=input_data,
+                       progress_bar=False)
+
+    rates = [sim.data[p] for p in rate_probes]
+    if amplitude is not None:
+        rates = [rate / amplitude for rate in rates]
+
+    sim.load_params(os.path.join(tmpdir.name, "tmp"),
+                    include_local=True, include_global=False)
+    tmpdir.cleanup()
+
+    return rates
+
+
 checkpoint_base = './checkpoints/mnist_convnet'
 RETRAIN = False
 # RETRAIN = True
 
 amp = 0.01
+
+rate_reg = 1e-2
+max_rate = 100
+rate_target = max_rate * amp  # must be in amplitude scaled units
 
 # load mnist dataset
 if not os.path.exists('mnist.pkl.gz'):
@@ -181,18 +233,25 @@ layer_dicts = [
     # dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
     # dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
     # dict(layer_func=TfDense('layer_out', 10)),
+    # dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
+    #      neuron_type=nengo.RectifiedLinear(), on_chip=False),
+    # # ^ Has to be one channel input for now since we can't send pop spikes to chip
+    # dict(layer_func=TfConv2d('layer2', 32, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    # dict(layer_func=TfDense('layer_out', 10)),
     dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
-         neuron_type=nengo.RectifiedLinear(), on_chip=False),
+         neuron_type=nengo.RectifiedLinear(amplitude=amp), on_chip=False, no_min_rate=True),
     # ^ Has to be one channel input for now since we can't send pop spikes to chip
-    dict(layer_func=TfConv2d('layer2', 32, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
+    dict(layer_func=TfConv2d('layer2', 16, kernel_size=3, strides=2), neuron_type=neuron_type),
     dict(layer_func=TfDense('layer_out', 10)),
 ]
 
-# build the network
+# build the nengo_dl network
+objective = {}
+rate_probes = collections.OrderedDict()
 with nengo.Network(seed=0) as net:
-    net.config[nengo.Ensemble].max_rates = nengo.dists.Choice([100])
+    net.config[nengo.Ensemble].max_rates = nengo.dists.Choice([max_rate])
     net.config[nengo.Ensemble].intercepts = nengo.dists.Choice([0])
     net.config[nengo.Connection].synapse = None
 
@@ -209,6 +268,7 @@ with nengo.Network(seed=0) as net:
         layer_func = layer_dict.pop('layer_func', None)
         layer_neuron = layer_dict.pop('neuron_type', None)
         on_chip = layer_dict.pop('on_chip', True)
+        no_min_rate = layer_dict.pop('no_min_rate', False)
 
         shape_out = None
         fn_layer = None
@@ -236,6 +296,17 @@ with nengo.Network(seed=0) as net:
             x = y
             neuron_layer = x
 
+            yp = nengo.Probe(y)
+            if no_min_rate:
+                objective[yp] = partial(
+                    percentile_l2_loss_range, weight=10*rate_reg,
+                    min=0, max=rate_target, percentile=99.9)
+            else:
+                objective[yp] = partial(
+                    percentile_l2_loss_range, weight=rate_reg,
+                    min=0.5*rate_target, max=rate_target, percentile=99.9)
+            rate_probes[layer_func] = yp
+
         shape_in = shape_out
         layers.append((fn_layer, neuron_layer))
 
@@ -244,13 +315,17 @@ with nengo.Network(seed=0) as net:
 
 
 # set up training/test data
+minibatch_size = 256
 train_inputs = {inp: train_data[0][:, None, :]}
 train_targets = {out_p: train_data[1][:, None, :]}
 test_inputs = {inp: test_data[0][:, None, :]}
 test_targets = {out_p: test_data[1][:, None, :]}
+rate_inputs = {inp: train_data[0][:minibatch_size, None, :]}
+
+objective[out_p] = crossentropy
 
 # train our network in NengoDL
-with nengo_dl.Simulator(net, minibatch_size=256) as sim:
+with nengo_dl.Simulator(net, minibatch_size=minibatch_size) as sim:
     if not RETRAIN and has_checkpoint(checkpoint_base):
         sim.load_params(checkpoint_base)
 
@@ -261,12 +336,18 @@ with nengo_dl.Simulator(net, minibatch_size=256) as sim:
         # run training
         sim.train(train_inputs, train_targets,
                   tf.train.RMSPropOptimizer(learning_rate=0.001),
-                  objective=crossentropy,
+                  objective=objective,
                   n_epochs=10)
         sim.save_params(checkpoint_base)
 
         print("error after training: %.2f%%" %
               sim.loss(test_inputs, test_targets, classification_error))
+
+        rates = get_layer_rates(sim, rate_inputs, rate_probes.values(),
+                                amplitude=amp)
+        for layer_func, rate in zip(rate_probes, rates):
+            print("%s rate: mean=%0.3f, 99th: %0.3f" % (
+                layer_func, rate.mean(), np.percentile(rate, 99)))
 
     # store trained parameters back into the network
     for fn_layer, _ in layers:
@@ -401,5 +482,6 @@ plt.subplot(2, 1, 2)
 plt.plot(sim.trange(), sim.data[out_p])
 plt.legend(['%d' % i for i in range(10)], loc='best')
 
-plt.savefig('mnist_convnet_%s.png' % sim.target)
+target = sim.target if isinstance(sim, nengo_loihi.Simulator) else 'nengo'
+plt.savefig('mnist_convnet_%s.png' % target)
 # plt.show()
