@@ -5,7 +5,7 @@ NOTES:
   I believe this is due to bad random weights chosen for the initial kernels.
   In this case, simply restart the training and it should work.
 """
-
+import argparse
 import collections
 from functools import partial
 import gzip
@@ -26,6 +26,10 @@ from nengo_dl import SoftLIFRate
 
 import nengo_loihi
 from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice, split_transform
+
+parser = argparse.ArgumentParser(description="mnist_convnet")
+parser.add_argument('--retrain', action='store_true')
+args = parser.parse_args()
 
 
 class TfConv2d(object):
@@ -196,8 +200,6 @@ def get_layer_rates(sim, input_data, rate_probes, amplitude=None):
 
 
 checkpoint_base = './checkpoints/mnist_convnet'
-RETRAIN = False
-# RETRAIN = True
 
 amp = 0.01
 
@@ -326,7 +328,7 @@ objective[out_p] = crossentropy
 
 # train our network in NengoDL
 with nengo_dl.Simulator(net, minibatch_size=minibatch_size) as sim:
-    if not RETRAIN and has_checkpoint(checkpoint_base):
+    if not args.retrain and has_checkpoint(checkpoint_base):
         sim.load_params(checkpoint_base)
 
     else:
