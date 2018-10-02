@@ -19,10 +19,53 @@ BIAS_MAN_MAX = 2**12 - 1
 BIAS_EXP_MAX = 2**3 - 1
 BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 
-U_MAX = 2**23 - 1
-U_MIN = -2**23
-V_MAX = 2**23 - 1
-V_MIN = -2**23
+Q_BITS = 21  # number of bits for synapse accumulator
+U_BITS = 23  # number of bits for cx input (u)
+
+
+def overflow_signed(x, bits=7, out=None):
+    """Compute overflow on an array of signed integers.
+
+    For example, the Loihi chip uses 23 bits plus sign to represent U.
+    We can store them as 32-bit integers, and use this function to compute
+    how they would overflow if we only had 23 bits plus sign.
+
+    Parameters
+    ----------
+    x : array
+        Integer values for which to compute values after overflow.
+    bits : int
+        Number of bits, not including sign, to compute overflow for.
+    out : array, optional (Default: None)
+        Output array to put computed overflow values in.
+
+    Returns
+    -------
+    y : array
+        Values of x overflowed as would happen with limited bit representation.
+    overflowed : array
+        Boolean array indicating which values of ``x`` actually overflowed.
+    """
+    if out is None:
+        out = np.array(x)
+    else:
+        assert isinstance(out, np.ndarray)
+        out[:] = x
+
+    assert np.issubdtype(out.dtype, np.integer)
+
+    x1 = np.array(1, dtype=out.dtype)
+    smask = np.left_shift(x1, bits)  # mask for the sign bit (2**bits)
+    xmask = smask - 1  # mask for all bits <= `bits`
+
+    # find whether we've overflowed
+    overflowed = (out < -smask) | (out >= smask)
+
+    zmask = out & smask  # if `out` has negative sign bit, == 2**bits
+    out &= xmask  # mask out all bits > `bits`
+    out -= zmask  # subtract 2**bits if negative sign bit
+
+    return out, overflowed
 
 
 def vth_to_manexp(vth):

@@ -11,10 +11,10 @@ from nengo.utils.compat import is_iterable, range
 from nengo_loihi.loihi_api import (
     BIAS_MAX,
     bias_to_manexp,
+    overflow_signed,
     SynapseFmt,
     tracing_mag_int_frac,
-    U_MAX, U_MIN,
-    V_MAX, V_MIN,
+    Q_BITS, U_BITS,
     VTH_MAX,
     vth_to_manexp,
 )
@@ -700,24 +700,24 @@ class CxSimulator(object):
 
         noise = self.noiseGen()
         q0[self.noiseTarget == 0] += noise[self.noiseTarget == 0]
+        _, o = overflow_signed(q0, bits=Q_BITS, out=q0)
+        if np.any(o):
+            self.error("Overflow in q")
 
-        # self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)
         self.u[:] = self.decayU_fn(self.u[:], q0)
-        u2 = self.u[:] + self.bias
+        _, o = overflow_signed(self.u, bits=U_BITS, out=self.u)
+        if np.any(o):
+            self.error("Overflow in U")
+        u2 = self.u + self.bias
         u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
-        if np.any(u2 > U_MAX):
-            self.error("Overflow in U (max was %d)" % u2.max())
-        if np.any(u2 < U_MIN):
-            self.error("Underflow in U (min was %d)" % u2.min())
-        u2 = np.clip(u2, a_min=U_MIN, a_max=U_MAX, out=u2)
+        _, o = overflow_signed(u2, bits=U_BITS, out=u2)
+        if np.any(o):
+            self.error("Overflow in u2")
 
-        # self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2
         self.v[:] = self.decayV_fn(self.v, u2)
-        if np.any(self.v > V_MAX):
-            self.error("Overflow in V (max was %d)" % self.v.max())
-        if np.any(self.v < V_MIN):
-            self.error("Underflow in V (min was %d)" % self.v.min())
-        self.v = np.clip(self.v, a_min=V_MIN, a_max=V_MAX, out=self.v)
+        # _, o = overflow_signed(self.v, bits=V_BIT, out=self.v)
+        # if np.any(o):
+        #     self.error("Overflow in V")
 
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
