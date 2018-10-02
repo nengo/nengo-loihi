@@ -58,10 +58,10 @@ class CxGroup(object):
         Compartment biases.
     enableNoise : (n,) ndarray
         Whether to enable noise for each compartment.
-    vmin : float or int
-        Minimum voltage for all compartments.
-    vmax : float or int
-        Maximum voltage for all compartments.
+    vmin : float or int (range [-2**23 + 1, 0])
+        Minimum voltage for all compartments, in Loihi voltage units.
+    vmax : float or int (range [2**9 - 1, 2**23 - 1])
+        Maximum voltage for all compartments, in Loihi voltage units.
     noiseMantOffset0 : float or int
         Offset for noise generation.
     noiseExp0 : float or int
