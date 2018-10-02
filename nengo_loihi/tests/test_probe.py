@@ -45,5 +45,5 @@ def test_repeated_probes(Simulator):
         nengo.Probe(ens.neurons)
 
     for _ in range(5):
-        with Simulator(net, precompute=True) as sim:
+        with Simulator(net) as sim:
             sim.run(0.1)

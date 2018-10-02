@@ -12,8 +12,8 @@ from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model
 from nengo_loihi.loihi_cx import CxGroup
+from nengo_loihi.splitter import PESModulatoryTarget, split
 import nengo_loihi.config as config
-import nengo_loihi.splitter as splitter
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ class ProbeDict(NengoProbeDict):
                     break
         assert key in target
 
-        if (key not in self._cache or
-                len(self._cache[key]) != len(target[key])):
+        if (key not in self._cache
+                or len(self._cache[key]) != len(target[key])):
             rval = target[key]
             if isinstance(rval, list):
                 rval = np.asarray(rval)
@@ -152,37 +152,40 @@ class Simulator(object):
             self.model = model
             assert self.model.dt == dt
 
+        max_rate = self.model.inter_rate * self.model.inter_n
+        rtol = 1e-8  # allow for floating point inaccuracies
+        if max_rate > (1. / self.dt) * (1 + rtol):
+            raise BuildError("Simulator `dt` must be <= %s (got %s)"
+                             % (1. / max_rate, self.dt))
         self.precompute = precompute
+        self.networks = None
 
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
             nengo.rc.set("decoder_cache", "enabled", "False")
             config.add_params(network)
 
-            # split the host into two networks
-            max_rate = self.model.inter_rate * self.model.inter_n
-            rtol = 1e-8  # allow for floating point inaccuracies
-            if max_rate > (1. / self.dt) * (1 + rtol):
-                raise BuildError("Simulator `dt` must be <= %s (got %s)"
-                                 % (1. / max_rate, self.dt))
-            host, chip, h2c, c2h_params, c2h = splitter.split(
-                network, max_rate, self.model.inter_tau)
+            # split the host into two or three networks
+            self.networks = split(
+                network, precompute, max_rate, self.model.inter_tau)
+            network = self.networks.chip
 
-            if precompute:
-                host_pre = splitter.split_pre_from_host(host)
-            network = chip
-            self.chip2host_receivers = c2h
-            self.host2chip_senders = h2c
-            self.model.chip2host_params.update(c2h_params)
+            self.chip2host_receivers = self.networks.chip2host_receivers
+            self.host2chip_senders = self.networks.host2chip_senders
+            self.model.chip2host_params = self.networks.chip2host_params
+
+            self.chip = self.networks.chip
+            self.host = self.networks.host
+            self.host_pre = self.networks.host_pre
 
             if precompute:
                 self.host_pre_sim = nengo.Simulator(
-                    host_pre, dt=self.dt, progress_bar=False)
+                    self.host_pre, dt=self.dt, progress_bar=False)
                 self.host_post_sim = nengo.Simulator(
-                    host, dt=self.dt, progress_bar=False)
+                    self.host, dt=self.dt, progress_bar=False)
             else:
                 self.host_sim = nengo.Simulator(
-                    host, dt=self.dt, progress_bar=False)
+                    self.host, dt=self.dt, progress_bar=False)
 
             # Build the network into the model
             self.model.build(network)
@@ -446,7 +449,7 @@ class Simulator(object):
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
                     learning_rate = 50  # This is set to match hardware
-                    if isinstance(receiver, splitter.PESModulatoryTarget):
+                    if isinstance(receiver, PESModulatoryTarget):
                         for t, x in sender.queue:
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
@@ -490,7 +493,7 @@ class Simulator(object):
                 errors = []
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
-                    if isinstance(receiver, splitter.PESModulatoryTarget):
+                    if isinstance(receiver, PESModulatoryTarget):
                         for t, x in sender.queue:
                             x = (100 * x).astype(int)
                             x = np.clip(x, -100, 100, out=x)

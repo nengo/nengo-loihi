@@ -22,10 +22,8 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
             synapse=0.01,
             learning_rule_type=nengo.PES(learning_rate=1e-3))
 
-        error = nengo.Node(None, size_in=dims)
-        nengo.Connection(post, error)
-        nengo.Connection(stim, error, transform=-1)
-        nengo.Connection(error, conn.learning_rule)
+        nengo.Connection(post, conn.learning_rule)
+        nengo.Connection(stim, conn.learning_rule, transform=-1)
 
         p_stim = nengo.Probe(stim, synapse=0.02)
         p_pre = nengo.Probe(pre, synapse=0.02)
@@ -79,7 +77,8 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
                 output[i],
                 learning_rule_type=nengo.PES(learning_rate=1e-3),
             )
-            nengo.Connection(errors[i], conn.learning_rule)
+            nengo.Connection(target[i], conn.learning_rule, transform=-1)
+            nengo.Connection(output[i], conn.learning_rule)
 
         probe = nengo.Probe(output, synapse=0.1)
     with Simulator(model, precompute=False) as sim:
