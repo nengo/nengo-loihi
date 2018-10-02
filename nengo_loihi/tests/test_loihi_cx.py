@@ -27,10 +27,10 @@ def test_simulator_noise(request, plt, seed):
     model.discretize()
 
     if target == 'loihi':
-        sim = model.get_loihi(seed=seed)
-        sim.run_steps(1000)
-        y = np.column_stack([
-            p.timeSeries.data for p in sim.board.probe_map[probe]])
+        with model.get_loihi(seed=seed) as sim:
+            sim.run_steps(1000)
+            y = np.column_stack([
+                p.timeSeries.data for p in sim.board.probe_map[probe]])
     else:
         sim = model.get_simulator(seed=seed)
         sim.run_steps(1000)
