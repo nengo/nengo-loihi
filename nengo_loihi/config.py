@@ -28,7 +28,7 @@ def add_params(network):
     cfg = config[nengo.Ensemble]
     if 'on_chip' not in cfg._extra_params:
         cfg.set_param("on_chip",
-                      Parameter('on_chip', default=True, optional=True))
+                      Parameter('on_chip', default=None, optional=True))
 
 
 def set_defaults():

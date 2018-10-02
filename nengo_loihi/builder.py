@@ -18,7 +18,7 @@ import nengo.utils.numpy as npext
 from nengo_loihi.loihi_cx import (
     CxModel, CxGroup, CxSynapses, CxAxons, CxProbe, CxSpikeInput)
 from nengo_loihi.neurons import loihi_rates
-from . import splitter
+from nengo_loihi.splitter import ChipReceiveNeurons, ChipReceiveNode
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class Model(CxModel):
         self.objs = collections.defaultdict(dict)
         self.params = {}  # Holds data generated when building objects
         self.probes = []
-        self.chip2host_params = {}
+        self.chip2host_params = None  # Will be provided by Simulator
         self.probe_conns = {}
 
         self.seeds = {}
@@ -192,8 +192,8 @@ def build_network(model, network):
     assert all(tp in sorted_types for tp in network.objects)
     for obj_type in sorted_types:
         for obj in network.objects[obj_type]:
-            model.seeded[obj] = (model.seeded[network] or
-                                 getattr(obj, 'seed', None) is not None)
+            model.seeded[obj] = (model.seeded[network]
+                                 or getattr(obj, 'seed', None) is not None)
             model.seeds[obj] = get_seed(obj, rng)
 
     logger.debug("Network step 1: Building ensembles and nodes")
@@ -383,7 +383,7 @@ def build_relu(model, relu, neurons, group):
 
 @Builder.register(Node)
 def build_node(model, node):
-    if isinstance(node, splitter.ChipReceiveNode):
+    if isinstance(node, ChipReceiveNode):
         cx_spiker = node.cx_spike_input
         model.add_input(cx_spiker)
         model.objs[node]['out'] = cx_spiker
@@ -528,7 +528,7 @@ def build_connection(model, conn):
             assert transform.shape[1] == conn.pre.size_out
 
         assert transform.shape[1] == conn.pre.size_out
-        if isinstance(conn.pre_obj, splitter.ChipReceiveNeurons):
+        if isinstance(conn.pre_obj, ChipReceiveNeurons):
             weights = transform / model.dt
             neuron_type = conn.pre_obj.neuron_type
         else:
@@ -538,8 +538,8 @@ def build_connection(model, conn):
             # (max_rate = INTER_RATE * INTER_N) is the spike rate we
             # use to represent a value of +/- 1
             weights = weights * model.inter_scale
-    elif (isinstance(conn.pre_obj, Ensemble) and
-          isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
+    elif (isinstance(conn.pre_obj, Ensemble)
+          and isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, weights, solver_info = model.build(
@@ -604,8 +604,8 @@ def build_connection(model, conn):
             dec_cx = CxGroup(2 * d * model.inter_n, label='%s' % conn,
                              location='core')
             dec_cx.configure_relu(dt=model.dt)
-            dec_cx.bias[:] = 0.5 * gain * np.array(([1.] * d +
-                                                    [1.] * d) * model.inter_n)
+            dec_cx.bias[:] = 0.5 * gain * np.array(
+                ([1.] * d + [1.] * d) * model.inter_n)
             if model.inter_noise_exp > -30:
                 dec_cx.enableNoise[:] = 1
                 dec_cx.noiseExp0 = model.inter_noise_exp
