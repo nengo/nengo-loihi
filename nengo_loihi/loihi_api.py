@@ -270,7 +270,7 @@ class Core(object):
         a0 = 0
         if len(self.synapse_axons) > 0:
             last = next(reversed(self.synapse_axons))
-            a0 = self.synapse_axons[last][-1]
+            a0 = self.synapse_axons[last][-1] + 1
         idxs_per_synapse = synapses.idxs_per_synapse()
         idxs = [a0 + idxs_per_synapse*i for i in range(synapses.n_axons)]
         self.synapse_axons[synapses] = idxs
