@@ -665,11 +665,12 @@ class CxSimulator(object):
         for a_in in self.a_in.values():
             a_in[:] = 0
 
-        for input in self.inputs:
-            for axons in input.axons:
-                synapses = axons.target
-                assert axons.target_inds == slice(None)
-                self.a_in[synapses] += input.spikes[self.t]
+        if self.t >= 1:  # input spikes take one time-step to arrive
+            for input in self.inputs:
+                for axons in input.axons:
+                    synapses = axons.target
+                    assert axons.target_inds == slice(None)
+                    self.a_in[synapses] += input.spikes[self.t - 1]
 
         for group in self.groups:
             for axons in group.axons:
