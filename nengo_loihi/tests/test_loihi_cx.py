@@ -163,5 +163,5 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     plt.plot(emu_s)
     plt.plot(sim_s)
 
-    assert allclose(emu_u[:-1], sim_u[1:])
-    assert allclose(emu_v[:-1], sim_v[1:])
+    assert allclose(emu_u, sim_u)
+    assert allclose(emu_v, sim_v)
