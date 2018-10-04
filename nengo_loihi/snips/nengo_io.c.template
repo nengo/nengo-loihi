@@ -58,8 +58,12 @@ void nengo_io(runState *s) {
     }
 
     output[0] = s->time;
-{% for n_out, core, cx in probes %}
+{% for n_out, core, cx, key in probes %}
+{% if key == 'u' %}
+    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].U;
+{% elif key in ('v', 'spike') %}
     output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+{% endif %}
 {% endfor %}
 
     writeChannel(outChannel, output, N_OUTPUTS);

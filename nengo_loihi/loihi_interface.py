@@ -364,7 +364,7 @@ def build_probe(n2core, core, group, probe, cx_idxs):
     r = cx_idxs[probe.slice]
 
     if probe.use_snip:
-        probe.snip_info = dict(coreid=n2core.id, cxs=r)
+        probe.snip_info = dict(coreid=n2core.id, cxs=r, key=key)
     else:
         p = n2board.monitor.probe(n2core.cxState, r, key)
         core.board.map_probe(probe, p)
@@ -725,11 +725,15 @@ class LoihiSimulator(object):
             for probe in group.probes:
                 if probe.use_snip:
                     info = probe.snip_info
+                    assert info['key'] in ('u', 'v', 'spike')
+                    # For spike probes, we record V and determine if the neuron
+                    # spiked in Simulator.
                     cores.add(info["coreid"])
                     snip_range[probe] = slice(n_outputs - 1,
                                               n_outputs + len(info["cxs"]) - 1)
                     for cx in info["cxs"]:
-                        probes.append((n_outputs, info["coreid"], cx))
+                        probes.append(
+                            (n_outputs, info["coreid"], cx, info['key']))
                         n_outputs += 1
 
         # --- write c file using template
