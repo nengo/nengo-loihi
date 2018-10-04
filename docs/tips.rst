@@ -441,19 +441,23 @@ due to long run times or other factors.
 Custom Slurm partitions can be used to run
 your job with different sets of restrictions.
 Your system administrator will have to set up the partition.
+You can see a list of all partitions and nodes with ``sinfo``.
 
-As an example, to run a job with the ``loihiinf`` partition,
-where ``n2driverservice`` is in ``/nfs/ncl/bin``,
-first open two terminal windows.
-
-In one terminal, run
-
-.. code-block:: bash
-
-   srun -p loihiinf /nfs/ncl/bin/n2driverservice
-
-In the other terminal, run your job without Slurm.
+To run a job with the ``loihiinf`` partition,
+set the environment variable ``PARTITION``.
+For example, you can run ``bigmodel.py``
+using this partition with
 
 .. code-block:: bash
 
-   SLURM=0 python models/my_model.py
+   PARTITION=loihiinf python bigmodel.py
+
+Similarly, if you wish to use
+a particular board (called a "node" in Slurm),
+set the ``BOARD`` environment variable.
+For example, to run ``model.py`` on the
+``loihimh`` board, do
+
+.. code-block:: bash
+
+   BOARD=loihimh python model.py
