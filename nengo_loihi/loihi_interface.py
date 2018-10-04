@@ -11,6 +11,7 @@ import jinja2
 import numpy as np
 
 from nengo.exceptions import SimulationError
+from nengo.utils.stdlib import groupby
 
 try:
     import nxsdk
@@ -426,8 +427,6 @@ def collect_axons(n2core, core, group, axons, cx_ids):
 
 
 def build_axons(n2core, core, group, all_axons):
-    from nengo.utils.stdlib import groupby
-
     if len(all_axons) == 0:
         return
 
@@ -453,14 +452,13 @@ def build_axons(n2core, core, group, all_axons):
         if len(cx_axons) == 0:
             continue
 
-        cx_axons = sorted(cx_axons, key=lambda a: a[1:])
-
         # cx_axon -> (cx, atom, type, tchip_id, tcore_id, taxon_id)
         assert all(cx_axon[0] == cx_id for cx_axon in cx_axons)
         atom = cx_axons[0][1]
         assert all(cx_axon[1] == atom for cx_axon in cx_axons), (
             "cx atom must be the same for all axons")
 
+        cx_axons = sorted(cx_axons, key=lambda a: a[2:])
         key = tuple(cx_axon[2:] for cx_axon in cx_axons)
         if key not in axon_map:
             axon_id0 = axon_id
