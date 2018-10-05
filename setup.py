@@ -51,6 +51,7 @@ setup(
             "matplotlib>=2.0",
             "nbsphinx",
             "nbconvert<5.4",
+            "nengo-extras",
             "nengo_sphinx_theme>=0.7",
             "numpydoc>=0.6",
             "sphinx>=1.8",
