@@ -29,13 +29,15 @@ from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice, split_transform
 
 parser = argparse.ArgumentParser(description="mnist_convnet")
 parser.add_argument('--retrain', action='store_true')
+parser.add_argument('key', nargs='?', default='small',
+                    help="Key for the network architecture to use")
 args = parser.parse_args()
 
 
 class TfConv2d(object):
     KERNEL_IDX = 0
 
-    def __init__(self, name, n_filters, kernel_size=(3, 3), strides=(1, 1),
+    def __init__(self, name, n_filters, kernel_size=3, strides=1,
                  initializer=None):
         self.name = name
         self.n_filters = n_filters
@@ -107,6 +109,9 @@ class TfDense(object):
 
         self.weights = None
         self.shape_in = None
+
+    def __str__(self):
+        return '%s(%s)' % (type(self).__name__, self.name)
 
     def output_shape(self, input_shape):
         return ImageShape(1, 1, self.n_outputs, channels_last=True)
@@ -199,15 +204,7 @@ def get_layer_rates(sim, input_data, rate_probes, amplitude=None):
     return rates
 
 
-checkpoint_base = './checkpoints/mnist_convnet'
-
-amp = 0.01
-
-rate_reg = 1e-2
-max_rate = 100
-rate_target = max_rate * amp  # must be in amplitude scaled units
-
-# load mnist dataset
+# --- load mnist dataset
 if not os.path.exists('mnist.pkl.gz'):
     urlretrieve('http://deeplearning.net/data/mnist/mnist.pkl.gz',
                 'mnist.pkl.gz')
@@ -227,29 +224,54 @@ test_images = test_data[0].reshape((-1,) + input_shape.shape(channels_last=True)
 if not channels_last:
     test_images = np.transpose(test_images, (0, 3, 1, 2))
 
+# --- specify network parameters
+checkpoint_base = './checkpoints/mnist_convnet_%s' % args.key
+
+amp = 0.01
+rate_reg = 1e-2
+max_rate = 100
+rate_target = max_rate * amp  # must be in amplitude scaled units
 
 neuron_type = SoftLIFRate(amplitude=amp, sigma=0.01)
-layer_dicts = [
-    # dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
-    # dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfDense('layer_out', 10)),
-    # dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
-    #      neuron_type=nengo.RectifiedLinear(), on_chip=False),
-    # # ^ Has to be one channel input for now since we can't send pop spikes to chip
-    # dict(layer_func=TfConv2d('layer2', 32, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfDense('layer_out', 10)),
-    dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
-         neuron_type=nengo.RectifiedLinear(amplitude=amp), on_chip=False, no_min_rate=True),
-    # ^ Has to be one channel input for now since we can't send pop spikes to chip
-    dict(layer_func=TfConv2d('layer2', 16, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfDense('layer_out', 10)),
-]
+if args.key == 'small':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+                                 initializer=tf.constant_initializer(1)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer2', 16, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'med':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+                                 initializer=tf.constant_initializer(1)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer2', 16, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 32, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'large':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+                                 initializer=tf.constant_initializer(1)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer2', 32, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 96, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer4', 256, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+else:
+    raise ValueError("Unrecognized architecture key %r" % (args.key,))
 
-# build the nengo_dl network
+# --- build the nengo_dl network
+print("Building nengo_dl network %r (retrain=%r)" % (args.key, args.retrain))
+
 objective = {}
 rate_probes = collections.OrderedDict()
 with nengo.Network(seed=0) as net:
@@ -311,6 +333,7 @@ with nengo.Network(seed=0) as net:
 
         shape_in = shape_out
         layers.append((fn_layer, neuron_layer))
+        print("Added layer %s %s(%s)" % (layer_func, layer_neuron, shape_out))
 
     out_p = nengo.Probe(x)
     out_p_filt = nengo.Probe(x, synapse=0.1)
@@ -461,11 +484,13 @@ steps_per_pres = int(presentation_time / sim.dt)
 preds = []
 for i in range(0, class_output.shape[0], steps_per_pres):
     c = class_output[i:i + steps_per_pres]
-    c = c[int(0.5 * steps_per_pres):]  # take last part
+    c = c[int(0.75 * steps_per_pres):]  # take last part
     pred = np.argmax(c.sum(axis=0))
     preds.append(pred)
 
+test_y = np.argmax(test_data[1][:n_presentations], axis=1)
 print("Predictions: %s" % (preds,))
+print("Actual:      %s" % (list(test_y),))
 
 # --- fancy plots
 plt.figure()
@@ -485,5 +510,5 @@ plt.plot(sim.trange(), sim.data[out_p])
 plt.legend(['%d' % i for i in range(10)], loc='best')
 
 target = sim.target if isinstance(sim, nengo_loihi.Simulator) else 'nengo'
-plt.savefig('mnist_convnet_%s.png' % target)
+plt.savefig('mnist_convnet_%s_%s.png' % (args.key, target))
 # plt.show()
