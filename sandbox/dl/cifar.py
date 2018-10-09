@@ -18,10 +18,13 @@ import nengo_dl
 from nengo_dl import SoftLIFRate
 
 import nengo_loihi
-from nengo_loihi.conv import Conv2D, ImageShape, ImageSlice, split_transform
+from nengo_loihi.conv import (
+    Conv2D, ImageShape, ImageSlice, ImageShifter, split_transform)
 
 parser = argparse.ArgumentParser(description="mnist_convnet")
 parser.add_argument('--retrain', action='store_true')
+parser.add_argument('key', nargs='?', default='small',
+                    help="Key for the network architecture to use")
 args = parser.parse_args()
 
 
@@ -215,58 +218,117 @@ def get_outputs(sim, input_data, output_probe):
     return outs
 
 
-checkpoint_base = './checkpoints/cifar'
-
-amp = 0.01
-
-# rate_reg = 1e-2
-rate_reg = 1e-3
-# rate_reg = 1e-9
-max_rate = 100
-rate_target = max_rate * amp  # must be in amplitude scaled units
-
-# load dataset
+# --- load dataset
 from nengo_extras.data import load_cifar10, one_hot_from_labels
 (X_train, y_train), (X_test, y_test), label_names = load_cifar10(label_names=True)
 X_train = X_train.reshape(-1, 3, 32, 32).astype('float32')
 X_test = X_test.reshape(-1, 3, 32, 32).astype('float32')
 
 # basic normalize to [0, 1]
-X_train = X_train / 256.
-X_test = X_test / 256.
+# X_train = X_train / 255.
+# X_test = X_test / 255.
 
 # basic normalize to [-1, 1]
-# X_train = (X_train - 128.) / 256.
-# X_test = (X_test - 128.) / 256.
+X_train = (X_train - 127.5) / 127.5
+X_test = (X_test - 127.5) / 127.5
 
 n_classes = len(label_names)
 T_train = one_hot_from_labels(y_train, n_classes)
 T_test = one_hot_from_labels(y_test, n_classes)
 
 channels_last = False
-input_shape = ImageShape(32, 32, 3, channels_last=channels_last)
+X_shape = ImageShape(32, 32, 3, channels_last=channels_last)
 if channels_last:
     X_train = np.transpose(X_train, (0, 2, 3, 1))
     X_test = np.transpose(X_test, (0, 2, 3, 1))
 
+X_min = X_train.min()
+X_max = X_train.max()
+print("X range: %0.3f, %0.3f" % (X_min, X_max))
+
+# data params and data augmentation
+minibatch_size = 256
+shifter = ImageShifter(X_shape, shift=3, flip=True,
+                       rng=np.random.RandomState(1))
+input_shape = shifter.output_shape
+
+# --- specify network parameters
+checkpoint_base = './checkpoints/cifar_%s' % args.key
+
+max_rate = 100
+amp = 1. / max_rate
+rate_reg = 1e-2
+rate_target = max_rate * amp  # must be in amplitude scaled units
 
 neuron_type = SoftLIFRate(amplitude=amp, sigma=0.01)
-layer_dicts = [
-    # dict(layer_func=TfConv2d('layer1', 2, kernel_size=1), neuron_type=nengo.RectifiedLinear(), on_chip=False),
-    # dict(layer_func=TfConv2d('layer2', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer3', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfConv2d('layer4', 256, kernel_size=3, strides=2), neuron_type=neuron_type),
-    # dict(layer_func=TfDense('layer_out', 10)),
-    dict(layer_func=TfConv2d('layer1', 1, kernel_size=1, initializer=tf.constant_initializer(1)),
-         neuron_type=nengo.RectifiedLinear(amplitude=amp), on_chip=False, no_min_rate=True),
-    # ^ Has to be one channel input for now since we can't send pop spikes to chip
-    dict(layer_func=TfConv2d('layer2', 32, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer3', 64, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfConv2d('layer4', 128, kernel_size=3, strides=2), neuron_type=neuron_type),
-    dict(layer_func=TfDense('layer_out', 10)),
-]
+# neuron_type = nengo.RectifiedLinear(amplitude=amp)
+if args.key == 'small':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+                                 initializer=tf.constant_initializer(1)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer2', 16, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'med':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+                                 initializer=tf.constant_initializer(1)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer2', 16, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 32, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'large':
+    layer_dicts = [
+        # dict(layer_func=TfConv2d('layer1', 1, kernel_size=1,
+        #                          initializer=tf.constant_initializer(1)),
+        #      neuron_type=nengo.RectifiedLinear(amplitude=amp),
+        #      on_chip=False, no_min_rate=True),
+        # # ^ Has to be one channel input for now since we can't send pop spikes to chip
+        dict(layer_func=TfConv2d('layer1', 3, kernel_size=1),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        dict(layer_func=TfConv2d('layer2', 32, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 96, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer4', 256, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'demolike':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 4, kernel_size=1),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        dict(layer_func=TfConv2d('layer2', 64, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 96), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer4', 128, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer5', 128), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer6', 128, kernel_size=1), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+elif args.key == 'demolike2':
+    layer_dicts = [
+        dict(layer_func=TfConv2d('layer1', 4, kernel_size=1,
+                                 initializer=tf.constant_initializer(0.33)),
+             neuron_type=nengo.RectifiedLinear(amplitude=amp),
+             on_chip=False, no_min_rate=True),
+        dict(layer_func=TfConv2d('layer2', 64, strides=2), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer3', 96), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer4', 96), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer5', 96), neuron_type=neuron_type),
+        dict(layer_func=TfConv2d('layer6', 96, kernel_size=1), neuron_type=neuron_type),
+        dict(layer_func=TfDense('layer_out', 10)),
+    ]
+else:
+    raise ValueError("Unrecognized architecture key %r" % (args.key,))
 
-# build the nengo_dl network
+# --- build the nengo_dl network
+print("Building nengo_dl network %r (retrain=%r)" % (args.key, args.retrain))
+
 objective = {}
 rate_probes = collections.OrderedDict()
 with nengo.Network(seed=0) as net:
@@ -323,25 +385,26 @@ with nengo.Network(seed=0) as net:
             else:
                 objective[yp] = partial(
                     percentile_l2_loss_range, weight=rate_reg,
-                    min=0.5*rate_target, max=rate_target, percentile=99.9)
+                    min=0.75*rate_target, max=rate_target, percentile=99.9)
             rate_probes[layer_func] = yp
 
         shape_in = shape_out
         layers.append((fn_layer, neuron_layer))
+        print("Added layer %s %s shape=%s size=%s" % (
+            layer_func, layer_neuron, shape_out, shape_out.size))
 
     out_p = nengo.Probe(x)
     out_p_filt = nengo.Probe(x, synapse=0.1)
 
+objective[out_p] = crossentropy
 
 # set up training/test data
-minibatch_size = 256
-train_inputs = {inp: X_train.reshape(X_train.shape[0], 1, -1)}
+train_inputs = {inp: shifter.center(X_train).reshape(X_train.shape[0], 1, -1)}
 train_targets = {out_p: T_train.reshape(T_train.shape[0], 1, -1)}
-test_inputs = {inp: X_test.reshape(X_test.shape[0], 1, -1)}
+test_inputs = {inp: shifter.center(X_test).reshape(X_test.shape[0], 1, -1)}
 test_targets = {out_p: T_test.reshape(T_test.shape[0], 1, -1)}
-rate_inputs = {inp: X_train[:minibatch_size].reshape(minibatch_size, 1, -1)}
-
-objective[out_p] = crossentropy
+rate_inputs = {inp: shifter.center(X_train[:minibatch_size]).reshape(
+    minibatch_size, 1, -1)}
 
 # train our network in NengoDL
 with nengo_dl.Simulator(net, minibatch_size=minibatch_size) as sim:
@@ -349,17 +412,23 @@ with nengo_dl.Simulator(net, minibatch_size=minibatch_size) as sim:
         sim.load_params(checkpoint_base)
 
     else:
-        print("error before training: %.2f%%" %
+        print("Test error before training: %.2f%%" %
               sim.loss(test_inputs, test_targets, classification_error))
 
         # run training
-        sim.train(train_inputs, train_targets,
-                  tf.train.RMSPropOptimizer(learning_rate=0.001),
-                  objective=objective,
-                  n_epochs=10)
+        n_epochs = 30
+        optimizer = tf.train.RMSPropOptimizer(learning_rate=0.001)
+        for _ in range(n_epochs):
+            train_augmented = {
+                inp: shifter.augment(X_train).reshape(X_train.shape[0], 1, -1)}
+            sim.train(train_augmented, train_targets, optimizer,
+                      objective=objective, n_epochs=1)
+
         sim.save_params(checkpoint_base)
 
-        print("error after training: %.2f%%" %
+        print("Train error after training: %.2f%%" %
+              sim.loss(train_inputs, train_targets, classification_error))
+        print("Test error after training: %.2f%%" %
               sim.loss(test_inputs, test_targets, classification_error))
 
         rates = get_layer_rates(sim, rate_inputs, rate_probes.values(),
@@ -383,6 +452,11 @@ del net  # so we don't accidentally use it
 del x
 
 # --- Spiking network
+presentation_images = shifter.center(X_test).reshape(X_test.shape[0], -1)
+presentation_time = 0.2
+present_images = nengo.processes.PresentInput(
+    presentation_images, presentation_time)
+
 with nengo.Network() as nengo_net:
     nengo_loihi.add_params(nengo_net)  # allow setting on_chip
 
@@ -392,14 +466,11 @@ with nengo.Network() as nengo_net:
     # nengo_net.config[nengo.Connection].synapse = 0.005
     nengo_net.config[nengo.Connection].synapse = 0.01
 
-    presentation_time = 0.2
-    inp = nengo.Node(
-        nengo.processes.PresentInput(
-            X_test.reshape(X_test.shape[0], -1), presentation_time),
-        size_in=0, size_out=X_test[0].size, label='input')
+    inp = nengo.Node(present_images, label='input')
     inp_p = nengo.Probe(inp)
     xx = [inp]
     xslices = [ImageSlice(input_shape)]
+    cores_used = 0
 
     for fn_layer, neuron_layer in layers:
         func = fn_layer.tensor_func
@@ -431,7 +502,7 @@ with nengo.Network() as nengo_net:
                 yslices.append(ImageSlice(image_shape))
             else:
                 split_slices = image_shape.split_channels(
-                    max_size=1024, max_channels=16)
+                    max_size=1024, max_channels=8)
                 for image_slice in split_slices:
                     assert image_slice.size <= 1024
                     idxs = image_slice.channel_idxs()
@@ -441,6 +512,7 @@ with nengo.Network() as nengo_net:
                         label="%s_%d:%d" % (func.name, min(idxs), max(idxs)))
                     yy.append(y.neurons)
                     yslices.append(image_slice)
+                    cores_used += 1
         else:
             output_shape = func.output_shape(func.shape_in)
             assert output_shape.size == fn_layer.size_out
@@ -450,7 +522,8 @@ with nengo.Network() as nengo_net:
                 yslices.append(ImageSlice(output_shape))
                 out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
             else:
-                max_rate = 300.
+                # max_rate = 300.
+                max_rate = 100.
                 gain = max_rate / (ann_out_max - ann_out_min)
                 bias = -gain * ann_out_min
                 y = nengo.Ensemble(output_shape.size, 1, label=func.name,
@@ -459,7 +532,8 @@ with nengo.Network() as nengo_net:
                                    bias=nengo.dists.Choice([bias]))
                 yy.append(y.neurons)
                 yslices.append(ImageSlice(output_shape))
-                out_p = nengo.Probe(y.neurons, synapse=nengo.Alpha(0.01))
+                out_p = nengo.Probe(y.neurons, synapse=nengo.Alpha(0.02))
+                cores_used += 1
 
         assert len(yy) == len(yslices)
 
@@ -475,6 +549,8 @@ with nengo.Network() as nengo_net:
 
     # out_p = nengo.Probe(y, synapse=nengo.Alpha(0.01))
 
+print("Used %d cores" % cores_used)
+
 n_presentations = 10
 with nengo_loihi.Simulator(nengo_net, dt=0.001, precompute=False) as sim:
     sim.run(n_presentations * presentation_time)
@@ -484,7 +560,7 @@ steps_per_pres = int(presentation_time / sim.dt)
 preds = []
 for i in range(0, class_output.shape[0], steps_per_pres):
     c = class_output[i:i + steps_per_pres]
-    c = c[int(0.5 * steps_per_pres):]  # take last part
+    c = c[int(0.7 * steps_per_pres):]  # take last part
     pred = np.argmax(c.sum(axis=0))
     preds.append(pred)
 
@@ -495,13 +571,14 @@ print("Actual:      %s" % (list(y_test[:n_presentations]),))
 plt.figure(figsize=(12, 6))
 
 plt.subplot(2, 1, 1)
-images = X_test if input_shape.channels_last else np.transpose(X_test, (0, 2, 3, 1))
+images = X_test if X_shape.channels_last else np.transpose(X_test, (0, 2, 3, 1))
 ni, nj, nc = images[0].shape
-allimage = np.zeros((ni, nj*n_presentations, nc), dtype=images.dtype)
+allimage = np.zeros((ni, nj*n_presentations, nc))
 for i, image in enumerate(images[:n_presentations]):
     allimage[:, i*nj:(i + 1)*nj] = image
 if allimage.shape[-1] == 1:
     allimage = allimage[:, :, 0]
+allimage = (allimage - X_min) / (X_max - X_min)
 plt.imshow(allimage, aspect='auto', interpolation='none', cmap='gray')
 
 plt.subplot(2, 1, 2)
@@ -509,5 +586,5 @@ plt.plot(sim.trange(), sim.data[out_p])
 plt.legend(label_names, loc='best')
 
 target = sim.target if isinstance(sim, nengo_loihi.Simulator) else 'nengo'
-plt.savefig('cifar_%s.png' % target)
+plt.savefig('cifar_%s_%s.png' % (args.key, target))
 # plt.show()

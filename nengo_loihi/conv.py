@@ -180,6 +180,69 @@ class ImageSlice(ImageShape):
         return ImageSlice(full_shape, channel_slice=channel_slice)
 
 
+class ImageShifter(object):
+    def __init__(self, shape, shift=0, flip=False, shift_std=1., images=None,
+                 rng=np.random):
+        if images is not None:
+            assert images.shape[-3:] == shape.shape()
+
+        self.images = images
+        self.shape = shape
+        self.shift = shift if is_iterable(shift) else (shift, shift)
+        self.shift_std = shift_std if is_iterable(shift_std) else (
+            shift_std, shift_std)
+        self.flip = flip
+        self.rng = rng
+
+        shift_i, shift_j = self.shift
+        self.output_shape = ImageShape(
+            self.shape.rows - 2*shift_i, self.shape.cols - 2*shift_j,
+            self.shape.channels, channels_last=self.shape.channels_last)
+
+    def augment(self, images=None, rng=None):
+        images = self.images if images is None else images
+        rng = self.rng if rng is None else rng
+        assert images.shape[-3:] == self.shape.shape()
+        in_shape = images.shape[-3:]
+        out_shape = self.output_shape.shape()
+        batch_shape = images.shape[:-3]
+        batch_size = np.prod(batch_shape)
+
+        nyi, nyj = self.output_shape.rows, self.output_shape.cols
+        si, sj = self.shift
+        std_i, std_j = self.shift_std
+        pi = np.exp(-0.5 * (np.arange(-si, si+1) / (std_i * si))**2)
+        pj = np.exp(-0.5 * (np.arange(-sj, sj+1) / (std_j * sj))**2)
+        pi /= pi.sum()
+        pj /= pj.sum()
+        ii = rng.choice(np.arange(len(pi)), p=pi, size=batch_size)
+        jj = rng.choice(np.arange(len(pj)), p=pj, size=batch_size)
+        ff = rng.randint(0, 2 if self.flip else 1, size=batch_size)
+
+        out = np.zeros(batch_shape + out_shape, dtype=images.dtype)
+        images_flat = images.reshape((batch_size,) + in_shape)
+        out_flat = out.reshape((batch_size,) + out_shape)
+
+        ch_last = self.shape.channels_last
+        for k, (i, j, f) in enumerate(zip(ii, jj, ff)):
+            image = images_flat[k]
+            image = (image[i:i+nyi, j:j+nyj, :] if ch_last else
+                     image[:, i:i+nyi, j:j+nyj])
+            if f:
+                image = image[:, ::-1, :] if ch_last else image[:, :, ::-1]
+            out_flat[k] = image
+
+        return out
+
+    def center(self, images=None):
+        images = self.images if images is None else images
+        assert images.shape[-3:] == self.shape.shape()
+        si, sj = self.shift
+        ni, nj = self.shape.rows, self.shape.cols
+        return (images[..., si:ni-si, sj:nj-sj, :] if self.shape.channels_last
+                else images[..., :, si:ni-si, sj:nj-sj])
+
+
 # TODO: create a generic superclass for distributions/these (since it's a bit
 # weird to call this a Distribution)
 class Conv2D(Distribution):
