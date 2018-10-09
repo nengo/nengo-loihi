@@ -37,7 +37,7 @@ def numpy_conv2d(x, kernel, strides=(1, 1), mode='valid', channels_last=True):
         nyi = 1 + (ni - si) // sti
         nyj = 1 + (nj - sj) // stj
     else:
-        raise NotImplementedError(self.mode)
+        raise NotImplementedError(mode)
 
     nxi = (nyi - 1)*sti + si
     nxj = (nyj - 1)*stj + sj
