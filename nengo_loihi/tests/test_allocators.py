@@ -1,5 +1,5 @@
 import nengo
-from nengo.exceptions import ValidationError
+from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
@@ -33,8 +33,6 @@ def test_core_stdp_pre_cfgs():
     assert ret_idxs == profile_idxs
 
 
-@pytest.mark.xfail(pytest.config.getoption("--target") != "loihi",
-                   reason="Limits are not checked on emulator")
 def test_group_size(Simulator):
     with nengo.Network() as net:
         nengo.Ensemble(1024, 1)
@@ -45,6 +43,6 @@ def test_group_size(Simulator):
 
     with nengo.Network() as net:
         nengo.Ensemble(1025, 1)
-    with pytest.raises(ValidationError):
+    with pytest.raises(BuildError):
         with Simulator(net):
             pass
