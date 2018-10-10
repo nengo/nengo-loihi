@@ -370,12 +370,14 @@ class Simulator(object):
             self.host_pre = self.networks.host_pre
 
             if len(self.host_pre.all_objects) > 0:
-                self.sims["host_pre"] = nengo.Simulator(
-                    self.host_pre, dt=self.dt, progress_bar=False)
+                self.sims["host_pre"] = nengo.Simulator(self.host_pre,
+                                                        dt=self.dt,
+                                                        progress_bar=False,
+                                                        optimize=False)
 
             if len(self.host.all_objects) > 0:
                 self.sims["host"] = nengo.Simulator(
-                    self.host, dt=self.dt, progress_bar=False)
+                    self.host, dt=self.dt, progress_bar=False, optimize=False)
             elif not precompute:
                 # If there is no host and precompute=False, then all objects
                 # must be on the chip, which is precomputable in the sense that

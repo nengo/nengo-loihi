@@ -597,9 +597,6 @@ class LoihiSimulator(object):
         # --- build
         self.n2board = build_board(self.board)
 
-        if self.use_snips:
-            self.create_io_snip()
-
     def print_cores(self):
         for j, n2chip in enumerate(self.n2board.n2Chips):
             print("Chip %d, id=%d" % (j, n2chip.id))
@@ -607,6 +604,9 @@ class LoihiSimulator(object):
                 print("  Core %d, id=%d" % (k, n2core.id))
 
     def run_steps(self, steps, blocking=True):
+        if self.use_snips and self.nengo_io_h2c is None:
+            self.create_io_snip()
+
         # NOTE: we need to call connect() after snips are created
         self.connect()
         self.n2board.run(steps, aSync=not blocking)

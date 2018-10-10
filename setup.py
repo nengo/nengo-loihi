@@ -45,6 +45,7 @@ setup(
         "nengo>=2.8.0",
     ],
     tests_require=[
+        "nengo-extras",
         "pytest>=3.4,<4",
         "matplotlib>=2.0",
     ],

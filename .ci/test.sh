@@ -13,8 +13,9 @@ function usage {
 }
 
 if [[ "$COMMAND" == "install" ]]; then
-    conda install --quiet matplotlib mkl numpy scipy
-    pip install coverage 'pytest<4'
+    conda install --quiet matplotlib mkl numpy scipy tensorflow
+    pip install coverage 'pytest<4' nengo-extras
+    pip install "git+https://github.com/nengo/nengo-dl.git@conv_transform"
     pip install -e .
 elif [[ "$COMMAND" == "run" ]]; then
     coverage run -m pytest nengo_loihi -v --duration 20 --plots && coverage report

@@ -6,6 +6,7 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
+from nengo_loihi.conv import Conv2D
 from nengo_loihi.loihi_cx import (
     ChipReceiveNode, ChipReceiveNeurons, HostSendNode, HostReceiveNode,
     PESModulatoryTarget)
@@ -296,6 +297,11 @@ def split_host_to_chip(networks, conn):
         intercepts=np.ones(dim * 2) * -1,
         add_to_container=False)
     networks.add(ens, "host")
+
+    if isinstance(conn.transform, Conv2D):
+        raise BuildError(
+            "Conv2D transforms not supported for off-chip to "
+            "on-chip connections where `pre` is not a Neurons object.")
 
     # scale the input spikes based on the radius of the
     # target ensemble
