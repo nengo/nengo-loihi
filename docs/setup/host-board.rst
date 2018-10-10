@@ -147,7 +147,7 @@ Compiling Ubuntu
 ----------------
 
 These steps are based on `this guide
-<https://gnu-linux.org/building-ubuntu-rootfs-for-arm.html>`_.
+<https://web.archive.org/web/20180130073104/https://gnu-linux.org/building-ubuntu-rootfs-for-arm.html>`_.
 These steps should be performed on the superhost.
 You will need root access.
 
