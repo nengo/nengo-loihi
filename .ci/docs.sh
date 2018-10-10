@@ -14,7 +14,9 @@ function usage {
 }
 
 if [[ "$COMMAND" == "install" ]]; then
-    conda install --quiet cython jupyter matplotlib numpy pillow scipy
+    conda install --quiet numpy "pandoc<2"
+    pip install cython jupyter matplotlib pillow requests scipy
+    pip install "git+https://github.com/nengo/nengo-dl.git@conv_transform"
     pip install "git+https://github.com/abr/abr_control.git"
     pip install -e .[docs]
 elif [[ "$COMMAND" == "check" ]]; then

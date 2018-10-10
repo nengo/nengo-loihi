@@ -32,12 +32,14 @@ nengo_loihi/snips/nengo_io.c
 *.pdf
 *.pkl
 *.pkl.gz
+mnist_params.*
 docs/examples/adaptive_motor_control.py
 docs/examples/communication_channel.py
 docs/examples/integrator.py
 docs/examples/integrator_multi_d.py
 docs/examples/keyword_spotting.py
 docs/examples/learn_communication_channel.py
+docs/examples/mnist_convnet.py
 docs/examples/neuron_to_neuron.py
 docs/examples/oscillator.py
 docs/examples/oscillator_nonlinear.py

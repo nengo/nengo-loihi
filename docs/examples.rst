@@ -18,4 +18,5 @@ We compare performance with Nengo core where appropriate.
    examples/neuron_to_neuron
    examples/learn_communication_channel
    examples/keyword_spotting
+   examples/mnist_convnet
    examples/adaptive_motor_control
