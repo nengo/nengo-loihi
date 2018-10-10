@@ -193,10 +193,42 @@ class Core(object):
 
 
 class LoihiSpikeInput(object):
-    class LoihiAxon(object):
-        __slots__ = ['chip_id', 'core_id', 'axon_id', 'atom']
+    """Stores information needed to send spikes to the actual chip.
 
-        def __init__(self, chip_id, core_id, axon_id, atom=0):
+    This acts as a bridge between a SpikeInput and the actual chip.
+    It maps positions in the spike input to actual locations on the chip.
+
+    Attributes
+    ----------
+    axon_map : {int: LoihiAxon}
+        Map from axon indices in the SpikeInput to LoihiAxons targeting
+        particular locations on the chip.
+    """
+
+    class LoihiAxon(object):
+        """Represents an axon going to the chip.
+
+        Parameters
+        ----------
+        axon_type : int
+            The population type of axon. 0 for discrete, 16 for pop16,
+            and 32 for pop32.
+        chip_id : int
+            The actual ID of the target chip on the board.
+        core_id : int
+            The actual ID of the target core on the board.
+        axon_id : int
+            The actual ID of the target axon on the board.
+        atom : int
+            The population index (atom), used if this axon sends population
+            spikes (i.e. axon_type != 0).
+        """
+
+        __slots__ = ['axon_type', 'chip_id', 'core_id', 'axon_id', 'atom']
+
+        def __init__(self, axon_type, chip_id, core_id, axon_id, atom=0):
+            assert axon_type in (0, 16, 32)
+            self.axon_type = axon_type
             self.chip_id = chip_id
             self.core_id = core_id
             self.axon_id = axon_id
@@ -210,6 +242,16 @@ class LoihiSpikeInput(object):
             return "%s(%s)" % (type(self).__name__, self._slots_str())
 
     class LoihiSpike(object):
+        """Represents a spike going to the chip.
+
+        Parameters
+        ----------
+        time : int
+            The timestep at which the spike should be sent to the chip.
+        axon : LoihiSpikeInput.LoihiAxon
+            The axon information to target the spike to a particular chip axon.
+        """
+
         __slots__ = ['time', 'axon']
 
         def __init__(self, time, axon):
@@ -224,26 +266,58 @@ class LoihiSpikeInput(object):
         self.axon_map = {}  # maps cx_spike_input idx to axon in self.axons
         self.sent_count = 0
 
-    def set_axons(self, board, n2board, cx_spike_input):
+    def set_axons(self, board, n2board, spike_input):
+        """Initialize the axon map for this object.
+
+        Parameters
+        ----------
+        board : Board
+            The nengo_loihi object representing the Loihi board.
+        n2board : nxsdk.N2Board
+            The nxsdk object representing the Loihi board.
+        spike_input : SpikeInput
+            The SpikeInput containing information about which axons are
+            to be targeted.
+        """
         assert len(self.axon_map) == 0
-        cx_idxs = np.arange(cx_spike_input.n_neurons)
-        for axon in cx_spike_input.axons:
-            assert (axon.cx_atoms is None or np.all(axon.cx_atoms == 0)), (
-                "Cannot send pop spikes to board")
+        input_idxs = np.arange(spike_input.n_neurons)
+        for axon in spike_input.axons:
+            axon_type = axon.pop_type
+            assert axon_type in (0, 32), "Only discrete and pop32 supported"
             tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(axon.target)
             tchip = n2board.n2Chips[tchip_idx]
             tcore = tchip.n2Cores[tcore_idx]
-            spikes = axon.map_cx_spikes(cx_idxs)
-            for cx_idx, spike in zip(cx_idxs, spikes):
+            spikes = axon.map_cx_spikes(input_idxs)
+            for input_idx, spike in zip(input_idxs, spikes):
                 if spike is not None:
                     taxon_idx = int(spike.axon_id)
                     taxon_id = int(tsyn_ids[taxon_idx])
-                    self.axon_map.setdefault(cx_idx, []).append(self.LoihiAxon(
-                        chip_id=tchip.id, core_id=tcore.id, axon_id=taxon_id))
+                    self.axon_map.setdefault(input_idx, []).append(
+                        self.LoihiAxon(
+                            axon_type=axon_type,
+                            chip_id=tchip.id,
+                            core_id=tcore.id,
+                            axon_id=taxon_id,
+                            atom=spike.atom,
+                        ))
 
-    def spikes_to_loihi(self, t, cx_idxs):
-        for cx_idx in cx_idxs:
-            for axon in self.axon_map[cx_idx]:
+    def spikes_to_loihi(self, t, input_idxs):
+        """Map spike input indices to spikes for the chip.
+
+        Parameters
+        ----------
+        t : int
+            Current timestep.
+        input_idxs : list of int
+            Indices of positions in the SpikeInput that are currently spiking.
+
+        Returns
+        -------
+        spikes : generator of LoihiSpike
+            Spikes targeting physical locations on the chip.
+        """
+        for input_idx in input_idxs:
+            for axon in self.axon_map[input_idx]:
                 yield self.LoihiSpike(time=t, axon=axon)
 
 

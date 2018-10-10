@@ -29,6 +29,10 @@ Release history
   minimum voltages in powers of two), but this will at least provide something
   in the ballpark.
   (`#169 <https://github.com/nengo/nengo-loihi/pull/169>`__)
+- Population spikes can now be used to send information more efficiently
+  to the chip. Population spikes are necessary for larger models
+  like those using CIFAR-10 data.
+  (`#161 <https://github.com/nengo/nengo-loihi/pull/161>`__)
 
 **Changed**
 

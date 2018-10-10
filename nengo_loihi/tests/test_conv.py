@@ -318,8 +318,6 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
 def test_conv_connection(channels, Simulator, seed, rng, plt, allclose):
     # channels_last = True
     channels_last = False
-    if channels > 1:
-        pytest.xfail("Cannot send population spikes to chip")
 
     # load data
     with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
@@ -398,17 +396,19 @@ def test_conv_connection(channels, Simulator, seed, rng, plt, allclose):
     use_nengo_dl = nengo_dl is not None and channels_last
     ndl_out = np.zeros_like(ref_out)
     if use_nengo_dl:
-        with nengo_dl.Simulator(model, dt=dt) as sim:
-            sim.run(pres_time)
-        ndl_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape())
+        with nengo_dl.Simulator(model, dt=dt) as sim_dl:
+            sim_dl.run(pres_time)
+        ndl_out = sim_dl.data[bp].mean(axis=0).reshape(output_shape.shape())
 
-    with nengo_loihi.Simulator(model, dt=dt, target='simreal') as sim:
-        sim.run(pres_time)
-    real_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape())
+    with nengo_loihi.Simulator(model, dt=dt, target='simreal') as sim_real:
+        sim_real.run(pres_time)
+    real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape())
 
-    with Simulator(model, dt=dt) as sim:
-        sim.run(pres_time)
-    sim_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape())
+    with Simulator(model, dt=dt) as sim_loihi:
+        if "loihi" in sim_loihi.sims:
+            sim_loihi.sims["loihi"].snip_max_spikes_per_step = 800
+        sim_loihi.run(pres_time)
+    sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape())
 
     if not output_shape.channels_last:
         ref_out = np.transpose(ref_out, (1, 2, 0))
@@ -447,7 +447,6 @@ def test_conv_connection(channels, Simulator, seed, rng, plt, allclose):
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
-@pytest.mark.xfail  # Pop spikes not yet sent to board
 @pytest.mark.parametrize('channels_last', [True, False])
 def test_conv_input(channels_last, Simulator, plt, allclose):
     input_shape = ImageShape(4, 4, 1, channels_last=channels_last)

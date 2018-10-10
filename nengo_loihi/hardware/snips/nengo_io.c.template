@@ -5,6 +5,7 @@
 #define N_OUTPUTS {{ n_outputs }}
 #define N_ERRORS {{ n_errors }}
 #define MAX_ERROR_LEN {{ max_error_len }}
+#define SPIKE_SIZE 2
 
 int guard_io(runState *s) {
     return 1;
@@ -15,10 +16,12 @@ void nengo_io(runState *s) {
     NeuronCore *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
 {% endfor %}
     CoreId coreId;
+    int32_t axonType, axonId, atom;
+
     int inChannel = getChannelID("nengo_io_h2c");
     int outChannel = getChannelID("nengo_io_c2h");
     int32_t count[1];
-    int32_t spike[2];
+    int32_t spike[SPIKE_SIZE];
     int32_t error_info[2];
     int32_t error_data[MAX_ERROR_LEN];
     int32_t error_index;
@@ -37,10 +40,22 @@ void nengo_io(runState *s) {
     // printf("count %d\n", count[0]);
 
     for (int i=0; i < count[0]; i++) {
-        readChannel(inChannel, spike, 2);
+        readChannel(inChannel, spike, SPIKE_SIZE);
         // printf("send spike %d.%d\n", spike[0], spike[1]);
-        coreId = (CoreId) { .id=spike[0] };
-        nx_send_discrete_spike(s->time, coreId, spike[1]);
+        coreId = (CoreId) { .id=(spike[0] >> 16) };
+        axonId = spike[0] & 0x0000FFFF;
+        axonType = spike[1] >> 16;
+        atom = spike[1] & 0x0000FFFF;
+        // printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
+        //        coreId.id, axonId, axonType, atom);
+        if (axonType == 0) {
+            nx_send_discrete_spike(s->time, coreId, axonId);
+        } else if (axonType == 32) {
+            nx_send_pop32_spike(s->time, coreId, axonId, atom, 0, 0, 0);
+        } else {
+            printf("Got invalid axonType: %d\n", axonType);
+            return;
+        }
     }
 
     // Communicate with learning snip
