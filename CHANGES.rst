@@ -22,7 +22,10 @@ Release history
 0.4.0 (unreleased)
 ==================
 
+**Changed**
 
+- An error is now raised if
+  a learning rule is applied to a non-decoded connection.
 
 0.3.0 (September 28, 2018)
 ==========================
