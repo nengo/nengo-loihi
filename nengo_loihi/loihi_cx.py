@@ -42,8 +42,8 @@ class CxGroup(object):
         Input (synapse) decay constant for each compartment.
     decayV : (n,) ndarray
         Voltage decay constant for each compartment.
-    decayU_set : bool
-        Whether decayU has been explicitly set
+    tau_s : float or None
+        Time constant used to set decayU. None if decayU has not been set.
     scaleU : bool
         Scale input (U) by decayU so that the integral of U is
         the same before and after filtering.
@@ -92,7 +92,7 @@ class CxGroup(object):
 
         self.decayU = np.ones(n, dtype=np.float32)  # default to no filter
         self.decayV = np.zeros(n, dtype=np.float32)  # default to integration
-        self.decayU_set = False  # whether decayU has been explicitly set
+        self.tau_s = None
         self.scaleU = True
         self.scaleV = False
 
@@ -162,7 +162,20 @@ class CxGroup(object):
         assert probe.target is self
         self.probes.append(probe)
 
-    def configure_filter(self, tau_s, dt=0.001, default=False):
+    def configure_default_filter(self, tau_s, dt=0.001):
+        """Set the default Lowpass synaptic input filter for Cx.
+
+        Parameters
+        ----------
+        tau_s : float
+            `nengo.Lowpass` synapse time constant for filtering.
+        dt : float
+            Simulator time step.
+        """
+        if self.tau_s is None:  # don't overwrite a non-default filter
+            self._configure_filter(tau_s, dt=dt)
+
+    def configure_filter(self, tau_s, dt=0.001):
         """Set Lowpass synaptic input filter for Cx to time constant tau_s.
 
         Parameters
@@ -171,21 +184,22 @@ class CxGroup(object):
             `nengo.Lowpass` synapse time constant for filtering.
         dt : float
             Simulator time step.
-        default : bool
-            Whether we are setting the default. Will only override the
-            current value if not explicitly set (i.e. if ``not decayU_set``).
         """
-        if default and self.decayU_set:
+        if self.tau_s is not None and tau_s < self.tau_s:
+            warnings.warn("tau_s is already set to %g, which is larger than "
+                          "%g. Using %g." % (self.tau_s, tau_s, self.tau_s))
             return
+        elif self.tau_s is not None and tau_s > self.tau_s:
+            warnings.warn(
+                "tau_s is currently %g, which is smaller than %g. Overwriting "
+                "tau_s with %g." % (self.tau_s, tau_s, tau_s))
+        self._configure_filter(tau_s, dt=dt)
+        self.tau_s = tau_s
 
+    def _configure_filter(self, tau_s, dt):
         decayU = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
-        if self.decayU_set and not np.allclose(decayU, self.decayU):
-            raise BuildError(
-                "Cannot change tau_s on already configured neurons")
-
         self.decayU[:] = decayU
         self.scaleU = decayU > self.DECAY_SCALE_TH
-        self.decayU_set = not default
         if not self.scaleU:
             raise BuildError(
                 "Current (U) scaling is required. Perhaps a synapse time "

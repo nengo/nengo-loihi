@@ -324,7 +324,7 @@ def build_ensemble(model, ens):
         model.build(ens.neuron_type, ens.neurons, group)
 
     # set default filter just in case no other filter gets set
-    group.configure_filter(model.inter_tau, dt=model.dt, default=True)
+    group.configure_default_filter(model.inter_tau, dt=model.dt)
 
     if ens.noise is not None:
         raise NotImplementedError("Ensemble noise not implemented")
