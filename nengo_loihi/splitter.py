@@ -320,40 +320,27 @@ def split_chip_to_host(networks, conn):
         d=conn.size_mid,
         rng=np.random.RandomState(seed=seed))
 
-    if (isinstance(conn.pre, nengo.ensemble.Neurons)
-            and transform.ndim == 2):
-        # decoders manually specified in the transform
-        # should be handled like a normal decoder
-        probe = nengo.Probe(
-            conn.pre.ensemble,
-            synapse=None,
-            solver=nengo.solvers.NoSolver(transform.T),
-            add_to_container=False,
-        )
-        dims = transform.shape[0]
-        networks.chip2host_params[probe] = dict(
-            learning_rule_type=conn.learning_rule_type,
-            function=lambda x, dims=dims: np.zeros(dims),
-            transform=np.array(1),
-        )
-    else:
-        probe = nengo.Probe(
-            conn.pre,
-            synapse=None,
-            solver=conn.solver,
-            add_to_container=False,
-        )
-        networks.chip2host_params[probe] = dict(
-            learning_rule_type=conn.learning_rule_type,
-            function=conn.function,
-            eval_points=conn.eval_points,
-            scale_eval_points=conn.scale_eval_points,
-            transform=transform
-        )
+    probe = nengo.Probe(
+        conn.pre,
+        synapse=None,
+        solver=conn.solver,
+        add_to_container=False,
+    )
+    networks.chip2host_params[probe] = dict(
+        learning_rule_type=conn.learning_rule_type,
+        function=conn.function,
+        eval_points=conn.eval_points,
+        scale_eval_points=conn.scale_eval_points,
+        transform=transform
+    )
     networks.add(probe, "chip")
     networks.chip2host_receivers[probe] = receive
 
     if conn.learning_rule_type is not None:
+        if not isinstance(conn.pre_obj, nengo.Ensemble):
+            raise NotImplementedError(
+                "Learning rule presynaptic object must be an Ensemble "
+                "(got %r)" % type(conn.pre_obj).__name__)
         networks.needs_sender[conn.learning_rule] = PESModulatoryTarget(probe)
     networks.remove(conn)
 

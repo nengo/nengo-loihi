@@ -56,13 +56,18 @@ def test_manual_decoders(
         pre_probe = nengo.Probe(pre.neurons, synapse=None)
         post_probe = nengo.Probe(post, synapse=None)
 
-    with Simulator(model, precompute=False) as sim:
-        sim.run(0.1)
+    if not use_solver and learn:
+        with pytest.raises(NotImplementedError):
+            with Simulator(model) as sim:
+                pass
+    else:
+        with Simulator(model) as sim:
+            sim.run(0.1)
 
-    # Ensure pre population has a lot of activity
-    assert np.mean(sim.data[pre_probe]) > 100
-    # But that post has no activity due to the zero weights
-    assert np.all(sim.data[post_probe] == 0)
+        # Ensure pre population has a lot of activity
+        assert np.mean(sim.data[pre_probe]) > 100
+        # But that post has no activity due to the zero weights
+        assert np.all(sim.data[post_probe] == 0)
 
 
 def test_place_nodes():
@@ -231,13 +236,7 @@ def test_split_chip_to_host():
                 ens_onchip.neurons, ens_offchip, transform=np.ones((1, 10))),
             nengo.Connection(
                 ens_onchip.neurons, node_offchip, transform=np.ones((1, 10))),
-            nengo.Connection(ens_onchip.neurons, node_offchip,
-                             transform=np.ones((1, 10)),
-                             learning_rule_type=nengo.PES()),
         ]
-        connections.append(
-            nengo.Connection(ens_onchip, connections[-1].learning_rule)
-        )
         connections.append(
             nengo.Connection(ens_onchip, connections[1].learning_rule)
         )
