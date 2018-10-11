@@ -1,3 +1,4 @@
+import nengo
 from nengo.exceptions import SimulationError
 import numpy as np
 import pytest
@@ -52,3 +53,33 @@ def test_strict_mode():
     # Strict mode is a global setting so we set it back to True
     # for subsequent test runs.
     CxSimulator.strict = True
+
+
+def test_tau_s_warning(Simulator):
+    with nengo.Network() as net:
+        stim = nengo.Node(0)
+        ens = nengo.Ensemble(10, 1)
+        nengo.Connection(stim, ens, synapse=0.1)
+        nengo.Connection(ens, ens,
+                         synapse=0.001,
+                         solver=nengo.solvers.LstsqL2(weights=True))
+
+    with pytest.warns(UserWarning) as record:
+        with Simulator(net):
+            pass
+    # The 0.001 synapse is applied first due to splitting rules putting
+    # the stim -> ens connection later than the ens -> ens connection
+    assert any(rec.message.args[0] == (
+        "tau_s is currently 0.001, which is smaller than 0.005. "
+        "Overwriting tau_s with 0.005.") for rec in record)
+
+    with net:
+        nengo.Connection(ens, ens,
+                         synapse=0.1,
+                         solver=nengo.solvers.LstsqL2(weights=True))
+    with pytest.warns(UserWarning) as record:
+        with Simulator(net):
+            pass
+    assert any(rec.message.args[0] == (
+        "tau_s is already set to 0.1, which is larger than 0.005. Using 0.1."
+    ) for rec in record)
