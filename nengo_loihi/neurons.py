@@ -41,6 +41,39 @@ loihi_rate_functions = {
 }
 
 
+class LoihiLIF(nengo.LIF):
+    def rates(self, x, gain, bias, dt=0.001):
+        return loihi_lif_rates(self, x, gain, bias, dt)
+
+    def step_math(self, dt, J, spiked, voltage, refractory_time):
+        tau_ref = dt * np.round(self.tau_ref / dt)
+        refractory_time -= dt
+
+        delta_t = (dt - refractory_time).clip(0, dt)
+        voltage -= (J - voltage) * np.expm1(-delta_t / self.tau_rc)
+
+        spiked_mask = voltage > 1
+        spiked[:] = spiked_mask * (self.amplitude / dt)
+
+        voltage[voltage < self.min_voltage] = self.min_voltage
+        voltage[spiked_mask] = 0
+        refractory_time[spiked_mask] = tau_ref + dt
+
+
+class LoihiSpikingRectifiedLinear(nengo.SpikingRectifiedLinear):
+    def rates(self, x, gain, bias, dt=0.001):
+        return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
+
+    def step_math(self, dt, J, spiked, voltage):
+        voltage += J * dt
+
+        spiked_mask = voltage > 1
+        spiked[:] = spiked_mask * (self.amplitude / dt)
+
+        voltage[voltage < 0] = 0
+        voltage[spiked_mask] = 0
+
+
 class NIFRate(NeuronType):
     """Non-spiking version of the non-leaky integrate-and-fire (NIF) model.
 
