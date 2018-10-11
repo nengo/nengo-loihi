@@ -759,8 +759,7 @@ def conn_probe(model, probe):
         else:
             raise NotImplementedError()
 
-        target = nengo.Node(None, size_in=output_dim,
-                            add_to_container=False)
+        target = nengo.Node(size_in=output_dim, add_to_container=False)
 
         conn = Connection(probe.target, target, synapse=synapse,
                           solver=probe.solver, add_to_container=False,
