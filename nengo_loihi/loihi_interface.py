@@ -382,13 +382,9 @@ class LoihiSimulator(object):
 
         .. warning :: Setting the seed has no effect on stochastic
                       operations run on the Loihi board.
-    snip_max_spikes_per_step : int, optional (Default: 50)
-        Maximum number of spikes that can be sent through
-        the nengo_io_h2c channel on one timestep.
     """
 
-    def __init__(self, cx_model,
-                 use_snips=True, seed=None, snip_max_spikes_per_step=50):
+    def __init__(self, cx_model, use_snips=True, seed=None):
         self.closed = False
         self.check_nxsdk_version()
 
@@ -398,7 +394,10 @@ class LoihiSimulator(object):
         self._snip_probes = {}
         self._cx_probe2probe = {}
         self._chip2host_sent_steps = 0
-        self.snip_max_spikes_per_step = snip_max_spikes_per_step
+
+        # Maximum number of spikes that can be sent through
+        # the nengo_io_h2c channel on one timestep.
+        self.snip_max_spikes_per_step = 50
 
         nxsdk_dir = os.path.realpath(
             os.path.join(os.path.dirname(nxsdk.__file__), "..")
@@ -562,10 +561,11 @@ class LoihiSimulator(object):
         errors = self._host2chip_errors()
         max_spikes = self.snip_max_spikes_per_step
         if len(to_send) > max_spikes:
-            warnings.warn("Too many spikes (%d) sent in one time "
-                          "step.  Increase the value of "
-                          "snip_max_spikes_per_step (currently "
-                          "set to %d)" % (len(to_send), max_spikes))
+            warnings.warn(
+                "Too many spikes (%d) sent in one timestep. Increase the "
+                "value of `snip_max_spikes_per_step` (currently set to %d). "
+                "See\n  https://www.nengo.ai/nengo-loihi/troubleshooting.html"
+                "for details." % (len(to_send), max_spikes))
             del to_send[max_spikes:]
 
         msg = [len(to_send)]
