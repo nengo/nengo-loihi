@@ -13,7 +13,7 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
         stim = nengo.Node(input_fn)
 
         pre = nengo.Ensemble(n_per_dim * dims, dims)
-        post = nengo.Node(None, size_in=dims)
+        post = nengo.Node(size_in=dims)
 
         nengo.Connection(stim, pre, synapse=None)
         conn = nengo.Connection(
@@ -64,8 +64,8 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
     targets = np.linspace(-1, 1, n_errors)
     with nengo.Network(seed=seed) as model:
         pre_ea = nengo.networks.EnsembleArray(200, n_ensembles=n_errors)
-        errors = nengo.Node(None, size_in=n_errors)
-        output = nengo.Node(None, size_in=n_errors)
+        errors = nengo.Node(size_in=n_errors)
+        output = nengo.Node(size_in=n_errors)
 
         target = nengo.Node(targets)
         nengo.Connection(target, errors, transform=-1)

@@ -35,7 +35,7 @@ def test_manual_decoders(
         pre = nengo.Ensemble(50, dimensions=pre_dims,
                              gain=np.ones(50),
                              bias=np.ones(50) * 5)
-        post = nengo.Node(None, size_in=post_dims)
+        post = nengo.Node(size_in=post_dims)
 
         learning_rule_type = nengo.PES() if learn else None
         weights = np.zeros((post_dims, 50))
@@ -221,7 +221,7 @@ def test_split_chip_to_host():
     with nengo.Network() as net:
         ens_onchip = nengo.Ensemble(10, 1)
         ens_offchip = nengo.Ensemble(10, 1)
-        node_offchip = nengo.Node(None, size_in=1)
+        node_offchip = nengo.Node(size_in=1)
         connections = [
             nengo.Connection(ens_onchip, ens_offchip),
             nengo.Connection(
@@ -349,12 +349,12 @@ def test_split_pre_from_host():
     with nengo.Network() as net:
         pre_1 = nengo.Node(0, label="pre_1")
         pre_2 = nengo.Ensemble(10, 1, label="pre_2")
-        pre_3 = nengo.Node(None, size_in=1, label="pre_3")
+        pre_3 = nengo.Node(size_in=1, label="pre_3")
         pre_4 = nengo.Ensemble(1, 1, label="pre_4")
         send = HostSendNode(dimensions=1)
         onchip = nengo.Ensemble(1, 1, label="onchip")
         post1 = nengo.Ensemble(10, 1, label="post1")
-        post2 = nengo.Node(None, size_in=1, label="post2")
+        post2 = nengo.Node(size_in=1, label="post2")
         pre_connections = [
             nengo.Connection(pre_1, pre_2),
             nengo.Connection(pre_2, pre_3),

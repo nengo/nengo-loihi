@@ -16,7 +16,7 @@ def test_precompute(allclose, Simulator, seed, plt):
 
         nengo.Connection(stim, a)
 
-        output = nengo.Node(None, size_in=D)
+        output = nengo.Node(size_in=D)
 
         nengo.Connection(a, output)
 
