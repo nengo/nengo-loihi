@@ -30,6 +30,9 @@ Release history
 **Fixed**
 
 - Snips directory included when pip installing nengo-loihi.
+- Closing ``nengo_loihi.Simulator`` will now close all the inner
+  sub-simulators as well.
+  (`#102 <https://github.com/nengo/nengo-loihi/issues/102>`_)
 
 0.3.0 (September 28, 2018)
 ==========================

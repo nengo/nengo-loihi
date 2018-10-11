@@ -122,3 +122,27 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
 
     assert allclose(loihi_sim.data[ap], nengo_sim.data[ap], atol=0.1, rtol=0.2)
     assert allclose(loihi_sim.data[bp], nengo_sim.data[bp], atol=0.1, rtol=0.2)
+
+
+@pytest.mark.parametrize("precompute", (True, False))
+def test_close(Simulator, precompute, pytestconfig):
+    with nengo.Network() as net:
+        a = nengo.Node([0])
+        b = nengo.Ensemble(10, 1)
+        c = nengo.Node(size_in=1)
+        nengo.Connection(a, b)
+        nengo.Connection(b, c)
+
+    with Simulator(net, precompute=precompute) as sim:
+        pass
+
+    assert sim.closed
+    if pytestconfig.getoption("--target") == "loihi":
+        assert sim.loihi.closed
+    else:
+        assert sim.simulator.closed
+    if precompute:
+        assert sim.host_pre_sim.closed
+        assert sim.host_post_sim.closed
+    else:
+        assert sim.host_sim.closed
