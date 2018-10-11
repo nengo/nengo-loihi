@@ -386,6 +386,8 @@ class LoihiSimulator(object):
     """
 
     def __init__(self, cx_model, seed=None, snip_max_spikes_per_step=50):
+        self.closed = False
+
         self.check_nxsdk_version()
 
         self.n2board = None
@@ -489,6 +491,8 @@ class LoihiSimulator(object):
             logger.debug("cd to %s", self.cwd)
             os.chdir(self.cwd)
             self.cwd = None
+
+        self.closed = True
 
     def _filter_probe(self, cx_probe, data):
         dt = self.model.dt

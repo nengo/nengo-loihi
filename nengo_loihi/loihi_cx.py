@@ -506,6 +506,8 @@ class CxSimulator(object):
     strict = False
 
     def __init__(self, model, seed=None):
+        self.closed = False
+
         self.build(model, seed=seed)
 
         self._probe_filters = {}
@@ -799,3 +801,6 @@ class CxSimulator(object):
         x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
+
+    def close(self):
+        self.closed = True
