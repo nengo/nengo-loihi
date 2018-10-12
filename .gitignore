@@ -31,6 +31,7 @@ nengo_loihi/snips/nengo_io.c
 # For .ipynb examples
 *.pdf
 *.pkl
+docs/examples/adaptive_motor_control.py
 docs/examples/communication_channel.py
 docs/examples/integrator.py
 docs/examples/integrator_multi_d.py
