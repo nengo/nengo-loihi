@@ -29,7 +29,7 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
         p_pre = nengo.Probe(pre, synapse=0.02)
         p_post = nengo.Probe(post, synapse=0.02)
 
-    with Simulator(model, precompute=False) as sim:
+    with Simulator(model) as sim:
         sim.run(5.0)
 
     t = sim.trange()
@@ -81,7 +81,7 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
             nengo.Connection(output[i], conn.learning_rule)
 
         probe = nengo.Probe(output, synapse=0.1)
-    with Simulator(model, precompute=False) as sim:
+    with Simulator(model) as sim:
         sim.run(1.0)
     t = sim.trange()
 

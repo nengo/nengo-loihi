@@ -10,6 +10,6 @@ def test_snip_input_count(Simulator, seed, plt):
         for i in range(30):
             stim = nengo.Node(0.5)
             nengo.Connection(stim, a, synapse=None)
-    with Simulator(model, precompute=False) as sim:
+    with Simulator(model) as sim:
         with pytest.warns(UserWarning, match="Too many spikes"):
             sim.run(0.01)

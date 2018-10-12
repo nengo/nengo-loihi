@@ -77,7 +77,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         nengo.Connection(pre, post, function=function,
                          solver=nengo.solvers.LstsqL2(weights=True))
 
-    with Simulator(model, precompute=False) as sim:
+    with Simulator(model) as sim:
         sim.run(1.0)
 
     x = sim.data[stim_p]
