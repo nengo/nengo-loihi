@@ -526,6 +526,27 @@ class CxSimulator(object):
         else:
             warnings.warn(msg)
 
+    def clear(self):
+        """Clear all signals set in `build` (to free up memory)"""
+        self.q = None
+        self.u = None
+        self.v = None
+        self.s = None
+        self.c = None
+        self.w = None
+
+        self.vth = None
+        self.vmin = None
+        self.vmax = None
+
+        self.bias = None
+        self.ref = None
+        self.a_in = None
+        self.z = None
+
+        self.noiseGen = None
+        self.noiseTarget = None
+
     def build(self, model, seed=None):  # noqa: C901
         """Set up NumPy arrays to emulate chip memory and I/O."""
         model.validate()
@@ -810,3 +831,4 @@ class CxSimulator(object):
 
     def close(self):
         self.closed = True
+        self.clear()
