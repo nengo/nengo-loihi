@@ -34,8 +34,8 @@ def test_simulator_noise(request, plt, seed):
             y = np.column_stack([
                 p.timeSeries.data for p in sim.board.probe_map[probe]])
     else:
-        sim = model.get_simulator(seed=seed)
-        sim.run_steps(1000)
+        with model.get_simulator(seed=seed) as sim:
+            sim.run_steps(1000)
         y = sim.probe_outputs[probe]
 
     plt.plot(y)
