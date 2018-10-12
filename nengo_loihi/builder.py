@@ -6,6 +6,7 @@ import numpy as np
 
 import nengo
 from nengo import Network, Ensemble, Connection, Node, Probe
+from nengo.builder.connection import BuiltConnection
 from nengo.dists import Distribution, get_samples
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
@@ -134,6 +135,12 @@ class Model(CxModel):
         averaged over time will be 1.
         """
         return 1. / (self.dt * self.inter_rate * self.inter_n)
+
+    def __getstate__(self):
+        raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
+
+    def __setstate__(self, state):
+        raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
 
     def __str__(self):
         return "Model: %s" % self.label
@@ -326,12 +333,12 @@ def build_ensemble(model, ens):
     gain, bias, max_rates, intercepts = get_gain_bias(
         ens, rng, model.intercept_limit)
 
-    if isinstance(ens.neuron_type, nengo.Direct):
-        raise NotImplementedError()
-    else:
+    if isinstance(ens.neuron_type, (nengo.LIF, nengo.SpikingRectifiedLinear)):
         group = CxGroup(ens.n_neurons, label='%s' % ens)
         group.bias[:] = bias
         model.build(ens.neuron_type, ens.neurons, group)
+    else:
+        raise NotImplementedError()
 
     # set default filter just in case no other filter gets set
     group.configure_default_filter(model.inter_tau, dt=model.dt)
@@ -400,11 +407,6 @@ def build_node(model, node):
         return
     else:
         raise NotImplementedError()
-
-
-BuiltConnection = collections.namedtuple(
-    'BuiltConnection',
-    ('eval_points', 'solver_info', 'weights', 'transform'))
 
 
 def get_eval_points(model, conn, rng):
@@ -534,7 +536,7 @@ def build_connection(model, conn):
             # TODO: this identity transform may be avoidable
             transform = np.eye(conn.pre.size_out)
         else:
-            assert transform.ndim == 2
+            assert transform.ndim == 2, "transform shape not handled yet"
             assert transform.shape[1] == conn.pre.size_out
 
         assert transform.shape[1] == conn.pre.size_out
@@ -565,7 +567,7 @@ def build_connection(model, conn):
             needs_interneurons = True
     elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
-        assert transform.ndim == 2
+        assert transform.ndim == 2, "transform shape not handled yet"
         weights = transform / model.dt
         neuron_type = conn.pre_obj.ensemble.neuron_type
     else:

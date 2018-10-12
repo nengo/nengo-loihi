@@ -386,7 +386,8 @@ class CxSynapses(object):
         assert weights.shape[0] == self.n_axons
 
         idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
-        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1]
+        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1], (
+            "idxBits out of range, ensemble too large?")
         idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
                        if v >= idxBits)
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
@@ -904,7 +905,7 @@ class CxSimulator(object):
             for probe in group.probes:
                 x_slice = self.group_cxs[probe.target]
                 p_slice = probe.slice
-                assert hasattr(self, probe.key)
+                assert hasattr(self, probe.key), "probe key not found"
                 x = getattr(self, probe.key)[x_slice][p_slice].copy()
                 self.probe_outputs[probe].append(x)
 

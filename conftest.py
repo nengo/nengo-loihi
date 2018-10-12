@@ -8,6 +8,7 @@ import nengo.utils.numpy as npext
 import numpy as np
 import pytest
 
+import nengo.conftest
 from nengo.conftest import plt, TestConfig  # noqa: F401
 from nengo.utils.compat import ensure_bytes
 
@@ -188,3 +189,45 @@ def allclose(request):
         return result
 
     return _allclose
+
+
+def pytest_collection_modifyitems(session, config, items):
+    target = config.getoption("--target")
+    if target != "loihi":
+        return
+
+    hanging_nengo_tests = [
+        "nengo/tests/test_connection.py::test_slicing[LIF]",
+        "nengo/tests/test_connection.py::test_slicing[SpikingRectifiedLinear]",
+        "nengo/tests/test_connection.py::test_slicing_function",
+        "nengo/tests/test_learning_rules.py::test_slicing",
+        "nengo/tests/test_ensemble.py::test_vector[LIF]",
+        "nengo/tests/test_ensemble.py::test_vector[SpikingRectifiedLinear]",
+        "nengo/tests/test_neurons.py::test_direct_mode_nonfinite_value",
+        "nengo/tests/test_neurons.py::test_lif_min_voltage[-inf]",
+        "nengo/tests/test_neurons.py::test_lif_min_voltage[-1]",
+        "nengo/tests/test_neurons.py::test_lif_min_voltage[0]",
+        "nengo/tests/test_neurons.py::test_lif_zero_tau_ref",
+        "nengo/tests/test_node.py::test_none",
+        "nengo/tests/test_node.py::test_invalid_values[inf]",
+        "nengo/tests/test_node.py::test_invalid_values[nan]",
+        "nengo/tests/test_node.py::test_invalid_values[string]",
+        "nengo/utils/tests/test_network.py::"  # no comma
+        "test_activate_direct_mode_learning[learning_rule0-False]",
+        "nengo/utils/tests/test_network.py::"  # no comma
+        "test_activate_direct_mode_learning[learning_rule1-True]",
+        "nengo/utils/tests/test_network.py::"  # no comma
+        "test_activate_direct_mode_learning[learning_rule2-True]",
+        "nengo/utils/tests/test_network.py::"  # no comma
+        "test_activate_direct_mode_learning[learning_rule3-False]",
+    ]
+    deselected = [
+        item for item in items if item.nodeid in hanging_nengo_tests
+    ]
+    config.hook.pytest_deselected(items=deselected)
+    for item in deselected:
+        items.remove(item)
+
+
+nengo.conftest.RefSimulator = Simulator
+nengo.conftest.Simulator = Simulator

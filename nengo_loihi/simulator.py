@@ -44,7 +44,7 @@ class ProbeDict(NengoProbeDict):
                 if key in fallback:
                     target = fallback.raw
                     break
-        assert key in target
+        assert key in target, "probed object not found"
 
         if (key not in self._cache
                 or len(self._cache[key]) != len(target[key])):
@@ -144,13 +144,18 @@ class Simulator(object):
     unsupported = []
 
     def __init__(self, network, dt=0.001, seed=None, model=None,  # noqa: C901
-                 precompute=False, target=None):
+                 precompute=False, target=None, progress_bar=None):
         self.closed = True  # Start closed in case constructor raises exception
+        self._time = 0
+        if progress_bar is not None:
+            raise NotImplementedError("progress bars not implemented")
 
         if model is None:
             # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
         else:
+            assert isinstance(model, Model), (
+                "model is not type 'nengo_loihi.builder.Model'")
             self.model = model
             assert self.model.dt == dt
 
@@ -295,7 +300,8 @@ class Simulator(object):
         for probe in self.model.probes:
             if probe in self.model.chip2host_params:
                 continue
-            assert probe.sample_every is None
+            assert probe.sample_every is None, (
+                "probe.sample_every not implemented")
             assert ("loihi" not in self.sims
                     or "emulator" not in self.sims)
             if "loihi" in self.sims:
@@ -510,7 +516,7 @@ class Simulator(object):
         logger.info("Finished running for %d steps", steps)
         self._probe()
 
-    def trange(self, sample_every=None):
+    def trange(self, sample_every=None, dt=None):
         """Create a vector of times matching probed data.
 
         Note that the range does not start at 0 as one might expect, but at

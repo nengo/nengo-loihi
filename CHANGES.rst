@@ -22,10 +22,7 @@ Release history
 0.4.0 (unreleased)
 ==================
 
-**Changed**
 
-- An error is now raised if
-  a learning rule is applied to a non-decoded connection.
 
 **Fixed**
 
