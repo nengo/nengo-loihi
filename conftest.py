@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 
 import nengo.conftest
-from nengo.conftest import plt, TestConfig  # noqa: F401
+from nengo.conftest import logger, plt, TestConfig  # noqa: F401
 from nengo.utils.compat import ensure_bytes
 
 import nengo_loihi

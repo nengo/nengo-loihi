@@ -165,7 +165,7 @@ def test_pop_tiny(
         ref_out = np.array([[0.0975, 0.02],
                             [0.0825, 0.02],
                             [0.125, 0.055],
-                            [0.1675, 0.0825]])
+                            [0.2475, 0.0825]])
     assert allclose(sim_out[:, :, 0], ref_out, rtol=0, atol=1e-7)
 
 

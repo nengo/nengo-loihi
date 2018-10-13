@@ -22,7 +22,15 @@ Release history
 0.5.0 (unreleased)
 ==================
 
+**Fixed**
 
+- We integrate current (U) and voltage (V) more accurately now by accounting
+  for rounding during the decay process. This integral is used when
+  discretizing weights and firing thresholds. This change significantly
+  improves accuracy for many networks, but in particular dynamical systems
+  like integrators.
+  (`#124 <https://github.com/nengo/nengo-loihi/pull/124>`_,
+  `#114 <https://github.com/nengo/nengo-loihi/issues/114>`_)
 
 0.4.0 (December 6, 2018)
 ========================

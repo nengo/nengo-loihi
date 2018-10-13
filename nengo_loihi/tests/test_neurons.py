@@ -81,5 +81,5 @@ def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
     plt.legend(loc='best')
 
     atol = 1. / t_final  # the fundamental unit for our rates
-    assert allclose(nengo_rates, ref, atol=atol, rtol=0, xtol=0)
-    assert allclose(loihi_rates, ref, atol=atol, rtol=0, xtol=0)
+    assert allclose(nengo_rates, ref, atol=atol, rtol=0, xtol=1)
+    assert allclose(loihi_rates, ref, atol=atol, rtol=0, xtol=1)
