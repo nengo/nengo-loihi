@@ -600,11 +600,15 @@ class SynapseFmt(Profile):
 
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
         s2 = s + self.wgtExp
-        shift(w, s2, out=w)
-        np.left_shift(w, 6, out=w)
-
         if s2 < 0:
             warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
+
+            # round before `s2` right shift, since just shifting would floor
+            # everything resulting in weights biased towards being smaller
+            w = (np.round(w * 2.**s2) / 2**s2).clip(-m, m).astype(dtype)
+
+        shift(w, s2, out=w)
+        np.left_shift(w, 6, out=w)
 
         ws = w // self.scale
         assert np.all(ws <= 255) and np.all(ws >= -256)
