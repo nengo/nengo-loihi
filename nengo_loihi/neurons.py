@@ -11,10 +11,15 @@ from nengo.params import NumberParam
 def loihi_lif_rates(neuron_type, x, gain, bias, dt):
     # discretize tau_ref as per CxGroup.configure_lif
     tau_ref = dt * np.round(neuron_type.tau_ref / dt)
-    j = neuron_type.current(x, gain, bias) - 1
 
+    # discretize tau_rc as per CxGroup.discretize
+    decay_rc = -np.expm1(-dt/neuron_type.tau_rc)
+    decay_rc = np.round(decay_rc * (2**12 - 1)) / (2**12 - 1)
+    tau_rc = -dt/np.log1p(-decay_rc)
+
+    j = neuron_type.current(x, gain, bias) - 1
     out = np.zeros_like(j)
-    period = tau_ref + neuron_type.tau_rc * np.log1p(1. / j[j > 0])
+    period = tau_ref + tau_rc * np.log1p(1. / j[j > 0])
     out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
     return out
 
