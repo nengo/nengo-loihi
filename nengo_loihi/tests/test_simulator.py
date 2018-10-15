@@ -147,8 +147,8 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
         nengo.Connection(a, b, function=lambda x: x**2,
                          solver=nengo.solvers.LstsqL2(weights=True))
 
-        ap = nengo.Probe(a, synapse=0.03)
-        bp = nengo.Probe(b, synapse=0.03)
+        ap = nengo.Probe(a, synapse=nengo.synapses.Alpha(0.02))
+        bp = nengo.Probe(b, synapse=nengo.synapses.Alpha(0.02))
 
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(simtime)
@@ -164,8 +164,8 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
     plt.plot(nengo_sim.trange(), nengo_sim.data[bp])
     plt.plot(loihi_sim.trange(), loihi_sim.data[bp])
 
-    assert allclose(loihi_sim.data[ap], nengo_sim.data[ap], atol=0.1, rtol=0.2)
-    assert allclose(loihi_sim.data[bp], nengo_sim.data[bp], atol=0.1, rtol=0.2)
+    assert allclose(loihi_sim.data[ap], nengo_sim.data[ap], atol=0.07, xtol=3)
+    assert allclose(loihi_sim.data[bp], nengo_sim.data[bp], atol=0.07, xtol=6)
 
 
 @pytest.mark.parametrize("precompute", (True, False))

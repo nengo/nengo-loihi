@@ -46,6 +46,9 @@ Release history
   `#209 <https://github.com/nengo/nengo-loihi/issues/209>`__)
 - Nengo Loihi now requires at least NxSDK version 0.8.0.
   (`#218 <https://github.com/nengo/nengo-loihi/pull/218>`__)
+- The default intercept range set by ``nengo_loihi.set_defaults()`` is now
+  (-1, 0.5), instead of (-0.5, 0.5).
+  (`#126 <https://github.com/nengo/nengo-loihi/pull/126>`__)
 
 **Fixed**
 
