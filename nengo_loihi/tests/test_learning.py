@@ -2,6 +2,8 @@ import nengo
 import numpy as np
 import pytest
 
+import nengo_loihi
+
 
 def test_pes_comm_channel_basic(allclose, plt, seed, Simulator):
     dims = 1
@@ -150,3 +152,71 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
 
     for i, target in enumerate(targets):
         assert allclose(sim.data[probe][t > 0.8, i], target, atol=0.05)
+
+
+@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
+                    reason="need Loihi as comparison")
+@pytest.mark.parametrize('n_per_dim', [120, 200])
+@pytest.mark.parametrize('dims', [1, 3])
+def test_pes_comm_channel_compare(allclose, plt, seed, Simulator, n_per_dim, dims):
+    scale = np.linspace(1, 0, dims + 1)[:-1]
+    input_fn = lambda t: np.sin(t * 2 * np.pi) * scale
+
+    with nengo.Network(seed=seed) as model:
+        stim = nengo.Node(input_fn)
+
+        pre = nengo.Ensemble(n_per_dim * dims, dims)
+        post = nengo.Node(size_in=dims)
+
+        nengo.Connection(stim, pre, synapse=None)
+        conn = nengo.Connection(
+            pre, post,
+            function=lambda x: np.zeros(dims),
+            synapse=0.01,
+            learning_rule_type=nengo.PES(learning_rate=1e-3))
+
+        error = nengo.Node(size_in=dims)
+        nengo.Connection(post, error)
+        nengo.Connection(stim, error, transform=-1)
+        nengo.Connection(error, conn.learning_rule)
+
+        p_stim = nengo.Probe(stim, synapse=0.02)
+        p_pre = nengo.Probe(pre, synapse=0.02)
+        p_post = nengo.Probe(post, synapse=0.02)
+
+    simtime = 2.0
+
+    with nengo.Simulator(model) as nengo_sim:
+        nengo_sim.run(simtime)
+
+    with nengo_loihi.Simulator(model, target='sim') as emulator_sim:
+        emulator_sim.run(simtime)
+
+    with Simulator(model, precompute=False) as loihi_sim:
+        loihi_sim.run(simtime)
+
+    t = emulator_sim.trange()
+
+    plt.subplot(311)
+    plt.plot(t, emulator_sim.data[p_stim], label='target')
+    plt.plot(t, emulator_sim.data[p_pre], label='sim pre')
+    plt.plot(t, emulator_sim.data[p_post], label='sim post')
+    plt.legend(loc=1)
+
+    plt.subplot(312)
+    plt.plot(t, loihi_sim.data[p_stim], label='target')
+    plt.plot(t, loihi_sim.data[p_pre], label='loihi pre')
+    plt.plot(t, loihi_sim.data[p_post], label='loihi post')
+    plt.legend(loc=1)
+
+    plt.subplot(313)
+    plt.plot(t, emulator_sim.data[p_stim], 'k', label='target')
+    plt.plot(t, nengo_sim.data[p_post], label='nengo')
+    plt.plot(t, emulator_sim.data[p_post], label='emulator')
+    plt.plot(t, loihi_sim.data[p_post], label='loihi')
+    plt.legend(loc=1)
+
+    assert allclose(emulator_sim.data[p_post], nengo_sim.data[p_post],
+                    atol=0.08, rtol=0.04)
+    assert allclose(loihi_sim.data[p_post], emulator_sim.data[p_post],
+                    atol=0.1, rtol=0.05)
