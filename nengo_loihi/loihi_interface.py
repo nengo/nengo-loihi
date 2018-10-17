@@ -14,6 +14,7 @@ from nengo.exceptions import SimulationError
 
 try:
     import nxsdk
+    import nxsdk.arch.n2a.compiler.microcodegen.interface as microcodegen_uci
     from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
     from nxsdk.arch.n2a.graph.graph import N2Board
     from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
@@ -157,7 +158,10 @@ def build_core(n2core, core):  # noqa: C901
             requireY=1,
             usesXepoch=1,
         )
-        n2core.stdpUcodeMem[0].word = 0x00102108  # 2^-7 learn rate
+        ucode = microcodegen_uci.ruleToUCode(['dw = u1*x1*y1*(2^-7)'],
+                                             doOptimize=False)
+        assert ucode.numUCodes == 1
+        n2core.stdpUcodeMem[0].word = ucode.uCodes[0]
 
         # stdpProfileCfg negative error
         n2core.stdpProfileCfg[1].configure(
@@ -167,7 +171,10 @@ def build_core(n2core, core):  # noqa: C901
             requireY=1,
             usesXepoch=1,
         )
-        n2core.stdpUcodeMem[1].word = 0x00f02108  # 2^-7 learn rate
+        ucode = microcodegen_uci.ruleToUCode(['dw = -u1*x1*y1*(2^-7)'],
+                                             doOptimize=False)
+        assert ucode.numUCodes == 1
+        n2core.stdpUcodeMem[1].word = ucode.uCodes[0]
 
         tcg = TraceCfgGen()
         tc = tcg.genTraceCfg(
