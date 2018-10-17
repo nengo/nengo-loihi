@@ -137,9 +137,9 @@ def build_core(n2core, core):  # noqa: C901
             axons = np.array(core.synapse_axons[synapse])
             if synapse.tracing:
                 numStdp += len(axons)
-                assert np.all(len(axons) >= firstLearningIndex)
+                assert np.all(axons >= firstLearningIndex)
             else:
-                assert np.all(len(axons) < firstLearningIndex)
+                assert np.all(axons < firstLearningIndex)
 
     if numStdp > 0:
         logger.debug("- Configuring PES learning")
