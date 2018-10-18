@@ -270,9 +270,25 @@ class Simulator(object):
     def __enter__(self):
         if self.loihi is not None:
             self.loihi.__enter__()
+        if self.simulator is not None:
+            self.simulator.__enter__()
+        if self.precompute:
+            self.host_pre_sim.__enter__()
+            self.host_post_sim.__enter__()
+        else:
+            self.host_sim.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if self.loihi is not None:
+            self.loihi.__exit__(exc_type, exc_value, traceback)
+        if self.simulator is not None:
+            self.simulator.__exit__(exc_type, exc_value, traceback)
+        if self.precompute:
+            self.host_pre_sim.__exit__(exc_type, exc_value, traceback)
+            self.host_post_sim.__exit__(exc_type, exc_value, traceback)
+        else:
+            self.host_sim.__exit__(exc_type, exc_value, traceback)
         self.close()
 
     @property
@@ -301,15 +317,16 @@ class Simulator(object):
         `.Simulator.step`, and `.Simulator.reset` on a closed simulator raises
         a ``SimulatorClosed`` exception.
         """
-
-        if self.loihi is not None:
+        if self.loihi is not None and not self.loihi.closed:
             self.loihi.close()
-        if self.simulator is not None:
+        if self.simulator is not None and not self.simulator.closed:
             self.simulator.close()
         if self.precompute:
-            self.host_pre_sim.close()
-            self.host_post_sim.close()
-        else:
+            if not self.host_pre_sim.closed:
+                self.host_pre_sim.close()
+            if not self.host_post_sim.closed:
+                self.host_post_sim.close()
+        elif not self.host_sim.closed:
             self.host_sim.close()
 
         self.closed = True
