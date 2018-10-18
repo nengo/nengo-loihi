@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 
+@pytest.mark.hang
 @pytest.mark.parametrize('n_per_dim', [120, 200])
 @pytest.mark.parametrize('dims', [1, 3])
 def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
@@ -59,6 +60,7 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     assert m_best > (0.3 if n_per_dim < 150 else 0.6)
 
 
+@pytest.mark.hang
 def test_multiple_pes(allclose, plt, seed, Simulator):
     n_errors = 5
     targets = np.linspace(-1, 1, n_errors)
