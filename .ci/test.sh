@@ -18,6 +18,8 @@ if [[ "$COMMAND" == "install" ]]; then
     pip install -e .
 elif [[ "$COMMAND" == "run" ]]; then
     coverage run -m pytest nengo_loihi -v --duration 20 --plots && coverage report
+elif [[ "$COMMAND" == "run-nengo" ]]; then
+    pytest --pyargs nengo
 elif [[ "$COMMAND" == "upload" ]]; then
     eval "bash <(curl -s https://codecov.io/bash)"
 else
