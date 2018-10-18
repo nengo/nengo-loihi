@@ -8,7 +8,6 @@ import nengo.utils.numpy as npext
 from nengo.exceptions import (
     BuildError, ReadonlyError, SimulatorClosed, ValidationError)
 from nengo.simulator import ProbeDict as NengoProbeDict
-from nengo.utils.compat import ResourceWarning
 
 from nengo_loihi.builder import Model
 from nengo_loihi.loihi_cx import CxGroup

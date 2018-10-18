@@ -12,7 +12,6 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 from nengo.solvers import NoSolver, Solver
 from nengo.utils.builder import default_n_eval_points
-from nengo.utils.compat import iteritems
 import nengo.utils.numpy as npext
 
 from nengo_loihi.loihi_cx import (
@@ -841,7 +840,7 @@ probemap = {
 @Builder.register(Probe)
 def build_probe(model, probe):
     # find the right parent class in `objtypes`, using `isinstance`
-    for nengotype, probeables in iteritems(probemap):
+    for nengotype, probeables in probemap.items():
         if isinstance(probe.obj, nengotype):
             break
     else:

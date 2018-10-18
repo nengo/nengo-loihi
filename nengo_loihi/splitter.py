@@ -3,7 +3,6 @@ import logging
 
 import nengo
 from nengo.exceptions import BuildError, SimulationError
-from nengo.utils.compat import iteritems
 import numpy as np
 
 from nengo_loihi import loihi_cx
@@ -74,9 +73,9 @@ class SplitNetworks(object):
                     "%s not moved or explicitly removed" % (obj,))
 
         # Process moves and adds
-        for obj, target in iteritems(self.moves):
+        for obj, target in self.moves.items():
             _add(obj, getattr(self, target))
-        for obj, target in iteritems(self.adds):
+        for obj, target in self.adds.items():
             _add(obj, getattr(self, target))
 
     def location(self, obj, default=None):
