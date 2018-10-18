@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 from nengo.exceptions import BuildError, SimulationError
-from nengo.utils.compat import is_iterable, range
+from nengo.utils.compat import is_iterable
 
 from nengo_loihi.loihi_api import (
     BIAS_MAX,

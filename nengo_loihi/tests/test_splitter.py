@@ -1,6 +1,5 @@
 import pytest
 import nengo
-from nengo.utils.compat import iteritems, itervalues
 import numpy as np
 
 from nengo_loihi.config import add_params
@@ -147,7 +146,7 @@ def test_split_host_neurons_to_chip():
     def assert_split_correctly(split_conn):
         assert len(networks.adds) == 4
         added_types = sorted([(type(obj).__name__, location)
-                              for obj, location in iteritems(networks.adds)])
+                              for obj, location in networks.adds.items()])
         assert added_types == [
             ("ChipReceiveNeurons", "chip"),
             ("Connection", "chip"),
@@ -309,9 +308,9 @@ def test_split_host_to_learning_rule():
         "Connection", "Connection", "HostSendNode", "HostSendNode",
     ]
     assert off2on_ens in networks.removes
-    assert "ens_pes_target" in list(itervalues(networks.host2chip_senders))
+    assert "ens_pes_target" in list(networks.host2chip_senders.values())
     assert off2on_neurons in networks.removes
-    assert "neurons_pes_target" in list(itervalues(networks.host2chip_senders))
+    assert "neurons_pes_target" in list(networks.host2chip_senders.values())
 
 
 def test_place_probes():
