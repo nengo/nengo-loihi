@@ -483,6 +483,7 @@ class LoihiSimulator(object):
             raise SimulationError("Could not connect to the board")
 
     def close(self):
+        self.n2board.finishRun()
         self.n2board.disconnect()
         # TODO: can we chdir back earlier?
         if self.cwd is not None:
