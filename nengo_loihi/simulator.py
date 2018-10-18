@@ -159,6 +159,7 @@ class Simulator(object):
                              % (1. / max_rate, self.dt))
         self.precompute = precompute
         self.networks = None
+        self.sims = {}
 
         self.chip2host_sent_steps = 0  # how many timesteps have been sent
         if network is not None:
@@ -179,12 +180,12 @@ class Simulator(object):
             self.host_pre = self.networks.host_pre
 
             if precompute:
-                self.host_pre_sim = nengo.Simulator(
+                self.sims["host_pre"] = nengo.Simulator(
                     self.host_pre, dt=self.dt, progress_bar=False)
-                self.host_post_sim = nengo.Simulator(
+                self.sims["host_post"] = nengo.Simulator(
                     self.host, dt=self.dt, progress_bar=False)
             else:
-                self.host_sim = nengo.Simulator(
+                self.sims["host"] = nengo.Simulator(
                     self.host, dt=self.dt, progress_bar=False)
 
             # Build the network into the model
@@ -192,20 +193,14 @@ class Simulator(object):
 
         self._probe_outputs = self.model.params
         self.data = ProbeDict(self._probe_outputs)
-        if precompute:
-            self.data.add_fallback(self.host_pre_sim.data)
-            self.data.add_fallback(self.host_post_sim.data)
-        elif self.host_sim is not None:
-            self.data.add_fallback(self.host_sim.data)
+        for sim in self.sims.values():
+            self.data.add_fallback(sim.data)
 
         if seed is None:
             if network is not None and network.seed is not None:
                 seed = network.seed + 1
             else:
                 seed = np.random.randint(npext.maxint)
-
-        self.loihi = None
-        self.simulator = None
 
         if target is None:
             try:
@@ -216,11 +211,11 @@ class Simulator(object):
 
         if target == 'simreal':
             logger.info("Using real-valued simulator")
-            self.simulator = self.model.get_simulator(seed=seed)
+            self.sims["emulator"] = self.model.get_simulator(seed=seed)
         elif target == 'sim':
             logger.info("Using discretized simulator")
             self.model.discretize()  # Make parameters fixed bit widths
-            self.simulator = self.model.get_simulator(seed=seed)
+            self.sims["emulator"] = self.model.get_simulator(seed=seed)
         elif target == 'loihi':
             logger.info(
                 "Using Loihi hardware with precompute=%s", self.precompute)
@@ -249,12 +244,12 @@ class Simulator(object):
                     cx_probe = self.model.objs[probe]['out']
                     self.cx_probe2probe[cx_probe] = probe
 
-            self.loihi = self.model.get_loihi(seed=seed)
+            self.sims["loihi"] = self.model.get_loihi(seed=seed)
         else:
             raise ValidationError("Must be 'simreal', 'sim', or 'loihi'",
                                   attr="target")
 
-        assert self.simulator or self.loihi
+        assert "emulator" in self.sims or "loihi" in self.sims
 
         self.closed = False
         self.reset(seed=seed)
@@ -268,27 +263,13 @@ class Simulator(object):
                 "freed." % self.model, ResourceWarning)
 
     def __enter__(self):
-        if self.loihi is not None:
-            self.loihi.__enter__()
-        if self.simulator is not None:
-            self.simulator.__enter__()
-        if self.precompute:
-            self.host_pre_sim.__enter__()
-            self.host_post_sim.__enter__()
-        else:
-            self.host_sim.__enter__()
+        for sim in self.sims.values():
+            sim.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.loihi is not None:
-            self.loihi.__exit__(exc_type, exc_value, traceback)
-        if self.simulator is not None:
-            self.simulator.__exit__(exc_type, exc_value, traceback)
-        if self.precompute:
-            self.host_pre_sim.__exit__(exc_type, exc_value, traceback)
-            self.host_post_sim.__exit__(exc_type, exc_value, traceback)
-        else:
-            self.host_sim.__exit__(exc_type, exc_value, traceback)
+        for sim in self.sims.values():
+            sim.__exit__(exc_type, exc_value, traceback)
         self.close()
 
     @property
@@ -317,18 +298,10 @@ class Simulator(object):
         `.Simulator.step`, and `.Simulator.reset` on a closed simulator raises
         a ``SimulatorClosed`` exception.
         """
-        if self.loihi is not None and not self.loihi.closed:
-            self.loihi.close()
-        if self.simulator is not None and not self.simulator.closed:
-            self.simulator.close()
-        if self.precompute:
-            if not self.host_pre_sim.closed:
-                self.host_pre_sim.close()
-            if not self.host_post_sim.closed:
-                self.host_post_sim.close()
-        elif not self.host_sim.closed:
-            self.host_sim.close()
 
+        for sim in self.sims.values():
+            if not sim.closed:
+                sim.close()
         self.closed = True
 
     def _probe(self):
@@ -339,17 +312,18 @@ class Simulator(object):
             if probe in self.model.chip2host_params:
                 continue
             assert probe.sample_every is None
-            assert self.loihi is None or self.simulator is None
-            if self.loihi is not None:
-                cx_probe = self.loihi.model.objs[probe]['out']
+            assert ("loihi" not in self.sims
+                    or "emulator" not in self.sims)
+            if "loihi" in self.sims:
+                cx_probe = self.sims["loihi"].model.objs[probe]['out']
                 if cx_probe.use_snip:
                     data = self.snip_probes[probe]
                     if probe.synapse is not None:
                         data = probe.synapse.filt(data, dt=self.dt, y0=0)
                 else:
-                    data = self.loihi.get_probe_output(probe)
-            elif self.simulator is not None:
-                data = self.simulator.get_probe_output(probe)
+                    data = self.sims["loihi"].get_probe_output(probe)
+            elif "emulator" in self.sims:
+                data = self.sims["emulator"].get_probe_output(probe)
             # TODO: stop recomputing this all the time
             del self._probe_outputs[probe][:]
             self._probe_outputs[probe].extend(data)
@@ -429,49 +403,51 @@ class Simulator(object):
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
-        if self.simulator is not None:
+        if "emulator" in self.sims:
             if self.precompute:
-                self.host_pre_sim.run_steps(steps)
+                self.sims["host_pre"].run_steps(steps)
                 self.handle_host2chip_communications()
-                self.simulator.run_steps(steps)
+                self.sims["emulator"].run_steps(steps)
                 self.handle_chip2host_communications()
-                self.host_post_sim.run_steps(steps)
-            elif self.host_sim is None:
-                self.simulator.run_steps(steps)
-            else:
+                self.sims["host_post"].run_steps(steps)
+            elif "host" in self.sims:
                 for i in range(steps):
-                    self.host_sim.step()
+                    self.sims["host"].step()
                     self.handle_host2chip_communications()
-                    self.simulator.step()
+                    self.sims["emulator"].step()
                     self.handle_chip2host_communications()
-        elif self.loihi is not None:
+            else:
+                raise Exception
+                self.sims["emulator"].run_steps(steps)
+        elif "loihi" in self.sims:
             if self.precompute:
-                self.host_pre_sim.run_steps(steps)
+                self.sims["host_pre"].run_steps(steps)
                 self.handle_host2chip_communications()
-                self.loihi.run_steps(steps, blocking=True)
+                self.sims["loihi"].run_steps(steps, blocking=True)
                 self.handle_chip2host_communications()
-                self.host_post_sim.run_steps(steps)
-            elif self.host_sim is not None:
-                self.loihi.create_io_snip()
-                self.loihi.run_steps(steps, blocking=False)
+                self.sims["host_post"].run_steps(steps)
+            elif "host" in self.sims:
+                self.sims["loihi"].create_io_snip()
+                self.sims["loihi"].run_steps(steps, blocking=False)
                 for i in range(steps):
-                    self.host_sim.run_steps(1)
+                    self.sims["host"].run_steps(1)
                     self.handle_host2chip_communications()
                     self.handle_chip2host_communications()
 
                 logger.info("Waiting for completion")
-                self.loihi.wait_for_completion()
+                self.sims["loihi"].wait_for_completion()
                 logger.info("done")
             else:
-                self.loihi.run_steps(steps, blocking=True)
+                raise Exception
+                self.sims["loihi"].run_steps(steps, blocking=True)
 
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
-        if self.simulator is not None:
-            if self.precompute or self.host_sim is not None:
+        if "emulator" in self.sims:
+            if self.precompute or "host" in self.sims:
                 # go through the list of host2chip connections
                 for sender, receiver in self.host2chip_senders.items():
                     learning_rate = 50  # This is set to match hardware
@@ -482,7 +458,7 @@ class Simulator(object):
                             dec_syn = self.model.objs[conn]['decoders']
                             assert dec_syn.tracing
 
-                            z = self.simulator.z[dec_syn]
+                            z = self.sims["emulator"].z[dec_syn]
                             x = np.hstack([-x, x])
 
                             delta_w = np.outer(z, x) * learning_rate
@@ -493,7 +469,7 @@ class Simulator(object):
                         for t, x in sender.queue:
                             receiver.receive(t, x)
                     del sender.queue[:]
-        elif self.loihi is not None:
+        elif "loihi" in self.sims:
             if self.precompute:
                 # go through the list of host2chip connections
                 items = []
@@ -514,7 +490,7 @@ class Simulator(object):
                 if len(items) > 0:
                     for info in sorted(items):
                         spike_input.spike_gen.addSpike(*info)
-            elif self.host_sim is not None:
+            elif "host" in self.sims:
                 to_send = []
                 errors = []
                 # go through the list of host2chip connections
@@ -526,7 +502,8 @@ class Simulator(object):
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_cx = self.model.objs[conn]['decoded']
-                            for core in self.loihi.board.chips[0].cores:
+                            for core in (
+                                    self.sims["loihi"].board.chips[0].cores):
                                 for group in core.groups:
                                     if group == dec_cx:
                                         # TODO: assumes one group per core
@@ -554,7 +531,7 @@ class Simulator(object):
                             sent_count += 1
                         spike_input.sent_count = sent_count
 
-                max_spikes = self.loihi.snip_max_spikes_per_step
+                max_spikes = self.sims["loihi"].snip_max_spikes_per_step
                 if len(to_send) > max_spikes:
                     warnings.warn("Too many spikes (%d) sent in one time "
                                   "step.  Increase the value of "
@@ -568,19 +545,21 @@ class Simulator(object):
                     msg.extend(spike[1:3])
                 for error in errors:
                     msg.extend(error)
-                self.loihi.nengo_io_h2c.write(len(msg), msg)
+                self.sims["loihi"].nengo_io_h2c.write(len(msg), msg)
+            else:
+                raise NotImplementedError()
 
     def handle_chip2host_communications(self):  # noqa: C901
-        if self.simulator is not None:
-            if self.precompute or self.host_sim is not None:
+        if "emulator" in self.sims:
+            if self.precompute or "host" in self.sims:
                 # go through the list of chip2host connections
                 i = self.chip2host_sent_steps
                 increment = None
                 for probe, receiver in self.chip2host_receivers.items():
                     # extract the probe data from the simulator
-                    cx_probe = self.simulator.model.objs[probe]['out']
+                    cx_probe = self.sims["emulator"].model.objs[probe]['out']
 
-                    x = self.simulator.probe_outputs[cx_probe][i:]
+                    x = self.sims["emulator"].probe_outputs[cx_probe][i:]
                     if len(x) > 0:
                         if increment is None:
                             increment = len(x)
@@ -595,14 +574,14 @@ class Simulator(object):
                     self.chip2host_sent_steps += increment
             else:
                 raise NotImplementedError()
-        elif self.loihi is not None:
+        elif "loihi" in self.sims:
             if self.precompute:
                 # go through the list of chip2host connections
                 increment = None
                 for probe, receiver in self.chip2host_receivers.items():
                     # extract the probe data from the simulator
-                    cx_probe = self.loihi.model.objs[probe]['out']
-                    n2probe = self.loihi.board.probe_map[cx_probe]
+                    cx_probe = self.sims["loihi"].model.objs[probe]['out']
+                    n2probe = self.sims["loihi"].board.probe_map[cx_probe]
                     x = np.column_stack([
                         p.timeSeries.data[self.chip2host_sent_steps:]
                         for p in n2probe])
@@ -619,11 +598,11 @@ class Simulator(object):
                                 x[j])
                 if increment is not None:
                     self.chip2host_sent_steps += increment
-            elif self.host_sim is not None:
-                count = self.loihi.nengo_io_c2h_count
-                data = self.loihi.nengo_io_c2h.read(count)
+            elif "host" in self.sims:
+                count = self.sims["loihi"].nengo_io_c2h_count
+                data = self.sims["loihi"].nengo_io_c2h.read(count)
                 time_step, data = data[0], np.array(data[1:])
-                snip_range = self.loihi.nengo_io_snip_range
+                snip_range = self.sims["loihi"].nengo_io_snip_range
                 for cx_probe, probe in self.cx_probe2probe.items():
                     x = data[snip_range[cx_probe]]
                     if cx_probe.key == 's':
