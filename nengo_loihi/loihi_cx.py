@@ -626,6 +626,13 @@ class CxSimulator(object):
         self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
                   for group in self.groups for synapses in group.synapses
                   if synapses.tracing}
+        self.pes_errors = {
+            synapses: np.zeros(group.n//2)
+            for group in self.groups for synapses in group.synapses
+            if synapses.tracing}
+        # ^ Currently, PES learning only happens on Nodes, where we have
+        # pairs of on/off neurons. Therefore, the number of error dimensions
+        # is half the number of neurons.
 
         # --- noise
         enableNoise = np.hstack([
@@ -695,8 +702,11 @@ class CxSimulator(object):
                         qb[0, indices[i]] += weights[i]
                     # qb[delays[indices[i]], indices[i]] += weights[i]
 
-                if synapses.tracing:
-                    z = self.z[synapses]
+                # --- learning trace
+                train_epoch = 2
+
+                z = self.z.get(synapses, None)
+                if z is not None and self.t % train_epoch == 0:
                     tau = synapses.tracing_tau
                     mag = synapses.tracing_mag
 
@@ -704,6 +714,29 @@ class CxSimulator(object):
                     z *= decay
 
                     z += mag * s_in
+
+                # --- learning update
+                learn_epoch = 2 * train_epoch
+                learning_rate = 2**-4  # empirically matches hardware,
+                                       # but where does it come from??
+                                       # There's a 2**-7 learning rate
+                                       # set on stdpProfileCfg.
+
+                pes_e = self.pes_errors.get(synapses, None)
+                if pes_e is not None and self.t % learn_epoch == 0:
+                    assert z is not None
+                    x = np.hstack([-pes_e, pes_e])
+                    delta_w = np.outer(z, x) * learning_rate
+
+                    syn_fmt = synapses.synapse_fmt
+                    assert syn_fmt.isMixed
+                    bits = (syn_fmt.realWgtBits - syn_fmt.isMixed
+                            + syn_fmt.realWgtExp)
+                    for i, w in enumerate(synapses.weights):
+                        w += delta_w[i].astype('int32')
+                        if np.any(w >= 2**bits) or np.any(w < -2**bits):
+                            print("Weight clipping")
+                            np.clip(w, -2**bits, 2**bits - 1, out=w)
 
         # --- updates
         q0 = self.q[0, :]
@@ -756,6 +789,16 @@ class CxSimulator(object):
                 self.probe_outputs[probe].append(x)
 
         self.t += 1
+
+    def clear_pes_errors(self):
+        for synapses in self.pes_errors:
+            self.pes_errors[synapses][:] = 0
+
+    def add_pes_errors(self, synapses, errors):
+        assert synapses.tracing
+        target_errors = self.pes_errors[synapses]
+        assert target_errors.shape == errors.shape
+        target_errors[:] += errors
 
     def run_steps(self, steps):
         """Simulate for the given number of ``dt`` steps.
