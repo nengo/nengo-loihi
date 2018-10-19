@@ -63,7 +63,7 @@ def core_stdp_pre_cfgs(core):
     profile_idxs = {}
     for synapses in core.synapses:
         if synapses.tracing:
-            mag_int, mag_frac = tracing_mag_int_frac(synapses)
+            mag_int, mag_frac = tracing_mag_int_frac(synapses.tracing_mag)
             tracecfg = TraceCfg(
                 tau=synapses.tracing_tau,
                 spikeLevelInt=mag_int,

@@ -635,18 +635,28 @@ def build_connection(model, conn):
         model.objs[conn]['decode_axons'] = dec_ax0
 
         if conn.learning_rule_type is not None:
-            if isinstance(conn.learning_rule_type, nengo.PES):
-                pes_learn_rate = conn.learning_rule_type.learning_rate
-                # scale learning rates to roughly match Nengo
-                # 1e-4 is the Nengo core default learning rate
-                pes_learn_rate *= 4 / 1e-4
-                assert isinstance(conn.learning_rule_type.pre_synapse,
+            rule_type = conn.learning_rule_type
+            if isinstance(rule_type, nengo.PES):
+                assert isinstance(rule_type.pre_synapse,
                                   nengo.synapses.Lowpass)
-                pes_pre_syn = conn.learning_rule_type.pre_synapse.tau
-                # scale pre_syn.tau from s to ms
-                pes_pre_syn *= 1e3
-                dec_syn.set_learning(tracing_tau=pes_pre_syn,
-                                     tracing_mag=pes_learn_rate)
+                tracing_tau = rule_type.pre_synapse.tau / model.dt
+
+                # Nengo builder scales PES learning rate by `dt / n_neurons`,
+                n_neurons = (conn.pre_obj.n_neurons
+                             if isinstance(conn.pre_obj, Ensemble)
+                             else conn.pre_obj.size_in)
+                learning_rate = rule_type.learning_rate * model.dt / n_neurons
+
+                # Tracing mag set so that the magnitude of the pre trace
+                # is independent of the pre tau. `dt` factor accounts for
+                # Nengo's `dt` spike scaling. Where is second `dt` from?
+                # Maybe the fact that post interneurons have `vth = 1/dt`?
+                tracing_mag = -np.expm1(-1. / tracing_tau) / model.dt**2
+
+                dec_syn.set_learning(
+                    learning_rate=learning_rate,
+                    tracing_mag=tracing_mag,
+                    tracing_tau=tracing_tau)
             else:
                 raise NotImplementedError()
 

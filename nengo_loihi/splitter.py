@@ -423,8 +423,24 @@ def split_pre_from_host(networks):  # noqa: C901
 
 
 class PESModulatoryTarget(object):
+    ERROR_SCALE = 100.
+
     def __init__(self, target):
         self.target = target
+
+    def scale_error(self, error, cast=True, clip=True):
+        scaled_error = self.ERROR_SCALE * error
+        if cast:
+            scaled_error = np.round(scaled_error).astype(np.int32)
+        if clip:
+            if np.any(scaled_error > 127):
+                print("PES error > 127, clipping (max %s)"
+                      % (scaled_error.max()))
+            if np.any(scaled_error < -127):
+                print("PES error < -127, clipping (min %s)"
+                      % (scaled_error.min()))
+            np.clip(scaled_error, -127, 127, out=scaled_error)
+        return scaled_error
 
 
 class HostSendNode(nengo.Node):

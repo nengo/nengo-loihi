@@ -444,18 +444,6 @@ class Simulator(object):
         self._probe()
 
     def handle_host2chip_communications(self):  # noqa: C901
-        def scale_error(x):
-            LEARN_ERROR_SCALE = 100.
-            x = np.round(LEARN_ERROR_SCALE * x).astype(np.int32)
-            if np.any(x > 127):
-                print("Learning error > 127, clipping (max %s)"
-                      % (x.max()))
-            if np.any(x < -127):
-                print("Learning error < -127, clipping (min %s)"
-                      % (x.min()))
-            x = np.clip(x, -127, 127, out=x)
-            return x
-
         if self.simulator is not None:
             if self.precompute or self.host_sim is not None:
                 # go through the list of host2chip connections
@@ -467,7 +455,7 @@ class Simulator(object):
                             conn = self.model.probe_conns[probe]
                             dec_syn = self.model.objs[conn]['decoders']
                             self.simulator.add_pes_errors(
-                                dec_syn, scale_error(x))
+                                dec_syn, receiver.scale_error(x))
                     else:
                         for t, x in sender.queue:
                             receiver.receive(t, x)
@@ -500,7 +488,6 @@ class Simulator(object):
                 for sender, receiver in self.host2chip_senders.items():
                     if isinstance(receiver, PESModulatoryTarget):
                         for t, x in sender.queue:
-                            x = scale_error(x)
                             probe = receiver.target
                             conn = self.model.probe_conns[probe]
                             dec_cx = self.model.objs[conn]['decoded']
@@ -512,7 +499,7 @@ class Simulator(object):
                                     break
 
                             assert coreid is not None
-
+                            x = receiver.scale_error(x)
                             errors.append([coreid, len(x)] + x.tolist())
                         del sender.queue[:]
 

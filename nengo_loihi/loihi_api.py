@@ -22,6 +22,16 @@ BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 Q_BITS = 21  # number of bits for synapse accumulator
 U_BITS = 23  # number of bits for cx input (u)
 
+LEARN_BITS = 15  # number of bits in learning accumulator (not incl. sign)
+LEARN_FRAC = 7  # extra least-significant bits added to weights for learning
+
+
+def learn_overflow_bits(n_factors):
+    factor_bits = 7
+    mantissa_bits = 3
+    return factor_bits*n_factors + mantissa_bits - LEARN_BITS - 1
+    # TODO: Where does this extra magic -1 come from? Need it to match chip
+
 
 def overflow_signed(x, bits=7, out=None):
     """Compute overflow on an array of signed integers.
@@ -86,16 +96,9 @@ def bias_to_manexp(bias):
     return man, exp
 
 
-def tracing_mag_int_frac(synapses):
-    mag = synapses.tracing_mag
-    mag = mag / (synapses.size() / 100)
-
+def tracing_mag_int_frac(mag):
     mag_int = int(mag)
-    # TODO: how does mag_frac actually work???
-    #  It's the x in x/128, I believe
     mag_frac = int(128 * (mag - mag_int))
-    # mag_frac = min(int(round(1./mag_frac)), 128)
-
     return mag_int, mag_frac
 
 
@@ -442,6 +445,12 @@ class SynapseFmt(object):
     def isMixed(self):
         return self.fanoutType == 1
 
+    @property
+    def shift_bits(self):
+        """Number of bits the -256..255 weight is right-shifted by for storage.
+        """
+        return 8 - self.realWgtBits + self.isMixed
+
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
         bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
@@ -480,20 +489,34 @@ class SynapseFmt(object):
         assert 0 <= self.idxBits < 8
         assert 1 <= self.fanoutType < 4
 
-    def discretize_weights(self, w, dtype=np.int32):
-        s = 8 - self.realWgtBits + self.isMixed
+    def discretize_weights(self, w, dtype=np.int32, lossy_shift=True,
+                           check_result=True):
+        """Takes weights and returns their quantized values with wgtExp.
+
+        The actual weight to be put on the chip is this returned value
+        divided by the `scale` attribute.
+
+        Parameters
+        ----------
+        w : float ndarray
+            Weights to be discretized, in range -255 to 255.
+        """
+        s = self.shift_bits
         m = 2**(8 - s) - 1
 
         w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
         s2 = s + self.wgtExp
-        shift(w, s2, out=w)
-        np.left_shift(w, 6, out=w)
+        if lossy_shift:
+            shift(w, s2, out=w)
+            np.left_shift(w, 6, out=w)
+            if s2 < 0:
+                warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
+        else:
+            shift(w, 6 + s2, out=w)
 
-        if s2 < 0:
-            warnings.warn("Lost %d extra bits in weight rounding" % (-s2,))
-
-        ws = w // self.scale
-        assert np.all(ws <= 255) and np.all(ws >= -256)
+        if check_result:
+            ws = w // self.scale
+            assert np.all(ws <= 255) and np.all(ws >= -256)
 
         return w
 

@@ -11,7 +11,10 @@ from nengo.utils.compat import is_iterable, range
 from nengo_loihi.loihi_api import (
     BIAS_MAX,
     bias_to_manexp,
+    LEARN_FRAC,
+    learn_overflow_bits,
     overflow_signed,
+    shift,
     SynapseFmt,
     tracing_mag_int_frac,
     Q_BITS, U_BITS,
@@ -261,7 +264,7 @@ class CxGroup(object):
         w_maxs = [s.max_abs_weight() for s in self.synapses]
         w_max = max(w_maxs) if len(w_maxs) > 0 else 0
         b_max = np.abs(self.bias).max()
-        wgtExp = -7
+        wgtExp = 0
 
         if w_max > 1e-8:
             w_scale = (255. / w_max)
@@ -304,7 +307,11 @@ class CxGroup(object):
         discretize(self.bias, bias_man * 2**bias_exp)
 
         for i, synapse in enumerate(self.synapses):
-            if w_maxs[i] > 1e-16:
+            if synapse.tracing:
+                # TODO: scale this properly, hardcoded for now
+                wgtExp2 = 4
+                dWgtExp = wgtExp - wgtExp2
+            elif w_maxs[i] > 1e-16:
                 dWgtExp = int(np.floor(np.log2(w_max / w_maxs[i])))
                 assert dWgtExp >= 0
                 wgtExp2 = max(wgtExp - dWgtExp, -6)
@@ -316,9 +323,40 @@ class CxGroup(object):
                 ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
                 discretize(w, synapse.synapse_fmt.discretize_weights(
                     w * ws * 2**dWgtExp))
-            # TODO: scale this properly, hardcoded for now
+
+            # discretize learning
             if synapse.tracing:
-                synapse.synapse_fmt.wgtExp = 4
+                synapse.tracing_tau = int(np.round(synapse.tracing_tau))
+
+                if is_iterable(w_scale):
+                    assert np.all(w_scale == w_scale[0])
+                w_scale_i = w_scale[0] if is_iterable(w_scale) else w_scale
+
+                ws = w_scale_i * 2**dWgtExp
+                synapse.learning_rate *= ws
+                synapse.learning_rate *= 2**learn_overflow_bits(2)
+
+                # TODO: Currently, Loihi learning rate fixed at 2**-7, but
+                # by using microcode generation it can be adjusted.
+                lscale = 2**-7 / synapse.learning_rate
+                synapse.learning_rate *= lscale
+                synapse.tracing_mag /= lscale
+
+                lr_exp = int(np.floor(np.log2(synapse.learning_rate)))
+                lr_int = int(np.round(synapse.learning_rate * 2**(-lr_exp)))
+                synapse.learning_rate = lr_int * 2**lr_exp
+                synapse._lr_int = lr_int
+                synapse._lr_exp = lr_exp
+                assert lr_exp >= -7
+
+                mag_int, mag_frac = tracing_mag_int_frac(synapse.tracing_mag)
+                if mag_int > 127:
+                    mag_int = 127
+                    mag_frac = 127
+                synapse.tracing_mag = mag_int + mag_frac / 128.
+
+                print("Learning rate: %0.3e, mag: %0.3e" % (
+                    synapse.learning_rate, synapse.tracing_mag))
 
         # --- noise
         assert (v_scale[0] == v_scale).all()
@@ -344,6 +382,8 @@ class CxSynapses(object):
         self.synapse_fmt = None
         self.weights = None
         self.indices = None
+
+        self.learning_rate = 1.
         self.tracing = False
         self.tracing_tau = None
         self.tracing_mag = None
@@ -391,16 +431,25 @@ class CxSynapses(object):
         self.format(compression=3, idxBits=idxBits, fanoutType=1,
                     numSynapses=63, wgtBits=7)
 
-    def set_learning(self, tracing_tau=2, tracing_mag=1.0):
+    def set_learning(self, learning_rate=1., tracing_tau=2, tracing_mag=1.0):
+        from nengo_loihi.splitter import PESModulatoryTarget
+
         assert tracing_tau == int(tracing_tau), "tracing_tau must be integer"
+
+        self.learning_rate = learning_rate
+
         self.tracing = True
         self.tracing_tau = int(tracing_tau)
         self.tracing_mag = tracing_mag
         self.format(learningCfg=1, stdpProfile=0)
         # ^ stdpProfile hard-coded for now (see loihi_interface)
 
-        mag_int, _ = tracing_mag_int_frac(self)
-        assert int(mag_int) < 2**7
+        self.train_epoch = 2
+        self.learn_epoch_k = 1
+        self.learn_epoch = self.train_epoch * 2**self.learn_epoch_k
+
+        self.learning_rate = (self.learning_rate * self.learn_epoch
+                              / PESModulatoryTarget.ERROR_SCALE)
 
     def format(self, **kwargs):
         if self.synapse_fmt is None:
@@ -620,19 +669,64 @@ class CxSimulator(object):
         self.bias = np.hstack([group.bias for group in self.groups])
         self.ref = np.hstack([group.refractDelay for group in self.groups])
 
-        # --- allocate synapse memory
+        # --- allocate synapse/learning memory
+        learning_synapses = [
+            synapses for group in self.groups
+            for synapses in group.synapses if synapses.tracing]
         self.a_in = {synapses: np.zeros(synapses.n_axons, dtype=np.int32)
                      for group in self.groups for synapses in group.synapses}
-        self.z = {synapses: np.zeros(synapses.n_axons, dtype=np.float64)
-                  for group in self.groups for synapses in group.synapses
-                  if synapses.tracing}
-        self.pes_errors = {
-            synapses: np.zeros(group.n//2)
-            for group in self.groups for synapses in group.synapses
-            if synapses.tracing}
+        self.z = {synapses: np.zeros(synapses.n_axons, dtype=group_dtype)
+                  for synapses in learning_synapses}
+        self.z_spikes = {synapses: np.zeros(synapses.n_axons, dtype=bool)
+                         for synapses in learning_synapses}
+        self.pes_errors = {synapses: np.zeros(group.n//2, dtype=group_dtype)
+                           for synapses in learning_synapses}
         # ^ Currently, PES learning only happens on Nodes, where we have
         # pairs of on/off neurons. Therefore, the number of error dimensions
         # is half the number of neurons.
+
+        if group_dtype == np.int32:
+            def stochastic_round(x, dtype=group_dtype, rng=self.rng,
+                                 clip=None, name="values"):
+                x_sign = np.sign(x).astype(dtype)
+                x_frac, x_int = np.modf(np.abs(x))
+                p = rng.rand(*x.shape)
+                y = x_int.astype(dtype) + (x_frac > p)
+                if clip is not None:
+                    q = y > clip
+                    if np.any(q):
+                        warnings.warn("Clipping %s" % name)
+                return x_sign * y
+
+            def trace_round(x, dtype=group_dtype, rng=self.rng):
+                return stochastic_round(x, dtype=dtype, rng=rng,
+                                        clip=127, name="synapse trace")
+
+            def weight_update(synapses, delta_ws):
+                synapse_fmt = synapses.synapse_fmt
+                wgt_exp = synapse_fmt.realWgtExp
+                shift_bits = synapse_fmt.shift_bits
+                overflow = learn_overflow_bits(n_factors=2)
+                for w, delta_w in zip(synapses.weights, delta_ws):
+                    product = shift(
+                        delta_w * synapses._lr_int,
+                        LEARN_FRAC + synapses._lr_exp - overflow)
+                    learn_w = shift(w, LEARN_FRAC - wgt_exp) + product
+                    learn_w[:] = stochastic_round(
+                        learn_w * 2**(-LEARN_FRAC - shift_bits),
+                        clip=2**(8 - shift_bits) - 1, name="weights")
+                    w[:] = np.left_shift(learn_w, wgt_exp + shift_bits)
+
+        elif group_dtype == np.float32:
+            def trace_round(x, dtype=group_dtype):
+                return x  # no rounding
+
+            def weight_update(synapses, delta_ws):
+                for w, delta_w in zip(synapses.weights, delta_ws):
+                    w[:] += delta_w
+
+        self.trace_round = trace_round
+        self.weight_update = weight_update
 
         # --- noise
         enableNoise = np.hstack([
@@ -703,40 +797,28 @@ class CxSimulator(object):
                     # qb[delays[indices[i]], indices[i]] += weights[i]
 
                 # --- learning trace
-                train_epoch = 2
+                z_spikes = self.z_spikes.get(synapses, None)
+                if z_spikes is not None:
+                    if np.any((s_in + z_spikes) > 1):
+                        self.error("Synaptic trace spikes lost")
+                    z_spikes |= s_in > 0
 
                 z = self.z.get(synapses, None)
-                if z is not None and self.t % train_epoch == 0:
+                if z is not None and self.t % synapses.train_epoch == 0:
                     tau = synapses.tracing_tau
                     mag = synapses.tracing_mag
-
-                    decay = np.exp(-1.0 / tau)
-                    z *= decay
-
-                    z += mag * s_in
+                    decay = np.exp(-synapses.train_epoch / tau)
+                    zi = decay*z + mag*z_spikes
+                    z[:] = self.trace_round(zi)
+                    z_spikes[:] = 0
 
                 # --- learning update
-                learn_epoch = 2 * train_epoch
-                learning_rate = 2**-4  # empirically matches hardware,
-                                       # but where does it come from??
-                                       # There's a 2**-7 learning rate
-                                       # set on stdpProfileCfg.
-
                 pes_e = self.pes_errors.get(synapses, None)
-                if pes_e is not None and self.t % learn_epoch == 0:
+                if pes_e is not None and self.t % synapses.learn_epoch == 0:
                     assert z is not None
                     x = np.hstack([-pes_e, pes_e])
-                    delta_w = np.outer(z, x) * learning_rate
-
-                    syn_fmt = synapses.synapse_fmt
-                    assert syn_fmt.isMixed
-                    bits = (syn_fmt.realWgtBits - syn_fmt.isMixed
-                            + syn_fmt.realWgtExp)
-                    for i, w in enumerate(synapses.weights):
-                        w += delta_w[i].astype('int32')
-                        if np.any(w >= 2**bits) or np.any(w < -2**bits):
-                            print("Weight clipping")
-                            np.clip(w, -2**bits, 2**bits - 1, out=w)
+                    delta_w = np.outer(z, x)
+                    self.weight_update(synapses, delta_w)
 
         # --- updates
         q0 = self.q[0, :]
