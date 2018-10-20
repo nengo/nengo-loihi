@@ -5,6 +5,7 @@ import logging
 import warnings
 
 import numpy as np
+import nengo
 from nengo.exceptions import BuildError, SimulationError
 from nengo.utils.compat import is_iterable
 
@@ -479,13 +480,6 @@ class CxModel(object):
         for group in self.cx_groups:
             group.discretize()
 
-    def get_loihi(self, seed=None):
-        from nengo_loihi.loihi_interface import LoihiSimulator
-        return LoihiSimulator(self, seed=seed)
-
-    def get_simulator(self, seed=None):
-        return CxSimulator(self, seed=seed)
-
     def validate(self):
         if len(self.cx_groups) == 0:
             raise BuildError("No neurons marked for execution on-chip. "
@@ -510,6 +504,7 @@ class CxSimulator(object):
 
         self.build(model, seed=seed)
 
+        self._chip2host_sent_steps = 0
         self._probe_filters = {}
         self._probe_filter_pos = {}
 
@@ -525,27 +520,6 @@ class CxSimulator(object):
             raise SimulationError(msg)
         else:
             warnings.warn(msg)
-
-    def clear(self):
-        """Clear all signals set in `build` (to free up memory)"""
-        self.q = None
-        self.u = None
-        self.v = None
-        self.s = None
-        self.c = None
-        self.w = None
-
-        self.vth = None
-        self.vmin = None
-        self.vmax = None
-
-        self.bias = None
-        self.ref = None
-        self.a_in = None
-        self.z = None
-
-        self.noiseGen = None
-        self.noiseTarget = None
 
     def build(self, model, seed=None):  # noqa: C901
         """Set up NumPy arrays to emulate chip memory and I/O."""
@@ -683,6 +657,76 @@ class CxSimulator(object):
 
         self.noiseGen = noiseGen
         self.noiseTarget = noiseTarget
+
+    def clear(self):
+        """Clear all signals set in `build` (to free up memory)"""
+        self.q = None
+        self.u = None
+        self.v = None
+        self.s = None
+        self.c = None
+        self.w = None
+
+        self.vth = None
+        self.vmin = None
+        self.vmax = None
+
+        self.bias = None
+        self.ref = None
+        self.a_in = None
+        self.z = None
+
+        self.noiseGen = None
+        self.noiseTarget = None
+
+    def close(self):
+        self.closed = True
+        self.clear()
+
+    def chip2host(self):
+        # go through the list of chip2host connections
+        increment = None
+        for probe, receiver in self.model.chip2host_receivers.items():
+            # extract the probe data from the simulator
+            cx_probe = self.model.objs[probe]['out']
+            x = self.probe_outputs[cx_probe][self._chip2host_sent_steps:]
+            if len(x) > 0:
+                if increment is None:
+                    increment = len(x)
+                else:
+                    assert increment == len(x)
+                if cx_probe.weights is not None:
+                    x = np.dot(x, cx_probe.weights)
+                for j in range(len(x)):
+                    receiver.receive(
+                        self.model.dt * (self._chip2host_sent_steps + j + 2),
+                        x[j]
+                    )
+        if increment is not None:
+            self._chip2host_sent_steps += increment
+
+    def host2chip(self):
+        # go through the list of host2chip connections
+        for sender, receiver in self.model.host2chip_senders.items():
+            learning_rate = 50  # This is set to match hardware
+            if isinstance(receiver, PESModulatoryTarget):
+                for t, x in sender.queue:
+                    probe = receiver.target
+                    conn = self.model.probe_conns[probe]
+                    dec_syn = self.model.objs[conn]['decoders']
+                    assert dec_syn.tracing
+
+                    z = self.z[dec_syn]
+                    x = np.hstack([-x, x])
+
+                    delta_w = np.outer(z, x) * learning_rate
+
+                    for i, w in enumerate(dec_syn.weights):
+                        w += delta_w[i].astype('int32')
+            else:
+                for t, x in sender.queue:
+                    receiver.receive(t, x)
+            del sender.queue[:]
 
     def step(self):  # noqa: C901
         """Advance the simulation by 1 step (``dt`` seconds)."""
@@ -829,6 +873,68 @@ class CxSimulator(object):
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
         return self._filter_probe(cx_probe, x)
 
-    def close(self):
-        self.closed = True
-        self.clear()
+
+class PESModulatoryTarget(object):
+    def __init__(self, target):
+        self.target = target
+
+
+class HostSendNode(nengo.Node):
+    """For sending host->chip messages"""
+
+    def __init__(self, dimensions):
+        self.queue = []
+        super(HostSendNode, self).__init__(self.update,
+                                           size_in=dimensions, size_out=0)
+
+    def update(self, t, x):
+        assert len(self.queue) == 0 or t > self.queue[-1][0]
+        self.queue.append((t, x))
+
+
+class HostReceiveNode(nengo.Node):
+    """For receiving chip->host messages"""
+
+    def __init__(self, dimensions):
+        self.queue = [(0, np.zeros(dimensions))]
+        self.queue_index = 0
+        super(HostReceiveNode, self).__init__(self.update,
+                                              size_in=0, size_out=dimensions)
+
+    def update(self, t):
+        while (len(self.queue) > self.queue_index + 1
+               and self.queue[self.queue_index][0] < t):
+            self.queue_index += 1
+        return self.queue[self.queue_index][1]
+
+    def receive(self, t, x):
+        self.queue.append((t, x))
+
+
+class ChipReceiveNode(nengo.Node):
+    """For receiving host->chip messages"""
+
+    def __init__(self, dimensions, size_out):
+        self.raw_dimensions = dimensions
+        self.cx_spike_input = CxSpikeInput(
+            np.zeros((0, dimensions), dtype=bool))
+        self.last_time = None
+        super(ChipReceiveNode, self).__init__(self.update,
+                                              size_in=0, size_out=size_out)
+
+    def update(self, t):
+        raise SimulationError("ChipReceiveNodes should not be run")
+
+    def receive(self, t, x):
+        assert self.last_time is None or t > self.last_time
+        # TODO: make this stacking efficient
+        self.cx_spike_input.spikes = np.vstack([self.cx_spike_input.spikes,
+                                                [x > 0]])
+        self.last_time = t
+
+
+class ChipReceiveNeurons(ChipReceiveNode):
+    """Passes spikes directly (no on-off neuron encoding)"""
+    def __init__(self, dimensions, neuron_type=None):
+        self.neuron_type = neuron_type
+        super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)

@@ -10,6 +10,7 @@ import warnings
 import jinja2
 import numpy as np
 
+import nengo
 from nengo.exceptions import SimulationError
 
 try:
@@ -30,6 +31,7 @@ except ImportError:
 from nengo_loihi.allocators import one_to_one_allocator
 from nengo_loihi.loihi_api import (
     CX_PROFILES_MAX, VTH_PROFILES_MAX, bias_to_manexp)
+from nengo_loihi.loihi_cx import CxGroup, PESModulatoryTarget
 
 logger = logging.getLogger(__name__)
 
@@ -385,14 +387,17 @@ class LoihiSimulator(object):
         the nengo_io_h2c channel on one timestep.
     """
 
-    def __init__(self, cx_model, seed=None, snip_max_spikes_per_step=50):
+    def __init__(self, cx_model,
+                 use_snips=True, seed=None, snip_max_spikes_per_step=50):
         self.closed = False
-
         self.check_nxsdk_version()
 
         self.n2board = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
+        self._snip_probes = {}
+        self._cx_probe2probe = {}
+        self._chip2host_sent_steps = 0
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
 
         nxsdk_dir = os.path.realpath(
@@ -409,7 +414,7 @@ class LoihiSimulator(object):
         # from previous simulators
         N2SpikeProbe.probeDict.clear()
 
-        self.build(cx_model, seed=seed)
+        self.build(cx_model, use_snips=use_snips, seed=seed)
 
     def __enter__(self):
         return self
@@ -435,8 +440,30 @@ class LoihiSimulator(object):
                           "version (%s); latest fully supported version is "
                           "%s" % (version, max_tested))
 
-    def build(self, cx_model, seed=None):
+    def build(self, cx_model, use_snips=True, seed=None):
         cx_model.validate()
+
+        if use_snips:
+            # tag all probes as being snip-based,
+            # having normal probes at the same time as snips causes problems
+            for group in cx_model.cx_groups.keys():
+                for cx_probe in group.probes:
+                    cx_probe.use_snip = True
+            # create a place to store data from snip probes
+            for probe in cx_model.probes:
+                self._snip_probes[probe] = []
+
+            # map CxProbes to their nengo.Probes
+            for obj in cx_model.objs:
+                if isinstance(obj, nengo.Probe):
+                    # actual nengo.Probes on chip objects
+                    cx_probe = cx_model.objs[obj]['out']
+                    self._cx_probe2probe[cx_probe] = obj
+            for probe in cx_model.chip2host_receivers:
+                # probes used for chip->host communication
+                cx_probe = cx_model.objs[probe]['out']
+                self._cx_probe2probe[cx_probe] = probe
+
         self.model = cx_model
 
         # --- allocate --
@@ -457,6 +484,140 @@ class LoihiSimulator(object):
         # NOTE: we need to call connect() after snips are created
         self.connect()
         self.n2board.run(steps, aSync=not blocking)
+
+    def chip2host(self):
+        count = self.nengo_io_c2h_count
+        data = self.nengo_io_c2h.read(count)
+        time_step, data = data[0], np.array(data[1:])
+        snip_range = self.nengo_io_snip_range
+        for cx_probe, probe in self._cx_probe2probe.items():
+            x = data[snip_range[cx_probe]]
+            if cx_probe.key == 's':
+                if isinstance(cx_probe.target, CxGroup):
+                    refract_delays = cx_probe.target.refractDelay
+                else:
+                    refract_delays = 1
+
+                # Loihi uses the voltage value to indicate where we
+                # are in the refractory period. We want to find neurons
+                # starting their refractory period.
+                x = (x == refract_delays * 128)
+            if cx_probe.weights is not None:
+                x = np.dot(x, cx_probe.weights)
+            receiver = self.model.chip2host_receivers.get(probe, None)
+            if receiver is not None:
+                # chip->host
+                receiver.receive(self.model.dt * time_step, x)
+            else:
+                # onchip probes
+                self._snip_probes[probe].append(x)
+
+    def chip2host_precomputed(self):
+        # TODO: this is almost identical to CxSimulator.chip2host
+        increment = None
+        for probe, receiver in self.model.chip2host_receivers.items():
+            # extract the probe data from the simulator
+            cx_probe = self.model.objs[probe]['out']
+            n2probe = self.board.probe_map[cx_probe]
+            x = np.column_stack([
+                p.timeSeries.data[self._chip2host_sent_steps:]
+                for p in n2probe])
+            if len(x) > 0:
+                if increment is None:
+                    increment = len(x)
+                else:
+                    assert increment == len(x)
+                if cx_probe.weights is not None:
+                    x = np.dot(x, cx_probe.weights)
+                for j in range(len(x)):
+                    receiver.receive(
+                        self.model.dt * (self._chip2host_sent_steps + j + 2),
+                        x[j])
+        if increment is not None:
+            self._chip2host_sent_steps += increment
+
+    def send_spikes(self):
+        # TODO: this is almost the same as _host2chip_spikes
+        items = []
+        for sender, receiver in self.model.host2chip_senders.items():
+            for t, x in sender.queue:
+                receiver.receive(t, x)
+            del sender.queue[:]
+            spike_input = receiver.cx_spike_input
+            sent_count = spike_input.sent_count
+            while sent_count < len(spike_input.spikes):
+                for j, s in enumerate(spike_input.spikes[sent_count]):
+                    if s:
+                        for output_axon in spike_input.axon_ids:
+                            items.append(
+                                (sent_count,) + output_axon[j])
+                sent_count += 1
+            spike_input.sent_count = sent_count
+        if len(items) > 0:
+            for info in sorted(items):
+                spike_input.spike_gen.addSpike(*info)
+
+    def host2chip(self):
+        to_send = self._host2chip_spikes()
+        errors = self._host2chip_errors()
+        max_spikes = self.snip_max_spikes_per_step
+        if len(to_send) > max_spikes:
+            warnings.warn("Too many spikes (%d) sent in one time "
+                          "step.  Increase the value of "
+                          "snip_max_spikes_per_step (currently "
+                          "set to %d)" % (len(to_send), max_spikes))
+            del to_send[max_spikes:]
+
+        msg = [len(to_send)]
+        for spike in to_send:
+            assert spike[0] == 0
+            msg.extend(spike[1:3])
+        for error in errors:
+            msg.extend(error)
+        self.nengo_io_h2c.write(len(msg), msg)
+
+    def _host2chip_spikes(self):
+        to_send = []
+        for sender, receiver in self.model.host2chip_senders.items():
+            if hasattr(receiver, "receive"):
+                for t, x in sender.queue:
+                    receiver.receive(t, x)
+                del sender.queue[:]
+                spike_input = receiver.cx_spike_input
+                sent_count = spike_input.sent_count
+                axon_ids = spike_input.axon_ids
+                spikes = spike_input.spikes
+                while sent_count < len(spikes):
+                    for j, s in enumerate(spikes[sent_count]):
+                        if s:
+                            for output_axon in axon_ids:
+                                to_send.append(output_axon[j])
+                    sent_count += 1
+                spike_input.sent_count = sent_count
+        return to_send
+
+    def _host2chip_errors(self):
+        errors = []
+        for sender, receiver in self.model.host2chip_senders.items():
+            if isinstance(receiver, PESModulatoryTarget):
+                for t, x in sender.queue:
+                    x = (100 * x).astype(int)
+                    x = np.clip(x, -100, 100, out=x)
+                    probe = receiver.target
+                    conn = self.model.probe_conns[probe]
+                    dec_cx = self.model.objs[conn]['decoded']
+                    for core in self.board.chips[0].cores:
+                        for group in core.groups:
+                            if group == dec_cx:
+                                # TODO: assumes one group per core
+                                coreid = core.learning_coreid
+                            break
+
+                    assert coreid is not None
+
+                    errors.append([coreid, len(x)] + x.tolist())
+                del sender.queue[:]
+        return errors
 
     def wait_for_completion(self):
         self.n2board.finishRun()
@@ -520,6 +681,12 @@ class LoihiSimulator(object):
 
     def get_probe_output(self, probe):
         cx_probe = self.model.objs[probe]['out']
+        if cx_probe.use_snip:
+            data = self._snip_probes[probe]
+            if probe.synapse is not None:
+                return probe.synapse.filt(data, dt=self.model.dt, y0=0)
+            else:
+                return data
         n2probe = self.board.probe_map[cx_probe]
         x = np.column_stack([p.timeSeries.data for p in n2probe])
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)

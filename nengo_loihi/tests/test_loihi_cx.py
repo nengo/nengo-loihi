@@ -6,6 +6,7 @@ import pytest
 from nengo_loihi.loihi_api import VTH_MAX
 from nengo_loihi.loihi_cx import (
     CxAxons, CxGroup, CxModel, CxProbe, CxSimulator, CxSpikeInput, CxSynapses)
+from nengo_loihi.loihi_interface import LoihiSimulator
 
 
 def test_simulator_noise(request, plt, seed):
@@ -29,12 +30,12 @@ def test_simulator_noise(request, plt, seed):
     model.discretize()
 
     if target == 'loihi':
-        with model.get_loihi(seed=seed) as sim:
+        with LoihiSimulator(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(1000)
             y = np.column_stack([
                 p.timeSeries.data for p in sim.board.probe_map[probe]])
     else:
-        with model.get_simulator(seed=seed) as sim:
+        with CxSimulator(model, seed=seed) as sim:
             sim.run_steps(1000)
         y = sim.probe_outputs[probe]
 
@@ -131,7 +132,7 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     assert CxSimulator.strict  # Tests should be run in strict mode
     CxSimulator.strict = False
     try:
-        emu = model.get_simulator()
+        emu = CxSimulator(model)
         with pytest.warns(UserWarning):
             emu.run_steps(nt)
     finally:
@@ -141,7 +142,7 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     emu_v = np.array(emu.probe_outputs[probe_v])
     emu_s = np.array(emu.probe_outputs[probe_s])
 
-    with model.get_loihi() as sim:
+    with LoihiSimulator(model, use_snips=False) as sim:
         sim.run_steps(nt)
         sim_u = np.column_stack([
             p.timeSeries.data for p in sim.board.probe_map[probe_u]])
