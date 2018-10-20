@@ -1,3 +1,5 @@
+import inspect
+
 import nengo
 import numpy as np
 import pytest
@@ -138,3 +140,121 @@ def test_close(Simulator, precompute):
 
     assert sim.closed
     assert all(s.closed for s in sim.sims.values())
+
+
+def test_all_run_steps(Simulator):
+    # Case 1. No objects on host, so no host and no host_pre
+    with nengo.Network() as net:
+        pre = nengo.Ensemble(10, 1)
+        post = nengo.Ensemble(10, 1)
+        nengo.Connection(pre, post)
+
+    # 1a. precompute=False, no host
+    with Simulator(net) as sim:
+        sim.run(0.001)
+    # Since no objects on host, we should be precomputing even if we did not
+    # explicitly request precomputing
+    assert sim.precompute
+    assert inspect.ismethod(sim._run_steps)
+    assert sim._run_steps.__name__ == "run_steps"
+
+    # 1b. precompute=True, no host, no host_pre
+    with pytest.warns(UserWarning) as record:
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.001)
+    assert any("No precomputable objects" in r.message.args[0] for r in record)
+    assert inspect.ismethod(sim._run_steps)
+    assert sim._run_steps.__name__ == "run_steps"
+
+    # Case 2: Add a precomputable off-chip object, so we have either host or
+    # host_pre but not both host and host_pre
+    with net:
+        stim = nengo.Node(1)
+        stim_conn = nengo.Connection(stim, pre)
+
+    # 2a. precompute=False, host
+    with Simulator(net) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+    # 2b. precompute=True, no host, host_pre
+    with Simulator(net, precompute=True) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
+
+    # Case 3: Add a non-precomputable off-chip object so we have host
+    # and host_pre
+    with net:
+        out = nengo.Node(size_in=1)
+        nengo.Connection(post, out)
+
+    # 3a. precompute=False, host (same as 2a)
+    with Simulator(net) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+    # 3b. precompute=True, host, host_pre
+    with Simulator(net, precompute=True) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+
+    # Case 4: Delete the precomputable off-chip object, so we have host only
+    net.nodes.remove(stim)
+    net.connections.remove(stim_conn)
+
+    # 4a. precompute=False, host (same as 2a and 3a)
+    with Simulator(net) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+    # 4b. precompute=True, host, no host_pre
+    with pytest.warns(UserWarning) as record:
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.001)
+    assert any("No precomputable objects" in r.message.args[0] for r in record)
+    assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+
+
+def test_no_precomputable(Simulator):
+    with nengo.Network() as net:
+        active_ens = nengo.Ensemble(10, 1,
+                                    gain=np.ones(10) * 10,
+                                    bias=np.ones(10) * 10)
+        out = nengo.Node(size_in=10)
+        nengo.Connection(active_ens.neurons, out)
+        out_p = nengo.Probe(out)
+
+    with pytest.warns(UserWarning) as record:
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.01)
+
+    assert sim._run_steps.__name__.endswith("precomputed_host_only")
+    # Should warn that no objects are precomputable
+    assert any("No precomputable objects" in r.message.args[0] for r in record)
+    # But still mark the sim as precomputable for speed reasons, because
+    # there are no inputs that depend on outputs in this case
+    assert sim.precompute
+    assert sim.data[out_p].shape[0] == sim.trange().shape[0]
+    assert np.all(sim.data[out_p][-1] > 100)
+
+
+def test_all_onchip(Simulator):
+    with nengo.Network() as net:
+        active_ens = nengo.Ensemble(10, 1,
+                                    gain=np.ones(10) * 10,
+                                    bias=np.ones(10) * 10)
+        out = nengo.Ensemble(10, 1, gain=np.ones(10), bias=np.ones(10))
+        nengo.Connection(active_ens.neurons, out.neurons,
+                         transform=np.eye(10) * 10)
+        out_p = nengo.Probe(out.neurons)
+
+    with Simulator(net) as sim:
+        sim.run(0.01)
+
+    # Though we did not specify precompute, the model should be marked as
+    # precomputable because there are no off-chip objects
+    assert sim.precompute
+    assert inspect.ismethod(sim._run_steps)
+    assert sim._run_steps.__name__ == "run_steps"
+    assert sim.data[out_p].shape[0] == sim.trange().shape[0]
+    assert np.all(sim.data[out_p][-1] > 100)

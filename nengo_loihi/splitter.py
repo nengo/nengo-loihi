@@ -1,11 +1,14 @@
 from collections import defaultdict
 import logging
+import warnings
 
 import nengo
-from nengo.exceptions import BuildError, SimulationError
+from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi import loihi_cx
+from nengo_loihi.loihi_cx import (
+    ChipReceiveNode, ChipReceiveNeurons, HostSendNode, HostReceiveNode,
+    PESModulatoryTarget)
 from nengo_loihi.neurons import NIF
 
 logger = logging.getLogger(__name__)
@@ -125,8 +128,9 @@ def split(net, precompute, max_rate, inter_tau):
     # Commit to the moves marked in the previous steps
     networks.finalize()
     if precompute:
-        assert len(networks.host_pre.all_objects) > 0, (
-            "No precomputable objects")
+        if len(networks.host_pre.all_objects) == 0:
+            warnings.warn("No precomputable objects. Setting precompute=True "
+                          "has no effect.")
     else:
         assert len(networks.host_pre.all_objects) == 0, (
             "Object erroneously added to host_pre")
@@ -419,69 +423,3 @@ def split_pre_from_host(networks):  # noqa: C901
                                      "as it is dependent on output")
                 networks.move(obj, "host_pre", force=True)
                 queue.append(obj)
-
-
-class PESModulatoryTarget(object):
-    def __init__(self, target):
-        self.target = target
-
-
-class HostSendNode(nengo.Node):
-    """For sending host->chip messages"""
-
-    def __init__(self, dimensions):
-        self.queue = []
-        super(HostSendNode, self).__init__(self.update,
-                                           size_in=dimensions, size_out=0)
-
-    def update(self, t, x):
-        assert len(self.queue) == 0 or t > self.queue[-1][0]
-        self.queue.append((t, x))
-
-
-class HostReceiveNode(nengo.Node):
-    """For receiving chip->host messages"""
-
-    def __init__(self, dimensions):
-        self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
-        super(HostReceiveNode, self).__init__(self.update,
-                                              size_in=0, size_out=dimensions)
-
-    def update(self, t):
-        while (len(self.queue) > self.queue_index + 1
-               and self.queue[self.queue_index][0] < t):
-            self.queue_index += 1
-        return self.queue[self.queue_index][1]
-
-    def receive(self, t, x):
-        self.queue.append((t, x))
-
-
-class ChipReceiveNode(nengo.Node):
-    """For receiving host->chip messages"""
-
-    def __init__(self, dimensions, size_out):
-        self.raw_dimensions = dimensions
-        self.cx_spike_input = loihi_cx.CxSpikeInput(
-            np.zeros((0, dimensions), dtype=bool))
-        self.last_time = None
-        super(ChipReceiveNode, self).__init__(self.update,
-                                              size_in=0, size_out=size_out)
-
-    def update(self, t):
-        raise SimulationError("ChipReceiveNodes should not be run")
-
-    def receive(self, t, x):
-        assert self.last_time is None or t > self.last_time
-        # TODO: make this stacking efficient
-        self.cx_spike_input.spikes = np.vstack([self.cx_spike_input.spikes,
-                                                [x > 0]])
-        self.last_time = t
-
-
-class ChipReceiveNeurons(ChipReceiveNode):
-    """Passes spikes directly (no on-off neuron encoding)"""
-    def __init__(self, dimensions, neuron_type=None):
-        self.neuron_type = neuron_type
-        super(ChipReceiveNeurons, self).__init__(dimensions, dimensions)
