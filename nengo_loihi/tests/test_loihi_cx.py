@@ -46,15 +46,16 @@ def test_strict_mode():
     # Tests should be run in strict mode
     assert CxSimulator.strict
 
-    with pytest.raises(SimulationError):
-        CxSimulator.error("Error in emulator")
-    CxSimulator.strict = False
-    with pytest.warns(UserWarning):
-        CxSimulator.error("Error in emulator")
-
-    # Strict mode is a global setting so we set it back to True
-    # for subsequent test runs.
-    CxSimulator.strict = True
+    try:
+        with pytest.raises(SimulationError):
+            CxSimulator.error("Error in emulator")
+        CxSimulator.strict = False
+        with pytest.warns(UserWarning):
+            CxSimulator.error("Error in emulator")
+    finally:
+        # Strict mode is a global setting so we set it back to True
+        # for subsequent test runs.
+        CxSimulator.strict = True
 
 
 def test_tau_s_warning(Simulator):
@@ -129,10 +130,12 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
 
     assert CxSimulator.strict  # Tests should be run in strict mode
     CxSimulator.strict = False
-    emu = model.get_simulator()
-    with pytest.warns(UserWarning):
-        emu.run_steps(nt)
-    CxSimulator.strict = True  # change back to True for subsequent tests
+    try:
+        emu = model.get_simulator()
+        with pytest.warns(UserWarning):
+            emu.run_steps(nt)
+    finally:
+        CxSimulator.strict = True  # change back to True for subsequent tests
 
     emu_u = np.array(emu.probe_outputs[probe_u])
     emu_v = np.array(emu.probe_outputs[probe_v])
