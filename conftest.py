@@ -21,12 +21,18 @@ def pytest_configure(config):
     mpl.use("Agg")
     CxSimulator.strict = True
 
-    TestConfig.RefSimulator = TestConfig.Simulator = nengo_loihi.Simulator
+    target = config.getoption("--target")
+    Sim = partial(nengo_loihi.Simulator, target=target)
+    Sim.__module__ = "nengo_loihi.simulator"
+    TestConfig.RefSimulator = TestConfig.Simulator = Sim
+
     if config.getoption('seed_offset'):
         TestConfig.test_seed = config.getoption('seed_offset')[0]
-    nengo_loihi.set_defaults()
+
     # Only log warnings from Nengo
     logging.getLogger("nengo").setLevel(logging.WARNING)
+
+    nengo_loihi.set_defaults()
 
 
 def pytest_addoption(parser):
@@ -67,10 +73,7 @@ def pytest_runtest_setup(item):
 @pytest.fixture(scope="session")
 def Simulator(request):
     """Simulator class to be used in tests"""
-    target = request.config.getoption("--target")
-    Sim = partial(nengo_loihi.Simulator, target=target)
-    Sim.__module__ = "nengo_loihi.simulator"
-    return Sim
+    return TestConfig.Simulator
 
 
 def function_seed(function, mod=0):
