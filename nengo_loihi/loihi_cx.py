@@ -594,11 +594,21 @@ class CxSimulator(object):
                 x, u, d=self.decayU, s=self.scaleU, b=1)
             self.decayV_fn = lambda x, u: decay_int(
                 x, u, d=self.decayV, s=self.scaleV)
+
+            def overflow(x, bits, name=None):
+                _, o = overflow_signed(x, bits=bits, out=x)
+                if np.any(o):
+                    self.error("Overflow" + (" in %s" % name if name else ""))
         elif group_dtype == np.float32:
             self.decayU_fn = lambda x, u: decay_float(
                 x, u, d=self.decayU, s=self.scaleU)
             self.decayV_fn = lambda x, u: decay_float(
                 x, u, d=self.decayV, s=self.scaleV)
+
+            def overflow(x, bits, name=None):
+                pass  # do not do overflow in floating point
+
+        self.overflow = overflow
 
         ones = lambda n: np.ones(n, dtype=group_dtype)
         self.vth = np.hstack([group.vth for group in self.groups])
@@ -700,24 +710,18 @@ class CxSimulator(object):
 
         noise = self.noiseGen()
         q0[self.noiseTarget == 0] += noise[self.noiseTarget == 0]
-        _, o = overflow_signed(q0, bits=Q_BITS, out=q0)
-        if np.any(o):
-            self.error("Overflow in q")
+        self.overflow(q0, bits=Q_BITS, name="q0")
 
         self.u[:] = self.decayU_fn(self.u[:], q0)
-        _, o = overflow_signed(self.u, bits=U_BITS, out=self.u)
-        if np.any(o):
-            self.error("Overflow in U")
+        self.overflow(self.u, bits=U_BITS, name="U")
         u2 = self.u + self.bias
         u2[self.noiseTarget == 1] += noise[self.noiseTarget == 1]
-        _, o = overflow_signed(u2, bits=U_BITS, out=u2)
-        if np.any(o):
-            self.error("Overflow in u2")
+        self.overflow(u2, bits=U_BITS, name="u2")
 
         self.v[:] = self.decayV_fn(self.v, u2)
-        # _, o = overflow_signed(self.v, bits=V_BIT, out=self.v)
-        # if np.any(o):
-        #     self.error("Overflow in V")
+        # We have not been able to create V overflow on the chip, so we do
+        # not include it here. See github.com/nengo/nengo-loihi/issues/130
+        # self.overflow(self.v, bits=V_BIT, name="V")
 
         np.clip(self.v, self.vmin, self.vmax, out=self.v)
         self.v[self.w > 0] = 0
