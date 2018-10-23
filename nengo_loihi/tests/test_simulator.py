@@ -87,3 +87,38 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
 
     assert allclose(sim.data[pre_p], x, rtol=0.1, atol=0.1)
     assert allclose(sim.data[post_p], y, rtol=0.1, atol=0.1)
+
+
+@pytest.mark.parametrize('simtype', ['simreal', None])
+def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
+    if simtype == 'simreal':
+        Simulator = lambda *args: nengo_loihi.Simulator(
+            *args, target='simreal')
+
+    with nengo.Network(seed=seed) as model:
+        u = nengo.Node(lambda t: np.sin(6*t))
+        a = nengo.Ensemble(50, 1)
+        b = nengo.Ensemble(50, 1)
+        nengo.Connection(u, a)
+        nengo.Connection(a, b, function=lambda x: x**2,
+                         solver=nengo.solvers.LstsqL2(weights=True))
+
+        ap = nengo.Probe(a, synapse=0.03)
+        bp = nengo.Probe(b, synapse=0.03)
+
+    with nengo.Simulator(model) as nengo_sim:
+        nengo_sim.run(1.0)
+
+    with Simulator(model) as loihi_sim:
+        loihi_sim.run(1.0)
+
+    plt.subplot(2, 1, 1)
+    plt.plot(nengo_sim.trange(), nengo_sim.data[ap])
+    plt.plot(loihi_sim.trange(), loihi_sim.data[ap])
+
+    plt.subplot(2, 1, 2)
+    plt.plot(nengo_sim.trange(), nengo_sim.data[bp])
+    plt.plot(loihi_sim.trange(), loihi_sim.data[bp])
+
+    assert allclose(loihi_sim.data[ap], nengo_sim.data[ap], atol=0.1, rtol=0.2)
+    assert allclose(loihi_sim.data[bp], nengo_sim.data[bp], atol=0.1, rtol=0.2)
