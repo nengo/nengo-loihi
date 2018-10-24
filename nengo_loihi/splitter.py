@@ -10,7 +10,6 @@ from nengo_loihi.conv import Conv2D
 from nengo_loihi.loihi_cx import (
     ChipReceiveNode, ChipReceiveNeurons, HostSendNode, HostReceiveNode,
     PESModulatoryTarget)
-from nengo_loihi.neurons import NIF
 from nengo_loihi.passthrough import convert_passthroughs
 
 logger = logging.getLogger(__name__)
@@ -27,10 +26,10 @@ def base_obj(obj):
 
 
 class SplitNetworks(object):
-    def __init__(self, original, max_rate=1000, inter_tau=0.005):
+    def __init__(self, original, node_neurons=None, node_tau=0.005):
         self.original = original
-        self.max_rate = max_rate
-        self.inter_tau = inter_tau
+        self.node_neurons = node_neurons
+        self.node_tau = node_tau
 
         self.host = nengo.Network(seed=original.seed)
         self.chip = nengo.Network(seed=original.seed)
@@ -108,9 +107,10 @@ class SplitNetworks(object):
             del self.moves[obj]
 
 
-def split(net, precompute, max_rate, inter_tau, remove_passthrough=False):
+def split(net, precompute, node_neurons, node_tau, remove_passthrough=False):
     logger.info("Splitting model into host and chip parts")
-    networks = SplitNetworks(net, max_rate=max_rate, inter_tau=inter_tau)
+    networks = SplitNetworks(net, node_neurons=node_neurons,
+                             node_tau=node_tau)
 
     # --- Step 1: place ensembles and nodes
     place_nodes(networks)
@@ -284,18 +284,15 @@ def split_host_to_chip(networks, conn):
         dim * 2, size_out=dim, add_to_container=False)
     networks.add(receive, "chip")
     receive2post = nengo.Connection(receive, conn.post,
-                                    synapse=networks.inter_tau,
+                                    synapse=networks.node_tau,
                                     add_to_container=False)
     networks.add(receive2post, "chip")
 
     logger.debug("Creating NIF ensemble for %s", conn)
-    ens = nengo.Ensemble(
-        2 * dim, dim,
-        neuron_type=NIF(tau_ref=0.0),
-        encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
-        max_rates=np.ones(dim * 2) * networks.max_rate,
-        intercepts=np.ones(dim * 2) * -1,
-        add_to_container=False)
+    if networks.node_neurons is None:
+        raise BuildError(
+            "DecodeNeurons must be specified for host->chip connection.")
+    ens = networks.node_neurons.get_ensemble(dim)
     networks.add(ens, "host")
 
     if isinstance(conn.transform, Conv2D):

@@ -8,7 +8,7 @@ import numpy as np
 import nengo
 import nengo.utils.numpy as npext
 from nengo.exceptions import (
-    BuildError, ReadonlyError, SimulatorClosed, ValidationError)
+    ReadonlyError, SimulatorClosed, ValidationError)
 from nengo.simulator import ProbeDict as NengoProbeDict
 
 from nengo_loihi.builder import Model
@@ -339,11 +339,6 @@ class Simulator(object):
             self.model = model
             assert self.model.dt == dt
 
-        max_rate = self.model.inter_rate * self.model.inter_n
-        rtol = 1e-8  # allow for floating point inaccuracies
-        if max_rate > (1. / self.dt) * (1 + rtol):
-            raise BuildError("Simulator `dt` must be <= %s (got %s)"
-                             % (1. / max_rate, self.dt))
         self.precompute = precompute
         self.networks = None
         self.sims = OrderedDict()
@@ -356,9 +351,9 @@ class Simulator(object):
             # split the host into one, two or three networks
             self.networks = split(
                 network,
-                precompute,
-                max_rate,
-                self.model.inter_tau,
+                precompute=precompute,
+                node_neurons=self.model.node_neurons,
+                node_tau=self.model.decode_tau,
                 remove_passthrough=remove_passthrough,
             )
             network = self.networks.chip

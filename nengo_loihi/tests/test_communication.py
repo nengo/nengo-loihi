@@ -6,7 +6,7 @@ import pytest
 
 # This test sometimes (but not consistently) fails on the chip for various
 # combinations of the parameter values. This possibly has to do with
-# interneuron noise and not representing the values well.
+# DecodeNeuron noise and not representing the values well.
 @pytest.mark.xfail
 @pytest.mark.parametrize("val", (-0.75, -0.5, 0, 0.5, 0.75))
 @pytest.mark.parametrize("type", ("array", "func"))
@@ -110,7 +110,7 @@ def test_neurons2node(Simulator, seed, plt):
                             size_in=a.n_neurons, size_out=0)
         nengo.Connection(a.neurons, output, synapse=None)
 
-    with Simulator(model) as sim:
+    with Simulator(model, precompute=True) as sim:
         sim.run(1.0)
 
     rasterplot(sim.trange(), np.array(data), ax=plt.gca())

@@ -67,10 +67,10 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     pre_tmask = t > 0.1
     post_tmask = t > simtime - 1.0
 
-    inter_tau = loihi_sim.model.inter_tau
+    dec_tau = loihi_sim.model.decode_tau
     y = nengo_sim.data[probes['stim']]
-    y_dpre = nengo.Lowpass(inter_tau).filt(y)
-    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(inter_tau)).filt(y_dpre)
+    y_dpre = nengo.Lowpass(dec_tau).filt(y)
+    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(dec_tau)).filt(y_dpre)
     y_nengo = nengo_sim.data[probes['post']]
     y_loihi = loihi_sim.data[probes['post']]
     y_real = real_sim.data[probes['post']]
@@ -117,10 +117,10 @@ def test_pes_overflow(allclose, plt, seed, Simulator):
     t = loihi_sim.trange()
     post_tmask = t > simtime - 1.0
 
-    inter_tau = loihi_sim.model.inter_tau
+    dec_tau = loihi_sim.model.decode_tau
     y = loihi_sim.data[probes['stim']]
-    y_dpre = nengo.Lowpass(inter_tau).filt(y)
-    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(inter_tau)).filt(y_dpre)
+    y_dpre = nengo.Lowpass(dec_tau).filt(y)
+    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(dec_tau)).filt(y_dpre)
     y_loihi = loihi_sim.data[probes['post']]
 
     plt.plot(t, y_dpost, 'k', label='target')
@@ -163,10 +163,10 @@ def test_pes_error_clip(allclose, plt, seed, Simulator):
     t = loihi_sim.trange()
     post_tmask = t > simtime - 1.0
 
-    inter_tau = loihi_sim.model.inter_tau
+    dec_tau = loihi_sim.model.decode_tau
     y = loihi_sim.data[probes['stim']]
-    y_dpre = nengo.Lowpass(inter_tau).filt(y)
-    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(inter_tau)).filt(y_dpre)
+    y_dpre = nengo.Lowpass(dec_tau).filt(y)
+    y_dpost = nengo.Lowpass(tau).combine(nengo.Lowpass(dec_tau)).filt(y_dpre)
     y_loihi = loihi_sim.data[probes['post']]
 
     plt.plot(t, y_dpost, 'k', label='target')

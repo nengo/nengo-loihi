@@ -18,7 +18,7 @@ def test_multiple_stims(allclose, Simulator, seed, precompute):
         sim.run(0.1)
 
     # Note: these should ideally be identical,
-    #  but noise in the spiking interneurons will
+    #  but noise in the spiking DecodeNeurons will
     #  make them different.  If spiking decoders are
     #  implemented, then these should be identical.
     assert allclose(np.mean(sim.data[p_a]),

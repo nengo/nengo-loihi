@@ -1,7 +1,9 @@
 import pytest
 import nengo
+from nengo.exceptions import BuildError
 import numpy as np
 
+from nengo_loihi.builder import OnOffDecodeNeurons
 from nengo_loihi.config import add_params
 from nengo_loihi.neurons import NIF
 from nengo_loihi.splitter import (
@@ -21,6 +23,8 @@ from nengo_loihi.splitter import (
     split_host_to_learning_rules,
     split_pre_from_host,
 )
+
+default_node_neurons = OnOffDecodeNeurons()
 
 
 @pytest.mark.parametrize("pre_dims", [1, 3])
@@ -77,7 +81,7 @@ def test_place_nodes():
         offchip3 = HostSendNode(dimensions=1)
         onchip = ChipReceiveNode(dimensions=1, size_out=1)
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     place_nodes(networks)
     assert networks.moves[offchip1] == "host"
     assert networks.moves[offchip2] == "host"
@@ -100,7 +104,7 @@ def test_place_ensembles():
         conn = nengo.Connection(pre, post, learning_rule_type=nengo.PES())
         nengo.Connection(error, conn.learning_rule)
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     place_ensembles(networks)
     assert networks.moves[offchip] == "host"
     assert networks.moves[direct] == "host"
@@ -119,7 +123,7 @@ def test_place_inter_network_connection():
         offon = nengo.Connection(offchip, onchip)
         offoff = nengo.Connection(offchip, offchip)
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     networks.move(onchip, "chip")
     networks.move(offchip, "host")
 
@@ -139,7 +143,7 @@ def test_split_host_neurons_to_chip():
         neurons2ensemble = nengo.Connection(
             offchip.neurons, onchip, transform=np.ones((1, 10)))
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     networks.move(offchip, "host")
     networks.move(onchip, "chip")
 
@@ -182,7 +186,7 @@ def test_split_host_to_chip():
                 node_offchip, ens_onchip.neurons, transform=np.ones((10, 1))),
         ]
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     networks.move(ens_offchip, "host")
     networks.move(node_offchip, "host")
     networks.move(ens_onchip, "chip")
@@ -221,6 +225,18 @@ def test_split_host_to_chip():
         networks.adds.clear()  # makes next loop iteration easier
 
 
+def test_split_host_to_chip_no_node_neurons():
+    with nengo.Network() as net:
+        node_offchip = nengo.Node(np.sin)
+        ens_onchip = nengo.Ensemble(10, 1)
+        conn = nengo.Connection(node_offchip, ens_onchip)
+    networks = SplitNetworks(net)
+    networks.move(node_offchip, "host")
+    networks.move(ens_onchip, "chip")
+    with pytest.raises(BuildError):
+        split_host_to_chip(networks, conn)
+
+
 def test_split_chip_to_host():
     with nengo.Network() as net:
         ens_onchip = nengo.Ensemble(10, 1)
@@ -240,7 +256,7 @@ def test_split_chip_to_host():
             nengo.Connection(ens_onchip, connections[1].learning_rule)
         )
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     networks.move(ens_onchip, "chip")
     networks.move(ens_offchip, "host")
     networks.move(node_offchip, "host")
@@ -291,7 +307,7 @@ def test_split_host_to_learning_rule():
         off2on_neurons = nengo.Connection(
             err_offchip, neurons_conn.learning_rule)
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     networks.move(pre, "chip")
     networks.move(post, "chip")
     networks.move(err_onchip, "chip")
@@ -333,7 +349,7 @@ def test_place_probes():
             nengo.Probe(onchip3),
         ]
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     for obj in [offchip1, offchip2, offchip3]:
         networks.move(obj, "host")
     for obj in [onchip1, onchip2, onchip3]:
@@ -364,7 +380,7 @@ def test_split_pre_from_host():
             nengo.Connection(post1, post2),
         ]
 
-    networks = SplitNetworks(net)
+    networks = SplitNetworks(net, node_neurons=default_node_neurons)
     for obj in [pre_1, pre_3, send, post1, post2]:
         networks.move(obj, "host")
     for obj in [pre_2, pre_4]:

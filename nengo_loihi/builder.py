@@ -26,9 +26,314 @@ from nengo_loihi.loihi_cx import (
     CxSpikeInput,
     CxSynapses,
 )
-from nengo_loihi.neurons import loihi_rates
+from nengo_loihi.neurons import (
+    loihi_rates,
+    LoihiSpikingRectifiedLinear,
+    NIF,
+)
 
 logger = logging.getLogger(__name__)
+
+
+class DecodeNeurons(object):
+    """Defines parameters for a group of decode neurons.
+
+    DecodeNeurons are used on the chip to facilitate NEF-style connections,
+    where activities from a neural ensemble are first transformed into a
+    decoded value (which is stored in the activities and synapses of the
+    spiking decode neurons), before being passed on to another ensemble
+    (via that ensemble's encoders).
+
+    Parameters
+    ----------
+    dt : float
+        Time step used by the simulator.
+    """
+    def __init__(self, dt=0.001):
+        self.dt = dt
+
+    def __str__(self):
+        return "%s(dt=%0.3g)" % (type(self).__name__, self.dt)
+
+    def get_cx(self, weights, cx_label=None, syn_label=None):
+        """Get a CxGroup for implementing neurons on the chip.
+
+        Parameters
+        ----------
+        weights : (d, n) ndarray
+            Weights that project the ``n`` inputs to the ``d`` dimensions
+            represented by these neurons. Typically, the inputs will be neurons
+            belonging to an Ensemble, and these weights will be decoders.
+        cx_label : string (Default: None)
+            Optional label for the CxGroup.
+        syn_label : string (Default: None)
+            Optional label for the CxSynapses.
+
+        Returns
+        -------
+        cx : CxGroup
+            The neurons on the chip.
+        syn : CxSynapses
+            The synapses connecting into the chip neurons.
+        """
+        raise NotImplementedError()
+
+    def get_ensemble(self, dim):
+        """Get a Nengo Ensemble for implementing neurons on the host.
+
+        Parameters
+        ----------
+        dim : int
+            Number of dimensions to be represented by these neurons.
+
+        Returns
+        -------
+        ens : Ensemble
+            An Ensemble for implementing these neurons in a Nengo network.
+        """
+        raise NotImplementedError()
+
+    def get_post_encoders(self, encoders):
+        """Encoders for post population that these neurons connect in to.
+
+        Parameters
+        ----------
+        encoders : (n, d) ndarray
+            Regular scaled encoders for the ensemble, which map the ensemble's
+            ``d`` input dimensions to its ``n`` neurons.
+
+        Returns
+        -------
+        decode_neuron_encoders : (?, n) ndarray
+            Encoders for mapping these neurons to the post-ensemble's neurons.
+            The number of rows depends on how ``get_post_inds`` is being used
+            (i.e. there could be one row per neuron in this group, or there
+            could be fewer rows with ``get_post_inds`` mapping multiple neurons
+            to each row).
+        """
+        raise NotImplementedError()
+
+    def get_post_inds(self, inds, d):
+        """Indices for mapping neurons to post-encoder dimensions.
+
+        Parameters
+        ----------
+        inds : list of ints
+            Indices for mapping decode neuron dimensions to post-ensemble
+            dimensions. Usually, this will be determined by a slice on the
+            post ensemble in a connection (which maps the output of the
+            transform/function to select dimensions on the post ensemble).
+        d : int
+            Number of dimensions in the post-ensemble.
+        """
+        raise NotImplementedError()
+
+
+class OnOffDecodeNeurons(DecodeNeurons):
+    """One or more pairs of on/off neurons per dimension.
+
+    In this class itself, all the pairs in a dimension are identical. It can
+    still be advantageous to have more than one pair per dimension, though,
+    since this can allow all neurons to have lower firing rates and thus
+    act more linearly (due to period aliasing at high firing rates). Subclasses
+    may use pairs that are not identical (by adding noise or heterogeneity).
+
+    Parameters
+    ----------
+    pairs_per_dim : int
+        Number of repeated neurons per dimension. Currently, all DecodeNeuron
+        classes use separate on/off neuron pairs for each dimension. This is
+        the number of such pairs per dimension.
+    dt : float
+        Time step used by the simulator.
+    rate : float (Default: None)
+        Max firing rate of each neuron. By default, this is chosen so that
+        the sum of all repeated neuron rates is ``1. / dt``, and thus as a
+        group the neurons average one spike per timestep.
+    """
+
+    def __init__(self, pairs_per_dim=1, dt=0.001, rate=None):
+        super(OnOffDecodeNeurons, self).__init__(dt=dt)
+
+        self.pairs_per_dim = pairs_per_dim
+
+        self.rate = (1. / (self.dt * self.pairs_per_dim) if rate is None
+                     else rate)
+        self.scale = 1. / (self.dt * self.rate * self.pairs_per_dim)
+        self.neuron_type = LoihiSpikingRectifiedLinear()
+
+        gain = 0.5 * self.rate * np.ones(self.pairs_per_dim)
+        bias = gain  # intercept of -1
+        self.gain = gain.repeat(2)
+        self.bias = bias.repeat(2)
+        # ^ repeat for on/off neurons
+
+    def __str__(self):
+        return "%s(pairs_per_dim=%d, dt=%0.3g, rate=%0.3g)" % (
+            type(self).__name__, self.pairs_per_dim, self.dt, self.rate)
+
+    def get_cx(self, weights, cx_label=None, syn_label=None):
+        gain = self.gain * self.dt
+        bias = self.bias * self.dt
+
+        d, n = weights.shape
+        n_neurons = 2 * d * self.pairs_per_dim
+        cx = CxGroup(n_neurons, label=cx_label, location='core')
+        cx.configure_relu(dt=self.dt)
+        cx.bias[:] = bias.repeat(d)
+
+        syn = CxSynapses(n, label=syn_label)
+        weights2 = []
+        for ga, gb in gain.reshape(self.pairs_per_dim, 2):
+            weights2.extend([ga*weights.T, -gb*weights.T])
+        weights2 = np.hstack(weights2)
+        syn.set_full_weights(weights2)
+        cx.add_synapses(syn)
+
+        return cx, syn
+
+    def get_ensemble(self, dim):
+        if self.pairs_per_dim != 1:
+            # To support this, we need to figure out how to deal with the
+            # `post_inds` that map neurons to axons. Either we can do this
+            # on the host, in which case we'd have inputs going to the chip
+            # where we can have multiple spikes per axon per timestep, or we
+            # need to do it on the chip with one input axon per neuron.
+            raise NotImplementedError(
+                "Input neurons with more than one neuron per dimension")
+
+        n_neurons = 2 * dim * self.pairs_per_dim
+        encoders = np.vstack([np.eye(dim), -np.eye(dim)] * self.pairs_per_dim)
+        ens = nengo.Ensemble(
+            n_neurons, dim,
+            neuron_type=NIF(tau_ref=0.0),
+            encoders=encoders,
+            gain=self.gain.repeat(dim),
+            bias=self.bias.repeat(dim),
+            add_to_container=False)
+        return ens
+
+    def get_post_encoders(self, encoders):
+        encoders = encoders * self.scale
+        return np.vstack([encoders.T, -encoders.T])
+
+    def get_post_inds(self, inds, d):
+        return np.concatenate([inds, inds + d] * self.pairs_per_dim)
+
+
+class NoisyDecodeNeurons(OnOffDecodeNeurons):
+    """Uses multiple on/off neuron pairs per dimension, plus noise.
+
+    The noise allows each on-off neuron pair to do something different. The
+    population average is a better representation of the encoded value
+    than can be achieved with a single on/off neuron pair (if the magnitude
+    of the noise is correctly calibrated).
+
+    Parameters
+    ----------
+    pairs_per_dim : int
+        Number of repeated neurons per dimension. Currently, all DecodeNeuron
+        classes use separate on/off neuron pairs for each dimension. This is
+        the number of such pairs per dimension.
+    dt : float
+        Time step used by the simulator.
+    rate : float (Default: None)
+        Max firing rate of each neuron. By default, this is chosen so that
+        the sum of all repeated neuron rates is ``1. / dt``, and thus as a
+        group the neurons average one spike per timestep.
+    noise_exp : float, optional (Default: -2.)
+        Base-10 exponent for noise added to neuron voltages.
+    """
+
+    def __init__(self, pairs_per_dim, dt=0.001, rate=None, noise_exp=-2.):
+        super(NoisyDecodeNeurons, self).__init__(
+            pairs_per_dim=pairs_per_dim, dt=dt, rate=rate)
+        self.noise_exp = noise_exp  # noise exponent for added voltage noise
+
+    def __str__(self):
+        return (
+            "%s(pairs_per_dim=%d, dt=%0.3g, rate=%0.3g, noise_exp=%0.3g)" % (
+                type(self).__name__,
+                self.pairs_per_dim,
+                self.dt,
+                self.rate,
+                self.noise_exp,
+            )
+        )
+
+    def get_cx(self, weights, cx_label=None, syn_label=None):
+        cx, syn = super(NoisyDecodeNeurons, self).get_cx(
+            weights, cx_label=cx_label, syn_label=syn_label)
+
+        if self.noise_exp > -30:
+            cx.enableNoise[:] = 1
+            cx.noiseExp0 = self.noise_exp
+            cx.noiseAtDendOrVm = 1
+
+        return cx, syn
+
+
+class Preset5DecodeNeurons(OnOffDecodeNeurons):
+    """Uses five heterogeneous on/off pairs with pre-set values per dimension.
+
+    The script for configuring these values can be found at:
+        nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
+    """
+
+    def __init__(self, dt=0.001, rate=None):
+        super(Preset5DecodeNeurons, self).__init__(
+            pairs_per_dim=5, dt=dt, rate=rate)
+
+        assert self.pairs_per_dim == 5
+        intercepts = np.linspace(-0.8, 0.8, self.pairs_per_dim)
+        max_rates = np.linspace(160, 70, self.pairs_per_dim)
+        gain, bias = self.neuron_type.gain_bias(max_rates, intercepts)
+
+        target_point = 0.85
+        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias))
+        self.scale = 1.08 * target_point / (self.dt * target_rate)
+        # ^ TODO: why does this 1.08 factor help? found it empirically in
+        # test_decode_neurons.test_add_inputs
+
+        self.gain = gain.repeat(2)
+        self.bias = bias.repeat(2)
+        # ^ repeat for on/off neurons
+
+    def __str__(self):
+        return "%s(dt=%0.3g, rate=%0.3g)" % (
+            type(self).__name__, self.dt, self.rate)
+
+
+class Preset10DecodeNeurons(OnOffDecodeNeurons):
+    """Uses ten heterogeneous on/off pairs with pre-set values per dimension.
+
+    The script for configuring these values can be found at:
+        nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
+    """
+
+    def __init__(self, dt=0.001, rate=None):
+        super(Preset10DecodeNeurons, self).__init__(
+            pairs_per_dim=10, dt=dt, rate=rate)
+
+        # Parameters determined by hyperopt
+        assert self.pairs_per_dim == 10
+        intercepts = np.linspace(-1.171, 0.484, self.pairs_per_dim)
+        max_rates = np.linspace(171.186, 74.620, self.pairs_per_dim)
+        gain, bias = self.neuron_type.gain_bias(max_rates, intercepts)
+
+        target_point = 1.0
+        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias))
+        self.scale = 1.05 * target_point / (self.dt * target_rate)
+        # ^ TODO: why does this 1.05 factor help? found it empirically in
+        # test_decode_neurons.test_add_inputs
+
+        self.gain = gain.repeat(2)
+        self.bias = bias.repeat(2)
+        # ^ repeat for on/off neurons
+
+    def __str__(self):
+        return "%s(dt=%0.3g, rate=%0.3g)" % (
+            type(self).__name__, self.dt, self.rate)
 
 
 class Model(CxModel):
@@ -89,20 +394,14 @@ class Model(CxModel):
         self.build_callback = None
 
         # --- other (typically standard) parameters
-        # Filter on intermediary neurons
-        self.inter_tau = 0.005
+        # Filter on decode neurons
+        self.decode_tau = 0.005
         # ^TODO: how to choose this filter? Even though the input is spikes,
         # it may not be absolutely necessary since tau_rc provides a filter,
         # and maybe we don't want double filtering if connection has a filter
 
-        # firing rate of inter neurons
-        self._inter_rate = None
-
-        # number of inter neurons
-        self.inter_n = 10
-
-        # noise exponent for inter neurons
-        self.inter_noise_exp = -2
+        self.decode_neurons = Preset10DecodeNeurons(dt=dt)
+        self.node_neurons = OnOffDecodeNeurons(dt=dt)
 
         # voltage threshold for non-spiking neurons (i.e. voltage decoders)
         self.vth_nonspiking = 10
@@ -119,25 +418,6 @@ class Model(CxModel):
 
         # Will be provided by Simulator
         self.chip2host_params = {}
-
-    @property
-    def inter_rate(self):
-        return (1. / (self.dt * self.inter_n) if self._inter_rate is None else
-                self._inter_rate)
-
-    @inter_rate.setter
-    def inter_rate(self, inter_rate):
-        self._inter_rate = inter_rate
-
-    @property
-    def inter_scale(self):
-        """Scaling applied to input from interneurons.
-
-        Such that if all ``inter_n`` interneurons are firing at
-        their max rate ``inter_rate``, then the total output when
-        averaged over time will be 1.
-        """
-        return 1. / (self.dt * self.inter_rate * self.inter_n)
 
     def __getstate__(self):
         raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
@@ -341,7 +621,7 @@ def build_ensemble(model, ens):
     model.build(ens.neuron_type, ens.neurons, group)
 
     # set default filter just in case no other filter gets set
-    group.configure_default_filter(model.inter_tau, dt=model.dt)
+    group.configure_default_filter(model.decode_tau, dt=model.dt)
 
     if ens.noise is not None:
         raise NotImplementedError("Ensemble noise not implemented")
@@ -371,16 +651,18 @@ def build_ensemble(model, ens):
         bias=bias)
 
 
-def build_interencoders(model, ens):
-    """Build encoders accepting on/off interneuron input."""
+def build_decode_neuron_encoders(model, ens, kind='decode_neuron_encoders'):
+    """Build encoders accepting decode neuron input."""
     group = model.objs[ens.neurons]['in']
     scaled_encoders = model.params[ens].scaled_encoders
+    if kind == 'node_encoders':
+        encoders = model.node_neurons.get_post_encoders(scaled_encoders)
+    elif kind == 'decode_neuron_encoders':
+        encoders = model.decode_neurons.get_post_encoders(scaled_encoders)
 
-    synapses = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
-    interscaled_encoders = scaled_encoders * model.inter_scale
-    synapses.set_full_weights(
-        np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
-    group.add_synapses(synapses, name='inter_encoders')
+    synapses = CxSynapses(encoders.shape[0], label=kind)
+    synapses.set_full_weights(encoders)
+    group.add_synapses(synapses, name=kind)
 
 
 @Builder.register(nengo.neurons.NeuronType)
@@ -545,7 +827,8 @@ def build_connection(model, conn):
     elif conn.synapse is not None:
         raise NotImplementedError("Cannot handle non-Lowpass synapses")
 
-    needs_interneurons = False
+    needs_decode_neurons = False
+    target_encoders = None
     if isinstance(conn.pre_obj, Node):
         assert conn.pre_slice == slice(None)
 
@@ -563,10 +846,7 @@ def build_connection(model, conn):
         else:
             # input is on-off neuron encoded, so double/flip transform
             weights = np.column_stack([transform, -transform])
-
-            # (max_rate = INTER_RATE * INTER_N) is the spike rate we
-            # use to represent a value of +/- 1
-            weights = weights * model.inter_scale
+            target_encoders = 'node_encoders'
     elif (isinstance(conn.pre_obj, Ensemble)
           and isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
@@ -581,7 +861,7 @@ def build_connection(model, conn):
         neuron_type = conn.pre_obj.neuron_type
 
         if not conn.solver.weights:
-            needs_interneurons = True
+            needs_decode_neurons = True
     elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
         assert transform.ndim == 2, "transform shape not handled yet"
@@ -597,13 +877,13 @@ def build_connection(model, conn):
     mid_cx = pre_cx
     mid_axon_inds = None
     post_tau = tau_s
-    if needs_interneurons and not isinstance(conn.post_obj, Neurons):
-        # --- add interneurons
+    if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
+        # --- add decode neurons
         assert weights.ndim == 2
         d, n = weights.shape
 
         if isinstance(post_cx, CxProbe):
-            # use non-spiking interneurons for voltage probing
+            # use non-spiking decode neurons for voltage probing
             assert post_cx.target is None
             assert conn.post_slice == slice(None)
 
@@ -612,7 +892,7 @@ def build_connection(model, conn):
             #  is in the range -radius to radius, which is usually true.
             weights = weights / conn.pre_obj.radius
 
-            gain = 1  # model.dt * INTER_RATE(=1000)
+            gain = 1
             dec_cx = CxGroup(2 * d, label='%s' % conn, location='core')
             dec_cx.configure_nonspiking(dt=model.dt, vth=model.vth_nonspiking)
             dec_cx.bias[:] = 0
@@ -621,42 +901,33 @@ def build_connection(model, conn):
 
             dec_syn = CxSynapses(n, label="probe_decoders")
             weights2 = gain * np.vstack([weights, -weights]).T
+
+            dec_syn.set_full_weights(weights2)
+            dec_cx.add_synapses(dec_syn)
+            model.objs[conn]['decoders'] = dec_syn
         else:
-            # use spiking interneurons for on-chip connection
-            post_d = conn.post_obj.size_in
-            post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
-            assert len(post_inds) == conn.size_out == d
-            mid_axon_inds = np.hstack([post_inds,
-                                       post_inds + post_d] * model.inter_n)
-
-            gain = model.dt * model.inter_rate
-            dec_cx = CxGroup(2 * d * model.inter_n, label='%s' % conn,
-                             location='core')
-            dec_cx.configure_relu(dt=model.dt)
-            dec_cx.bias[:] = 0.5 * gain * np.array(
-                ([1.] * d + [1.] * d) * model.inter_n)
-            if model.inter_noise_exp > -30:
-                dec_cx.enableNoise[:] = 1
-                dec_cx.noiseExp0 = model.inter_noise_exp
-                dec_cx.noiseAtDendOrVm = 1
-            model.add_group(dec_cx)
-            model.objs[conn]['decoded'] = dec_cx
-
+            # use spiking decode neurons for on-chip connection
             if isinstance(conn.post_obj, Ensemble):
                 # loihi encoders don't include radius, so handle scaling here
                 weights = weights / conn.post_obj.radius
 
-            dec_syn = CxSynapses(n, label="decoders")
-            weights2 = 0.5 * gain * np.vstack([weights,
-                                               -weights] * model.inter_n).T
+            post_d = conn.post_obj.size_in
+            post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
+            assert weights.shape[0] == len(post_inds) == conn.size_out == d
+            mid_axon_inds = model.decode_neurons.get_post_inds(
+                post_inds, post_d)
 
-        # use tau_s for filter into interneurons, and INTER_TAU for filter out
+            target_encoders = 'decode_neuron_encoders'
+            dec_cx, dec_syn = model.decode_neurons.get_cx(
+                weights, cx_label="%s" % conn, syn_label="decoders")
+
+            model.add_group(dec_cx)
+            model.objs[conn]['decoded'] = dec_cx
+            model.objs[conn]['decoders'] = dec_syn
+
+        # use tau_s for filter into decode neurons, decode_tau for filter out
         dec_cx.configure_filter(tau_s, dt=model.dt)
-        post_tau = model.inter_tau
-
-        dec_syn.set_full_weights(weights2)
-        dec_cx.add_synapses(dec_syn)
-        model.objs[conn]['decoders'] = dec_syn
+        post_tau = model.decode_tau
 
         dec_ax0 = CxAxons(n, label="decoders")
         dec_ax0.target = dec_syn
@@ -686,7 +957,7 @@ def build_connection(model, conn):
                 # Tracing mag set so that the magnitude of the pre trace
                 # is independent of the pre tau. `dt` factor accounts for
                 # Nengo's `dt` spike scaling. Where is the second `dt` from?
-                # Maybe the fact that post interneurons have `vth = 1/dt`?
+                # Maybe the fact that post decode neurons have `vth = 1/dt`?
                 tracing_mag = -np.expm1(-1. / tracing_tau) / model.dt**2
 
                 # learning weight exponent controls the maximum weight
@@ -756,11 +1027,13 @@ def build_connection(model, conn):
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
-        if 'inter_encoders' not in post_cx.named_synapses:
-            build_interencoders(model, conn.post_obj)
+        assert target_encoders is not None
+        if target_encoders not in post_cx.named_synapses:
+            build_decode_neuron_encoders(
+                model, conn.post_obj, kind=target_encoders)
 
         mid_ax = CxAxons(mid_cx.n, label="encoders")
-        mid_ax.target = post_cx.named_synapses['inter_encoders']
+        mid_ax.target = post_cx.named_synapses[target_encoders]
         mid_ax.set_axon_map(mid_axon_inds)
         mid_cx.add_axons(mid_ax)
         model.objs[conn]['mid_axons'] = mid_ax
@@ -829,14 +1102,15 @@ def conn_probe(model, probe):
     model.seeds[conn] = model.seeds[probe]
 
     d = conn.size_out
-    if isinstance(probe.target, Node):
-        w = np.diag(model.inter_scale * np.ones(d))
-        weights = np.vstack([w, -w])
-    else:
+    if isinstance(probe.target, Ensemble):
         # probed values are scaled by the target ensemble's radius
         scale = probe.target.radius
         w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
+    else:
+        raise NotImplementedError(
+            "Nodes cannot be onchip, connections not yet probeable")
+
     cx_probe = CxProbe(key='v', weights=weights, synapse=probe.synapse)
     model.objs[target]['in'] = cx_probe
     model.objs[target]['out'] = cx_probe

@@ -28,6 +28,9 @@ Release history
   (`#139 <https://github.com/nengo/nengo-loihi/pull/139>`__)
 - Learning in the emulator more closely matches learning on hardware.
   (`#139 <https://github.com/nengo/nengo-loihi/pull/139>`__)
+- The neurons used to transmit decoded values on-chip can be configured.
+  By default, we use ten pairs of heterogeneous neurons per dimension.
+  (`#132 <https://github.com/nengo/nengo-loihi/pull/132>`_)
 
 **Fixed**
 

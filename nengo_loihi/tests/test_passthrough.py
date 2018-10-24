@@ -2,8 +2,11 @@ import pytest
 import nengo
 import numpy as np
 
-from nengo_loihi import splitter
 import nengo_loihi
+from nengo_loihi.builder import OnOffDecodeNeurons
+from nengo_loihi import splitter
+
+default_node_neurons = OnOffDecodeNeurons()
 
 
 def test_passthrough_placement():
@@ -28,9 +31,9 @@ def test_passthrough_placement():
     nengo_loihi.add_params(model)
     networks = splitter.split(model,
                               precompute=False,
-                              remove_passthrough=True,
-                              max_rate=1000,
-                              inter_tau=0.005)
+                              node_neurons=default_node_neurons,
+                              node_tau=0.005,
+                              remove_passthrough=True)
     chip = networks.chip
     host = networks.host
 
@@ -64,9 +67,9 @@ def test_transform_merging(d1, d2, d3):
     nengo_loihi.add_params(model)
     networks = splitter.split(model,
                               precompute=False,
-                              remove_passthrough=True,
-                              max_rate=1000,
-                              inter_tau=0.005)
+                              node_neurons=default_node_neurons,
+                              node_tau=0.005,
+                              remove_passthrough=True)
     chip = networks.chip
 
     assert len(chip.connections) == 1
@@ -85,9 +88,9 @@ def test_identity_array(n_ensembles, ens_dimensions):
     nengo_loihi.add_params(model)
     networks = splitter.split(model,
                               precompute=False,
-                              remove_passthrough=True,
-                              max_rate=1000,
-                              inter_tau=0.005)
+                              node_neurons=default_node_neurons,
+                              node_tau=0.005,
+                              remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
     connections = [c for c in networks.chip.connections
@@ -119,9 +122,9 @@ def test_full_array(n_ensembles, ens_dimensions):
     nengo_loihi.add_params(model)
     networks = splitter.split(model,
                               precompute=False,
-                              remove_passthrough=True,
-                              max_rate=1000,
-                              inter_tau=0.005)
+                              node_neurons=default_node_neurons,
+                              node_tau=0.005,
+                              remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
     connections = [c for c in networks.chip.connections
@@ -154,9 +157,9 @@ def test_synapse_merging(Simulator, seed):
     nengo_loihi.add_params(model)
     networks = splitter.split(model,
                               precompute=False,
-                              remove_passthrough=True,
-                              max_rate=1000,
-                              inter_tau=0.005)
+                              node_neurons=default_node_neurons,
+                              node_tau=0.005,
+                              remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
     connections = [c for c in networks.chip.connections
