@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 import nengo
 from nengo.exceptions import BuildError, SimulationError
-from nengo.utils.compat import is_iterable
+from nengo.utils.compat import is_integer, is_iterable
 
 from nengo_loihi.loihi_api import (
     BIAS_MAX,
@@ -461,6 +461,10 @@ class CxAxons(object):
             self.axon_id = axon_id
             self.atom = atom
 
+        def __repr__(self):
+            return "%s(axon_id=%d, atom=%d)" % (
+                type(self).__name__, self.axon_id, self.atom)
+
     def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
         self.label = label
@@ -517,18 +521,16 @@ class CxProbe(object):
 
 
 class CxSpikeInput(object):
-    def __init__(self, spikes):
-        assert spikes.ndim == 2
-        self.spikes = spikes
+    def __init__(self, n):
+        self.n = n
+        self.spikes = {}  # map sim timestep index to list of spike inds
         self.axons = []
         self.probes = []
 
-    @property
-    def n(self):
-        return self.spikes.shape[1]
-
     def add_axons(self, axons):
         assert axons.n_axons == self.n
+        assert axons.group is None
+        axons.group = self
         self.axons.append(axons)
 
     def add_probe(self, probe):
@@ -537,10 +539,29 @@ class CxSpikeInput(object):
         assert probe.target is self
         self.probes.append(probe)
 
+    def add_spikes(self, ti, spike_idxs):
+        assert is_integer(ti)
+        ti = int(ti)
+        assert ti > 0, "Spike times must be >= 1 (got %d)" % ti
+        assert ti not in self.spikes
+        self.spikes[ti] = spike_idxs
+
+    def clear_spikes(self):
+        self.spikes.clear()
+
+    def spike_times(self):
+        return sorted(self.spikes)
+
+    def spike_idxs(self, ti):
+        return self.spikes.get(ti, [])
+
 
 class CxModel(object):
 
-    def __init__(self):
+    def __init__(self, dt=0.001, label=None):
+        self.dt = dt
+        self.label = label
+
         self.cx_inputs = collections.OrderedDict()
         self.cx_groups = collections.OrderedDict()
 
@@ -619,7 +640,10 @@ class CxSimulator(object):
         self.inputs = list(self.model.cx_inputs)
         self.groups = sorted(self.model.cx_groups,
                              key=lambda g: g.location == 'cpu')
-        self.probe_outputs = collections.defaultdict(list)
+        self.probe_outputs = {}
+        for obj in self.inputs + self.groups:
+            for probe in obj.probes:
+                self.probe_outputs[probe] = []
 
         self.n_cx = sum(group.n for group in self.groups)
         self.group_cxs = {}
@@ -764,12 +788,13 @@ class CxSimulator(object):
         self.closed = True
         self.clear()
 
-    def chip2host(self):
-        # go through the list of chip2host connections
+    def chip2host(self, probes_receivers=None):
+        if probes_receivers is None:
+            probes_receivers = {}
+
         increment = None
-        for probe, receiver in self.model.chip2host_receivers.items():
+        for cx_probe, receiver in probes_receivers.items():
             # extract the probe data from the simulator
-            cx_probe = self.model.objs[probe]['out']
             x = self.probe_outputs[cx_probe][self._chip2host_sent_steps:]
             if len(x) > 0:
                 if increment is None:
@@ -786,31 +811,23 @@ class CxSimulator(object):
         if increment is not None:
             self._chip2host_sent_steps += increment
 
-    def host2chip(self):
-        # go through the list of host2chip connections
-        for sender, receiver in self.model.host2chip_senders.items():
-            learning_rate = 50  # This is set to match hardware
-            if isinstance(receiver, PESModulatoryTarget):
-                for t, x in sender.queue:
-                    probe = receiver.target
-                    conn = self.model.probe_conns[probe]
-                    dec_syn = self.model.objs[conn]['decoders']
-                    assert dec_syn.tracing
+    def host2chip(self, spikes, errors):
+        for cx_spike_input, t, spike_idxs in spikes:
+            cx_spike_input.add_spikes(t, spike_idxs)
 
-                    z = self.z[dec_syn]
-                    x = np.hstack([-x, x])
+        learning_rate = 50  # This is set to match hardware
+        for synapses, t, e in errors:
+            z = self.z[synapses]
+            x = np.hstack([-e, e])
 
-                    delta_w = np.outer(z, x) * learning_rate
+            delta_w = np.outer(z, x) * learning_rate
 
-                    for i, w in enumerate(dec_syn.weights):
-                        w += delta_w[i].astype('int32')
-            else:
-                for t, x in sender.queue:
-                    receiver.receive(t, x)
-            del sender.queue[:]
+            for i, w in enumerate(synapses.weights):
+                w += delta_w[i].astype('int32')
 
     def step(self):  # noqa: C901
         """Advance the simulation by 1 step (``dt`` seconds)."""
+        self.t += 1
 
         # --- connections
         self.q[:-1] = self.q[1:]  # advance delays
@@ -821,17 +838,17 @@ class CxSimulator(object):
             axons_in_spikes.clear()
 
         # --- inputs pass spikes to synapses
-        if self.t >= 1:  # input spikes take one time-step to arrive
+        if self.t >= 2:  # input spikes take one time-step to arrive
             for input in self.inputs:
+                cx_idxs = input.spike_idxs(self.t - 1)
                 for axons in input.axons:
-                    cx_idxs = input.spikes[self.t - 1].nonzero()[0]
                     spikes = axons.map_cx_spikes(cx_idxs)
                     self.axons_in[axons.target].extend(spikes)
 
         # --- axons pass spikes to synapses
         for group in self.groups:
+            cx_idxs = self.s[self.group_cxs[group]].nonzero()[0]
             for axons in group.axons:
-                cx_idxs = self.s[self.group_cxs[axons.group]].nonzero()[0]
                 spikes = axons.map_cx_spikes(cx_idxs)
                 self.axons_in[axons.target].extend(spikes)
 
@@ -909,8 +926,6 @@ class CxSimulator(object):
                 x = getattr(self, probe.key)[x_slice][p_slice].copy()
                 self.probe_outputs[probe].append(x)
 
-        self.t += 1
-
     def run_steps(self, steps):
         """Simulate for the given number of ``dt`` steps.
 
@@ -946,8 +961,7 @@ class CxSimulator(object):
             self._probe_filter_pos[cx_probe] = i + k
             return filt_data
 
-    def get_probe_output(self, probe):
-        cx_probe = self.model.objs[probe]['out']
+    def get_probe_output(self, cx_probe):
         assert isinstance(cx_probe, CxProbe)
         x = np.asarray(self.probe_outputs[cx_probe], dtype=np.float32)
         x = x if cx_probe.weights is None else np.dot(x, cx_probe.weights)
@@ -957,6 +971,21 @@ class CxSimulator(object):
 class PESModulatoryTarget(object):
     def __init__(self, target):
         self.target = target
+        self.errors = collections.OrderedDict()
+
+    def clear(self):
+        self.errors.clear()
+
+    def receive(self, t, x):
+        assert len(self.errors) == 0 or t >= next(reversed(self.errors))
+        if t in self.errors:
+            self.errors[t] += x
+        else:
+            self.errors[t] = np.array(x)
+
+    def collect_errors(self):
+        for t, x in self.errors.items():
+            yield (self.target, t, x)
 
 
 class HostSendNode(nengo.Node):
@@ -996,21 +1025,26 @@ class ChipReceiveNode(nengo.Node):
 
     def __init__(self, dimensions, size_out):
         self.raw_dimensions = dimensions
-        self.cx_spike_input = CxSpikeInput(
-            np.zeros((0, dimensions), dtype=bool))
-        self.last_time = None
-        super(ChipReceiveNode, self).__init__(self.update,
-                                              size_in=0, size_out=size_out)
+        self.spikes = []
+        self.cx_spike_input = None  # set by builder
+        super(ChipReceiveNode, self).__init__(
+            self.update, size_in=0, size_out=size_out)
+
+    def clear(self):
+        self.spikes.clear()
+
+    def receive(self, t, x):
+        assert len(self.spikes) == 0 or t > self.spikes[-1][0]
+        assert x.ndim == 1
+        self.spikes.append((t, x.nonzero()[0]))
 
     def update(self, t):
         raise SimulationError("ChipReceiveNodes should not be run")
 
-    def receive(self, t, x):
-        assert self.last_time is None or t > self.last_time
-        # TODO: make this stacking efficient
-        self.cx_spike_input.spikes = np.vstack([self.cx_spike_input.spikes,
-                                                [x > 0]])
-        self.last_time = t
+    def collect_spikes(self):
+        assert self.cx_spike_input is not None
+        for t, x in self.spikes:
+            yield (self.cx_spike_input, t, x)
 
 
 class ChipReceiveNeurons(ChipReceiveNode):

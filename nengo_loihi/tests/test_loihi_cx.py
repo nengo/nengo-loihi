@@ -32,12 +32,11 @@ def test_simulator_noise(request, plt, seed):
     if target == 'loihi':
         with LoihiSimulator(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(1000)
-            y = np.column_stack([
-                p.timeSeries.data for p in sim.board.probe_map[probe]])
+            y = sim.get_probe_output(probe)
     else:
         with CxSimulator(model, seed=seed) as sim:
             sim.run_steps(1000)
-        y = sim.probe_outputs[probe]
+            y = sim.get_probe_output(probe)
 
     plt.plot(y)
     plt.yticks(())
@@ -100,8 +99,10 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     model = CxModel()
 
     # n_axons controls number of input spikes and thus amount of overflow
-    input_spikes = np.ones((nt, n_axons), dtype=bool)
-    input = CxSpikeInput(input_spikes)
+    input = CxSpikeInput(n_axons)
+    for t in np.arange(1, nt+1):
+        input.add_spikes(t, np.arange(n_axons))  # send spikes to all axons
+    model.add_input(input)
 
     group = CxGroup(1)
     group.configure_relu()
@@ -110,11 +111,11 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
 
     synapses = CxSynapses(n_axons)
     synapses.set_full_weights(np.ones((n_axons, 1)))
+    group.add_synapses(synapses)
 
     axons = CxAxons(n_axons)
     axons.target = synapses
     input.add_axons(axons)
-    group.add_synapses(synapses)
 
     probe_u = CxProbe(target=group, key='u')
     group.add_probe(probe_u)
@@ -123,7 +124,6 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     probe_s = CxProbe(target=group, key='s')
     group.add_probe(probe_s)
 
-    model.add_input(input)
     model.add_group(group)
     model.discretize()
 
@@ -132,24 +132,20 @@ def test_uv_overflow(n_axons, Simulator, plt, allclose):
     assert CxSimulator.strict  # Tests should be run in strict mode
     CxSimulator.strict = False
     try:
-        emu = CxSimulator(model)
-        with pytest.warns(UserWarning):
-            emu.run_steps(nt)
+        with CxSimulator(model) as emu:
+            with pytest.warns(UserWarning):
+                emu.run_steps(nt)
+            emu_u = emu.get_probe_output(probe_u)
+            emu_v = emu.get_probe_output(probe_v)
+            emu_s = emu.get_probe_output(probe_s)
     finally:
         CxSimulator.strict = True  # change back to True for subsequent tests
 
-    emu_u = np.array(emu.probe_outputs[probe_u])
-    emu_v = np.array(emu.probe_outputs[probe_v])
-    emu_s = np.array(emu.probe_outputs[probe_s])
-
     with LoihiSimulator(model, use_snips=False) as sim:
         sim.run_steps(nt)
-        sim_u = np.column_stack([
-            p.timeSeries.data for p in sim.board.probe_map[probe_u]])
-        sim_v = np.column_stack([
-            p.timeSeries.data for p in sim.board.probe_map[probe_v]])
-        sim_s = np.column_stack([
-            p.timeSeries.data for p in sim.board.probe_map[probe_s]])
+        sim_u = sim.get_probe_output(probe_u)
+        sim_v = sim.get_probe_output(probe_v)
+        sim_s = sim.get_probe_output(probe_s)
         sim_v[sim_s > 0] = 0  # since Loihi has placeholder voltage after spike
 
     plt.subplot(311)

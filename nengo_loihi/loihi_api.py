@@ -332,6 +332,61 @@ class Core(object):
             return len(self.synapseFmts) - 1  # index
 
 
+class SpikeInput(object):
+    class LoihiAxon(object):
+        __slots__ = ['chip_id', 'core_id', 'axon_id', 'atom']
+
+        def __init__(self, chip_id, core_id, axon_id, atom=0):
+            self.chip_id = chip_id
+            self.core_id = core_id
+            self.axon_id = axon_id
+            self.atom = atom
+
+        def _slots_str(self):
+            return ", ".join("%s=%s" % (s, getattr(self, s))
+                             for s in self.__slots__)
+
+        def __repr__(self):
+            return "%s(%s)" % (type(self).__name__, self._slots_str())
+
+    class LoihiSpike(object):
+        __slots__ = ['time', 'axon']
+
+        def __init__(self, time, axon):
+            self.time = time
+            self.axon = axon
+
+        def __repr__(self):
+            return "%s(time=%s, %s)" % (
+                type(self).__name__, self.time, self.axon._slots_str())
+
+    def __init__(self):
+        self.axon_map = {}  # maps cx_spike_input idx to axon in self.axons
+        self.sent_count = 0
+
+    def set_axons(self, board, n2board, cx_spike_input):
+        assert len(self.axon_map) == 0
+        cx_idxs = np.arange(cx_spike_input.n)
+        for axons in cx_spike_input.axons:
+            assert (axons.cx_atoms is None or np.all(axons.cx_atoms == 0)), (
+                "Cannot send pop spikes to board")
+            tchip_idx, tcore_idx, tsyn_ids = board.find_synapses(axons.target)
+            tchip = n2board.n2Chips[tchip_idx]
+            tcore = tchip.n2Cores[tcore_idx]
+            spikes = axons.map_cx_spikes(cx_idxs)
+            for cx_idx, spike in zip(cx_idxs, spikes):
+                if spike is not None:
+                    taxon_idx = int(spike.axon_id)
+                    taxon_id = int(tsyn_ids[taxon_idx])
+                    self.axon_map.setdefault(cx_idx, []).append(self.LoihiAxon(
+                        chip_id=tchip.id, core_id=tcore.id, axon_id=taxon_id))
+
+    def spikes_to_loihi(self, t, cx_idxs):
+        for cx_idx in cx_idxs:
+            for axon in self.axon_map[cx_idx]:
+                yield self.LoihiSpike(time=t, axon=axon)
+
+
 class Profile(object):
     def __eq__(self, obj):
         return isinstance(obj, type(self)) and all(

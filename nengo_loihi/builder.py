@@ -74,10 +74,7 @@ class Model(CxModel):
         Mapping from objects to the integer seed assigned to that object.
     """
     def __init__(self, dt=0.001, label=None, builder=None):
-        super(Model, self).__init__()
-
-        self.dt = dt
-        self.label = label
+        super(Model, self).__init__(dt=dt, label=label)
 
         self.objs = collections.defaultdict(dict)
         self.params = {}  # Holds data generated when building objects
@@ -113,9 +110,7 @@ class Model(CxModel):
         self.intercept_limit = 0.95
 
         # Will be provided by Simulator
-        self.chip2host_params = None
-        self.chip2host_receivers = None
-        self.host2chip_senders = None
+        self.chip2host_params = {}
 
     @property
     def inter_rate(self):
@@ -410,10 +405,10 @@ def build_relu(model, relu, neurons, group):
 @Builder.register(Node)
 def build_node(model, node):
     if isinstance(node, ChipReceiveNode):
-        cx_spiker = node.cx_spike_input
-        model.add_input(cx_spiker)
-        model.objs[node]['out'] = cx_spiker
-        return
+        spike_input = CxSpikeInput(node.raw_dimensions)
+        model.add_input(spike_input)
+        model.objs[node]['out'] = spike_input
+        node.cx_spike_input = spike_input
     else:
         raise NotImplementedError()
 

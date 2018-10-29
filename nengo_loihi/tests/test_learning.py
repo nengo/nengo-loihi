@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.hang
 @pytest.mark.parametrize('n_per_dim', [120, 200])
 @pytest.mark.parametrize('dims', [1, 3])
 def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
