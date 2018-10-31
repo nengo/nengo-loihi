@@ -35,6 +35,8 @@ setup(
     long_description=read("README.rst"),
     zip_safe=False,
     python_requires=">=3.4",
+    package_data = {"nengo_loihi": ["nengo_loihi/snips/*"]},
+    include_package_data = True,
     setup_requires=[
         "nengo",
     ],

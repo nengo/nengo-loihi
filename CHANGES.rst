@@ -27,6 +27,10 @@ Release history
 - An error is now raised if
   a learning rule is applied to a non-decoded connection.
 
+**Fixed**
+
+- Snips directory included when pip installing nengo-loihi.
+
 0.3.0 (September 28, 2018)
 ==========================
 
