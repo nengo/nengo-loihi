@@ -26,7 +26,7 @@ def test_allclose(allclose, capsys):
                                        "  (0,): 0 1.0\n"
                                        "  (2,): 2 1.0\n"
                                        "  (3,): 3 1.0\n")
-    assert not allclose(np.arange(4), np.ones(4), print_fail=False)
+    assert not allclose(np.arange(4), np.ones(4), print_fail=0)
     assert capsys.readouterr().out == ""
-    assert allclose(np.arange(4), np.arange(4), print_fail=True)
+    assert allclose(np.arange(4), np.arange(4), print_fail=5)
     assert capsys.readouterr().out == ""
