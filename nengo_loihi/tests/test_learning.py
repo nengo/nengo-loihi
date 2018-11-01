@@ -59,7 +59,6 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     assert m_best > (0.3 if n_per_dim < 150 else 0.6)
 
 
-@pytest.mark.hang
 def test_multiple_pes(allclose, plt, seed, Simulator):
     n_errors = 5
     targets = np.linspace(-1, 1, n_errors)
@@ -91,4 +90,5 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
         plt.axhline(target, **style)
 
     for i, target in enumerate(targets):
-        assert allclose(sim.data[probe][t > 0.8, i], target, atol=0.05)
+        assert allclose(sim.data[probe][t > 0.8, i], target,
+                        atol=0.05, rtol=0.05)
