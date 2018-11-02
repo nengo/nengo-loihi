@@ -62,8 +62,8 @@ def test_ens_ens_slice(allclose, plt):
     c = output_filter.filtfilt(sim.data[cp])
     plt.plot(t, b)
     plt.plot(t, c)
-    plt.legend(['b%d' % d for d in range(b.shape[1])] +
-               ['c%d' % d for d in range(c.shape[1])])
+    plt.legend(['b%d' % d for d in range(b.shape[1])]
+               + ['c%d' % d for d in range(c.shape[1])])
 
     assert allclose(b[t > 0.15, 0], b_vals[0], atol=0.15)
     assert allclose(b[t > 0.15, 1], b_vals[1], atol=0.2)

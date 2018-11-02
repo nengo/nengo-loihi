@@ -26,7 +26,7 @@ elif [[ "$COMMAND" == "run" ]]; then
         -- **/*.ipynb
     sed -i -e 's/# $/#/g' -e '/get_ipython()/d' -- docs/**/*.py
     flake8 nengo_loihi || STATUS=1
-    flake8 --ignore=E226,E703,W291,W391 docs || STATUS=1
+    flake8 --ignore=E226,E703,W291,W391,W503 docs || STATUS=1
     pylint docs nengo_loihi || STATUS=1
     codespell -q 3 --skip="./build,./docs/_build,*-checkpoint.ipynb"|| STATUS=1
 else
