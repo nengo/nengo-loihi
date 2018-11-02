@@ -13,7 +13,6 @@ include MANIFEST.in
 
 # Directories to include
 graft docs
-graft sandbox
 
 # Subdirectories to exclude, if they exist
 prune docs/_build
