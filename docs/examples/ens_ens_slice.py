@@ -33,8 +33,8 @@ if __name__ == "__main__":
     output_filter = nengo.synapses.Alpha(0.02)
     plt.plot(sim.trange(), output_filter.filtfilt(sim.data[bp]))
     plt.plot(sim.trange(), output_filter.filtfilt(sim.data[cp]))
-    plt.legend(['b%d' % d for d in range(b.dimensions)] +
-               ['c%d' % d for d in range(c.dimensions)])
+    plt.legend(['b%d' % d for d in range(b.dimensions)]
+               + ['c%d' % d for d in range(c.dimensions)])
 
     plt.savefig('ens_ens_slice.png')
     plt.show()
