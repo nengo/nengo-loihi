@@ -87,9 +87,9 @@ for reading status LEDs on the host
 The image below shows the location of components
 important to the Nahuku / GHRD Loihi system.
 
-.. image:: nahuku-connections.png
+.. image:: https://i.imgur.com/l5hsHM1.png
    :width: 100%
-   :target: _images/nahuku-connections.png
+   :target: https://i.imgur.com/l5hsHM1.png
 
 To set up the Nahuku / GHRD system:
 
