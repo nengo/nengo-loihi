@@ -59,7 +59,8 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     assert m_best > (0.3 if n_per_dim < 150 else 0.6)
 
 
-def test_multiple_pes(allclose, plt, seed, Simulator):
+@pytest.mark.parametrize('init_function', [None, lambda x: 0])
+def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
     n_errors = 5
     targets = np.linspace(-0.9, 0.9, n_errors)
     with nengo.Network(seed=seed) as model:
@@ -72,6 +73,7 @@ def test_multiple_pes(allclose, plt, seed, Simulator):
             conn = nengo.Connection(
                 pre_ea.ea_ensembles[i],
                 output[i],
+                function=init_function,
                 learning_rule_type=nengo.PES(learning_rate=5e-4),
             )
             nengo.Connection(target[i], conn.learning_rule, transform=-1)

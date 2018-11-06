@@ -253,6 +253,15 @@ class CxGroup(object):
         self.vmax = 2**(9 + 2*vmaxe) - 1
 
         # --- discretize weights and vth
+        # To avoid overflow, we can either lower vth_max or lower wgtExp_max.
+        # Lowering vth_max is more robust, but has the downside that it may
+        # force smaller wgtExp on connections than necessary, potentially
+        # leading to lost weight bits (see SynapseFmt.discretize_weights).
+        # Lowering wgtExp_max can let us keep vth_max higher, but overflow
+        # is still be possible on connections with many small inputs (uncommon)
+        vth_max = VTH_MAX
+        wgtExp_max = 0
+
         w_maxs = [s.max_abs_weight() for s in self.synapses]
         w_max = max(w_maxs) if len(w_maxs) > 0 else 0
         b_max = np.abs(self.bias).max()
@@ -262,12 +271,12 @@ class CxGroup(object):
             w_scale = (255. / w_max)
             s_scale = 1. / (u_infactor * v_infactor)
 
-            for wgtExp in range(0, -8, -1):
+            for wgtExp in range(wgtExp_max, -8, -1):
                 v_scale = s_scale * w_scale * SynapseFmt.get_scale(wgtExp)
                 b_scale = v_scale * v_infactor
                 vth = np.round(self.vth * v_scale)
                 bias = np.round(self.bias * b_scale)
-                if (vth <= VTH_MAX).all() and (np.abs(bias) <= BIAS_MAX).all():
+                if (vth <= vth_max).all() and (np.abs(bias) <= BIAS_MAX).all():
                     break
             else:
                 raise BuildError("Could not find appropriate wgtExp")
@@ -278,14 +287,17 @@ class CxGroup(object):
                 w_scale = b_scale * u_infactor / SynapseFmt.get_scale(wgtExp)
                 vth = np.round(self.vth * v_scale)
                 bias = np.round(self.bias * b_scale)
-                if np.all(vth <= VTH_MAX):
+                if np.all(vth <= vth_max):
                     break
 
                 b_scale /= 2.
             else:
                 raise BuildError("Could not find appropriate bias scaling")
         else:
-            v_scale = np.array([VTH_MAX / (self.vth.max() + 1)])
+            # reduce vth_max in this case to avoid overflow since we're setting
+            # all vth to vth_max (esp. in learning with zeroed initial weights)
+            vth_max = min(vth_max, 2**Q_BITS - 1)
+            v_scale = np.array([vth_max / (self.vth.max() + 1)])
             vth = np.round(self.vth * v_scale)
             b_scale = v_scale * v_infactor
             bias = np.round(self.bias * b_scale)
