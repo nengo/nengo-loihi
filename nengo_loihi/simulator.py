@@ -15,6 +15,7 @@ import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
+from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
 from nengo_loihi.compat import seed_network
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
@@ -291,6 +292,9 @@ class Simulator:
         self.closed = True  # Start closed in case constructor raises exception
         if progress_bar:
             warnings.warn("nengo-loihi does not support progress bars")
+
+        if HAS_DL:
+            install_dl_builders()
 
         if model is None:
             # Call the builder to make a model

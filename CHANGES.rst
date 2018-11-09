@@ -41,6 +41,9 @@ Release history
   emulator. Previously, the emulator did not allow very small exponents, and
   such exponents produced noise with the wrong magnitude on the chip.
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+- Models trained using NengoDL use tuning curves more similar to those
+  of neuron on the chip, improving the accuracy of these model.
+  (`#140 <https://github.com/nengo/nengo-loihi/pull/140>`__)
 
 **Fixed**
 

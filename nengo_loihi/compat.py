@@ -1,7 +1,11 @@
 from distutils.version import LooseVersion
+import logging
 
 import nengo
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
 
 if LooseVersion(nengo.__version__) > LooseVersion('2.8.0'):
     from nengo.builder.network import seed_network
@@ -42,3 +46,20 @@ else:
         # nengo <= 2.8.0 will overwrite any seeds set on the model, so no
         # point doing anything in this function
         pass
+
+try:
+    import tensorflow as tf
+    HAS_TF = True
+except ImportError as err:  # pragma: no cover
+    tf = None
+    HAS_TF = False
+    logger.debug("Error importing TensorFlow:\n%s", err)
+
+try:
+    import nengo_dl
+    HAS_DL = True
+    assert HAS_TF, "NengoDL installed without Tensorflow"
+except ImportError as err:  # pragma: no cover
+    nengo_dl = None
+    HAS_DL = False
+    logger.debug("Error importing Nengo DL:\n%s", err)

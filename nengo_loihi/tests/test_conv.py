@@ -10,15 +10,10 @@ import numpy as np
 import pytest
 import scipy.signal
 
-try:
-    import nengo_dl
-except ImportError:
-    nengo_dl = None
-
 import nengo_loihi
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder import Model
-from nengo_loihi.compat import nengo_transforms
+from nengo_loihi.compat import HAS_DL, nengo_dl, nengo_transforms
 from nengo_loihi import conv
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
@@ -412,7 +407,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
     ref_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
 
     # Currently, non-gpu TensorFlow does not support channels first in conv
-    use_nengo_dl = nengo_dl is not None and channels_last
+    use_nengo_dl = HAS_DL and channels_last
     ndl_out = np.zeros_like(ref_out)
     if use_nengo_dl:
         with nengo_dl.Simulator(model, dt=dt) as sim_dl:
