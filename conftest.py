@@ -196,12 +196,7 @@ def pytest_collection_modifyitems(session, config, items):
         return
 
     hanging_nengo_tests = [
-        "nengo/tests/test_connection.py::test_slicing[LIF]",
-        "nengo/tests/test_connection.py::test_slicing[SpikingRectifiedLinear]",
-        "nengo/tests/test_connection.py::test_slicing_function",
         "nengo/tests/test_learning_rules.py::test_slicing",
-        "nengo/tests/test_ensemble.py::test_vector[LIF]",
-        "nengo/tests/test_ensemble.py::test_vector[SpikingRectifiedLinear]",
         "nengo/tests/test_neurons.py::test_direct_mode_nonfinite_value",
         "nengo/tests/test_neurons.py::test_lif_min_voltage[-inf]",
         "nengo/tests/test_neurons.py::test_lif_min_voltage[-1]",
