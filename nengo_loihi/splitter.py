@@ -1,16 +1,17 @@
 from collections import defaultdict, OrderedDict
+import copy
 import logging
 import warnings
 
 from nengo import Connection, Direct, Ensemble, Network, Node, Probe
 from nengo.base import ObjView
 from nengo.connection import LearningRule
-from nengo.dists import get_samples
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 import numpy as np
 
 from nengo_loihi.conv import Conv2D
+from nengo_loihi.compat import nengo_transforms, sample_transform
 from nengo_loihi.inputs import (
     ChipReceiveNode,
     ChipReceiveNeurons,
@@ -326,15 +327,20 @@ def split_host_to_chip(networks, conn):
             "Conv2D transforms not supported for off-chip to "
             "on-chip connections where `pre` is not a Neurons object.")
 
-    # scale the input spikes based on the radius of the
-    # target ensemble
+    # Scale the input spikes based on the radius of the target ensemble
     seed = networks.original.seed if conn.seed is None else conn.seed
-    transform = get_samples(conn.transform,
-                            n=conn.size_out,
-                            d=conn.size_mid,
-                            rng=np.random.RandomState(seed=seed))
+    weights = sample_transform(conn, rng=np.random.RandomState(seed=seed))
+
     if isinstance(conn.post_obj, Ensemble):
-        transform = transform / conn.post_obj.radius
+        weights = weights / conn.post_obj.radius
+
+    if nengo_transforms is None:
+        transform = weights
+    else:
+        # copy the Transform information, setting `init` to the sampled weights
+        transform = copy.copy(conn.transform)
+        type(transform).init.data[transform] = weights
+
     pre2ens = Connection(conn.pre, ens,
                          function=conn.function,
                          solver=conn.solver,
@@ -382,10 +388,7 @@ def split_chip_to_host(networks, conn):
 
     logger.debug("Creating Probe for %s", conn)
     seed = networks.original.seed if conn.seed is None else conn.seed
-    transform = get_samples(conn.transform,
-                            n=conn.size_out,
-                            d=conn.size_mid,
-                            rng=np.random.RandomState(seed=seed))
+    transform = sample_transform(conn, rng=np.random.RandomState(seed=seed))
 
     probe = Probe(conn.pre,
                   synapse=None,
@@ -396,7 +399,7 @@ def split_chip_to_host(networks, conn):
         function=conn.function,
         eval_points=conn.eval_points,
         scale_eval_points=conn.scale_eval_points,
-        transform=transform
+        transform=transform,
     )
     networks.add(probe, "chip")
     networks.chip2host_receivers[probe] = receive

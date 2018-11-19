@@ -32,8 +32,7 @@ def conn_probe(model, nengo_probe):
                     func(np.zeros(input_dim, dtype=np.float64))).size
             else:
                 input_dim = len(func[0])
-        transform = kwargs['transform']
-        transform = np.asarray(transform, dtype=np.float64)
+        transform = np.asarray(kwargs['transform'], dtype=np.float64)
         if transform.ndim <= 1:
             output_dim = input_dim
         elif transform.ndim == 2:
@@ -86,6 +85,7 @@ def signal_probe(model, key, probe):
     if kwargs is not None:
         if kwargs['function'] is not None:
             raise BuildError("Functions not supported for signal probe")
+
         weights = kwargs['transform'].T / model.dt
 
     if isinstance(probe.target, nengo.ensemble.Neurons):

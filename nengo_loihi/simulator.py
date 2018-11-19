@@ -268,6 +268,10 @@ class Simulator(object):
          "decoded connection optimized away"),
         ('test_connection.py:test_function_returns_none_error',
          "decoded connection optimized away"),
+
+        # 1D conv not supported
+        ('test_solvers.py:test_non_compositional_solver_transform_error',
+         "1D convolution not supported"),
     ]
 
     def __init__(  # noqa: C901

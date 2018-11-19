@@ -1,13 +1,12 @@
 import nengo
 from nengo import Ensemble, Connection, Node
 from nengo.builder.connection import (
-    build_no_solver,
+    build_no_solver as _build_no_solver,
     BuiltConnection,
     get_eval_points,
     get_targets,
     multiply,
 )
-from nengo.dists import get_samples
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
@@ -16,13 +15,14 @@ import numpy as np
 from nengo_loihi import conv
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder.builder import Builder
+from nengo_loihi.compat import (
+    nengo_transforms, sample_transform, conn_solver)
 from nengo_loihi.inputs import ChipReceiveNeurons, LoihiInput
 from nengo_loihi.neurons import loihi_rates
 
 
-def build_decoders(model, conn, rng, transform):
-    # Copied from Nengo, except that we pass `dt` to `solve_for_decoders`,
-    # and do not support the decoder cache.
+def build_decoders(model, conn, rng, sampled_transform):
+    # Copied from Nengo, except where noted below
 
     encoders = model.params[conn.pre_obj].encoders
     gain = model.params[conn.pre_obj].gain
@@ -31,35 +31,59 @@ def build_decoders(model, conn, rng, transform):
     eval_points = get_eval_points(model, conn, rng)
     targets = get_targets(conn, eval_points)
 
-    x = np.dot(eval_points, encoders.T / conn.pre_obj.radius)
-    E = None
-    if conn.solver.weights:
-        E = model.params[conn.post_obj].scaled_encoders.T[conn.post_slice]
-        # include transform in solved weights
-        targets = multiply(targets, transform.T)
+    if conn.solver.weights and not conn.solver.compositional:
+        # solver is solving for the whole weight matrix, so apply
+        # transform/encoders to targets
 
+        # CHANGE: backwards compatibility with nengo<=2.8.0
+        # if not isinstance(conn.transform, Dense):
+        #     raise BuildError(
+        #         "Non-compositional solvers only work with Dense transforms")
+        # transform = conn.transform.sample(rng=rng)
+        # targets = np.dot(targets, transform.T)
+        if nengo_transforms is not None and not isinstance(
+                conn.transform, nengo_transforms.Dense):  # pragma: no cover
+            raise BuildError(
+                "Non-compositional solvers only work with Dense transforms")
+        targets = np.dot(targets, sampled_transform.T)
+
+        # weight solvers only allowed on ensemble->ensemble connections
+        assert isinstance(conn.post_obj, Ensemble)
+        post_enc = model.params[conn.post_obj].scaled_encoders
+        targets = np.dot(targets, post_enc.T[conn.post_slice])
+
+    x = np.dot(eval_points, encoders.T / conn.pre_obj.radius)
+
+    # CHANGE: we pass `dt` to `solve_for_decoders`,
+    # and do not support the decoder cache.
     # wrapped_solver = (model.decoder_cache.wrap_solver(solve_for_decoders)
     #                   if model.seeded[conn] else solve_for_decoders)
     # decoders, solver_info = wrapped_solver(
+    #     conn, gain, bias, x, targets, rng=rng)
     decoders, solver_info = solve_for_decoders(
-        conn, gain, bias, x, targets, rng=rng, dt=model.dt, E=E)
+        conn, gain, bias, x, targets, rng=rng, dt=model.dt)
 
-    weights = (decoders.T if conn.solver.weights else
-               multiply(transform, decoders.T))
-    return eval_points, weights, solver_info
+    return eval_points, decoders.T, solver_info
 
 
-def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
-    # Copied from Nengo, except we use `loihi_rates` to get activities
+def solve_for_decoders(conn, gain, bias, x, targets, rng, dt):
+    # Copied from Nengo, except where noted below
 
+    # CHANGE: we use `loihi_rates` to get activities
+    # activities = conn.pre_obj.neuron_type.rates(x, gain, bias)
     activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias, dt)
+
     if np.count_nonzero(activities) == 0:
         raise BuildError(
             "Building %s: 'activities' matrix is all zero for %s. "
             "This is because no evaluation points fall in the firing "
             "ranges of any neurons." % (conn, conn.pre_obj))
 
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
+    # CHANGE: backwards compatibility for solvers
+    # decoders, solver_info = conn.solver(activities, targets, rng=rng)
+    decoders, solver_info = conn_solver(
+        conn.solver, activities, targets, rng=rng)
+
     return decoders, solver_info
 
 
@@ -78,11 +102,16 @@ def build_decode_neuron_encoders(model, ens, kind='decode_neuron_encoders'):
 
 
 @Builder.register(Solver)
-def build_solver(model, solver, conn, rng, transform):
-    return build_decoders(model, conn, rng, transform)
+def build_solver(model, solver, conn, rng, sampled_transform):
+    return build_decoders(model, conn, rng, sampled_transform)
 
 
-Builder.register(NoSolver)(build_no_solver)
+@Builder.register(NoSolver)
+def build_no_solver(model, solver, conn, rng, sampled_transform):
+    if nengo_transforms is None:
+        return _build_no_solver(model, solver, conn, rng, sampled_transform)
+    else:
+        return _build_no_solver(model, solver, conn, rng)
 
 
 @Builder.register(Connection)  # noqa: C901
@@ -91,6 +120,10 @@ def build_connection(model, conn):
         # TODO: integrate these into the same function
         conv.build_conv2d_connection(model, conn)
         return
+    elif (nengo_transforms is not None
+          and not isinstance(conn.transform, nengo_transforms.Dense)):
+        raise NotImplementedError(
+            "nengo-loihi does not yet support %s transforms" % conn.transform)
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
@@ -104,10 +137,10 @@ def build_connection(model, conn):
     eval_points = None
     solver_info = None
     neuron_type = None
+    post_slice = conn.post_slice
 
-    # Sample transform if given a distribution
-    transform = get_samples(
-        conn.transform, conn.size_out, d=conn.size_mid, rng=rng)
+    # sample transform (if using a distribution)
+    transform = sample_transform(conn, rng=rng)
 
     tau_s = 0.0  # `synapse is None` gets mapped to `tau_s = 0.0`
     if isinstance(conn.synapse, nengo.synapses.Lowpass):
@@ -139,8 +172,13 @@ def build_connection(model, conn):
           and isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
-        eval_points, weights, solver_info = model.build(
+        eval_points, decoders, solver_info = model.build(
             conn.solver, conn, rng, transform)
+
+        if conn.solver.weights and not conn.solver.compositional:
+            weights = decoders
+        else:
+            weights = multiply(transform, decoders)
 
         # the decoder solver assumes a spike height of 1/dt; that isn't the
         # case on loihi, so we need to undo that scaling
@@ -148,7 +186,19 @@ def build_connection(model, conn):
 
         neuron_type = conn.pre_obj.neuron_type
 
-        if not conn.solver.weights:
+        if conn.solver.weights:
+            # weight solvers only allowed on ensemble->ensemble connections
+            assert isinstance(conn.post_obj, Ensemble)
+
+            if conn.solver.compositional:
+                encoders = model.params[conn.post_obj].scaled_encoders.T
+                encoders = encoders[post_slice]
+                weights = multiply(encoders.T, weights)
+
+            # post slice already applied to encoders (either here or in
+            # `build_decoders`), so don't apply later
+            post_slice = None
+        else:
             needs_decode_neurons = True
     elif isinstance(conn.pre_obj, Neurons):
         assert conn.pre_slice == slice(None)
@@ -173,7 +223,7 @@ def build_connection(model, conn):
         if isinstance(post_cx, Probe):
             # use non-spiking decode neurons for voltage probing
             assert post_cx.target is None
-            assert conn.post_slice == slice(None)
+            assert post_slice == slice(None)
 
             # use the same scaling as the ensemble does, to get good
             #  decodes.  Note that this assumes that the decoded value
@@ -201,7 +251,7 @@ def build_connection(model, conn):
                 weights = weights / conn.post_obj.radius
 
             post_d = conn.post_obj.size_in
-            post_inds = np.arange(post_d, dtype=np.int32)[conn.post_slice]
+            post_inds = np.arange(post_d, dtype=np.int32)[post_slice]
             assert weights.shape[0] == len(post_inds) == conn.size_out == d
             mid_axon_inds = model.decode_neurons.get_post_inds(
                 post_inds, post_d)
@@ -266,12 +316,12 @@ def build_connection(model, conn):
 
     if isinstance(post_cx, Probe):
         assert post_cx.target is None
-        assert conn.post_slice == slice(None)
+        assert post_slice == slice(None)
         post_cx.target = mid_cx
         mid_cx.add_probe(post_cx)
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_cx, LoihiBlock)
-        assert conn.post_slice == slice(None)
+        assert post_slice == slice(None)
         if weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
         else:

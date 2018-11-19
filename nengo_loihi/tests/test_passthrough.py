@@ -3,6 +3,7 @@ import nengo
 import numpy as np
 
 import nengo_loihi
+from nengo_loihi.compat import transform_array
 from nengo_loihi.decode_neurons import OnOffDecodeNeurons
 from nengo_loihi.inputs import ChipReceiveNode
 from nengo_loihi.splitter import split
@@ -75,7 +76,7 @@ def test_transform_merging(d1, d2, d3):
 
     assert len(chip.connections) == 1
     conn = chip.connections[0]
-    assert np.allclose(conn.transform, np.dot(t2, t1))
+    assert np.allclose(transform_array(conn.transform), np.dot(t2, t1))
 
 
 @pytest.mark.parametrize("n_ensembles", [1, 3])
@@ -104,7 +105,8 @@ def test_identity_array(n_ensembles, ens_dimensions):
     for conn in connections:
         assert conn.pre in a.all_ensembles or conn.pre_obj is a.input
         assert conn.post in b.all_ensembles
-        assert np.allclose(conn.transform, np.eye(ens_dimensions))
+        assert np.allclose(transform_array(conn.transform),
+                           np.eye(ens_dimensions))
         pre.add(conn.pre)
         post.add(conn.post)
     assert len(pre) == n_ensembles
@@ -137,7 +139,7 @@ def test_full_array(n_ensembles, ens_dimensions):
     for conn in connections:
         assert conn.pre in a.all_ensembles
         assert conn.post in b.all_ensembles
-        assert np.allclose(conn.transform,
+        assert np.allclose(transform_array(conn.transform),
                            np.ones((ens_dimensions, ens_dimensions)))
         pairs.add((conn.pre, conn.post))
     assert len(pairs) == n_ensembles ** 2
