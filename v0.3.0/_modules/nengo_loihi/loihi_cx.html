@@ -1,0 +1,923 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>nengo_loihi.loihi_cx &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="../../_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    ../../index.html" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="../../search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="../../index.html">Docs</a></li>
+              
+                <li><a href="../index.html">Module code</a></li>
+              
+              <li>nengo_loihi.loihi_cx</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <h1>Source code for nengo_loihi.loihi_cx</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">nengo.exceptions</span> <span class="k">import</span> <span class="n">BuildError</span><span class="p">,</span> <span class="n">SimulationError</span>
+<span class="kn">from</span> <span class="nn">nengo.utils.compat</span> <span class="k">import</span> <span class="n">is_iterable</span><span class="p">,</span> <span class="nb">range</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.loihi_api</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">BIAS_MAX</span><span class="p">,</span>
+    <span class="n">bias_to_manexp</span><span class="p">,</span>
+    <span class="n">SynapseFmt</span><span class="p">,</span>
+    <span class="n">tracing_mag_int_frac</span><span class="p">,</span>
+    <span class="n">U_MAX</span><span class="p">,</span> <span class="n">U_MIN</span><span class="p">,</span>
+    <span class="n">V_MAX</span><span class="p">,</span> <span class="n">V_MIN</span><span class="p">,</span>
+    <span class="n">VTH_MAX</span><span class="p">,</span>
+    <span class="n">vth_to_manexp</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CxGroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class holding Loihi objects that can be placed on the chip or Lakemont.</span>
+
+<span class="sd">    Typically an ensemble or node, can be a special decoding ensemble. Once</span>
+<span class="sd">    implemented, SNIPS might use this as well.</span>
+
+<span class="sd">    Before ``discretize`` has been called, most parameters in this class are</span>
+<span class="sd">    floating-point values. Calling ``discretize`` converts them to integer</span>
+<span class="sd">    values inplace, for use on Loihi.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n : int</span>
+<span class="sd">        The number of compartments in the group.</span>
+<span class="sd">    label : string</span>
+<span class="sd">        A label for the group (for debugging purposes).</span>
+<span class="sd">    decayU : (n,) ndarray</span>
+<span class="sd">        Input (synapse) decay constant for each compartment.</span>
+<span class="sd">    decayV : (n,) ndarray</span>
+<span class="sd">        Voltage decay constant for each compartment.</span>
+<span class="sd">    decayU_set : bool</span>
+<span class="sd">        Whether decayU has been explicitly set</span>
+<span class="sd">    scaleU : bool</span>
+<span class="sd">        Scale input (U) by decayU so that the integral of U is</span>
+<span class="sd">        the same before and after filtering.</span>
+<span class="sd">    scaleV : bool</span>
+<span class="sd">        Scale voltage (V) by decayV so that the integral of V is</span>
+<span class="sd">        the same before and after filtering.</span>
+<span class="sd">    refractDelay : (n,) ndarray</span>
+<span class="sd">        Compartment refractory delays, in time steps.</span>
+<span class="sd">    vth : (n,) ndarray</span>
+<span class="sd">        Compartment voltage thresholds.</span>
+<span class="sd">    bias : (n,) ndarray</span>
+<span class="sd">        Compartment biases.</span>
+<span class="sd">    enableNoise : (n,) ndarray</span>
+<span class="sd">        Whether to enable noise for each compartment.</span>
+<span class="sd">    vmin : float or int</span>
+<span class="sd">        Minimum voltage for all compartments.</span>
+<span class="sd">    vmax : float or int</span>
+<span class="sd">        Maximum voltage for all compartments.</span>
+<span class="sd">    noiseMantOffset0 : float or int</span>
+<span class="sd">        Offset for noise generation.</span>
+<span class="sd">    noiseExp0 : float or int</span>
+<span class="sd">        Exponent for noise generation. Floating point values are base 10</span>
+<span class="sd">        in units of current or voltage. Integer values are in base 2.</span>
+<span class="sd">    noiseAtDenOrVm : {0, 1}</span>
+<span class="sd">        Inject noise into current (0) or voltage (1).</span>
+<span class="sd">    synapses : list of CxSynapse</span>
+<span class="sd">        CxSynapse objects projecting to these compartments.</span>
+<span class="sd">    named_synapses : dict</span>
+<span class="sd">        Dictionary mapping names to CxSynapse objects.</span>
+<span class="sd">    axons : list of CxAxon</span>
+<span class="sd">        CxAxon objects outputting from these compartments.</span>
+<span class="sd">    named_axons : dict</span>
+<span class="sd">        Dictionary mapping names to CxAxon objects.</span>
+<span class="sd">    probes : list of CxProbe</span>
+<span class="sd">        CxProbes recording information from these compartments.</span>
+<span class="sd">    location : {&quot;core&quot;, &quot;cpu&quot;}</span>
+<span class="sd">        Whether these compartments are on a Loihi core</span>
+<span class="sd">        or handled by the Loihi x86 processor (CPU).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># threshold at which U/V scaling is allowed</span>
+    <span class="n">DECAY_SCALE_TH</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="mi">2</span><span class="o">**</span><span class="mi">12</span>  <span class="c1"># half of one decay scaling unit</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="s1">&#39;core&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># default to no filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># default to integration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayU_set</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># whether decayU has been explicitly set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refractDelay</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enableNoise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># parameters common to core</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseMantOffset0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseExp0</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseAtDendOrVm</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">named_axons</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">assert</span> <span class="n">location</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;core&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">location</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_synapses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">synapses</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a CxSynapses object to ensemble.&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">synapses</span><span class="o">.</span><span class="n">group</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">synapses</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">synapses</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">synapses</span>
+
+        <span class="n">AXONS_MAX</span> <span class="o">=</span> <span class="mi">4096</span>
+        <span class="n">MAX_SYNAPSE_BITS</span> <span class="o">=</span> <span class="mi">16384</span><span class="o">*</span><span class="mi">64</span>
+        <span class="n">n_axons</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">n_axons</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_axons</span> <span class="o">&gt;</span> <span class="n">AXONS_MAX</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span><span class="s2">&quot;Total axons (</span><span class="si">%d</span><span class="s2">) exceeded max (</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">n_axons</span><span class="p">,</span> <span class="n">AXONS_MAX</span><span class="p">))</span>
+
+        <span class="n">synapse_bits</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">bits</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">synapse_bits</span> <span class="o">&gt;</span> <span class="n">MAX_SYNAPSE_BITS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span><span class="s2">&quot;Total synapse bits (</span><span class="si">%d</span><span class="s2">) exceeded max (</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">synapse_bits</span><span class="p">,</span> <span class="n">MAX_SYNAPSE_BITS</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">add_axons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axons</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a CxAxons object to ensemble.&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">axons</span><span class="o">.</span><span class="n">group</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">axons</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axons</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_axons</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">named_axons</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">axons</span>
+
+        <span class="k">assert</span> <span class="n">axons</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="s2">&quot;Axons currently only one-to-one&quot;</span>
+
+    <span class="k">def</span> <span class="nf">add_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a CxProbe object to ensemble.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">assert</span> <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Lowpass synaptic input filter for Cx to time constant tau_s.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_s : float</span>
+<span class="sd">            `nengo.Lowpass` synapse time constant for filtering.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step.</span>
+<span class="sd">        default : bool</span>
+<span class="sd">            Whether we are setting the default. Will only override the</span>
+<span class="sd">            current value if not explicitly set (i.e. if ``not decayU_set``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayU_set</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">decayU</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">tau_s</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_s</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayU_set</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">decayU</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot change tau_s on already configured neurons&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">decayU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="o">=</span> <span class="n">decayU</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">DECAY_SCALE_TH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayU_set</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">default</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                <span class="s2">&quot;Current (U) scaling is required. Perhaps a synapse time &quot;</span>
+                <span class="s2">&quot;constant is too large in your model.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_lif</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_rc</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_rc</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refractDelay</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tau_ref</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decayV</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">DECAY_SCALE_TH</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                <span class="s2">&quot;Voltage (V) scaling is required with LIF neurons. Perhaps &quot;</span>
+                <span class="s2">&quot;the neuron tau_rc time constant is too large.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">configure_relu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refractDelay</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tau_ref</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">configure_nonspiking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refractDelay</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">discretize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># noqa C901</span>
+        <span class="k">def</span> <span class="nf">discretize</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+            <span class="c1"># new = np.round(target * scale).astype(np.int32)</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+            <span class="n">target</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">new</span>
+
+        <span class="c1"># --- discretize decayU and decayV</span>
+        <span class="n">u_infactor</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">))</span>
+        <span class="n">v_infactor</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">))</span>
+        <span class="n">discretize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">discretize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># --- vmin and vmax</span>
+        <span class="n">vmine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">5</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span><span class="o">**</span><span class="n">vmine</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">vmaxe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">9</span><span class="p">)</span><span class="o">*</span><span class="mf">0.5</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">3</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="mi">9</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">vmaxe</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># --- discretize weights and vth</span>
+        <span class="n">w_maxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">max_abs_weight</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="p">]</span>
+        <span class="n">w_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">w_maxs</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w_maxs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">b_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">wgtExp</span> <span class="o">=</span> <span class="o">-</span><span class="mi">7</span>
+
+        <span class="k">if</span> <span class="n">w_max</span> <span class="o">&gt;</span> <span class="mf">1e-8</span><span class="p">:</span>
+            <span class="n">w_scale</span> <span class="o">=</span> <span class="p">(</span><span class="mf">255.</span> <span class="o">/</span> <span class="n">w_max</span><span class="p">)</span>
+            <span class="n">s_scale</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="n">u_infactor</span> <span class="o">*</span> <span class="n">v_infactor</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">wgtExp</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">8</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">v_scale</span> <span class="o">=</span> <span class="n">s_scale</span> <span class="o">*</span> <span class="n">w_scale</span> <span class="o">*</span> <span class="n">SynapseFmt</span><span class="o">.</span><span class="n">get_scale</span><span class="p">(</span><span class="n">wgtExp</span><span class="p">)</span>
+                <span class="n">b_scale</span> <span class="o">=</span> <span class="n">v_scale</span> <span class="o">*</span> <span class="n">v_infactor</span>
+                <span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">*</span> <span class="n">v_scale</span><span class="p">)</span>
+                <span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">*</span> <span class="n">b_scale</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">vth</span> <span class="o">&lt;=</span> <span class="n">VTH_MAX</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">bias</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">BIAS_MAX</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span><span class="s2">&quot;Could not find appropriate wgtExp&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">b_max</span> <span class="o">&gt;</span> <span class="mf">1e-8</span><span class="p">:</span>
+            <span class="n">b_scale</span> <span class="o">=</span> <span class="n">BIAS_MAX</span> <span class="o">/</span> <span class="n">b_max</span>
+            <span class="k">while</span> <span class="n">b_scale</span><span class="o">*</span><span class="n">b_max</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">v_scale</span> <span class="o">=</span> <span class="n">b_scale</span> <span class="o">/</span> <span class="n">v_infactor</span>
+                <span class="n">w_scale</span> <span class="o">=</span> <span class="n">b_scale</span> <span class="o">*</span> <span class="n">u_infactor</span> <span class="o">/</span> <span class="n">SynapseFmt</span><span class="o">.</span><span class="n">get_scale</span><span class="p">(</span><span class="n">wgtExp</span><span class="p">)</span>
+                <span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">*</span> <span class="n">v_scale</span><span class="p">)</span>
+                <span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">*</span> <span class="n">b_scale</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">vth</span> <span class="o">&lt;=</span> <span class="n">VTH_MAX</span><span class="p">):</span>
+                    <span class="k">break</span>
+
+                <span class="n">b_scale</span> <span class="o">/=</span> <span class="mf">2.</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span><span class="s2">&quot;Could not find appropriate bias scaling&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">v_scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">VTH_MAX</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
+            <span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">*</span> <span class="n">v_scale</span><span class="p">)</span>
+            <span class="n">b_scale</span> <span class="o">=</span> <span class="n">v_scale</span> <span class="o">*</span> <span class="n">v_infactor</span>
+            <span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">*</span> <span class="n">b_scale</span><span class="p">)</span>
+            <span class="n">w_scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">v_scale</span> <span class="o">*</span> <span class="n">v_infactor</span> <span class="o">*</span> <span class="n">u_infactor</span>
+                       <span class="o">/</span> <span class="n">SynapseFmt</span><span class="o">.</span><span class="n">get_scale</span><span class="p">(</span><span class="n">wgtExp</span><span class="p">))</span>
+
+        <span class="n">vth_man</span><span class="p">,</span> <span class="n">vth_exp</span> <span class="o">=</span> <span class="n">vth_to_manexp</span><span class="p">(</span><span class="n">vth</span><span class="p">)</span>
+        <span class="n">discretize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">,</span> <span class="n">vth_man</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="n">vth_exp</span><span class="p">)</span>
+
+        <span class="n">bias_man</span><span class="p">,</span> <span class="n">bias_exp</span> <span class="o">=</span> <span class="n">bias_to_manexp</span><span class="p">(</span><span class="n">bias</span><span class="p">)</span>
+        <span class="n">discretize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">bias_man</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="n">bias_exp</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">synapse</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">w_maxs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">1e-16</span><span class="p">:</span>
+                <span class="n">dWgtExp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">w_max</span> <span class="o">/</span> <span class="n">w_maxs</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span>
+                <span class="k">assert</span> <span class="n">dWgtExp</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                <span class="n">wgtExp2</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">wgtExp</span> <span class="o">-</span> <span class="n">dWgtExp</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">wgtExp2</span> <span class="o">=</span> <span class="o">-</span><span class="mi">6</span>
+                <span class="n">dWgtExp</span> <span class="o">=</span> <span class="n">wgtExp</span> <span class="o">-</span> <span class="n">wgtExp2</span>
+            <span class="n">synapse</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wgtExp</span><span class="o">=</span><span class="n">wgtExp2</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">idxs</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">synapse</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">synapse</span><span class="o">.</span><span class="n">indices</span><span class="p">):</span>
+                <span class="n">ws</span> <span class="o">=</span> <span class="n">w_scale</span><span class="p">[</span><span class="n">idxs</span><span class="p">]</span> <span class="k">if</span> <span class="n">is_iterable</span><span class="p">(</span><span class="n">w_scale</span><span class="p">)</span> <span class="k">else</span> <span class="n">w_scale</span>
+                <span class="n">discretize</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">synapse</span><span class="o">.</span><span class="n">synapse_fmt</span><span class="o">.</span><span class="n">discretize_weights</span><span class="p">(</span>
+                    <span class="n">w</span> <span class="o">*</span> <span class="n">ws</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="n">dWgtExp</span><span class="p">))</span>
+            <span class="c1"># TODO: scale this properly, hardcoded for now</span>
+            <span class="k">if</span> <span class="n">synapse</span><span class="o">.</span><span class="n">tracing</span><span class="p">:</span>
+                <span class="n">synapse</span><span class="o">.</span><span class="n">synapse_fmt</span><span class="o">.</span><span class="n">wgtExp</span> <span class="o">=</span> <span class="mi">4</span>
+
+        <span class="c1"># --- noise</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">v_scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">v_scale</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="n">noiseExp0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="mf">10.</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseExp0</span> <span class="o">*</span> <span class="n">v_scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">noiseExp0</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Noise amplitude falls below lower limit&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">noiseExp0</span> <span class="o">&gt;</span> <span class="mi">23</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Noise amplitude exceeds upper limit (</span><span class="si">%d</span><span class="s2"> &gt; 23)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">noiseExp0</span><span class="p">,))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseExp0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">noiseExp0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">23</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseMantOffset0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseMantOffset0</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;v&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">weights</span> <span class="o">/=</span> <span class="n">v_scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">CxSynapses</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_axons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">=</span> <span class="n">n_axons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse_fmt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_tau</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_mag</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">synapse_fmt</span><span class="o">.</span><span class="n">bits_per_axon</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+                   <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">max_abs_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+                   <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">max_ind</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_full_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">size</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span>
+
+        <span class="n">idxBits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_ind</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="n">idxBits</span> <span class="o">&lt;=</span> <span class="n">SynapseFmt</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">idxBits</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SynapseFmt</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">)</span>
+                       <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="n">idxBits</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">compression</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">idxBits</span><span class="o">=</span><span class="n">idxBits</span><span class="p">,</span> <span class="n">fanoutType</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">numSynapses</span><span class="o">=</span><span class="mi">63</span><span class="p">,</span> <span class="n">wgtBits</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_diagonal_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">diag</span><span class="p">):</span>
+        <span class="n">diag</span> <span class="o">=</span> <span class="n">diag</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">diag</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">diag</span><span class="p">))]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span>
+
+        <span class="n">idxBits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_ind</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="n">idxBits</span> <span class="o">&lt;=</span> <span class="n">SynapseFmt</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">idxBits</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SynapseFmt</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">)</span>
+                       <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="n">idxBits</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">compression</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">idxBits</span><span class="o">=</span><span class="n">idxBits</span><span class="p">,</span> <span class="n">fanoutType</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">numSynapses</span><span class="o">=</span><span class="mi">63</span><span class="p">,</span> <span class="n">wgtBits</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_learning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tracing_tau</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tracing_mag</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">tracing_tau</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">tracing_tau</span><span class="p">),</span> <span class="s2">&quot;tracing_tau must be integer&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_tau</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tracing_tau</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_mag</span> <span class="o">=</span> <span class="n">tracing_mag</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">learningCfg</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stdpProfile</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># ^ stdpProfile hard-coded for now (see loihi_interface)</span>
+
+        <span class="n">mag_int</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tracing_mag_int_frac</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">mag_int</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">7</span>
+
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">synapse_fmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">synapse_fmt</span> <span class="o">=</span> <span class="n">SynapseFmt</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse_fmt</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CxAxons</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_axons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">=</span> <span class="n">n_axons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_inds</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># which synapse inputs are targeted</span>
+        <span class="c1"># ^ TODO: this does not allow multiple pre-cx per axon, loihi does</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CxProbe</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">_slice</span> <span class="o">=</span> <span class="nb">slice</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slice</span> <span class="o">=</span> <span class="nb">slice</span> <span class="k">if</span> <span class="nb">slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse</span> <span class="o">=</span> <span class="n">synapse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_snip</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snip_info</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">class</span> <span class="nc">CxSpikeInput</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spikes</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">spikes</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spikes</span> <span class="o">=</span> <span class="n">spikes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spikes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">add_axons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axons</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">axons</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axons</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">assert</span> <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CxModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cx_inputs</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">add_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">CxSpikeInput</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">input</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cx_inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cx_inputs</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cx_inputs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">CxGroup</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">group</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">discretize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span><span class="p">:</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">discretize</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_loihi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">nengo_loihi.loihi_interface</span> <span class="k">import</span> <span class="n">LoihiSimulator</span>
+        <span class="k">return</span> <span class="n">LoihiSimulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_simulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">CxSimulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cx_groups</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span><span class="s2">&quot;No neurons marked for execution on-chip. &quot;</span>
+                             <span class="s2">&quot;Please mark some ensembles as on-chip.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CxSimulator"><a class="viewcode-back" href="../../api.html#nengo_loihi.loihi_cx.CxSimulator">[docs]</a><span class="k">class</span> <span class="nc">CxSimulator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Software emulator for Loihi chip.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : Model</span>
+<span class="sd">        Model specification that will be simulated.</span>
+<span class="sd">    seed : int, optional (Default: None)</span>
+<span class="sd">        A seed for all stochastic operations done in this simulator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">strict</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">strict</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CxSimulator.build"><a class="viewcode-back" href="../../api.html#nengo_loihi.loihi_cx.CxSimulator.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+        <span class="sd">&quot;&quot;&quot;Set up NumPy arrays to emulate chip memory and I/O.&quot;&quot;&quot;</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;CxSimulator seed: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">cx_inputs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">cx_groups</span><span class="p">,</span>
+                             <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="n">g</span><span class="o">.</span><span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probe_outputs</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">group_cxs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cx_slice</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">location</span> <span class="o">==</span> <span class="s1">&#39;cpu&#39;</span> <span class="ow">and</span> <span class="n">cx_slice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cx_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i0</span><span class="p">)</span>
+
+            <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="n">group</span><span class="o">.</span><span class="n">n</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">group_cxs</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i0</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span>
+            <span class="n">i0</span> <span class="o">=</span> <span class="n">i1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cx_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i0</span><span class="p">)</span> <span class="k">if</span> <span class="n">cx_slice</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cx_slice</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cx_slice</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">i1</span><span class="p">)</span>
+
+        <span class="c1"># --- allocate group memory</span>
+        <span class="n">group_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">vth</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="k">assert</span> <span class="n">group_dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">group</span><span class="o">.</span><span class="n">vth</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">group_dtype</span>
+            <span class="k">assert</span> <span class="n">group</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">group_dtype</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;CxSimulator dtype: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">group_dtype</span><span class="p">)</span>
+
+        <span class="n">MAX_DELAY</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># don&#39;t do delay yet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">MAX_DELAY</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">group_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">group_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">group_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>  <span class="c1"># spiked</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>  <span class="c1"># spike counter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>  <span class="c1"># ref period counter</span>
+
+        <span class="c1"># --- allocate group parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayU</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">decayU</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decayV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">decayV</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">decayU</span> <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">scaleU</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">decayU</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">decayV</span> <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">scaleV</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">decayV</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">decay_float</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">s</span><span class="o">*</span><span class="n">u</span>
+
+        <span class="k">def</span> <span class="nf">decay_int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">right_shift</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">r</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>  <span class="c1"># round to zero</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">u</span>  <span class="c1"># no scaling on u</span>
+
+        <span class="k">if</span> <span class="n">group_dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayU_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_int</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayV_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_int</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">group_dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayU_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_float</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decayU</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleU</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decayV_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_float</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decayV</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scaleV</span><span class="p">)</span>
+
+        <span class="n">ones</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">group_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">vth</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">vmin</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">vmax</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">bias</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">refractDelay</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+
+        <span class="c1"># --- allocate synapse memory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a_in</span> <span class="o">=</span> <span class="p">{</span><span class="n">synapses</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">synapses</span><span class="o">.</span><span class="n">n_axons</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="k">for</span> <span class="n">synapses</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">synapses</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="p">{</span><span class="n">synapses</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">synapses</span><span class="o">.</span><span class="n">n_axons</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                  <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="k">for</span> <span class="n">synapses</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">synapses</span>
+                  <span class="k">if</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing</span><span class="p">}</span>
+
+        <span class="c1"># --- noise</span>
+        <span class="n">enableNoise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">enableNoise</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="n">noiseExp0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">noiseExp0</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="n">noiseMantOffset0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">noiseMantOffset0</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="n">noiseTarget</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>
+            <span class="n">group</span><span class="o">.</span><span class="n">noiseAtDendOrVm</span><span class="o">*</span><span class="n">ones</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">group_dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">noiseExp0</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Noise amplitude falls below lower limit&quot;</span><span class="p">)</span>
+            <span class="n">noiseExp0</span><span class="p">[</span><span class="n">noiseExp0</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="mi">7</span>
+            <span class="n">noiseMult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">enableNoise</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="n">noiseExp0</span> <span class="o">-</span> <span class="mi">7</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">noiseGen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">64</span><span class="o">*</span><span class="n">noiseMantOffset0</span><span class="p">)</span> <span class="o">*</span> <span class="n">noiseMult</span>
+        <span class="k">elif</span> <span class="n">group_dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="n">noiseMult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">enableNoise</span><span class="p">,</span> <span class="mf">10.</span><span class="o">**</span><span class="n">noiseExp0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">noiseGen</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cx</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">):</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">noiseMantOffset0</span><span class="p">)</span> <span class="o">*</span> <span class="n">noiseMult</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseGen</span> <span class="o">=</span> <span class="n">noiseGen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noiseTarget</span> <span class="o">=</span> <span class="n">noiseTarget</span></div>
+
+<div class="viewcode-block" id="CxSimulator.step"><a class="viewcode-back" href="../../api.html#nengo_loihi.loihi_cx.CxSimulator.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+        <span class="sd">&quot;&quot;&quot;Advance the simulation by 1 step (``dt`` seconds).&quot;&quot;&quot;</span>
+
+        <span class="c1"># --- connections</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># advance delays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">a_in</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">a_in</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">a_in</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">axons</span> <span class="ow">in</span> <span class="nb">input</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+                <span class="n">synapses</span> <span class="o">=</span> <span class="n">axons</span><span class="o">.</span><span class="n">target</span>
+                <span class="k">assert</span> <span class="n">axons</span><span class="o">.</span><span class="n">target_inds</span> <span class="o">==</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">a_in</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">input</span><span class="o">.</span><span class="n">spikes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">axons</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+                <span class="n">synapses</span> <span class="o">=</span> <span class="n">axons</span><span class="o">.</span><span class="n">target</span>
+                <span class="n">s_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a_in</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+
+                <span class="n">a_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_cxs</span><span class="p">[</span><span class="n">axons</span><span class="o">.</span><span class="n">group</span><span class="p">]</span>
+                <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">a_slice</span><span class="p">]</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">s_in</span><span class="p">,</span> <span class="n">axons</span><span class="o">.</span><span class="n">target_inds</span><span class="p">,</span> <span class="n">sa</span><span class="p">)</span>  <span class="c1"># allows repeat inds</span>
+
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">synapses</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">synapses</span><span class="p">:</span>
+                <span class="n">s_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a_in</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+
+                <span class="n">b_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_cxs</span><span class="p">[</span><span class="n">synapses</span><span class="o">.</span><span class="n">group</span><span class="p">]</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">weights</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">indices</span>
+                <span class="n">qb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">[:,</span> <span class="n">b_slice</span><span class="p">]</span>
+                <span class="c1"># delays = np.zeros(qb.shape[1], dtype=np.int32)</span>
+
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s_in</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s_in</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>  <span class="c1"># faster than mult since likely 1</span>
+                        <span class="n">qb</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="c1"># qb[delays[indices[i]], indices[i]] += weights[i]</span>
+
+                <span class="k">if</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing</span><span class="p">:</span>
+                    <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+                    <span class="n">tau</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing_tau</span>
+                    <span class="n">mag</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing_mag</span>
+
+                    <span class="n">decay</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">tau</span><span class="p">)</span>
+                    <span class="n">z</span> <span class="o">*=</span> <span class="n">decay</span>
+
+                    <span class="n">z</span> <span class="o">+=</span> <span class="n">mag</span> <span class="o">*</span> <span class="n">s_in</span>
+
+        <span class="c1"># --- updates</span>
+        <span class="n">q0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noiseGen</span><span class="p">()</span>
+        <span class="n">q0</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseTarget</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">noise</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseTarget</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># self.U[:] = self.decayU_fn(self.U, self.decayU, a=12, b=1)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayU_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[:],</span> <span class="n">q0</span><span class="p">)</span>
+        <span class="n">u2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">[:]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span>
+        <span class="n">u2</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseTarget</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">noise</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noiseTarget</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">u2</span> <span class="o">&gt;</span> <span class="n">U_MAX</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Overflow in U (max was </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">u2</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">u2</span> <span class="o">&lt;</span> <span class="n">U_MIN</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Underflow in U (min was </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">u2</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="n">u2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">u2</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="n">U_MIN</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="n">U_MAX</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">u2</span><span class="p">)</span>
+
+        <span class="c1"># self.V[:] = self.decayV_fn(v, self.decayV, a=12) + u2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decayV_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">u2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">&gt;</span> <span class="n">V_MAX</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Overflow in V (max was </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">&lt;</span> <span class="n">V_MIN</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Underflow in V (min was </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">a_min</span><span class="o">=</span><span class="n">V_MIN</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="n">V_MAX</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># TODO^: don&#39;t zero voltage in case neuron is saving overshoot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">)</span>
+
+        <span class="n">cx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cx_slice</span>
+        <span class="n">cpu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_slice</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[</span><span class="n">cx</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">cx</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">[</span><span class="n">cpu</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">cpu</span><span class="p">]]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[</span><span class="n">cpu</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">[</span><span class="n">cpu</span><span class="p">]]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">]</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>  <span class="c1"># decrement w</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># --- probes</span>
+        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="nb">input</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;s&#39;</span>
+                <span class="n">p_slice</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">slice</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">spikes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">][</span><span class="n">p_slice</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">probe_outputs</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+                <span class="n">x_slice</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_cxs</span><span class="p">[</span><span class="n">probe</span><span class="o">.</span><span class="n">target</span><span class="p">]</span>
+                <span class="n">p_slice</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">slice</span>
+                <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">)[</span><span class="n">x_slice</span><span class="p">][</span><span class="n">p_slice</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">probe_outputs</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="CxSimulator.run_steps"><a class="viewcode-back" href="../../api.html#nengo_loihi.loihi_cx.CxSimulator.run_steps">[docs]</a>    <span class="k">def</span> <span class="nf">run_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Simulate for the given number of ``dt`` steps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        steps : int</span>
+<span class="sd">            Number of steps to run the simulation for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_filter_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx_probe</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cx_probe</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">synapse</span> <span class="o">=</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">synapse</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="n">synapse</span><span class="o">.</span><span class="n">make_step</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">synapse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filt_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+                <span class="n">filt_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">k</span>
+            <span class="k">return</span> <span class="n">filt_data</span>
+
+    <span class="k">def</span> <span class="nf">get_probe_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="n">cx_probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">objs</span><span class="p">[</span><span class="n">probe</span><span class="p">][</span><span class="s1">&#39;out&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cx_probe</span><span class="p">,</span> <span class="n">CxProbe</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">probe_outputs</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter_probe</span><span class="p">(</span><span class="n">cx_probe</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+            
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>

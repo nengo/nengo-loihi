@@ -1,0 +1,750 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>nengo_loihi.loihi_interface &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="../../_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    ../../index.html" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="../../search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="../../index.html">Docs</a></li>
+              
+                <li><a href="../index.html">Module code</a></li>
+              
+              <li>nengo_loihi.loihi_interface</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <h1>Source code for nengo_loihi.loihi_interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="k">import</span> <span class="n">LooseVersion</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">jinja2</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">nengo.exceptions</span> <span class="k">import</span> <span class="n">SimulationError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">nxsdk</span>
+    <span class="kn">from</span> <span class="nn">nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen</span> <span class="k">import</span> <span class="n">TraceCfgGen</span>
+    <span class="kn">from</span> <span class="nn">nxsdk.arch.n2a.graph.graph</span> <span class="k">import</span> <span class="n">N2Board</span>
+    <span class="kn">from</span> <span class="nn">nxsdk.arch.n2a.graph.inputgen</span> <span class="k">import</span> <span class="n">BasicSpikeGenerator</span>
+    <span class="kn">from</span> <span class="nn">nxsdk.arch.n2a.graph.probes</span> <span class="k">import</span> <span class="n">N2SpikeProbe</span>
+
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">exc_info</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">no_nxsdk</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">exc_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">nxsdk</span> <span class="o">=</span> <span class="n">N2Board</span> <span class="o">=</span> <span class="n">BasicSpikeGenerator</span> <span class="o">=</span> <span class="n">TraceCfgGen</span> <span class="o">=</span> <span class="n">N2SpikeProbe</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">no_nxsdk</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.allocators</span> <span class="k">import</span> <span class="n">one_to_one_allocator</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.loihi_api</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">CX_PROFILES_MAX</span><span class="p">,</span> <span class="n">VTH_PROFILES_MAX</span><span class="p">,</span> <span class="n">bias_to_manexp</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_board</span><span class="p">(</span><span class="n">board</span><span class="p">):</span>
+    <span class="n">n_chips</span> <span class="o">=</span> <span class="n">board</span><span class="o">.</span><span class="n">n_chips</span><span class="p">()</span>
+    <span class="n">n_cores_per_chip</span> <span class="o">=</span> <span class="n">board</span><span class="o">.</span><span class="n">n_cores_per_chip</span><span class="p">()</span>
+    <span class="n">n_synapses_per_core</span> <span class="o">=</span> <span class="n">board</span><span class="o">.</span><span class="n">n_synapses_per_core</span><span class="p">()</span>
+
+    <span class="n">n2board</span> <span class="o">=</span> <span class="n">N2Board</span><span class="p">(</span>
+        <span class="n">board</span><span class="o">.</span><span class="n">board_id</span><span class="p">,</span> <span class="n">n_chips</span><span class="p">,</span> <span class="n">n_cores_per_chip</span><span class="p">,</span> <span class="n">n_synapses_per_core</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">board</span><span class="o">.</span><span class="n">chips</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">chip</span><span class="p">,</span> <span class="n">n2chip</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">board</span><span class="o">.</span><span class="n">chips</span><span class="p">,</span> <span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Building chip </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">chip</span><span class="p">)</span>
+        <span class="n">build_chip</span><span class="p">(</span><span class="n">n2chip</span><span class="p">,</span> <span class="n">chip</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">n2board</span>
+
+
+<span class="k">def</span> <span class="nf">build_chip</span><span class="p">(</span><span class="n">n2chip</span><span class="p">,</span> <span class="n">chip</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">chip</span><span class="o">.</span><span class="n">cores</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">n2chip</span><span class="o">.</span><span class="n">n2Cores</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">core</span><span class="p">,</span> <span class="n">n2core</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chip</span><span class="o">.</span><span class="n">cores</span><span class="p">,</span> <span class="n">n2chip</span><span class="o">.</span><span class="n">n2Cores</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Building core </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">core</span><span class="p">)</span>
+        <span class="n">build_core</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_core</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">cxProfiles</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">CX_PROFILES_MAX</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">vthProfiles</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">VTH_PROFILES_MAX</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring cxProfiles&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cxProfile</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">cxProfiles</span><span class="p">):</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">cxProfileCfg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">decayV</span><span class="o">=</span><span class="n">cxProfile</span><span class="o">.</span><span class="n">decayV</span><span class="p">,</span>
+            <span class="n">decayU</span><span class="o">=</span><span class="n">cxProfile</span><span class="o">.</span><span class="n">decayU</span><span class="p">,</span>
+            <span class="n">refractDelay</span><span class="o">=</span><span class="n">cxProfile</span><span class="o">.</span><span class="n">refractDelay</span><span class="p">,</span>
+            <span class="n">enableNoise</span><span class="o">=</span><span class="n">cxProfile</span><span class="o">.</span><span class="n">enableNoise</span><span class="p">,</span>
+            <span class="n">bapAction</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring vthProfiles&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vthProfile</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">vthProfiles</span><span class="p">):</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">vthProfileCfg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">staticCfg</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">vth</span><span class="o">=</span><span class="n">vthProfile</span><span class="o">.</span><span class="n">vth</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring synapseFmts&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">synapseFmt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">synapseFmts</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">synapseFmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">wgtLimitMant</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">wgtLimitMant</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">wgtLimitExp</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">wgtLimitExp</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">wgtExp</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">wgtExp</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">discMaxWgt</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">discMaxWgt</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">learningCfg</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">learningCfg</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tagBits</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">tagBits</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">dlyBits</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">dlyBits</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">wgtBits</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">wgtBits</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reuseSynData</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">reuseSynData</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">numSynapses</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">numSynapses</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cIdxOffset</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">cIdxOffset</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">cIdxMult</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">cIdxMult</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">skipBits</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">skipBits</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">idxBits</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">idxBits</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">synType</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">synType</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">fanoutType</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">fanoutType</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">compression</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">compression</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">stdpProfile</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">stdpProfile</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseFmt</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">ignoreDly</span> <span class="o">=</span> <span class="n">synapseFmt</span><span class="o">.</span><span class="n">ignoreDly</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring stdpPreCfgs&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">traceCfg</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">stdpPreCfgs</span><span class="p">):</span>
+        <span class="n">tcg</span> <span class="o">=</span> <span class="n">TraceCfgGen</span><span class="p">()</span>
+        <span class="n">tc</span> <span class="o">=</span> <span class="n">tcg</span><span class="o">.</span><span class="n">genTraceCfg</span><span class="p">(</span>
+            <span class="n">tau</span><span class="o">=</span><span class="n">traceCfg</span><span class="o">.</span><span class="n">tau</span><span class="p">,</span>
+            <span class="n">spikeLevelInt</span><span class="o">=</span><span class="n">traceCfg</span><span class="o">.</span><span class="n">spikeLevelInt</span><span class="p">,</span>
+            <span class="n">spikeLevelFrac</span><span class="o">=</span><span class="n">traceCfg</span><span class="o">.</span><span class="n">spikeLevelFrac</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">tc</span><span class="o">.</span><span class="n">writeToRegister</span><span class="p">(</span><span class="n">n2core</span><span class="o">.</span><span class="n">stdpPreCfg</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># --- learning</span>
+    <span class="n">firstLearningIndex</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">synapse</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">iterate_synapses</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">synapse</span><span class="o">.</span><span class="n">tracing</span> <span class="ow">and</span> <span class="n">firstLearningIndex</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">firstLearningIndex</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">synapse_axons</span><span class="p">[</span><span class="n">synapse</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">core</span><span class="o">.</span><span class="n">learning_coreid</span> <span class="o">=</span> <span class="n">n2core</span><span class="o">.</span><span class="n">id</span>
+            <span class="k">break</span>
+
+    <span class="n">numStdp</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">firstLearningIndex</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">synapse</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">iterate_synapses</span><span class="p">():</span>
+            <span class="n">axons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">synapse_axons</span><span class="p">[</span><span class="n">synapse</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">synapse</span><span class="o">.</span><span class="n">tracing</span><span class="p">:</span>
+                <span class="n">numStdp</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axons</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">axons</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">firstLearningIndex</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">axons</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">firstLearningIndex</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">numStdp</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring PES learning&quot;</span><span class="p">)</span>
+        <span class="c1"># add configurations tailored to PES learning</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpCfg</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">firstLearningIndex</span><span class="o">=</span><span class="n">firstLearningIndex</span><span class="p">,</span>
+            <span class="n">numRewardAxons</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">core</span><span class="o">.</span><span class="n">stdp_pre_profile_idx</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">core</span><span class="o">.</span><span class="n">stdp_profile_idx</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">core</span><span class="o">.</span><span class="n">stdp_pre_profile_idx</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># hard-code for now</span>
+        <span class="n">core</span><span class="o">.</span><span class="n">stdp_profile_idx</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># hard-code for now (also in synapse_fmt)</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpPreProfileCfg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">updateAlways</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">numTraces</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">numTraceHist</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">stdpProfile</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># stdpProfileCfg positive error</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpProfileCfg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">uCodePtr</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">decimateExp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">numProducts</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">requireY</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">usesXepoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpUcodeMem</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">word</span> <span class="o">=</span> <span class="mh">0x00102108</span>  <span class="c1"># 2^-7 learn rate</span>
+
+        <span class="c1"># stdpProfileCfg negative error</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpProfileCfg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">uCodePtr</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">decimateExp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">numProducts</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">requireY</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">usesXepoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">stdpUcodeMem</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">word</span> <span class="o">=</span> <span class="mh">0x00f02108</span>  <span class="c1"># 2^-7 learn rate</span>
+
+        <span class="n">tcg</span> <span class="o">=</span> <span class="n">TraceCfgGen</span><span class="p">()</span>
+        <span class="n">tc</span> <span class="o">=</span> <span class="n">tcg</span><span class="o">.</span><span class="n">genTraceCfg</span><span class="p">(</span>
+            <span class="n">tau</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">spikeLevelInt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">spikeLevelFrac</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">tc</span><span class="o">.</span><span class="n">writeToRegister</span><span class="p">(</span><span class="n">n2core</span><span class="o">.</span><span class="n">stdpPostCfg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># TODO: allocator should be checking that vmin, vmax are the same</span>
+    <span class="c1">#   for all groups on a core</span>
+    <span class="n">n_cx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">group0</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span> <span class="n">group0</span><span class="o">.</span><span class="n">vmin</span><span class="p">,</span> <span class="n">group0</span><span class="o">.</span><span class="n">vmax</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">vmin</span> <span class="o">==</span> <span class="n">vmin</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">vmax</span> <span class="o">==</span> <span class="n">vmax</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="n">negVmLimit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="o">-</span><span class="n">vmin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">posVmLimit</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">vmax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">9</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">negVmLimit</span><span class="p">)</span> <span class="o">==</span> <span class="n">negVmLimit</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">posVmLimit</span><span class="p">)</span> <span class="o">==</span> <span class="n">posVmLimit</span>
+
+        <span class="n">noiseExp0</span> <span class="o">=</span> <span class="n">group0</span><span class="o">.</span><span class="n">noiseExp0</span>
+        <span class="n">noiseMantOffset0</span> <span class="o">=</span> <span class="n">group0</span><span class="o">.</span><span class="n">noiseMantOffset0</span>
+        <span class="n">noiseAtDendOrVm</span> <span class="o">=</span> <span class="n">group0</span><span class="o">.</span><span class="n">noiseAtDendOrVm</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">noiseExp0</span> <span class="o">==</span> <span class="n">noiseExp0</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">noiseMantOffset0</span> <span class="o">==</span> <span class="n">noiseMantOffset0</span>
+                   <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">noiseAtDendOrVm</span> <span class="o">==</span> <span class="n">noiseAtDendOrVm</span>
+                   <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+
+        <span class="n">n2core</span><span class="o">.</span><span class="n">dendriteSharedCfg</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">posVmLimit</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">posVmLimit</span><span class="p">),</span>
+            <span class="n">negVmLimit</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">negVmLimit</span><span class="p">),</span>
+            <span class="n">noiseExp0</span><span class="o">=</span><span class="n">noiseExp0</span><span class="p">,</span>
+            <span class="n">noiseMantOffset0</span><span class="o">=</span><span class="n">noiseMantOffset0</span><span class="p">,</span>
+            <span class="n">noiseAtDendOrVm</span><span class="o">=</span><span class="n">noiseAtDendOrVm</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">n2core</span><span class="o">.</span><span class="n">dendriteAccumCfg</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">delayBits</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># ^ DelayBits=3 allows 1024 Cxs per core</span>
+
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">,</span> <span class="n">ax_range</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">iterate_groups</span><span class="p">():</span>
+            <span class="n">build_group</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">,</span> <span class="n">ax_range</span><span class="p">)</span>
+            <span class="n">n_cx</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">cx_idxs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_cx</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">inp</span><span class="p">,</span> <span class="n">cx_idxs</span> <span class="ow">in</span> <span class="n">core</span><span class="o">.</span><span class="n">iterate_inputs</span><span class="p">():</span>
+        <span class="n">build_input</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">inp</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Configuring numUpdates=</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">n_cx</span> <span class="o">//</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">n2core</span><span class="o">.</span><span class="n">numUpdates</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+        <span class="n">numUpdates</span><span class="o">=</span><span class="n">n_cx</span> <span class="o">//</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">numStdp</span><span class="o">=</span><span class="n">numStdp</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">n2core</span><span class="o">.</span><span class="n">dendriteTimeState</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tepoch</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">n2core</span><span class="o">.</span><span class="n">timeState</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tepoch</span> <span class="o">=</span> <span class="mi">2</span>
+
+
+<span class="k">def</span> <span class="nf">build_group</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">,</span> <span class="n">ax_range</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">group</span><span class="o">.</span><span class="n">scaleU</span> <span class="ow">is</span> <span class="kc">False</span>
+    <span class="k">assert</span> <span class="n">group</span><span class="o">.</span><span class="n">scaleV</span> <span class="ow">is</span> <span class="kc">False</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Building </span><span class="si">%s</span><span class="s2"> on core.id=</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">n2core</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bias</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">bias</span><span class="p">):</span>
+        <span class="n">bman</span><span class="p">,</span> <span class="n">bexp</span> <span class="o">=</span> <span class="n">bias_to_manexp</span><span class="p">(</span><span class="n">bias</span><span class="p">)</span>
+        <span class="n">icx</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">cx_profile_idxs</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ivth</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">vth_profile_idxs</span><span class="p">[</span><span class="n">group</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="n">ii</span> <span class="o">=</span> <span class="n">cx_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">cxCfg</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bman</span><span class="p">,</span> <span class="n">biasExp</span><span class="o">=</span><span class="n">bexp</span><span class="p">,</span> <span class="n">vthProfile</span><span class="o">=</span><span class="n">ivth</span><span class="p">,</span> <span class="n">cxProfile</span><span class="o">=</span><span class="n">icx</span><span class="p">)</span>
+
+        <span class="n">phasex</span> <span class="o">=</span> <span class="s1">&#39;phase</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ii</span> <span class="o">%</span> <span class="mi">4</span><span class="p">,)</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">cxMetaState</span><span class="p">[</span><span class="n">ii</span> <span class="o">//</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">phasex</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Building </span><span class="si">%d</span><span class="s2"> synapses&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">synapses</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">synapses</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">synapses</span><span class="p">:</span>
+        <span class="n">build_synapses</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">synapses</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Building </span><span class="si">%d</span><span class="s2"> synapses&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">axons</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">axons</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+        <span class="n">build_axons</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">axons</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;- Building </span><span class="si">%d</span><span class="s2"> synapses&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">probes</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+        <span class="n">build_probe</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">probe</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_input</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">spike_input</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">spike_input</span><span class="o">.</span><span class="n">axons</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">axon</span> <span class="ow">in</span> <span class="n">spike_input</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+        <span class="n">build_axons</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">spike_input</span><span class="p">,</span> <span class="n">axon</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">spike_input</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+        <span class="n">build_probe</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">spike_input</span><span class="p">,</span> <span class="n">probe</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">)</span>
+
+    <span class="n">n2board</span> <span class="o">=</span> <span class="n">n2core</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="s1">&#39;master_spike_gen&#39;</span><span class="p">):</span>
+        <span class="c1"># TODO: this is only needed if precompute=True</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">master_spike_gen</span> <span class="o">=</span> <span class="n">BasicSpikeGenerator</span><span class="p">(</span><span class="n">n2board</span><span class="p">)</span>
+
+    <span class="c1"># get core/axon ids</span>
+    <span class="n">axon_ids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">axon</span> <span class="ow">in</span> <span class="n">spike_input</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+        <span class="n">tchip_idx</span><span class="p">,</span> <span class="n">tcore_idx</span><span class="p">,</span> <span class="n">tsyn_idxs</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">find_synapses</span><span class="p">(</span><span class="n">axon</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">tchip</span> <span class="o">=</span> <span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">[</span><span class="n">tchip_idx</span><span class="p">]</span>
+        <span class="n">tcore</span> <span class="o">=</span> <span class="n">tchip</span><span class="o">.</span><span class="n">n2Cores</span><span class="p">[</span><span class="n">tcore_idx</span><span class="p">]</span>
+        <span class="n">axon_ids</span><span class="o">.</span><span class="n">append</span><span class="p">([(</span><span class="n">tchip</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">tcore</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">tsyn_idx</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="n">tsyn_idx</span> <span class="ow">in</span> <span class="n">tsyn_idxs</span><span class="p">])</span>
+
+    <span class="n">spike_input</span><span class="o">.</span><span class="n">spike_gen</span> <span class="o">=</span> <span class="n">n2core</span><span class="o">.</span><span class="n">master_spike_gen</span>
+    <span class="n">spike_input</span><span class="o">.</span><span class="n">axon_ids</span> <span class="o">=</span> <span class="n">axon_ids</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spiked</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spike_input</span><span class="o">.</span><span class="n">spikes</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spiked</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">output_axon</span> <span class="ow">in</span> <span class="n">axon_ids</span><span class="p">:</span>
+                    <span class="n">n2core</span><span class="o">.</span><span class="n">master_spike_gen</span><span class="o">.</span><span class="n">addSpike</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">output_axon</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="n">spike_input</span><span class="o">.</span><span class="n">sent_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">spike_input</span><span class="o">.</span><span class="n">spikes</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_synapses</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">synapses</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">):</span>
+    <span class="n">syn_idxs</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">synapse_axons</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">syn_idxs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">synapses</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="n">synapse_fmt_idx</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">synapse_fmt_idxs</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+    <span class="n">stdp_pre_cfg_idx</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">stdp_pre_cfg_idxs</span><span class="p">[</span><span class="n">synapses</span><span class="p">]</span>
+
+    <span class="n">target_cxs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">s0</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">synapse_entries</span><span class="p">[</span><span class="n">synapses</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">syn_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">syn_idxs</span><span class="p">):</span>
+        <span class="n">wa</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">//</span> <span class="n">synapses</span><span class="o">.</span><span class="n">synapse_fmt</span><span class="o">.</span><span class="n">scale</span>
+        <span class="n">ia</span> <span class="o">=</span> <span class="n">synapses</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">wa</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ia</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">wa</span> <span class="o">&lt;=</span> <span class="mi">255</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">wa</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">256</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">wa</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">wa</span><span class="p">,</span> <span class="n">ia</span><span class="p">)):</span>
+            <span class="n">n2core</span><span class="o">.</span><span class="n">synapses</span><span class="p">[</span><span class="n">s0</span> <span class="o">+</span> <span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+                <span class="n">CIdx</span><span class="o">=</span><span class="n">cx_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">Wgt</span><span class="o">=</span><span class="n">w</span><span class="p">,</span>
+                <span class="n">synFmtId</span><span class="o">=</span><span class="n">synapse_fmt_idx</span><span class="p">,</span>
+                <span class="n">LrnEn</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">synapses</span><span class="o">.</span><span class="n">tracing</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">target_cxs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cx_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseMap</span><span class="p">[</span><span class="n">syn_idx</span><span class="p">]</span><span class="o">.</span><span class="n">synapsePtr</span> <span class="o">=</span> <span class="n">s0</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseMap</span><span class="p">[</span><span class="n">syn_idx</span><span class="p">]</span><span class="o">.</span><span class="n">synapseLen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wa</span><span class="p">)</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">synapseMap</span><span class="p">[</span><span class="n">syn_idx</span><span class="p">]</span><span class="o">.</span><span class="n">discreteMapEntry</span><span class="o">.</span><span class="n">configure</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">core</span><span class="o">.</span><span class="n">stdp_pre_profile_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">stdp_pre_cfg_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">n2core</span><span class="o">.</span><span class="n">synapseMap</span><span class="p">[</span><span class="n">syn_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">singleTraceEntry</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+                <span class="n">preProfile</span><span class="o">=</span><span class="n">core</span><span class="o">.</span><span class="n">stdp_pre_profile_idx</span><span class="p">,</span> <span class="n">tcs</span><span class="o">=</span><span class="n">stdp_pre_cfg_idx</span><span class="p">)</span>
+
+        <span class="n">s0</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wa</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">synapses</span><span class="o">.</span><span class="n">tracing</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">core</span><span class="o">.</span><span class="n">stdp_profile_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">target_cx</span> <span class="ow">in</span> <span class="n">target_cxs</span><span class="p">:</span>
+            <span class="c1"># TODO: check that no cx gets configured by multiple synapses</span>
+            <span class="n">n2core</span><span class="o">.</span><span class="n">stdpPostState</span><span class="p">[</span><span class="n">target_cx</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+                <span class="n">stdpProfile</span><span class="o">=</span><span class="n">core</span><span class="o">.</span><span class="n">stdp_profile_idx</span><span class="p">,</span>
+                <span class="n">traceProfile</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># TODO: why this value</span>
+            <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">build_axons</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">axons</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">):</span>
+    <span class="n">tchip_idx</span><span class="p">,</span> <span class="n">tcore_idx</span><span class="p">,</span> <span class="n">tsyn_idxs</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">find_synapses</span><span class="p">(</span><span class="n">axons</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">taxon_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tsyn_idxs</span><span class="p">)[</span><span class="n">axons</span><span class="o">.</span><span class="n">target_inds</span><span class="p">]</span>
+    <span class="n">n2board</span> <span class="o">=</span> <span class="n">n2core</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+    <span class="n">tchip_id</span> <span class="o">=</span> <span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">[</span><span class="n">tchip_idx</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">tcore_id</span> <span class="o">=</span> <span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">[</span><span class="n">tchip_idx</span><span class="p">]</span><span class="o">.</span><span class="n">n2Cores</span><span class="p">[</span><span class="n">tcore_idx</span><span class="p">]</span><span class="o">.</span><span class="n">id</span>
+    <span class="k">assert</span> <span class="n">axons</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">cx_idxs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">taxon_idxs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">axons</span><span class="o">.</span><span class="n">n_axons</span><span class="p">):</span>
+        <span class="n">n2core</span><span class="o">.</span><span class="n">createDiscreteAxon</span><span class="p">(</span>
+            <span class="n">cx_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">tchip_id</span><span class="p">,</span> <span class="n">tcore_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">taxon_idxs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+
+
+<span class="k">def</span> <span class="nf">build_probe</span><span class="p">(</span><span class="n">n2core</span><span class="p">,</span> <span class="n">core</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">probe</span><span class="p">,</span> <span class="n">cx_idxs</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">)</span>
+    <span class="n">key_map</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;s&#39;</span><span class="p">:</span> <span class="s1">&#39;spike&#39;</span><span class="p">}</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">key_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="n">n2board</span> <span class="o">=</span> <span class="n">n2core</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">cx_idxs</span><span class="p">[</span><span class="n">probe</span><span class="o">.</span><span class="n">slice</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">use_snip</span><span class="p">:</span>
+        <span class="n">probe</span><span class="o">.</span><span class="n">snip_info</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coreid</span><span class="o">=</span><span class="n">n2core</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">cxs</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">n2board</span><span class="o">.</span><span class="n">monitor</span><span class="o">.</span><span class="n">probe</span><span class="p">(</span><span class="n">n2core</span><span class="o">.</span><span class="n">cxState</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="n">core</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">map_probe</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LoihiSimulator"><a class="viewcode-back" href="../../api.html#nengo_loihi.loihi_interface.LoihiSimulator">[docs]</a><span class="k">class</span> <span class="nc">LoihiSimulator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulator to place a Model onto a Loihi board and run it.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cx_model : CxModel</span>
+<span class="sd">        Model specification that will be placed on the Loihi board.</span>
+<span class="sd">    seed : int, optional (Default: None)</span>
+<span class="sd">        A seed for stochastic operations.</span>
+
+<span class="sd">        .. warning :: Setting the seed has no effect on stochastic</span>
+<span class="sd">                      operations run on the Loihi board.</span>
+<span class="sd">    snip_max_spikes_per_step : int, optional (Default: 50)</span>
+<span class="sd">        Maximum number of spikes that can be sent through</span>
+<span class="sd">        the nengo_io_h2c channel on one timestep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx_model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">snip_max_spikes_per_step</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_nxsdk_version</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snip_max_spikes_per_step</span> <span class="o">=</span> <span class="n">snip_max_spikes_per_step</span>
+
+        <span class="n">nxsdk_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">nxsdk</span><span class="o">.</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;..&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;cd to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nxsdk_dir</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">nxsdk_dir</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Seed will be ignored when running on Loihi&quot;</span><span class="p">)</span>
+
+        <span class="c1"># probeDict is a class attribute, so might contain things left over</span>
+        <span class="c1"># from previous simulators</span>
+        <span class="n">N2SpikeProbe</span><span class="o">.</span><span class="n">probeDict</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">cx_model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_nxsdk_version</span><span class="p">():</span>
+        <span class="c1"># raise exception if nxsdk not installed</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">nxsdk</span><span class="p">):</span>
+            <span class="n">nxsdk</span><span class="p">()</span>
+
+        <span class="c1"># if installed, check version</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">nxsdk</span><span class="p">,</span> <span class="s2">&quot;__version__&quot;</span><span class="p">,</span> <span class="s2">&quot;0.0.0&quot;</span><span class="p">))</span>
+        <span class="n">minimum</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;0.7.0&quot;</span><span class="p">)</span>
+        <span class="n">max_tested</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;0.7.0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">&lt;</span> <span class="n">minimum</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;nengo-loihi requires nxsdk&gt;=</span><span class="si">%s</span><span class="s2">, found </span><span class="si">%s</span><span class="s2">&quot;</span>
+                              <span class="o">%</span> <span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">version</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">&gt;</span> <span class="n">max_tested</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;nengo-loihi has not been tested with your nxsdk &quot;</span>
+                          <span class="s2">&quot;version (</span><span class="si">%s</span><span class="s2">); latest fully supported version is &quot;</span>
+                          <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="n">max_tested</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx_model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">cx_model</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">cx_model</span>
+
+        <span class="c1"># --- allocate --</span>
+        <span class="c1"># maps CxModel to cores and chips</span>
+        <span class="n">allocator</span> <span class="o">=</span> <span class="n">one_to_one_allocator</span>  <span class="c1"># one core per ensemble</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">board</span> <span class="o">=</span> <span class="n">allocator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="c1"># --- build</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span> <span class="o">=</span> <span class="n">build_board</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">print_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">n2chip</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">n2Chips</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Chip </span><span class="si">%d</span><span class="s2">, id=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">n2chip</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">n2core</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">n2chip</span><span class="o">.</span><span class="n">n2Cores</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  Core </span><span class="si">%d</span><span class="s2">, id=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">n2core</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">run_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># NOTE: we need to call connect() after snips are created</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">aSync</span><span class="o">=</span><span class="ow">not</span> <span class="n">blocking</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">wait_for_completion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">finishRun</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">is_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">nxDriver</span><span class="o">.</span><span class="n">hasStarted</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attempts</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationError</span><span class="p">(</span><span class="s2">&quot;Must build model before running&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Connecting to Loihi, max attempts: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">attempts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">attempts</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">startDriver</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_connected</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Connection error: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Retrying, attempt </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationError</span><span class="p">(</span><span class="s2">&quot;Could not connect to the board&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="c1"># TODO: can we chdir back earlier?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;cd to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cwd</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cwd</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cwd</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_filter_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cx_probe</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cx_probe</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">synapse</span> <span class="o">=</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">synapse</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="n">synapse</span><span class="o">.</span><span class="n">make_step</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">synapse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filters</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">filt_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+                <span class="n">filt_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_probe_filter_pos</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">k</span>
+            <span class="k">return</span> <span class="n">filt_data</span>
+
+    <span class="k">def</span> <span class="nf">get_probe_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="n">cx_probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">objs</span><span class="p">[</span><span class="n">probe</span><span class="p">][</span><span class="s1">&#39;out&#39;</span><span class="p">]</span>
+        <span class="n">n2probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">probe_map</span><span class="p">[</span><span class="n">cx_probe</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">timeSeries</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">n2probe</span><span class="p">])</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="k">if</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cx_probe</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter_probe</span><span class="p">(</span><span class="n">cx_probe</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">create_io_snip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># snips must be created before connecting</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_connected</span><span class="p">()</span>
+
+        <span class="n">snips_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;snips&quot;</span><span class="p">)</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">jinja2</span><span class="o">.</span><span class="n">Environment</span><span class="p">(</span>
+            <span class="n">trim_blocks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">loader</span><span class="o">=</span><span class="n">jinja2</span><span class="o">.</span><span class="n">FileSystemLoader</span><span class="p">(</span><span class="n">snips_dir</span><span class="p">),</span>
+            <span class="n">keep_trailing_newline</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="s2">&quot;nengo_io.c.template&quot;</span><span class="p">)</span>
+
+        <span class="c1"># --- generate custom code</span>
+        <span class="c1"># Determine which cores have learning</span>
+        <span class="n">n_errors</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total_error_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_error_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">core</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">board</span><span class="o">.</span><span class="n">chips</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cores</span><span class="p">:</span>  <span class="c1"># TODO: don&#39;t assume 1 chip</span>
+            <span class="k">if</span> <span class="n">core</span><span class="o">.</span><span class="n">learning_coreid</span><span class="p">:</span>
+                <span class="n">error_len</span> <span class="o">=</span> <span class="n">core</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">n</span> <span class="o">//</span> <span class="mi">2</span>
+                <span class="n">max_error_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">error_len</span><span class="p">,</span> <span class="n">max_error_len</span><span class="p">)</span>
+                <span class="n">n_errors</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">total_error_len</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">error_len</span>
+
+        <span class="n">n_outputs</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">probes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cores</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="c1"># TODO: should snip_range be stored on the probe?</span>
+        <span class="n">snip_range</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">cx_groups</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">use_snip</span><span class="p">:</span>
+                    <span class="n">info</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">snip_info</span>
+                    <span class="n">cores</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;coreid&quot;</span><span class="p">])</span>
+                    <span class="n">snip_range</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">n_outputs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                                              <span class="n">n_outputs</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">&quot;cxs&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">cx</span> <span class="ow">in</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;cxs&quot;</span><span class="p">]:</span>
+                        <span class="n">probes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n_outputs</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">&quot;coreid&quot;</span><span class="p">],</span> <span class="n">cx</span><span class="p">))</span>
+                        <span class="n">n_outputs</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># --- write c file using template</span>
+        <span class="n">c_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">snips_dir</span><span class="p">,</span> <span class="s2">&quot;nengo_io.c&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Creating </span><span class="si">%s</span><span class="s2"> with </span><span class="si">%d</span><span class="s2"> outputs, </span><span class="si">%d</span><span class="s2"> error, </span><span class="si">%d</span><span class="s2"> cores, </span><span class="si">%d</span><span class="s2"> probes&quot;</span><span class="p">,</span>
+            <span class="n">c_path</span><span class="p">,</span> <span class="n">n_outputs</span><span class="p">,</span> <span class="n">n_errors</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cores</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">probes</span><span class="p">))</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+            <span class="n">n_outputs</span><span class="o">=</span><span class="n">n_outputs</span><span class="p">,</span>
+            <span class="n">n_errors</span><span class="o">=</span><span class="n">n_errors</span><span class="p">,</span>
+            <span class="n">max_error_len</span><span class="o">=</span><span class="n">max_error_len</span><span class="p">,</span>
+            <span class="n">cores</span><span class="o">=</span><span class="n">cores</span><span class="p">,</span>
+            <span class="n">probes</span><span class="o">=</span><span class="n">probes</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">c_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+
+        <span class="c1"># --- create SNIP process and channels</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating nengo_io snip process&quot;</span><span class="p">)</span>
+        <span class="n">nengo_io</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">createProcess</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nengo_io&quot;</span><span class="p">,</span>
+            <span class="n">cFilePath</span><span class="o">=</span><span class="n">c_path</span><span class="p">,</span>
+            <span class="n">includeDir</span><span class="o">=</span><span class="n">snips_dir</span><span class="p">,</span>
+            <span class="n">funcName</span><span class="o">=</span><span class="s2">&quot;nengo_io&quot;</span><span class="p">,</span>
+            <span class="n">guardName</span><span class="o">=</span><span class="s2">&quot;guard_io&quot;</span><span class="p">,</span>
+            <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;mgmt&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating nengo_learn snip process&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">createProcess</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nengo_learn&quot;</span><span class="p">,</span>
+            <span class="n">cFilePath</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">snips_dir</span><span class="p">,</span> <span class="s2">&quot;nengo_learn.c&quot;</span><span class="p">),</span>
+            <span class="n">includeDir</span><span class="o">=</span><span class="n">snips_dir</span><span class="p">,</span>
+            <span class="n">funcName</span><span class="o">=</span><span class="s2">&quot;nengo_learn&quot;</span><span class="p">,</span>
+            <span class="n">guardName</span><span class="o">=</span><span class="s2">&quot;guard_learn&quot;</span><span class="p">,</span>
+            <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;preLearnMgmt&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snip_max_spikes_per_step</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">total_error_len</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating nengo_io_h2c channel&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_h2c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">createChannel</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;nengo_io_h2c&#39;</span><span class="p">,</span>
+                                                       <span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating nengo_io_c2h channel&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_c2h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n2board</span><span class="o">.</span><span class="n">createChannel</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;nengo_io_c2h&#39;</span><span class="p">,</span>
+                                                       <span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="n">n_outputs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_h2c</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">nengo_io</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_c2h</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">nengo_io</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_c2h_count</span> <span class="o">=</span> <span class="n">n_outputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_io_snip_range</span> <span class="o">=</span> <span class="n">snip_range</span></div>
+</pre></div>
+
+          </div>
+            
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>

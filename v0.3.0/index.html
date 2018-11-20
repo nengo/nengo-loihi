@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>Nengo Loihi &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="overview.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="overview.html" title="Overview"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    #" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="#">Docs</a></li>
+              
+              <li>Nengo Loihi</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <div class="section" id="nengo-loihi">
+<h1>Nengo Loihi<a class="headerlink" href="#nengo-loihi" title="Permalink to this headline">¶</a></h1>
+<p>A backend for running Nengo models on Intel’s Loihi architecture.</p>
+<p>To use the backend, simply replace:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">nengo</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#software">Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#running-models">Running models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#inrc-superhost">INRC/Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/communication_channel.html">Communication channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/integrator.html">Integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/integrator_multi_d.html">Multidimensional integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/oscillator.html">Simple oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/oscillator_nonlinear.html">Nonlinear oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/neuron_to_neuron.html">Neuron to neuron connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/learn_communication_channel.html">PES learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/keyword_spotting.html">Keyword spotting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#superhost">Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="setup/host-board.html">Board and host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup/superhost.html">Superhost</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+</ul>
+</div>
+<div class="section" id="release-history">
+<h1>Release history<a class="headerlink" href="#release-history" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="september-28-2018">
+<h2>0.3.0 (September 28, 2018)<a class="headerlink" href="#september-28-2018" title="Permalink to this headline">¶</a></h2>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li>Models can now use the <code class="docutils literal"><span class="pre">nengo.SpikingRectifiedLinear</span></code> neuron model
+on both the emulator and hardware backends.</li>
+<li>Models can now run with different <code class="docutils literal"><span class="pre">dt</span></code> values
+(the default is 0.001, or 1 millisecond).</li>
+<li>Added support for Distributions on Connection transforms.</li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li>Now compatible with NxSDK 0.7. We are currently not supporting
+older versions of NxSDK, but may in the future.</li>
+<li>Models will not be precomputed by default. To precompute models,
+you must explicitly pass <code class="docutils literal"><span class="pre">precompute=True</span></code> to <code class="docutils literal"><span class="pre">nengo_loihi.Simulator</span></code>.</li>
+<li>Models that do not run any objects on Loihi will raise an error.</li>
+<li>Ensemble intercept values are capped to 0.95 to fix issues with
+the current discretization method.</li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li>Tuning curves now take into account the Loihi discretization,
+improving accuracy on most models.</li>
+<li>PES learning can now be done with multidimensional error signals.</li>
+<li>Manually reset spike probes when Simulator is initialized.</li>
+<li>Several fixes to filtering and connecting
+between objects on and off chip.</li>
+</ul>
+</div>
+<div class="section" id="august-27-2018">
+<h2>0.2.0 (August 27, 2018)<a class="headerlink" href="#august-27-2018" title="Permalink to this headline">¶</a></h2>
+<p>First public alpha release of Nengo Loihi!
+If you have any questions,
+please <a class="reference external" href="https://forum.nengo.ai/c/backends/loihi">ask on our forum</a>
+and if you run into any issues
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues">let us know</a>.</p>
+</div>
+<div class="section" id="july-4-2018">
+<h2>0.1.0 (July 4, 2018)<a class="headerlink" href="#july-4-2018" title="Permalink to this headline">¶</a></h2>
+<p>Pre-alpha release of Nengo Loihi for testing at the
+2018 Telluride neuromorphic engineering conference.
+Thanks to all participants who tried out
+this early version of Nengo Loihi
+and provided feedback.</p>
+</div>
+</div>
+
+
+          </div>
+            
+  <div class="footer-relations">
+    
+      <div class="pull-right">
+        <a class="btn btn-default" href="overview.html" title="next chapter (use the right arrow)">Overview</a>
+      </div>
+    </div>
+    <div class="clearer"></div>
+  
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="overview.html" title="Overview"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>

@@ -1,0 +1,186 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="../../_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>nengo_loihi.config &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="../../_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    ../../index.html" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="../../search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="../../index.html">Docs</a></li>
+              
+                <li><a href="../index.html">Module code</a></li>
+              
+              <li>nengo_loihi.config</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <h1>Source code for nengo_loihi.config</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">nengo</span>
+<span class="kn">from</span> <span class="nn">nengo.params</span> <span class="k">import</span> <span class="n">Parameter</span>
+
+
+<div class="viewcode-block" id="add_params"><a class="viewcode-back" href="../../api.html#nengo_loihi.add_params">[docs]</a><span class="k">def</span> <span class="nf">add_params</span><span class="p">(</span><span class="n">network</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add nengo_loihi config option to *network*.</span>
+
+<span class="sd">    The following options will be added:</span>
+
+<span class="sd">    `nengo.Ensemble`</span>
+<span class="sd">      * ``on_chip``: Whether the ensemble should be simulated</span>
+<span class="sd">        on a Loihi chip. Marking specific ensembles for simulation</span>
+<span class="sd">        off of a Loihi chip can help with debugging.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    &gt;&gt;&gt; with nengo.Network() as model:</span>
+<span class="sd">    ...     ens = nengo.Ensemble(10, dimensions=1)</span>
+<span class="sd">    ...     # By default, ens will be placed on a Loihi chip</span>
+<span class="sd">    ...     nengo_loihi.add_params(model)</span>
+<span class="sd">    ...     model.config[ens].on_chip = False</span>
+<span class="sd">    ...     # Now it will be simulated with Nengo</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">config</span>
+
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;on_chip&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cfg</span><span class="o">.</span><span class="n">_extra_params</span><span class="p">:</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">set_param</span><span class="p">(</span><span class="s2">&quot;on_chip&quot;</span><span class="p">,</span>
+                      <span class="n">Parameter</span><span class="p">(</span><span class="s1">&#39;on_chip&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="set_defaults"><a class="viewcode-back" href="../../api.html#nengo_loihi.set_defaults">[docs]</a><span class="k">def</span> <span class="nf">set_defaults</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Modify Nengo&#39;s default parameters for better performance with Loihi.</span>
+
+<span class="sd">    The following defaults will be modified:</span>
+
+<span class="sd">    `nengo.Ensemble`</span>
+<span class="sd">      * ``max_rates``: Set to ``Uniform(low=100, high=120)``</span>
+<span class="sd">      * ``intercepts``: Set to ``Uniform(low=-0.5, high=0.5)``</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="o">.</span><span class="n">max_rates</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="o">.</span><span class="n">intercepts</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+            
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>

@@ -1,0 +1,608 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>API reference &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tips and tricks" href="tips.html" />
+    <link rel="prev" title="Keyword spotting" href="examples/keyword_spotting.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="tips.html" title="Tips and tricks"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="examples/keyword_spotting.html" title="Keyword spotting"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    index.html" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="index.html">Docs</a></li>
+              
+              <li>API reference</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <div class="section" id="api-reference">
+<h1>API reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#nengo_loihi.add_params" title="nengo_loihi.add_params"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.add_params</span></code></a>(network)</td>
+<td>Add nengo_loihi config option to <em>network</em>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#nengo_loihi.set_defaults" title="nengo_loihi.set_defaults"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.set_defaults</span></code></a>()</td>
+<td>Modify Nengo’s default parameters for better performance with Loihi.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#nengo_loihi.Simulator" title="nengo_loihi.Simulator"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.Simulator</span></code></a>(network[,&nbsp;dt,&nbsp;seed,&nbsp;…])</td>
+<td>Nengo Loihi simulator for Loihi hardware and emulator.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.builder.Model</span></code></a>([dt,&nbsp;label,&nbsp;builder])</td>
+<td>The data structure for the chip/simulator.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#nengo_loihi.builder.Builder" title="nengo_loihi.builder.Builder"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.builder.Builder</span></code></a></td>
+<td>Fills in the Loihi Model object based on the Nengo Network.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#nengo_loihi.loihi_cx.CxSimulator" title="nengo_loihi.loihi_cx.CxSimulator"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.loihi_cx.CxSimulator</span></code></a>(model[,&nbsp;seed])</td>
+<td>Software emulator for Loihi chip.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#nengo_loihi.loihi_interface.LoihiSimulator" title="nengo_loihi.loihi_interface.LoihiSimulator"><code class="xref py py-obj docutils literal"><span class="pre">nengo_loihi.loihi_interface.LoihiSimulator</span></code></a>(…)</td>
+<td>Simulator to place a Model onto a Loihi board and run it.</td>
+</tr>
+</tbody>
+</table>
+<dl class="function">
+<dt id="nengo_loihi.add_params">
+<code class="descclassname">nengo_loihi.</code><code class="descname">add_params</code><span class="sig-paren">(</span><em>network</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/config.html#add_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.add_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add nengo_loihi config option to <em>network</em>.</p>
+<p>The following options will be added:</p>
+<dl class="docutils">
+<dt><a class="reference external" href="https://www.nengo.ai/nengo/frontend_api.html#nengo.Ensemble" title="(in Nengo v2.8)"><code class="xref py py-obj docutils literal"><span class="pre">nengo.Ensemble</span></code></a></dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">on_chip</span></code>: Whether the ensemble should be simulated
+on a Loihi chip. Marking specific ensembles for simulation
+off of a Loihi chip can help with debugging.</li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Network</span><span class="p">()</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">ens</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="c1"># By default, ens will be placed on a Loihi chip</span>
+<span class="gp">... </span>    <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens</span><span class="p">]</span><span class="o">.</span><span class="n">on_chip</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">... </span>    <span class="c1"># Now it will be simulated with Nengo</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.set_defaults">
+<code class="descclassname">nengo_loihi.</code><code class="descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/config.html#set_defaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.set_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify Nengo’s default parameters for better performance with Loihi.</p>
+<p>The following defaults will be modified:</p>
+<dl class="docutils">
+<dt><a class="reference external" href="https://www.nengo.ai/nengo/frontend_api.html#nengo.Ensemble" title="(in Nengo v2.8)"><code class="xref py py-obj docutils literal"><span class="pre">nengo.Ensemble</span></code></a></dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal"><span class="pre">max_rates</span></code>: Set to <code class="docutils literal"><span class="pre">Uniform(low=100,</span> <span class="pre">high=120)</span></code></li>
+<li><code class="docutils literal"><span class="pre">intercepts</span></code>: Set to <code class="docutils literal"><span class="pre">Uniform(low=-0.5,</span> <span class="pre">high=0.5)</span></code></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.Simulator">
+<em class="property">class </em><code class="descclassname">nengo_loihi.</code><code class="descname">Simulator</code><span class="sig-paren">(</span><em>network</em>, <em>dt=0.001</em>, <em>seed=None</em>, <em>model=None</em>, <em>precompute=False</em>, <em>target=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Nengo Loihi simulator for Loihi hardware and emulator.</p>
+<p>The simulator takes a <a class="reference external" href="https://www.nengo.ai/nengo/frontend_api.html#nengo.Network" title="(in Nengo v2.8)"><code class="xref py py-obj docutils literal"><span class="pre">nengo.Network</span></code></a> and builds internal data structures
+to run the model defined by that network on Loihi emulator or hardware.
+Run the simulator with the <a class="reference internal" href="#nengo_loihi.Simulator.run" title="nengo_loihi.Simulator.run"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.run</span></code></a> method, and access probed data
+through the <code class="docutils literal"><span class="pre">data</span></code> attribute.</p>
+<p>Building and running the simulation allocates resources. To properly free
+these resources, call the <a class="reference internal" href="#nengo_loihi.Simulator.close" title="nengo_loihi.Simulator.close"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.close</span></code></a> method. Alternatively,
+<a class="reference internal" href="#nengo_loihi.Simulator.close" title="nengo_loihi.Simulator.close"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.close</span></code></a> will automatically be called if you use
+<code class="docutils literal"><span class="pre">with</span></code> syntax:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">my_network</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">my_probe</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that the <code class="docutils literal"><span class="pre">data</span></code> attribute is still accessible even when a simulator
+has been closed. Running the simulator, however, will raise an error.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>network</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Network or None</span></dt>
+<dd><p class="first last">A network object to be built and then simulated. If None,
+then the <em>model</em> parameter must be provided instead.</p>
+</dd>
+<dt><strong>dt</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional (Default: 0.001)</span></dt>
+<dd><p class="first last">The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>seed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (Default: None)</span></dt>
+<dd><p class="first last">A seed for all stochastic operators used in this simulator.
+Will be set to <code class="docutils literal"><span class="pre">network.seed</span> <span class="pre">+</span> <span class="pre">1</span></code> if not given.</p>
+</dd>
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Model, optional (Default: None)</span></dt>
+<dd><p class="first last">A <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal"><span class="pre">Model</span></code></a> that contains build artifacts to be simulated.
+Usually the simulator will build this model for you; however, if you
+want to build the network manually, or you want to inject build
+artifacts in the model before building the network, then you can
+pass in a <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal"><span class="pre">Model</span></code></a> instance.</p>
+</dd>
+<dt><strong>precompute</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional (Default: True)</span></dt>
+<dd><p class="first last">Whether model inputs should be precomputed to speed up simulation.
+When <em>precompute</em> is False, the simulator will be run one step
+at a time in order to use model outputs as inputs in other parts
+of the model.</p>
+</dd>
+<dt><strong>target</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional (Default: None)</span></dt>
+<dd><p class="first last">Whether the simulator should target the emulator (<code class="docutils literal"><span class="pre">'sim'</span></code>) or
+Loihi hardware (<code class="docutils literal"><span class="pre">'loihi'</span></code>). If None, <em>target</em> will default to
+<code class="docutils literal"><span class="pre">'loihi'</span></code> if NxSDK is installed, and the emulator if it is not.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>closed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether the simulator has been closed.
+Once closed, it cannot be reopened.</p>
+</dd>
+<dt><strong>data</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ProbeDict</span></dt>
+<dd><p class="first last">The dictionary mapping from Nengo objects to the data associated
+with those objects. In particular, each <a class="reference external" href="https://www.nengo.ai/nengo/frontend_api.html#nengo.Probe" title="(in Nengo v2.8)"><code class="xref py py-obj docutils literal"><span class="pre">nengo.Probe</span></code></a> maps to
+the data probed while running the simulation.</p>
+</dd>
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Model</span></dt>
+<dd><p class="first last">The <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal"><span class="pre">Model</span></code></a> containing the data structures necessary for
+simulating the network.</p>
+</dd>
+<dt><strong>precompute</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd><p class="first last">Whether model inputs should be precomputed to speed up simulation.
+When <em>precompute</em> is False, the simulator will be run one step
+at a time in order to use model outputs as inputs in other parts
+of the model.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="nengo_loihi.Simulator.dt">
+<code class="descname">dt</code><a class="headerlink" href="#nengo_loihi.Simulator.dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>(float) The step time of the simulator.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="nengo_loihi.Simulator.n_steps">
+<code class="descname">n_steps</code><a class="headerlink" href="#nengo_loihi.Simulator.n_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>(int) The current time step of the simulator.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="nengo_loihi.Simulator.time">
+<code class="descname">time</code><a class="headerlink" href="#nengo_loihi.Simulator.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>(float) The current time of the simulator.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the simulator.</p>
+<p>Any call to <a class="reference internal" href="#nengo_loihi.Simulator.run" title="nengo_loihi.Simulator.run"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.run</span></code></a>, <a class="reference internal" href="#nengo_loihi.Simulator.run_steps" title="nengo_loihi.Simulator.run_steps"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.run_steps</span></code></a>,
+<a class="reference internal" href="#nengo_loihi.Simulator.step" title="nengo_loihi.Simulator.step"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.step</span></code></a>, and <a class="reference internal" href="#nengo_loihi.Simulator.reset" title="nengo_loihi.Simulator.reset"><code class="xref py py-obj docutils literal"><span class="pre">Simulator.reset</span></code></a> on a closed simulator raises
+a <code class="docutils literal"><span class="pre">SimulatorClosed</span></code> exception.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.reset">
+<code class="descname">reset</code><span class="sig-paren">(</span><em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the simulator state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>seed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">A seed for all stochastic operators used in the simulator.
+This will change the random sequences generated for noise
+or inputs (e.g. from processes), but not the built objects
+(e.g. ensembles, connections).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>time_in_seconds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given length of time.</p>
+<p>If the given length of time is not a multiple of <code class="docutils literal"><span class="pre">dt</span></code>,
+it will be rounded to the nearest <code class="docutils literal"><span class="pre">dt</span></code>. For example, if <code class="docutils literal"><span class="pre">dt</span></code>
+is 0.001 and <code class="docutils literal"><span class="pre">run</span></code> is called with <code class="docutils literal"><span class="pre">time_in_seconds=0.0006</span></code>,
+the simulator will advance one timestep, resulting in the actual
+simulator time being 0.001.</p>
+<p>The given length of time must be positive. The simulator cannot
+be run backwards.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>time_in_seconds</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Amount of time to run the simulation for. Must be positive.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.step">
+<code class="descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Advance the simulator by 1 step (<code class="docutils literal"><span class="pre">dt</span></code> seconds).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.run_steps">
+<code class="descname">run_steps</code><span class="sig-paren">(</span><em>steps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.run_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.run_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given number of <code class="docutils literal"><span class="pre">dt</span></code> steps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of steps to run the simulation for.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.trange">
+<code class="descname">trange</code><span class="sig-paren">(</span><em>sample_every=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.trange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.trange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a vector of times matching probed data.</p>
+<p>Note that the range does not start at 0 as one might expect, but at
+the first timestep (i.e., <code class="docutils literal"><span class="pre">dt</span></code>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>sample_every</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional (Default: None)</span></dt>
+<dd><p class="first last">The sampling period of the probe to create a range for.
+If None, a time value for every <code class="docutils literal"><span class="pre">dt</span></code> will be produced.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.builder.Model">
+<em class="property">class </em><code class="descclassname">nengo_loihi.builder.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>dt=0.001</em>, <em>label=None</em>, <em>builder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/builder.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>The data structure for the chip/simulator.</p>
+<p>This is a subclass of CxModel, which defines methods for adding ensembles,
+discretizing, and tracking the simulator. This class handles build
+functions and keeping track of chip/host communication.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>dt</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional (Default: 0.001)</span></dt>
+<dd><p class="first last">The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>label</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional (Default: None)</span></dt>
+<dd><p class="first last">A name or description to differentiate models.</p>
+</dd>
+<dt><strong>builder</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Builder, optional (Default: None)</span></dt>
+<dd><p class="first last">A <a class="reference internal" href="#nengo_loihi.builder.Builder" title="nengo_loihi.builder.Builder"><code class="xref py py-obj docutils literal"><span class="pre">Builder</span></code></a> instance to keep track of build functions.
+If None, the default builder will be used.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>builder</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Builder</span></dt>
+<dd><p class="first last">The build functions used by this model.</p>
+</dd>
+<dt><strong>dt</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>label</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd><p class="first last">A name or description to differentiate models.</p>
+</dd>
+<dt><strong>objs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Dictionary mapping from Nengo objects to Nengo Loihi objects.</p>
+</dd>
+<dt><strong>params</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Mapping from objects to namedtuples containing parameters generated
+in the build process.</p>
+</dd>
+<dt><strong>probes</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list</span></dt>
+<dd><p class="first last">List of all probes. Probes must be added to this list in the build
+process, as this list is used by Simulator.</p>
+</dd>
+<dt><strong>seeded</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">All objects are assigned a seed, whether the user defined the seed
+or it was automatically generated. ‘seeded’ keeps track of whether
+the seed is user-defined. We consider the seed to be user-defined
+if it was set directly on the object, or if a seed was set on the
+network in which the object resides, or if a seed was set on any
+ancestor network of the network in which the object resides.</p>
+</dd>
+<dt><strong>seeds</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Mapping from objects to the integer seed assigned to that object.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="nengo_loihi.builder.Model.inter_scale">
+<code class="descname">inter_scale</code><a class="headerlink" href="#nengo_loihi.builder.Model.inter_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scaling applied to input from interneurons.</p>
+<p>Such that if all <code class="docutils literal"><span class="pre">inter_n</span></code> interneurons are firing at
+their max rate <code class="docutils literal"><span class="pre">inter_rate</span></code>, then the total output when
+averaged over time will be 1.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.builder.Builder">
+<em class="property">class </em><code class="descclassname">nengo_loihi.builder.</code><code class="descname">Builder</code><a class="reference internal" href="_modules/nengo_loihi/builder.html#Builder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Builder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fills in the Loihi Model object based on the Nengo Network.</p>
+<dl class="classmethod">
+<dt id="nengo_loihi.builder.Builder.register">
+<em class="property">classmethod </em><code class="descname">register</code><span class="sig-paren">(</span><em>nengo_class</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/builder.html#Builder.register"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Builder.register" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register methods to build Nengo objects into Model.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.loihi_cx.CxSimulator">
+<em class="property">class </em><code class="descclassname">nengo_loihi.loihi_cx.</code><code class="descname">CxSimulator</code><span class="sig-paren">(</span><em>model</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/loihi_cx.html#CxSimulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.loihi_cx.CxSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Software emulator for Loihi chip.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>model</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Model</span></dt>
+<dd><p class="first last">Model specification that will be simulated.</p>
+</dd>
+<dt><strong>seed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (Default: None)</span></dt>
+<dd><p class="first last">A seed for all stochastic operations done in this simulator.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="nengo_loihi.loihi_cx.CxSimulator.build">
+<code class="descname">build</code><span class="sig-paren">(</span><em>model</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/loihi_cx.html#CxSimulator.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.loihi_cx.CxSimulator.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up NumPy arrays to emulate chip memory and I/O.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.loihi_cx.CxSimulator.step">
+<code class="descname">step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/loihi_cx.html#CxSimulator.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.loihi_cx.CxSimulator.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Advance the simulation by 1 step (<code class="docutils literal"><span class="pre">dt</span></code> seconds).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.loihi_cx.CxSimulator.run_steps">
+<code class="descname">run_steps</code><span class="sig-paren">(</span><em>steps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/loihi_cx.html#CxSimulator.run_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.loihi_cx.CxSimulator.run_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given number of <code class="docutils literal"><span class="pre">dt</span></code> steps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>steps</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of steps to run the simulation for.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.loihi_interface.LoihiSimulator">
+<em class="property">class </em><code class="descclassname">nengo_loihi.loihi_interface.</code><code class="descname">LoihiSimulator</code><span class="sig-paren">(</span><em>cx_model</em>, <em>seed=None</em>, <em>snip_max_spikes_per_step=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/loihi_interface.html#LoihiSimulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.loihi_interface.LoihiSimulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulator to place a Model onto a Loihi board and run it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>cx_model</strong> <span class="classifier-delimiter">:</span> <span class="classifier">CxModel</span></dt>
+<dd><p class="first last">Model specification that will be placed on the Loihi board.</p>
+</dd>
+<dt><strong>seed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (Default: None)</span></dt>
+<dd><p class="first">A seed for stochastic operations.</p>
+<div class="last admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Setting the seed has no effect on stochastic
+operations run on the Loihi board.</p>
+</div>
+</dd>
+<dt><strong>snip_max_spikes_per_step</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (Default: 50)</span></dt>
+<dd><p class="first last">Maximum number of spikes that can be sent through
+the nengo_io_h2c channel on one timestep.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+            
+  <div class="footer-relations">
+    
+      <div class="pull-left">
+        <a class="btn btn-default" href="examples/keyword_spotting.html" title="previous chapter (use the left arrow)">Keyword spotting</a>
+      </div>
+    
+      <div class="pull-right">
+        <a class="btn btn-default" href="tips.html" title="next chapter (use the right arrow)">Tips and tricks</a>
+      </div>
+    </div>
+    <div class="clearer"></div>
+  
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="tips.html" title="Tips and tricks"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="examples/keyword_spotting.html" title="Keyword spotting"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>

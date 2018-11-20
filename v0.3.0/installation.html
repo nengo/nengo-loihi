@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+  <!-- Licensed under the Apache 2.0 License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/open-sans/stylesheet.css" />
+  <!-- Licensed under the SIL Open Font License -->
+  <link rel="stylesheet" type="text/css" href="_static/fonts/source-serif-pro/source-serif-pro.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="_static/css/bootstrap-theme.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+    <title>Installation &#8212; Nengo Loihi 0.3.0 docs</title>
+    <link rel="stylesheet" href="_static/guzzle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/config/TeX-AMS-MML_HTMLorMML.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Example models" href="examples.html" />
+    <link rel="prev" title="Overview" href="overview.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+  
+   
+
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Example models"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Overview"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="container-wrapper">
+
+      <div id="mobile-toggle">
+        <a href="#"><span class="glyphicon glyphicon-align-justify" aria-hidden="true"></span></a>
+      </div>
+  <div id="left-column">
+    <div class="sphinxsidebar">
+        <a href="
+    index.html" class="text-logo">Nengo Loihi 0.3</a>
+        <div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <h2>Table Of Contents</h2>
+  </div>
+  <div class="sidebar-toc">
+    
+    
+      <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#inrc-superhost">INRC/Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+    
+  </div>
+</div>
+        
+<div class="sidebar-block">
+  <div class="sidebar-wrapper">
+    <div id="main-search">
+      <form class="form-inline" action="search.html" method="GET" role="form">
+        <div class="input-group">
+          <input name="q" type="text" class="form-control" placeholder="Search...">
+        </div>
+        <input type="hidden" name="check_keywords" value="yes" />
+        <input type="hidden" name="area" value="default" />
+      </form>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+        <div id="right-column">
+          
+          <div role="navigation" aria-label="breadcrumbs navigation">
+            <ol class="breadcrumb">
+              <li><a href="index.html">Docs</a></li>
+              
+              <li>Installation</li>
+            </ol>
+          </div>
+          
+          <div class="document clearer body">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="local-machine">
+<h2>Local machine<a class="headerlink" href="#local-machine" title="Permalink to this headline">¶</a></h2>
+<p>On a local machine <em>not</em> connected to a Loihi host,
+you can use any version of Python
+that has <code class="docutils literal"><span class="pre">pip</span></code>.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>git clone https://github.com/nengo/nengo-loihi.git
+pip install -e nengo-loihi
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">pip</span></code> will do its best to install
+Nengo Loihi’s requirements.
+If anything goes wrong during this process,
+it is likely related to installing NumPy.
+Follow <a class="reference external" href="https://www.nengo.ai/nengo/getting_started.html#installing-numpy">our NumPy install instructions</a>,
+then try again.</p>
+</div>
+<div class="section" id="inrc-superhost">
+<h2>INRC/Superhost<a class="headerlink" href="#inrc-superhost" title="Permalink to this headline">¶</a></h2>
+<p>These steps will take you through
+setting up a Python environment
+for running Nengo Loihi,
+as well as for running models
+using the NxSDK directly.</p>
+<p>Note, you <em>must</em> use Python 3.5.2 and NumPy 1.14.3
+when working with NxSDK.
+The easiest way to satisfy those constraints is to use
+<a class="reference external" href="https://conda.io/docs/user-guide/install/index.html">Miniconda</a>
+to set up an isolated environment
+for running Loihi models.</p>
+<ol class="arabic">
+<li><p class="first">Ensure that <code class="docutils literal"><span class="pre">conda</span></code> is available.</p>
+<p>To see if it is available, run</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>conda -V
+</pre></div>
+</div>
+<p>If conda is available, the conda version should be printed
+to the console.</p>
+<p>If it is not available:</p>
+<ol class="loweralpha">
+<li><p class="first">Ask your superhost administrator if conda is installed.
+If it is, you need to add the <code class="docutils literal"><span class="pre">bin</span></code> directory of
+the conda installation to your path.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;/path/to/conda/bin:</span><span class="nv">$PATH</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>Running this once will change your path for the current session.
+Adding it to a shell configuration file
+(e.g., <code class="docutils literal"><span class="pre">~/.profile</span></code>, <code class="docutils literal"><span class="pre">~/.bashrc</span></code>)
+will change your path for all future terminal sessions.</p>
+</li>
+<li><p class="first">If conda is not installed, install Miniconda.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh
+</pre></div>
+</div>
+<p>Follow the prompts to set up Miniconda as desired.</p>
+</li>
+</ol>
+</li>
+<li><p class="first">Create a new <code class="docutils literal"><span class="pre">conda</span></code> environment.
+Note, you <em>must</em> use Python 3.5.2 when working with NxSDK.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>conda create --name loihi <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.5.2
+</pre></div>
+</div>
+</li>
+<li><p class="first">Activate your new environment.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">source</span> activate loihi
+</pre></div>
+</div>
+<p>Sometimes the environment can have issues when first created.
+Before continuing, run <code class="docutils literal"><span class="pre">which</span> <span class="pre">pip</span></code> and ensure that the path
+to <code class="docutils literal"><span class="pre">pip</span></code> is in your conda environment.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You will need to run <code class="docutils literal"><span class="pre">source</span> <span class="pre">activate</span> <span class="pre">loihi</span></code> every time
+you log onto the superhost.</p>
+</div>
+</li>
+<li><p class="first">Install NumPy and Cython with conda.
+Note, you <em>must</em> use NumPy 1.14.3 when working with NxSDK.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>conda install <span class="nv">numpy</span><span class="o">=</span><span class="m">1</span>.14.3 cython
+</pre></div>
+</div>
+<p>The NumPy provided by conda is usually faster
+than those installed by other means.</p>
+</li>
+<li><p class="first">Copy the latest NxSDK release to your current directory.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The location of NxSDK may have changed.
+Refer to Intel’s documentation to be sure.
+The most recent release and NxSDK location
+are current as of September 2018.</p>
+</div>
+<p>If you are logged into INRC:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>cp /nfs/ncl/releases/0.7/nxsdk-0.7.tar.gz .
+</pre></div>
+</div>
+<p>If you are setting up a non-INRC superhost:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>scp &lt;inrc-host&gt;:/nfs/ncl/releases/0.7/nxsdk-0.7.tar.gz .
+</pre></div>
+</div>
+</li>
+<li><p class="first">Install NxSDK.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>pip install nxsdk-0.7.tar.gz
+</pre></div>
+</div>
+</li>
+<li><p class="first">Install Nengo Loihi.</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>git clone https://github.com/nengo/nengo-loihi.git
+pip install -e nengo-loihi
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">pip</span></code> will install other requirements like Nengo automatically.</p>
+</li>
+<li><p class="first">Test that both packages installed correctly.</p>
+<p>Start Python by running the <code class="docutils literal"><span class="pre">python</span></code> command.
+If everything is installed correctly, you should
+be able to import <code class="docutils literal"><span class="pre">nxsdk</span></code> and <code class="docutils literal"><span class="pre">nengo_loihi</span></code>.</p>
+<div class="highlight-pycon"><div class="highlight"><pre><span></span><span class="go">Python 3.5.2 |Anaconda, Inc.| (default, May 13 2018, 21:12:35)</span>
+<span class="go">[GCC 7.2.0] on linux</span>
+<span class="go">Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">nxsdk</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">nengo_loihi</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+
+
+          </div>
+            
+  <div class="footer-relations">
+    
+      <div class="pull-left">
+        <a class="btn btn-default" href="overview.html" title="previous chapter (use the left arrow)">Overview</a>
+      </div>
+    
+      <div class="pull-right">
+        <a class="btn btn-default" href="examples.html" title="next chapter (use the right arrow)">Example models</a>
+      </div>
+    </div>
+    <div class="clearer"></div>
+  
+        </div>
+        <div class="clearfix"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Example models"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="Overview"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Nengo Loihi 0.3.0 docs</a> &#187;</li> 
+      </ul>
+    </div>
+<script type="text/javascript">
+  $("#mobile-toggle a").click(function () {
+    $("#left-column").toggle();
+  });
+</script>
+<script type="text/javascript" src="_static/js/bootstrap.js"></script>
+  <div class="footer">
+    &copy; Copyright 2018, Applied Brain Research. Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+  </div>
+  </body>
+</html>
