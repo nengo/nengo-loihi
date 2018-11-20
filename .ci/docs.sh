@@ -15,21 +15,35 @@ function usage {
 
 if [[ "$COMMAND" == "install" ]]; then
     conda install --quiet cython jupyter matplotlib numpy pillow scipy
-    pip install "sphinx<1.7" nbsphinx numpydoc guzzle_sphinx_theme
     pip install "git+https://github.com/abr/abr_control.git"
-    pip install -e .
+    pip install -e .[docs]
 elif [[ "$COMMAND" == "check" ]]; then
     sphinx-build -b linkcheck -v -D nbsphinx_execute=never docs docs/_build
 elif [[ "$COMMAND" == "run" ]]; then
-    git clone -b gh-pages https://github.com/nengo/nengo-loihi.git ../docs
-    sphinx-build -vW docs ../docs
+    git clone -b gh-pages-release https://github.com/nengo/nengo-loihi.git ../nengo-docs
+    RELEASES=$(find ../nengo-docs -maxdepth 1 -type d -name "v[0-9].*" -printf "%f,")
+
+    if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
+        RELEASES="$RELEASES$TRAVIS_TAG"
+        sphinx-build -b html docs ../nengo-docs/"$TRAVIS_TAG" -vW -A building_version="$TRAVIS_TAG" -A releases="$RELEASES"
+    else
+        sphinx-build -b html docs ../nengo-docs -vW -A building_version=latest -A releases="$RELEASES"
+    fi
 elif [[ "$COMMAND" == "upload" ]]; then
-    cd ../docs
+    cd ../nengo-docs
     git config --global user.email "travis@travis-ci.org"
     git config --global user.name "TravisCI"
     git add --all
-    git commit -m "Last update at $(date '+%Y-%m-%d %T')"
-    git push -fq "https://$GH_TOKEN@github.com/nengo/nengo-loihi.git" gh-pages
+    if [[ "$TRAVIS_BRANCH" == "$TRAVIS_TAG" ]]; then
+        git commit -m "Documentation for release $TRAVIS_TAG"
+        git push -q "https://$GH_TOKEN@github.com/nengo/nengo-loihi.git" gh-pages-release
+    elif [[ "$TRAVIS_BRANCH" == "master" ]]; then
+        git commit -m "Last update at $(date '+%Y-%m-%d %T')"
+        git push -fq "https://$GH_TOKEN@github.com/nengo/nengo-loihi.git" gh-pages-release:gh-pages
+    else
+        git commit -m "Documentation for branch $TRAVIS_BRANCH"
+        git push -fq "https://$GH_TOKEN@github.com/nengo/nengo-loihi.git" gh-pages-release:gh-pages-test
+    fi
 else
     if [[ -z "$COMMAND" ]]; then
         echo "Command required"

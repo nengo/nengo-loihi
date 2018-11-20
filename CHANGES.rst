@@ -22,6 +22,10 @@ Release history
 0.4.0 (unreleased)
 ==================
 
+**Added**
+
+- Added version tracking to documentation.
+
 **Changed**
 
 - An error is now raised if

@@ -32,10 +32,9 @@ install:
 script:
   - if [[ "$STATIC" == "true" ]]; then
       .ci/static.sh run;
-    elif [[ -n "$TRAVIS_TAG" && "$DOCS" == "true" ]]; then
-      .ci/docs.sh run;
     elif [[ "$DOCS" == "true" ]]; then
       .ci/docs.sh check;
+      .ci/docs.sh run;
     elif [[ "$NENGO" == "true" ]]; then
       .ci/test.sh run-nengo;
     else
@@ -45,6 +44,6 @@ script:
 after_success:
   - if [[ "$STATIC" == "false" && "$DOCS" == "false" ]]; then
       .ci/test.sh upload;
-    elif [[ -n "$TRAVIS_TAG" && "$DOCS" == "true" ]]; then
+    elif [[ "$DOCS" == "true" ]]; then
       .ci/docs.sh upload;
     fi
