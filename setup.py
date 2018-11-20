@@ -48,6 +48,17 @@ setup(
         "pytest>=3.4,<4",
         "matplotlib>=2.0",
     ],
+    extras_require={
+        "docs": [
+            "abr_control",
+            "jupyter",
+            "matplotlib>=2.0",
+            "nbsphinx",
+            "nengo_sphinx_theme>=0.4",
+            "numpydoc>=0.6",
+            "sphinx>=1.8",
+        ],
+    },
     entry_points={
         'nengo.backends': [
             'loihi = nengo_loihi:Simulator'

@@ -7,9 +7,9 @@ import sys
 
 try:
     import nengo_loihi
-    import guzzle_sphinx_theme
+    import nengo_sphinx_theme  # noqa: F401 pylint: disable=unused-import
 except ImportError:
-    print("To build the documentation, nengo_loihi and guzzle_sphinx_theme "
+    print("To build the documentation, nengo_loihi and nengo_sphinx_theme "
           "must be installed in the current environment. Please install these "
           "and their requirements first. A virtualenv is recommended!")
     sys.exit(1)
@@ -22,7 +22,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'guzzle_sphinx_theme',
+    'nengo_sphinx_theme.ext.versions',
     'numpydoc',
     'nbsphinx',
 ]
@@ -31,7 +31,7 @@ default_role = 'py:obj'
 
 # -- sphinx.ext.autodoc
 autoclass_content = 'both'  # class and __init__ docstrings are concatenated
-autodoc_default_flags = ['members']
+autodoc_default_options = {"members": None}
 autodoc_member_order = 'bysource'  # default is alphabetical
 
 # -- sphinx.ext.intersphinx
@@ -57,10 +57,6 @@ source_suffix = '.rst'
 source_encoding = 'utf-8'
 master_doc = 'index'
 
-# Need to include https Mathjax path for sphinx < v1.3
-mathjax_path = ("https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/"
-                "config/TeX-AMS-MML_HTMLorMML.js")
-
 project = u'Nengo Loihi'
 authors = u'Applied Brain Research'
 copyright = nengo_loihi.__copyright__
@@ -74,18 +70,13 @@ pygments_style = "sphinx"
 templates_path = ["_templates"]
 html_static_path = ["_static"]
 
-html_theme_path = guzzle_sphinx_theme.html_theme_path()
-html_theme = "guzzle_sphinx_theme"
-
-html_theme_options = {
-    "project_nav_name": "Nengo Loihi %s" % (version,),
-    "base_url": "https://www.nengo.ai/nengo-loihi",
-}
+html_theme = "nengo_sphinx_theme"
 
 html_title = "Nengo Loihi {0} docs".format(release)
 htmlhelp_basename = 'Nengo Loihi'
 html_last_updated_fmt = ''  # Suppress 'Last updated on:' timestamp
 html_show_sphinx = False
+html_sidebars = {"**": ["sidebar.html"]}
 
 # -- Options for LaTeX output -------------------------------------------------
 

@@ -27,10 +27,14 @@ Release history
 - An error is now raised if
   a learning rule is applied to a non-decoded connection.
   (`#103 <https://github.com/nengo/nengo-loihi/pull/103>`_)
+- Switched documentation to new
+  `nengo-sphinx-theme <https://github.com/nengo/nengo-sphinx-theme>`_.
+  (`#143 <https://github.com/nengo/nengo-loihi/pull/143>`__)
 
 **Fixed**
 
 - Snips directory included when pip installing nengo-loihi.
+  (`#134 <https://github.com/nengo/nengo-loihi/pull/134>`__)
 - Closing ``nengo_loihi.Simulator`` will now close all the inner
   sub-simulators as well.
   (`#102 <https://github.com/nengo/nengo-loihi/issues/102>`_)
