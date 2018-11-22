@@ -44,6 +44,11 @@ Release history
   like integrators.
   (`#124 <https://github.com/nengo/nengo-loihi/pull/124>`_,
   `#114 <https://github.com/nengo/nengo-loihi/issues/114>`_)
+- Ensure things in the build and execution happen in a consistent order from
+  one build/run to the next (by using ``OrderedDict``, which is deterministic,
+  instead of ``dict``, which is not). This makes debugging easier and seeding
+  consistent.
+  (`#151 <https://github.com/nengo/nengo-loihi/pull/151>`_)
 
 0.4.0 (December 6, 2018)
 ========================

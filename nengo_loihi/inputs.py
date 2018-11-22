@@ -2,6 +2,7 @@ from __future__ import division
 
 from nengo import Node
 from nengo.exceptions import SimulationError
+from nengo.params import Default
 from nengo.utils.compat import is_integer
 import numpy as np
 
@@ -80,12 +81,12 @@ class HostReceiveNode(Node):
 class ChipReceiveNode(Node):
     """For receiving host->chip messages"""
 
-    def __init__(self, dimensions, size_out, **kwargs):
+    def __init__(self, dimensions, size_out, label=Default):
         self.raw_dimensions = dimensions
         self.spikes = []
         self.spike_input = None  # set by builder
         super(ChipReceiveNode, self).__init__(
-            self.update, size_in=0, size_out=size_out, **kwargs)
+            self.update, size_in=0, size_out=size_out, label=label)
 
     def clear(self):
         self.spikes.clear()
@@ -106,7 +107,7 @@ class ChipReceiveNode(Node):
 
 class ChipReceiveNeurons(ChipReceiveNode):
     """Passes spikes directly (no on-off neuron encoding)"""
-    def __init__(self, dimensions, neuron_type=None, **kwargs):
+    def __init__(self, dimensions, neuron_type=None, label=Default):
         self.neuron_type = neuron_type
         super(ChipReceiveNeurons, self).__init__(
-            dimensions, dimensions, **kwargs)
+            dimensions, dimensions, label=label)

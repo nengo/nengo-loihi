@@ -512,7 +512,7 @@ class Simulator(object):
 
     def _collect_receiver_info(self):
         spikes = []
-        errors = {}
+        errors = OrderedDict()
         for sender, receiver in self.networks.host2chip_senders.items():
             receiver.clear()
             for t, x in sender.queue:
@@ -529,7 +529,7 @@ class Simulator(object):
                     synapse = self.model.objs[conn]['decoders']
                     assert synapse.learning
                     ti = round(t / self.model.dt)
-                    errors_ti = errors.setdefault(ti, {})
+                    errors_ti = errors.setdefault(ti, OrderedDict())
                     if synapse in errors_ti:
                         errors_ti[synapse] += e
                     else:
@@ -544,9 +544,9 @@ class Simulator(object):
         sim.host2chip(spikes, errors)
 
     def _chip2host(self, sim):
-        probes_receivers = {  # map probes to receivers
-            self.model.objs[probe]['out']: receiver
-            for probe, receiver in self.networks.chip2host_receivers.items()}
+        probes_receivers = OrderedDict(  # map probes to receivers
+            (self.model.objs[probe]['out'], receiver)
+            for probe, receiver in self.networks.chip2host_receivers.items())
         sim.chip2host(probes_receivers)
 
     def _make_run_steps(self):

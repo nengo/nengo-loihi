@@ -19,6 +19,7 @@ from nengo_loihi.splitter import (
     place_nodes,
     place_probes,
     SplitNetworks,
+    split,
     split_chip_to_host,
     split_host_neurons_to_chip,
     split_host_to_chip,
@@ -397,3 +398,43 @@ def test_split_pre_from_host():
     for obj in [post1, post2] + post_connections:
         assert networks.location(obj) == "host", obj
     assert networks.location(onchip) == "chip"
+
+
+def test_consistent_order():
+    with nengo.Network() as model:
+        add_params(model)
+
+        u0 = nengo.Node(0, label="u0")
+        for i in range(5):
+            e = nengo.Ensemble(i+1, 1, label="e%d" % i)
+            f = nengo.Ensemble(i+1, 1, label="f%d" % i)
+            nengo.Connection(u0, e, label="c0%d" % i)
+            nengo.Connection(e, f, label="cf%d" % i)
+            nengo.Probe(e)
+            nengo.Probe(f.neurons)
+
+    # Test splitting a number of times, making sure the order of things matches
+    # the original network each time
+    split_params = dict(
+        precompute=False,
+        node_neurons=OnOffDecodeNeurons(dt=0.001),
+        node_tau=0.005,
+        remove_passthrough=False,
+    )
+
+    networks0 = split(model, **split_params)
+    for _ in range(5):
+        networks = split(model, **split_params)
+
+        # --- order matches original network
+        assert len(model.all_ensembles) == len(networks.chip.all_ensembles)
+        for ea, eb in zip(model.all_ensembles, networks.chip.all_ensembles):
+            assert ea.n_neurons == eb.n_neurons and ea.label == eb.label
+
+        # --- order matches previous split
+        for attr in ('connections', 'ensembles', 'nodes', 'probes'):
+            for net in ('host_pre', 'host', 'chip'):
+                aa = getattr(getattr(networks0, net), 'all_' + attr)
+                bb = getattr(getattr(networks, net), 'all_' + attr)
+                for a, b in zip(aa, bb):
+                    assert a.label == b.label
