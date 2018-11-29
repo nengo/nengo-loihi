@@ -14,7 +14,7 @@ function usage {
 
 if [[ "$COMMAND" == "install" ]]; then
     conda install --quiet matplotlib mkl numpy scipy
-    pip install coverage pytest
+    pip install coverage 'pytest<4'
     pip install -e .
 elif [[ "$COMMAND" == "run" ]]; then
     coverage run -m pytest nengo_loihi -v --duration 20 --plots && coverage report
