@@ -3,6 +3,7 @@
 # This file is execfile()d with the current directory set
 # to its containing dir.
 
+import os
 import sys
 
 try:
@@ -22,7 +23,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'nengo_sphinx_theme.ext.versions',
+    'nengo_sphinx_theme',
     'numpydoc',
     'nbsphinx',
 ]
@@ -76,7 +77,11 @@ html_title = "Nengo Loihi {0} docs".format(release)
 htmlhelp_basename = 'Nengo Loihi'
 html_last_updated_fmt = ''  # Suppress 'Last updated on:' timestamp
 html_show_sphinx = False
-html_sidebars = {"**": ["sidebar.html"]}
+html_favicon = os.path.join("_static", "favicon.ico")
+html_theme_options = {
+    "sidebar_logo_width": 200,
+    "nengo_logo": "nengo-loihi-full-light.svg",
+}
 
 # -- Options for LaTeX output -------------------------------------------------
 

@@ -54,7 +54,7 @@ setup(
             "jupyter",
             "matplotlib>=2.0",
             "nbsphinx",
-            "nengo_sphinx_theme>=0.4",
+            "nengo_sphinx_theme>=0.7",
             "numpydoc>=0.6",
             "sphinx>=1.8",
         ],
