@@ -259,3 +259,20 @@ def test_all_onchip(Simulator):
     assert sim._run_steps.__name__ == "run_steps"
     assert sim.data[out_p].shape[0] == sim.trange().shape[0]
     assert np.all(sim.data[out_p][-1] > 100)
+
+
+def test_progressbar_values(Simulator):
+    with nengo.Network() as model:
+        nengo.Ensemble(1, 1)
+
+    # both `None` and `False` are valid ways of specifying no progress bar
+    with Simulator(model, progress_bar=None):
+        pass
+
+    with Simulator(model, progress_bar=False):
+        pass
+
+    # progress bar not yet implemented
+    with pytest.raises(NotImplementedError):
+        with Simulator(model, progress_bar=True):
+            pass

@@ -327,7 +327,7 @@ class Simulator(object):
             remove_passthrough=True
     ):
         self.closed = True  # Start closed in case constructor raises exception
-        if progress_bar is not None:
+        if progress_bar:
             raise NotImplementedError("progress bars not implemented")
 
         if model is None:
