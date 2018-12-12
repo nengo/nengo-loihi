@@ -172,6 +172,61 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
                     atol=5)
 
 
+@pytest.mark.parametrize("pre_on_chip, post_ensemble", [(True, True),
+                                                        (True, False),
+                                                        (False, True)])
+def test_neurons_to_ensemble_transform(
+        pre_on_chip, post_ensemble, Simulator, seed, rng, allclose, plt):
+    with nengo.Network(seed=seed) as net:
+        add_params(net)
+
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+
+        n_pre = 50
+        pre_encoders = np.ones((n_pre, 1))
+        pre_encoders[n_pre // 2:] *= -1
+        pre = nengo.Ensemble(n_pre, 1, encoders=pre_encoders)
+        net.config[pre].on_chip = pre_on_chip
+        nengo.Connection(stim, pre, synapse=None)
+
+        n_post = 51
+        pre_decoders = pre_encoders.T / (100 * n_pre / 2)
+        post = (nengo.Ensemble(n_post, 1) if post_ensemble
+                else nengo.Node(size_in=1))
+
+        nengo.Connection(pre.neurons, post, transform=pre_decoders,
+                         synapse=0.005)
+
+        p_pre = nengo.Probe(pre, synapse=nengo.synapses.Alpha(0.03))
+        p_post = nengo.Probe(post, synapse=nengo.synapses.Alpha(0.03))
+
+    with nengo.Simulator(net) as nengosim:
+        nengosim.run(1.0)
+
+    with Simulator(net) as sim:
+        sim.run(1.0)
+
+    y0 = nengo.synapses.Lowpass(0.01).filt(nengosim.data[p_post].sum(axis=1))
+    y1 = sim.data[p_post].sum(axis=1)
+
+    t = sim.trange()
+    plt.subplot(2, 1, 1)
+    plt.plot(t, nengosim.data[p_pre], c='k')
+    plt.plot(t, sim.data[p_pre], c='g')
+    plt.ylim([-1, 1])
+    plt.ylabel("Decoded pre value")
+    plt.xlabel("Time (s)")
+
+    plt.subplot(2, 1, 2)
+    plt.plot(t, y0, c='k')
+    plt.plot(t, y1, c='g')
+    plt.ylim([-1, 1])
+    plt.ylabel("Decoded post value")
+    plt.xlabel("Time (s)")
+
+    assert allclose(y1, y0, rtol=1e-1, atol=0.1 * y0.max())
+
+
 def test_dists(Simulator, seed):
     # check that distributions on connection transforms are handled correctly
 

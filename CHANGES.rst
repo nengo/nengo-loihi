@@ -29,6 +29,8 @@ Release history
   in a round-robin format. This allocator can be selected using the
   ``hardware_options`` argument when creating ``nengo_loihi.Simulator``.
   (`#197 <https://github.com/nengo/nengo-loihi/pull/197>`__)
+- Added support for ``Ensemble.neurons -> Ensemble`` connections.
+  (`#156 <https://github.com/nengo/nengo-loihi/pull/156>`__)
 
 **Changed**
 

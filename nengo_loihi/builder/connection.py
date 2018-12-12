@@ -375,6 +375,23 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
     return _build_no_solver(*args)
 
 
+def expand_to_2d(weights, pre_size, post_size):
+    if weights.ndim == 0:
+        assert pre_size == post_size
+        weights2d = weights * np.eye(pre_size)
+    elif weights.ndim == 1:
+        assert pre_size == post_size
+        assert weights.size == pre_size
+        weights2d = np.diag(weights)
+    else:
+        assert weights.ndim == 2
+        weights2d = weights
+
+    assert weights2d.shape[0] == post_size
+    assert weights2d.shape[1] == pre_size
+    return weights2d
+
+
 def build_chip_connection(model, conn):  # noqa: C901
     if nengo_transforms is not None:
         if isinstance(conn.transform, nengo_transforms.Convolution):
@@ -409,24 +426,16 @@ def build_chip_connection(model, conn):  # noqa: C901
 
     needs_decode_neurons = False
     target_encoders = None
-    if isinstance(conn.pre_obj, Node):
+    if (isinstance(conn.pre_obj, Node)
+            and not isinstance(conn.pre_obj, ChipReceiveNeurons)):
         assert conn.pre_slice == slice(None)
 
-        if np.array_equal(transform, np.array(1.)):
-            # TODO: this identity transform may be avoidable
-            transform = np.eye(conn.pre.size_out)
-        else:
-            assert transform.ndim == 2, "transform shape not handled yet"
-            assert transform.shape[1] == conn.pre.size_out
+        transform = expand_to_2d(transform, conn.pre.size_out,
+                                 conn.post.size_in)
 
-        assert transform.shape[1] == conn.pre.size_out
-        if isinstance(conn.pre_obj, ChipReceiveNeurons):
-            weights = transform / model.dt
-            neuron_type = conn.pre_obj.neuron_type
-        else:
-            # input is on-off neuron encoded, so double/flip transform
-            weights = np.column_stack([transform, -transform])
-            target_encoders = 'node_encoders'
+        # input is on-off neuron encoded, so double/flip transform
+        weights = np.column_stack([transform, -transform])
+        target_encoders = 'node_encoders'
     elif (isinstance(conn.pre_obj, Ensemble)
           and isinstance(conn.pre_obj.neuron_type, nengo.Direct)):
         raise NotImplementedError()
@@ -459,11 +468,16 @@ def build_chip_connection(model, conn):  # noqa: C901
             post_slice = None
         else:
             needs_decode_neurons = True
-    elif isinstance(conn.pre_obj, Neurons):
+    elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)):
         assert conn.pre_slice == slice(None)
-        assert transform.ndim == 2, "transform shape not handled yet"
-        weights = transform / model.dt
-        neuron_type = conn.pre_obj.ensemble.neuron_type
+        weights = expand_to_2d(transform, conn.pre.size_out, conn.post.size_in)
+        weights = weights / model.dt
+        neuron_type = (conn.pre_obj.neuron_type
+                       if isinstance(conn.pre_obj, ChipReceiveNeurons)
+                       else conn.pre_obj.ensemble.neuron_type)
+
+        if isinstance(conn.post_obj, Ensemble):
+            needs_decode_neurons = True
     else:
         raise NotImplementedError("Connection from type %r" % (
             type(conn.pre_obj),))

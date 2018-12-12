@@ -5,6 +5,8 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
+from nengo_loihi.builder.connection import expand_to_2d
+
 
 @pytest.mark.skipif(LooseVersion(nengo.__version__) <= LooseVersion('2.8.0'),
                     reason="requires more recent Nengo version")
@@ -66,3 +68,9 @@ def test_manual_decoders(
         assert np.mean(sim.data[pre_probe]) > 100
         # But that post has no activity due to the zero weights
         assert np.all(sim.data[post_probe] == 0)
+
+
+def test_expand_to_2d():
+    assert np.allclose(expand_to_2d(np.array(2.0), 3, 3), np.eye(3) * 2)
+    assert np.allclose(expand_to_2d(np.arange(3), 3, 3), np.diag(np.arange(3)))
+    assert np.allclose(expand_to_2d(np.ones((2, 3)), 3, 2), np.ones((2, 3)))

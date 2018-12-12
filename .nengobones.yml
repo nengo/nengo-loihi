@@ -282,8 +282,6 @@ setup_cfg:
         inaccurate
 
       # builder inconsistencies
-      test_connection.py:test_neurons_to_ensemble*:
-        transform shape not implemented
       test_connection.py:test_transform_probe:
         transform shape not implemented
       test_connection.py:test_list_indexing*:
