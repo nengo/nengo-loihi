@@ -16,6 +16,7 @@ from nengo.utils.builder import default_n_eval_points
 import nengo.utils.numpy as npext
 
 from nengo_loihi import conv
+from nengo_loihi.loihi_api import ENC_BITS
 from nengo_loihi.loihi_cx import (
     ChipReceiveNeurons,
     ChipReceiveNode,
@@ -366,13 +367,28 @@ def build_ensemble(model, ens):
 
 def build_interencoders(model, ens):
     """Build encoders accepting on/off interneuron input."""
+    # TODO: the logic here mirrors that of splitter.py's _BinaryEncoder
     group = model.objs[ens.neurons]['in']
     scaled_encoders = model.params[ens].scaled_encoders
 
-    synapses = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
+    # create binary-encoding weights with +/- sign
+    weights = np.zeros(
+        (2, ENC_BITS, scaled_encoders.shape[1], scaled_encoders.shape[0]))
     interscaled_encoders = scaled_encoders * model.inter_scale
-    synapses.set_full_weights(
-        np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
+    for i, sign in enumerate([+1, -1]):
+        for bit in range(ENC_BITS):
+            weights[i, bit, :, :] = sign / 2.**(1 + bit) * interscaled_encoders.T
+
+    # the flat_weights passed to set_full_weights is a 2D matrix, where the
+    # first dimension is flattened (sign, bit, vector_dimension)
+    # and the second is the neuron
+    flat_weights = weights.reshape(-1, weights.shape[-1])
+    assert flat_weights.shape == (
+        2 * ENC_BITS * scaled_encoders.shape[1],
+        scaled_encoders.shape[0])
+
+    synapses = CxSynapses(flat_weights.shape[0], label="inter_encoders")
+    synapses.set_full_weights(flat_weights)
     group.add_synapses(synapses, name='inter_encoders')
 
 
@@ -549,6 +565,8 @@ def build_connection(model, conn):
             assert transform.ndim == 2, "transform shape not handled yet"
             assert transform.shape[1] == conn.pre.size_out
 
+        # TODO: the weights aren't used anywhere if post is an Ensemble
+        # in vector space? handled by build_interencoders instead.
         assert transform.shape[1] == conn.pre.size_out
         if isinstance(conn.pre_obj, ChipReceiveNeurons):
             weights = transform / model.dt

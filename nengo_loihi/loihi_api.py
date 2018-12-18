@@ -22,6 +22,8 @@ BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 Q_BITS = 21  # number of bits for synapse accumulator
 U_BITS = 23  # number of bits for cx input (u)
 
+ENC_BITS = 16  # number of bits to encode each sign of each input node dimension
+
 
 def overflow_signed(x, bits=7, out=None):
     """Compute overflow on an array of signed integers.

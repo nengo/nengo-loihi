@@ -6,6 +6,7 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
+from nengo_loihi.loihi_api import ENC_BITS
 from nengo_loihi.conv import Conv2D
 from nengo_loihi.loihi_cx import (
     ChipReceiveNode, ChipReceiveNeurons, HostSendNode, HostReceiveNode,
@@ -277,26 +278,47 @@ def split_host_neurons_to_chip(networks, conn):
     networks.remove(conn)
 
 
+class _BinaryEncoder(object):
+    """Node function for encoding a (-1, 1) vector in binary."""
+
+    def __init__(self, n_bits, amplitude=1000):
+        # TODO: don't hardcode amplitude (1/dt)?
+        #       logic is currently split across build_interencoders
+        self.n_bits = n_bits
+        self.amplitude = amplitude
+
+    def __call__(self, dummy_time, x):
+        spiked = np.zeros((2, self.n_bits, len(x)))
+        for i, x_i in enumerate(x):
+            sign_bit = 0 if x_i >= 0 else 1
+            f = np.abs(x_i)
+            v = 0.5  # to represent [0, 1)
+            for j in range(self.n_bits):
+                if f >= v:
+                    f -= v
+                    spiked[sign_bit, j, i] = self.amplitude
+                v /= 2.
+        return spiked.flatten()
+
+
 def split_host_to_chip(networks, conn):
     dim = conn.size_out
+    size_enc = 2 * ENC_BITS * dim
+
     logger.debug("Creating ChipReceiveNode for %s", conn)
     receive = ChipReceiveNode(
-        dim * 2, size_out=dim, add_to_container=False)
+        size_enc, size_out=dim, add_to_container=False)
     networks.add(receive, "chip")
     receive2post = nengo.Connection(receive, conn.post,
-                                    synapse=networks.inter_tau,
+                                    synapse=None,
                                     add_to_container=False)
     networks.add(receive2post, "chip")
 
-    logger.debug("Creating NIF ensemble for %s", conn)
-    ens = nengo.Ensemble(
-        2 * dim, dim,
-        neuron_type=NIF(tau_ref=0.0),
-        encoders=np.vstack([np.eye(dim), -np.eye(dim)]),
-        max_rates=np.ones(dim * 2) * networks.max_rate,
-        intercepts=np.ones(dim * 2) * -1,
-        add_to_container=False)
-    networks.add(ens, "host")
+    logger.debug("Creating spike-encoder for %s", conn)
+    encoder = nengo.Node(size_in=dim,
+                         output=_BinaryEncoder(n_bits=ENC_BITS),
+                         add_to_container=False)
+    networks.add(encoder, "host")
 
     if isinstance(conn.transform, Conv2D):
         raise BuildError(
@@ -313,22 +335,24 @@ def split_host_to_chip(networks, conn):
         rng=np.random.RandomState(seed=seed))
     if isinstance(conn.post_obj, nengo.Ensemble):
         transform = transform / conn.post_obj.radius
-    pre2ens = nengo.Connection(conn.pre, ens,
-                               function=conn.function,
-                               solver=conn.solver,
-                               eval_points=conn.eval_points,
-                               scale_eval_points=conn.scale_eval_points,
-                               synapse=conn.synapse,
-                               transform=transform,
-                               add_to_container=False)
-    networks.add(pre2ens, "host")
+
+    pre2encoder = nengo.Connection(
+        conn.pre, encoder,
+        function=conn.function,
+        solver=conn.solver,
+        eval_points=conn.eval_points,
+        scale_eval_points=conn.scale_eval_points,
+        synapse=conn.synapse,
+        transform=transform,
+        add_to_container=False)
+    networks.add(pre2encoder, "host")
 
     logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(dim * 2, add_to_container=False)
+    send = HostSendNode(size_enc, add_to_container=False)
     networks.add(send, "host")
-    ensneurons2send = nengo.Connection(
-        ens.neurons, send, synapse=None, add_to_container=False)
-    networks.add(ensneurons2send, "host")
+    spikes2send = nengo.Connection(
+        encoder, send, synapse=None, add_to_container=False)
+    networks.add(spikes2send, "host")
     networks.remove(conn)
 
     networks.host2chip_senders[send] = receive
