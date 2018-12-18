@@ -378,7 +378,7 @@ def build_onoff_interencoders(model, ens):
 
 
 def build_binary_interencoders(model, ens):
-    """Build encoders accepting on/off interneuron input."""
+    """Build encoders accepting binary-coded input."""
     # TODO: the logic here mirrors that of splitter.py's _BinaryEncoder
     group = model.objs[ens.neurons]['in']
     scaled_encoders = model.params[ens].scaled_encoders
