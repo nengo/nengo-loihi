@@ -365,7 +365,19 @@ def build_ensemble(model, ens):
         bias=bias)
 
 
-def build_interencoders(model, ens):
+def build_onoff_interencoders(model, ens):
+    """Build encoders accepting on/off interneuron input."""
+    group = model.objs[ens.neurons]['in']
+    scaled_encoders = model.params[ens].scaled_encoders
+
+    synapses = CxSynapses(2*scaled_encoders.shape[1], label="inter_encoders")
+    interscaled_encoders = scaled_encoders * model.inter_scale
+    synapses.set_full_weights(
+        np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
+    group.add_synapses(synapses, name='inter_encoders')
+
+
+def build_binary_interencoders(model, ens):
     """Build encoders accepting on/off interneuron input."""
     # TODO: the logic here mirrors that of splitter.py's _BinaryEncoder
     group = model.objs[ens.neurons]['in']
@@ -743,9 +755,21 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
+    elif isinstance(conn.post_obj, Ensemble) and isinstance(conn.pre_obj, Node):
+        # TODO: this shouldn't be a special case
+        if 'inter_encoders' not in post_cx.named_synapses:
+            build_binary_interencoders(model, conn.post_obj)
+
+        mid_ax = CxAxons(mid_cx.n, label="encoders")
+        mid_ax.target = post_cx.named_synapses['inter_encoders']
+        mid_ax.set_axon_map(mid_axon_inds)
+        mid_cx.add_axons(mid_ax)
+        model.objs[conn]['mid_axons'] = mid_ax
+
+        post_cx.configure_filter(post_tau, dt=model.dt)
     elif isinstance(conn.post_obj, Ensemble):
         if 'inter_encoders' not in post_cx.named_synapses:
-            build_interencoders(model, conn.post_obj)
+            build_onoff_interencoders(model, conn.post_obj)
 
         mid_ax = CxAxons(mid_cx.n, label="encoders")
         mid_ax.target = post_cx.named_synapses['inter_encoders']
