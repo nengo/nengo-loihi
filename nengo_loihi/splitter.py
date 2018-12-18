@@ -281,7 +281,7 @@ def split_host_neurons_to_chip(networks, conn):
 class _BinaryEncoder(object):
     """Node function for encoding a (-1, 1) vector in binary."""
 
-    def __init__(self, n_bits, amplitude=1000):
+    def __init__(self, n_bits, amplitude=1):
         # TODO: don't hardcode amplitude (1/dt)?
         #       logic is currently split across build_interencoders
         self.n_bits = n_bits
