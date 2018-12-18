@@ -6,8 +6,8 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.loihi_api import ENC_BITS
 from nengo_loihi.conv import Conv2D
+from nengo_loihi.encoder import BinaryEncoder
 from nengo_loihi.loihi_cx import (
     ChipReceiveNode, ChipReceiveNeurons, HostSendNode, HostReceiveNode,
     PESModulatoryTarget)
@@ -278,32 +278,10 @@ def split_host_neurons_to_chip(networks, conn):
     networks.remove(conn)
 
 
-class _BinaryEncoder(object):
-    """Node function for encoding a (-1, 1) vector in binary."""
-
-    def __init__(self, n_bits, amplitude=1):
-        # TODO: don't hardcode amplitude (1/dt)?
-        #       logic is currently split across build_interencoders
-        self.n_bits = n_bits
-        self.amplitude = amplitude
-
-    def __call__(self, dummy_time, x):
-        spiked = np.zeros((2, self.n_bits, len(x)))
-        for i, x_i in enumerate(x):
-            sign_bit = 0 if x_i >= 0 else 1
-            f = np.abs(x_i)
-            v = 0.5  # to represent [0, 1)
-            for j in range(self.n_bits):
-                if f >= v:
-                    f -= v
-                    spiked[sign_bit, j, i] = self.amplitude
-                v /= 2.
-        return spiked.flatten()
-
-
 def split_host_to_chip(networks, conn):
     dim = conn.size_out
-    size_enc = 2 * ENC_BITS * dim
+    encoder = BinaryEncoder()
+    size_enc = encoder.get_size_out(dim)
 
     logger.debug("Creating ChipReceiveNode for %s", conn)
     receive = ChipReceiveNode(
@@ -315,10 +293,10 @@ def split_host_to_chip(networks, conn):
     networks.add(receive2post, "chip")
 
     logger.debug("Creating spike-encoder for %s", conn)
-    encoder = nengo.Node(size_in=dim,
-                         output=_BinaryEncoder(n_bits=ENC_BITS),
-                         add_to_container=False)
-    networks.add(encoder, "host")
+    spikes = nengo.Node(size_in=dim,
+                        output=encoder,
+                        add_to_container=False)
+    networks.add(spikes, "host")
 
     if isinstance(conn.transform, Conv2D):
         raise BuildError(
@@ -337,7 +315,7 @@ def split_host_to_chip(networks, conn):
         transform = transform / conn.post_obj.radius
 
     pre2encoder = nengo.Connection(
-        conn.pre, encoder,
+        conn.pre, spikes,
         function=conn.function,
         solver=conn.solver,
         eval_points=conn.eval_points,
@@ -351,7 +329,7 @@ def split_host_to_chip(networks, conn):
     send = HostSendNode(size_enc, add_to_container=False)
     networks.add(send, "host")
     spikes2send = nengo.Connection(
-        encoder, send, synapse=None, add_to_container=False)
+        spikes, send, synapse=None, add_to_container=False)
     networks.add(spikes2send, "host")
     networks.remove(conn)
 
