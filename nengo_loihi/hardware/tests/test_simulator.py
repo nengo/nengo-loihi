@@ -22,6 +22,7 @@ def test_no_warn_on_current_version(monkeypatch):
     mock.__version__ = "0.7.0"
 
     monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
+    monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
     with pytest.warns(None) as record:
         hardware_interface.HardwareInterface.check_nxsdk_version()
     assert len(record) == 0
@@ -32,5 +33,6 @@ def test_warn_on_future_version(monkeypatch):
     mock.__version__ = "0.7.6"
 
     monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
+    monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
     with pytest.warns(UserWarning):
         hardware_interface.HardwareInterface.check_nxsdk_version()

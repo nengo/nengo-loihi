@@ -1,30 +1,21 @@
 from __future__ import division
 
 import logging
-import sys
 
 from nengo.utils.stdlib import groupby
 import numpy as np
-
-try:
-    import nxsdk.arch.n2a.compiler.microcodegen.interface as microcodegen_uci
-    from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import TraceCfgGen
-    from nxsdk.arch.n2a.graph.graph import N2Board
-    from nxsdk.arch.n2a.graph.inputgen import BasicSpikeGenerator
-
-except ImportError:
-    exc_info = sys.exc_info()
-
-    def no_nxsdk(*args, **kwargs):
-        raise exc_info[1]
-    nxsdk = N2Board = BasicSpikeGenerator = TraceCfgGen = N2SpikeProbe = (
-        no_nxsdk)
 
 from nengo_loihi.discretize import bias_to_manexp
 from nengo_loihi.hardware.nxsdk_objects import (
     CX_PROFILES_MAX,
     LoihiSpikeInput,
     VTH_PROFILES_MAX,
+)
+from nengo_loihi.hardware.nxsdk_shim import (
+    BasicSpikeGenerator,
+    microcodegen_uci,
+    N2Board,
+    TraceCfgGen,
 )
 from nengo_loihi.inputs import SpikeInput
 

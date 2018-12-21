@@ -16,7 +16,7 @@ import numpy as np
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
-from nengo_loihi.hardware import HardwareInterface
+from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
 from nengo_loihi.splitter import split
 import nengo_loihi.config as config
 
@@ -351,11 +351,7 @@ class Simulator(object):
                 seed = np.random.randint(npext.maxint)
 
         if target is None:
-            try:
-                import nxsdk
-                target = 'loihi'
-            except ImportError:
-                target = 'sim'
+            target = 'loihi' if HAS_NXSDK else 'sim'
         self.target = target
 
         logger.info("Simulator target is %r", target)
@@ -367,6 +363,7 @@ class Simulator(object):
         if target in ("simreal", "sim"):
             self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)
         elif target == 'loihi':
+            assert HAS_NXSDK, "Must have NxSDK installed to use Loihi hardware"
             self.sims["loihi"] = HardwareInterface(
                 self.model, use_snips=not self.precompute, seed=seed)
         else:
