@@ -116,14 +116,15 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
 
 @Builder.register(Connection)  # noqa: C901
 def build_connection(model, conn):
-    if isinstance(conn.transform, conv.Conv2D):
-        # TODO: integrate these into the same function
-        conv.build_conv2d_connection(model, conn)
-        return
-    elif (nengo_transforms is not None
-          and not isinstance(conn.transform, nengo_transforms.Dense)):
-        raise NotImplementedError(
-            "nengo-loihi does not yet support %s transforms" % conn.transform)
+    if nengo_transforms is not None:
+        if isinstance(conn.transform, nengo_transforms.Convolution):
+            # TODO: integrate these into the same function
+            conv.build_conv2d_connection(model, conn)
+            return
+        elif not isinstance(conn.transform, nengo_transforms.Dense):
+            raise NotImplementedError(
+                "nengo-loihi does not yet support %s transforms"
+                % conn.transform)
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])

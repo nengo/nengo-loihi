@@ -141,6 +141,7 @@ class Simulator(object):
         ('utils/*test_network.py:*direct_mode_learning[learning_rule[123]*',
          "no ensembles onchip"),
         ('utils/*test_neurons.py:test_rates_*', "no ensembles onchip"),
+        ('test_transforms.py:test_convolution*', "no ensembles onchip"),
 
         # accuracy
         ('test_actionselection.py:test_basic', "inaccurate"),

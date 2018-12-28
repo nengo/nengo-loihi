@@ -13,7 +13,7 @@ COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
     exe conda install --quiet matplotlib mkl numpy scipy tensorflow
-    exe pip install "git+https://github.com/nengo/nengo-dl.git@conv_transform"
+    exe pip install nengo-dl
     exe pip install -e ".[tests]"
 elif [[ "$COMMAND" == "script" ]]; then
     exe coverage run -m pytest nengo_loihi -v --duration 20 --plots --color=yes

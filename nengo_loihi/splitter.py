@@ -10,7 +10,6 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.conv import Conv2D
 from nengo_loihi.compat import nengo_transforms, sample_transform
 from nengo_loihi.inputs import (
     ChipReceiveNode,
@@ -322,7 +321,8 @@ def split_host_to_chip(networks, conn):
     ens = networks.node_neurons.get_ensemble(dim)
     networks.add(ens, "host")
 
-    if isinstance(conn.transform, Conv2D):
+    if nengo_transforms is not None and isinstance(
+            conn.transform, nengo_transforms.Convolution):
         raise BuildError(
             "Conv2D transforms not supported for off-chip to "
             "on-chip connections where `pre` is not a Neurons object.")

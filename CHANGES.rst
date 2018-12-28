@@ -22,7 +22,12 @@ Release history
 0.6.0 (unreleased)
 ==================
 
+**Changed**
 
+- New Nengo transforms are supported, including ``nengo.Convolution``. Many of
+  the classes previously in ``conv.py`` have been moved to Nengo as part of
+  this transition. The MNIST convnet example demonstrates the new syntax.
+  (`#142 <https://github.com/nengo/nengo-loihi/pull/142>`__)
 
 0.5.0 (February 12, 2019)
 =========================
