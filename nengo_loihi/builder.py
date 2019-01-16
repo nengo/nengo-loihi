@@ -16,6 +16,7 @@ from nengo.utils.builder import default_n_eval_points
 import nengo.utils.numpy as npext
 
 from nengo_loihi import conv
+from nengo_loihi.encoder import BinaryEncoder
 from nengo_loihi.loihi_cx import (
     ChipReceiveNeurons,
     ChipReceiveNode,
@@ -371,7 +372,7 @@ def build_ensemble(model, ens):
         bias=bias)
 
 
-def build_interencoders(model, ens):
+def build_onoff_interencoders(model, ens):
     """Build encoders accepting on/off interneuron input."""
     group = model.objs[ens.neurons]['in']
     scaled_encoders = model.params[ens].scaled_encoders
@@ -380,6 +381,19 @@ def build_interencoders(model, ens):
     interscaled_encoders = scaled_encoders * model.inter_scale
     synapses.set_full_weights(
         np.vstack([interscaled_encoders.T, -interscaled_encoders.T]))
+    group.add_synapses(synapses, name='inter_encoders')
+
+
+def build_binary_interencoders(model, ens):
+    """Build encoders accepting binary-coded input."""
+    group = model.objs[ens.neurons]['in']
+    scaled_encoders = model.params[ens].scaled_encoders
+
+    weights = BinaryEncoder().make_weights(
+        scaled_encoders * model.inter_scale)
+
+    synapses = CxSynapses(weights.shape[0], label="inter_encoders")
+    synapses.set_full_weights(weights)
     group.add_synapses(synapses, name='inter_encoders')
 
 
@@ -556,6 +570,8 @@ def build_connection(model, conn):
             assert transform.ndim == 2, "transform shape not handled yet"
             assert transform.shape[1] == conn.pre.size_out
 
+        # TODO: the weights aren't used anywhere if post is an Ensemble
+        # in vector space? handled by build_interencoders instead.
         assert transform.shape[1] == conn.pre.size_out
         if isinstance(conn.pre_obj, ChipReceiveNeurons):
             weights = transform / model.dt
@@ -755,9 +771,21 @@ def build_connection(model, conn):
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
+    elif isinstance(conn.post_obj, Ensemble) and isinstance(conn.pre_obj, Node):
+        # TODO: this shouldn't be a special case
+        if 'inter_encoders' not in post_cx.named_synapses:
+            build_binary_interencoders(model, conn.post_obj)
+
+        mid_ax = CxAxons(mid_cx.n, label="encoders")
+        mid_ax.target = post_cx.named_synapses['inter_encoders']
+        mid_ax.set_axon_map(mid_axon_inds)
+        mid_cx.add_axons(mid_ax)
+        model.objs[conn]['mid_axons'] = mid_ax
+
+        post_cx.configure_filter(post_tau, dt=model.dt)
     elif isinstance(conn.post_obj, Ensemble):
         if 'inter_encoders' not in post_cx.named_synapses:
-            build_interencoders(model, conn.post_obj)
+            build_onoff_interencoders(model, conn.post_obj)
 
         mid_ax = CxAxons(mid_cx.n, label="encoders")
         mid_ax.target = post_cx.named_synapses['inter_encoders']
