@@ -53,6 +53,11 @@ Release history
   now deal with negative values correctly.
   (`#169 <https://github.com/nengo/nengo-loihi/pull/124>`_,
   `#141 <https://github.com/nengo/nengo-loihi/issues/141>`_)
+- Filtering for probes on the chip
+  is guaranteed to use floating-point now (so that the filtered output
+  is correct, even if the underlying values are integers).
+  (`#169 <https://github.com/nengo/nengo-loihi/pull/124>`_,
+  `#141 <https://github.com/nengo/nengo-loihi/issues/141>`_)
 
 0.4.0 (December 6, 2018)
 ========================
