@@ -49,6 +49,10 @@ Release history
   instead of ``dict``, which is not). This makes debugging easier and seeding
   consistent.
   (`#151 <https://github.com/nengo/nengo-loihi/pull/151>`_)
+- Probes that use snips on the chip (when running with ``precompute=False``)
+  now deal with negative values correctly.
+  (`#169 <https://github.com/nengo/nengo-loihi/pull/124>`_,
+  `#141 <https://github.com/nengo/nengo-loihi/issues/141>`_)
 
 0.4.0 (December 6, 2018)
 ========================

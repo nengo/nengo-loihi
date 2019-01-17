@@ -166,7 +166,7 @@ class HardwareInterface(object):
     def _chip2host_snips(self, probes_receivers):
         count = self.nengo_io_c2h_count
         data = self.nengo_io_c2h.read(count)
-        time_step, data = data[0], np.array(data[1:])
+        time_step, data = data[0], np.array(data[1:], dtype=np.int32)
         snip_range = self.nengo_io_snip_range
 
         for probe in self._snip_probe_data:
