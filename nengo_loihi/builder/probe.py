@@ -124,6 +124,9 @@ probemap = {
 
 @Builder.register(nengo.Probe)
 def build_probe(model, probe):
+    # This is a copy of Nengo's build_probe, but since conn_probe
+    # and signal_probe are different, we have to include it here.
+
     # find the right parent class in `objtypes`, using `isinstance`
     for nengotype, probeables in probemap.items():
         if isinstance(probe.obj, nengotype):

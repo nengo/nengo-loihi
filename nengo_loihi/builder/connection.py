@@ -1,6 +1,12 @@
 import nengo
 from nengo import Ensemble, Connection, Node
-from nengo.builder.connection import BuiltConnection
+from nengo.builder.connection import (
+    build_no_solver,
+    BuiltConnection,
+    get_eval_points,
+    get_targets,
+    multiply,
+)
 from nengo.dists import get_samples
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
@@ -10,39 +16,14 @@ import numpy as np
 from nengo_loihi import conv
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder.builder import Builder
-from nengo_loihi.builder.ensemble import gen_eval_points
 from nengo_loihi.inputs import ChipReceiveNeurons, LoihiInput
 from nengo_loihi.neurons import loihi_rates
 
 
-def get_eval_points(model, conn, rng):
-    if conn.eval_points is None:
-        view = model.params[conn.pre_obj].eval_points.view()
-        view.setflags(write=False)
-        return view
-    else:
-        return gen_eval_points(
-            conn.pre_obj, conn.eval_points, rng, conn.scale_eval_points)
-
-
-def get_targets(conn, eval_points):
-    if conn.function is None:
-        targets = eval_points[:, conn.pre_slice]
-    elif isinstance(conn.function, np.ndarray):
-        targets = conn.function
-    else:
-        targets = np.zeros((len(eval_points), conn.size_mid))
-        for i, ep in enumerate(eval_points[:, conn.pre_slice]):
-            out = conn.function(ep)
-            if out is None:
-                raise BuildError("Building %s: Connection function returned "
-                                 "None. Cannot solve for decoders." % (conn,))
-            targets[i] = out
-
-    return targets
-
-
 def build_decoders(model, conn, rng, transform):
+    # Copied from Nengo, except that we pass `dt` to `solve_for_decoders`,
+    # and do not support the decoder cache.
+
     encoders = model.params[conn.pre_obj].encoders
     gain = model.params[conn.pre_obj].gain
     bias = model.params[conn.pre_obj].bias
@@ -69,6 +50,8 @@ def build_decoders(model, conn, rng, transform):
 
 
 def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
+    # Copied from Nengo, except we use `loihi_rates` to get activities
+
     activities = loihi_rates(conn.pre_obj.neuron_type, x, gain, bias, dt)
     if np.count_nonzero(activities) == 0:
         raise BuildError(
@@ -78,18 +61,6 @@ def solve_for_decoders(conn, gain, bias, x, targets, rng, dt, E=None):
 
     decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
     return decoders, solver_info
-
-
-def multiply(x, y):
-    if x.ndim <= 2 and y.ndim < 2:
-        return x * y
-    elif x.ndim < 2 and y.ndim == 2:
-        return x.reshape(-1, 1) * y
-    elif x.ndim == 2 and y.ndim == 2:
-        return np.dot(x, y)
-    else:
-        raise BuildError("Tensors not supported (x.ndim = %d, y.ndim = %d)"
-                         % (x.ndim, y.ndim))
 
 
 def build_decode_neuron_encoders(model, ens, kind='decode_neuron_encoders'):
@@ -111,16 +82,7 @@ def build_solver(model, solver, conn, rng, transform):
     return build_decoders(model, conn, rng, transform)
 
 
-@Builder.register(NoSolver)
-def build_no_solver(model, solver, conn, rng, transform):
-    activities = np.zeros((1, conn.pre_obj.n_neurons))
-    targets = np.zeros((1, conn.size_mid))
-    E = np.zeros((1, conn.post_obj.n_neurons)) if solver.weights else None
-    # No need to invoke the cache for NoSolver
-    decoders, solver_info = conn.solver(activities, targets, rng=rng, E=E)
-    weights = (decoders.T if conn.solver.weights else
-               multiply(transform, decoders.T))
-    return None, weights, solver_info
+Builder.register(NoSolver)(build_no_solver)
 
 
 @Builder.register(Connection)  # noqa: C901

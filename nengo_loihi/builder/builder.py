@@ -1,8 +1,10 @@
 from collections import defaultdict, OrderedDict
 import logging
-import warnings
 
-from nengo.exceptions import BuildError
+from nengo import Network
+from nengo.builder.builder import Builder as NengoBuilder
+from nengo.builder.network import build_network
+from nengo.cache import NoDecoderCache
 
 from nengo_loihi.block import LoihiBlock
 from nengo_loihi.decode_neurons import (
@@ -83,20 +85,25 @@ class Model(object):
     def __init__(self, dt=0.001, label=None, builder=None):
         self.dt = dt
         self.label = label
+        self.builder = Builder() if builder is None else builder
+        self.build_callback = None
+        self.decoder_cache = NoDecoderCache()
 
+        # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()
         self.blocks = OrderedDict()
 
+        # Will be filled in by the network builder
+        self.toplevel = None
+        self.config = None
+
+        # Resources used by the build process
         self.objs = defaultdict(dict)
         self.params = {}  # Holds data generated when building objects
         self.probes = []
         self.probe_conns = {}
-
         self.seeds = {}
         self.seeded = {}
-
-        self.builder = Builder() if builder is None else builder
-        self.build_callback = None
 
         # --- other (typically standard) parameters
         # Filter on decode neurons
@@ -153,34 +160,16 @@ class Model(object):
         return obj in self.params
 
 
-class Builder(object):
-    """Fills in the Loihi Model object based on the Nengo Network."""
+class Builder(NengoBuilder):
+    """Fills in the Loihi Model object based on the Nengo Network.
 
-    builders = {}  # Methods that build different components
+    We cannot use the Nengo builder as is because we make normal Nengo
+    networks for host-to-chip and chip-to-host communication. To keep
+    Nengo and Nengo Loihi builders separate, we make a blank subclass,
+    which effectively copies the class.
+    """
 
-    @classmethod
-    def build(cls, model, obj, *args, **kwargs):
-        if model.has_built(obj):
-            warnings.warn("Object %s has already been built." % obj)
-            return None
+    builders = {}
 
-        for obj_cls in type(obj).__mro__:
-            if obj_cls in cls.builders:
-                break
-        else:
-            raise BuildError(
-                "Cannot build object of type %r" % type(obj).__name__)
 
-        return cls.builders[obj_cls](model, obj, *args, **kwargs)
-
-    @classmethod
-    def register(cls, nengo_class):
-        """Register methods to build Nengo objects into Model."""
-
-        def register_builder(build_fn):
-            if nengo_class in cls.builders:
-                warnings.warn("Type '%s' already has a builder. Overwriting."
-                              % nengo_class)
-            cls.builders[nengo_class] = build_fn
-            return build_fn
-        return register_builder
+Builder.register(Network)(build_network)

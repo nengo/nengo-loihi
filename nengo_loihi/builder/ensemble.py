@@ -1,11 +1,10 @@
-import collections
 import warnings
 
 import nengo
 from nengo import Ensemble
+from nengo.builder.ensemble import BuiltEnsemble, gen_eval_points
 from nengo.dists import Distribution, get_samples
 from nengo.exceptions import BuildError
-from nengo.utils.builder import default_n_eval_points
 import nengo.utils.numpy as npext
 import numpy as np
 
@@ -13,26 +12,9 @@ from nengo_loihi.block import LoihiBlock
 from nengo_loihi.builder.builder import Builder
 
 
-def gen_eval_points(ens, eval_points, rng, scale_eval_points=True):
-    if isinstance(eval_points, Distribution):
-        n_points = ens.n_eval_points
-        if n_points is None:
-            n_points = default_n_eval_points(ens.n_neurons, ens.dimensions)
-        eval_points = eval_points.sample(n_points, ens.dimensions, rng)
-    else:
-        if (ens.n_eval_points is not None
-                and eval_points.shape[0] != ens.n_eval_points):
-            warnings.warn("Number of eval_points doesn't match "
-                          "n_eval_points. Ignoring n_eval_points.")
-        eval_points = np.array(eval_points, dtype=np.float64)
-        assert eval_points.ndim == 2
-
-    if scale_eval_points:
-        eval_points *= ens.radius  # scale by ensemble radius
-    return eval_points
-
-
 def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
+    # Modified from the Nengo version to handle `intercept_limit`
+
     if ens.gain is not None and ens.bias is not None:
         gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
         bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
@@ -76,17 +58,6 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
                 "intercept value to below 1." % ens)
 
     return gain, bias, max_rates, intercepts
-
-
-BuiltEnsemble = collections.namedtuple(
-    'BuiltEnsemble',
-    ('eval_points',
-     'encoders',
-     'intercepts',
-     'max_rates',
-     'scaled_encoders',
-     'gain',
-     'bias'))
 
 
 @Builder.register(Ensemble)
