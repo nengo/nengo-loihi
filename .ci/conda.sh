@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
+set -e -v  # exit immediately on error, and print each line as it executes
+
+# This script sets up the conda environment for all the other scripts
 
 NAME=$0
 COMMAND=$1
 MINICONDA="http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh"
-
-function usage {
-    echo "usage: $NAME <command>"
-    echo
-    echo "  install  Install miniconda and a simple test environment"
-    exit 1
-}
 
 if [[ "$COMMAND" == "install" ]]; then
     wget "$MINICONDA" --quiet -O miniconda.sh
@@ -21,11 +17,5 @@ if [[ "$COMMAND" == "install" ]]; then
     conda create -q -n test python="$PYTHON" pip
     source activate test
 else
-    if [[ -z "$COMMAND" ]]; then
-        echo "Command required"
-    else
-        echo "Command $COMMAND not recognized"
-    fi
-    echo
-    usage
+    echo "$NAME does not define $COMMAND"
 fi
