@@ -44,11 +44,6 @@ setup(
         "jinja2",
         "nengo>=2.8.0",
     ],
-    tests_require=[
-        "nengo-extras",
-        "pytest>=3.4,<4",
-        "matplotlib>=2.0",
-    ],
     extras_require={
         "docs": [
             "abr_control",
@@ -59,6 +54,12 @@ setup(
             "nengo_sphinx_theme>=0.7",
             "numpydoc>=0.6",
             "sphinx>=1.8",
+        ],
+        "tests": [
+            "coverage>=4.3",
+            "nengo-extras",
+            "pytest>=3.4,<4",
+            "matplotlib>=2.0",
         ],
     },
     entry_points={

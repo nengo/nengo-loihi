@@ -11,6 +11,7 @@ env:
 matrix:
   include:
     - env: MODE="emulator"
+    - env: MODE="hardware"
     - env: MODE="static"
     - env: MODE="docs"
 
@@ -25,3 +26,6 @@ script:
 
 after_success:
   - .ci/$MODE.sh after_success
+
+after_script:
+  - .ci/$MODE.sh after_script
