@@ -86,3 +86,35 @@ def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
     atol = 1. / t_final  # the fundamental unit for our rates
     assert allclose(nengo_rates, ref, atol=atol, rtol=0, xtol=1)
     assert allclose(loihi_rates, ref, atol=atol, rtol=0, xtol=1)
+
+
+def test_lif_min_voltage(Simulator, plt, allclose):
+    neuron_type = nengo.LIF(min_voltage=-0.5)
+    t_final = 0.4
+
+    with nengo.Network() as model:
+        u = nengo.Node(lambda t: np.sin(4*np.pi*t / t_final))
+        a = nengo.Ensemble(1, 1, neuron_type=neuron_type,
+                           encoders=np.ones((1, 1)),
+                           max_rates=[100],
+                           intercepts=[0.5])
+        nengo.Connection(u, a, synapse=None)
+        ap = nengo.Probe(a.neurons, 'voltage')
+
+    with nengo.Simulator(model) as nengo_sim:
+        nengo_sim.run(t_final)
+
+    with Simulator(model) as loihi_sim:
+        loihi_sim.run(t_final)
+
+    nengo_voltage = nengo_sim.data[ap]
+    loihi_voltage = loihi_sim.data[ap]
+    loihi_voltage = loihi_voltage / loihi_voltage.max()
+    plt.plot(nengo_sim.trange(), nengo_voltage)
+    plt.plot(loihi_sim.trange(), loihi_voltage)
+
+    nengo_min_voltage = nengo_voltage.min()
+    loihi_min_voltage = loihi_voltage.min()
+
+    # Close, but not exact, because loihi min voltage rounded to power of 2
+    assert allclose(loihi_min_voltage, nengo_min_voltage, atol=0.2)

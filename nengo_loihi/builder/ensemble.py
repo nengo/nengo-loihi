@@ -136,6 +136,7 @@ def build_lif(model, lif, neurons, block):
     block.compartment.configure_lif(
         tau_rc=lif.tau_rc,
         tau_ref=lif.tau_ref,
+        min_voltage=lif.min_voltage,
         dt=model.dt)
 
 

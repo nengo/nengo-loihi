@@ -222,12 +222,6 @@ def discretize_compartment(comp, w_max):
     comp.scaleU = False
     comp.scaleV = False
 
-    # --- vmin and vmax
-    vmine = np.clip(np.round(np.log2(-comp.vmin + 1)), 0, 2**5-1)
-    comp.vmin = -2**vmine + 1
-    vmaxe = np.clip(np.round((np.log2(comp.vmax + 1) - 9)*0.5), 0, 2**3-1)
-    comp.vmax = 2**(9 + 2*vmaxe) - 1
-
     # --- discretize weights and vth
     # To avoid overflow, we can either lower vth_max or lower w_exp_max.
     # Lowering vth_max is more robust, but has the downside that it may
@@ -294,6 +288,15 @@ def discretize_compartment(comp, w_max):
             "Noise amplitude exceeds upper limit (%d > 23)" % (noiseExp0,))
     comp.noiseExp0 = int(np.clip(noiseExp0, 0, 23))
     comp.noiseMantOffset0 = int(np.round(2*comp.noiseMantOffset0))
+
+    # --- vmin and vmax
+    assert (v_scale[0] == v_scale).all()
+    vmin = v_scale[0] * comp.vmin
+    vmax = v_scale[0] * comp.vmax
+    vmine = np.clip(np.round(np.log2(-vmin + 1)), 0, 2 ** 5 - 1)
+    comp.vmin = -2 ** vmine + 1
+    vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
+    comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
     return dict(w_max=w_max,
                 w_scale=w_scale,

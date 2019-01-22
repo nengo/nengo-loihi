@@ -122,9 +122,9 @@ class Compartment(object):
     tau_s : float or None
         Time constant used to set decayU. None if decayU has not been set.
     vmax : float or int (range [2**9 - 1, 2**23 - 1])
-        Maximum voltage for all compartments, in Loihi voltage units.
+        Maximum voltage for all compartments, in the same units as ``vth``.
     vmin : float or int (range [-2**23 + 1, 0])
-        Minimum voltage for all compartments, in Loihi voltage units.
+        Minimum voltage for all compartments, in the same units as ``vth``.
     vth : (n,) ndarray
         Compartment voltage thresholds.
     """
@@ -203,11 +203,28 @@ class Compartment(object):
                 "Current (U) scaling is required. Perhaps a synapse time "
                 "constant is too large in your model.")
 
-    def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001):
+    def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001,
+                      min_voltage=0):
+        """Configure these compartments as individual LIF neurons.
+
+        Parameters
+        ----------
+        tau_rc : float
+            Membrane time constant (in seconds) of the neurons.
+        tau_ref : float
+            Refractory period (in seconds) of the neurons.
+        vth : float
+            Voltage firing threshold of the neurons.
+        dt : float
+            Simulator time step length (in seconds).
+        min_voltage : float
+            The minimum voltage for the neurons.
+        """
+
         self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
-        self.vmin = 0
+        self.vmin = min_voltage
         self.vmax = np.inf
         self.scaleV = np.all(self.decayV > self.DECAY_SCALE_TH)
         if not self.scaleV:
@@ -216,6 +233,18 @@ class Compartment(object):
                 "the neuron tau_rc time constant is too large.")
 
     def configure_nonspiking(self, tau_ref=0.0, vth=1, dt=0.001):
+        """Configure these compartments as individual non-spiking neurons.
+
+        Parameters
+        ----------
+        tau_ref : float
+            Refractory period (in seconds) of the neurons.
+        vth : float
+            Voltage firing threshold of the neurons.
+        dt : float
+            Simulator time step length (in seconds).
+        """
+
         self.decayV[:] = 1.
         self.refractDelay[:] = 1
         self.vth[:] = vth
@@ -224,6 +253,21 @@ class Compartment(object):
         self.scaleV = False
 
     def configure_relu(self, tau_ref=0.0, vth=1, dt=0.001):
+        """Configure these compartments as individual Rectified Linear neurons.
+
+        These are also known as non-leaky integrate-and-fire neurons. The
+        voltage is the integral of the input current.
+
+        Parameters
+        ----------
+        tau_ref : float
+            Refractory period (in seconds) of the neurons.
+        vth : float
+            Voltage firing threshold of the neurons.
+        dt : float
+            Simulator time step length (in seconds).
+        """
+
         self.decayV[:] = 0.
         self.refractDelay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth

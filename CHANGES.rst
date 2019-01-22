@@ -22,6 +22,14 @@ Release history
 0.5.0 (unreleased)
 ==================
 
+**Added**
+
+- Allow ``LIF.min_voltage`` to have effect. The exact minimum voltage on the
+  chip is highly affected by discritization (since the chip only allows
+  minimum voltages in powers of two), but this will at least provide something
+  in the ballpark.
+  (`#169 <https://github.com/nengo/nengo-loihi/pull/169>`__)
+
 **Changed**
 
 - PES learning in Nengo Loihi more closely matches learning in core Nengo.

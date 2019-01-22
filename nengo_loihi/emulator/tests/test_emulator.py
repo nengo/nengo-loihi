@@ -50,7 +50,6 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     block = LoihiBlock(1)
     block.compartment.configure_relu()
     block.compartment.configure_filter(0.1)
-    block.compartment.vmin = -2**22
 
     synapse = Synapse(n_axons)
     synapse.set_full_weights(np.ones((n_axons, 1)))
@@ -70,7 +69,9 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     model.add_block(block)
     discretize_model(model)
 
-    block.compartment.vth[:] = VTH_MAX  # must set after `discretize`
+    # must set these after `discretize` to specify discretized values
+    block.compartment.vmin = -2 ** 22 + 1
+    block.compartment.vth[:] = VTH_MAX
 
     assert EmulatorInterface.strict  # Tests should be run in strict mode
     monkeypatch.setattr(EmulatorInterface, "strict", False)
