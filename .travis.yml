@@ -10,7 +10,7 @@ env:
 
 matrix:
   include:
-    - env: MODE="test"
+    - env: MODE="emulator"
     - env: MODE="static"
     - env: MODE="docs"
 
