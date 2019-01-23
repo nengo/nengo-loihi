@@ -29,7 +29,7 @@ def test_no_warn_on_current_version(monkeypatch):
 
 def test_warn_on_future_version(monkeypatch):
     mock = MockNxsdk()
-    mock.__version__ = "0.7.1"
+    mock.__version__ = "0.7.6"
 
     monkeypatch.setattr(loihi_interface, 'nxsdk', mock)
     with pytest.warns(UserWarning):

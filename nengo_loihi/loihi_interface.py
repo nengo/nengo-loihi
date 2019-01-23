@@ -578,7 +578,7 @@ class LoihiSimulator(object):
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
         minimum = LooseVersion("0.7.0")
-        max_tested = LooseVersion("0.7.0")
+        max_tested = LooseVersion("0.7.5")
         if version < minimum:
             raise ImportError("nengo-loihi requires nxsdk>=%s, found %s"
                               % (minimum, version))
