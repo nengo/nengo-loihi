@@ -11,8 +11,8 @@ if [[ "$COMMAND" == "install" ]]; then
     pip install "git+https://github.com/nengo/nengo-dl.git@conv_transform"
     pip install -e .[tests]
 elif [[ "$COMMAND" == "script" ]]; then
-    coverage run -m pytest nengo_loihi -v --duration 20 --plots
-    coverage run -a -m pytest --pyargs nengo -v --duration 20
+    coverage run -m pytest nengo_loihi -v --duration 20 --plots --color=yes
+    coverage run -a -m pytest --pyargs nengo -v --duration 20 --color=yes
     coverage report -m
 elif [[ "$COMMAND" == "after_success" ]]; then
     eval "bash <(curl -s https://codecov.io/bash)"
