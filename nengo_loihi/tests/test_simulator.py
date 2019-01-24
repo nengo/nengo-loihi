@@ -48,6 +48,7 @@ def test_probedict_fallbacks(precompute, Simulator):
     assert conn_bc  # in sim.data
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize(
     "dt, pre_on_chip",
     [(2e-4, True), (3e-4, False), (4e-4, True), (2e-3, True)]
@@ -77,7 +78,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         nengo.Connection(pre, post, function=function,
                          solver=nengo.solvers.LstsqL2(weights=True))
 
-    with Simulator(model) as sim:
+    with Simulator(model, dt=dt) as sim:
         sim.run(1.0)
 
     x = sim.data[stim_p]
