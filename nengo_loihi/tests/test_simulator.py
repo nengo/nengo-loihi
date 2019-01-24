@@ -56,6 +56,7 @@ def test_probedict_fallbacks(precompute, Simulator):
 def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
     function = lambda x: x**2
     probe_synapse = nengo.Alpha(0.01)
+    simtime = 0.2
 
     ens_params = dict(
         intercepts=nengo.dists.Uniform(-0.9, 0.9),
@@ -64,7 +65,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)
 
-        stim = nengo.Node(lambda t: -np.sin(2 * np.pi * t))
+        stim = nengo.Node(lambda t: -np.sin(2 * np.pi * t / simtime))
         stim_p = nengo.Probe(stim, synapse=probe_synapse)
 
         pre = nengo.Ensemble(100, 1, **ens_params)
@@ -79,7 +80,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
                          solver=nengo.solvers.LstsqL2(weights=True))
 
     with Simulator(model, dt=dt) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     x = sim.data[stim_p]
     y = function(x)
@@ -98,8 +99,10 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
         Simulator = lambda *args: nengo_loihi.Simulator(
             *args, target='simreal')
 
+    simtime = 0.6
+
     with nengo.Network(seed=seed) as model:
-        u = nengo.Node(lambda t: np.sin(6*t))
+        u = nengo.Node(lambda t: np.sin(6*t / simtime))
         a = nengo.Ensemble(50, 1)
         b = nengo.Ensemble(50, 1)
         nengo.Connection(u, a)
@@ -110,10 +113,10 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
         bp = nengo.Probe(b, synapse=0.03)
 
     with nengo.Simulator(model) as nengo_sim:
-        nengo_sim.run(1.0)
+        nengo_sim.run(simtime)
 
     with Simulator(model) as loihi_sim:
-        loihi_sim.run(1.0)
+        loihi_sim.run(simtime)
 
     plt.subplot(2, 1, 1)
     plt.plot(nengo_sim.trange(), nengo_sim.data[ap])

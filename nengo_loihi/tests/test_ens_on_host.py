@@ -8,11 +8,12 @@ import nengo_loihi
 @pytest.mark.parametrize('precompute', [True, False])
 def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     out_synapse = nengo.synapses.Alpha(0.03)
+    simtime = 0.6
 
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)
 
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
 
         a = nengo.Ensemble(100, 1)
         model.config[a].on_chip = False
@@ -28,7 +29,7 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
         p_b = nengo.Probe(b, synapse=out_synapse)
 
     with Simulator(model, precompute=precompute) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     plt.plot(sim.trange(), sim.data[p_stim])
     plt.plot(sim.trange(), sim.data[p_a])
@@ -49,11 +50,12 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     ens_seed = (seed + 1) if seed_ens else None
     if not seed_ens:
         pytest.xfail("Seeds change when moving ensembles off/on chip")
+    simtime = 1.0
 
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)
 
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
 
         # pre receives stimulation and represents the sine wave
         pre = nengo.Ensemble(n_neurons, dimensions=1, seed=ens_seed)
@@ -75,13 +77,13 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
         p_post = nengo.Probe(post, synapse=p_synapse)
 
     with Simulator(model, precompute=precompute) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
     t = sim.trange()
 
     model.config[pre].on_chip = True
 
     with Simulator(model, precompute=precompute) as sim2:
-        sim2.run(1.0)
+        sim2.run(simtime)
     t2 = sim2.trange()
 
     plt.plot(t, sim.data[p_stim], c="k", label="input")

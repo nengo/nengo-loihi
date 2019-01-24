@@ -36,12 +36,17 @@ def test_input_node(allclose, Simulator, val, type):
     assert allclose(sim.data[p_c][-100:], val, atol=0.15)
 
 
-@pytest.mark.parametrize('pre_d', [1, 3])
-@pytest.mark.parametrize('post_d', [1, 3])
-@pytest.mark.parametrize('func', [False, True])
+@pytest.mark.parametrize(
+    "pre_d, post_d, func",
+    [(1, 1, False),
+     (1, 3, False),
+     (3, 1, True),
+     (3, 3, True)]
+)
 def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
+    simtime = 0.5
     with nengo.Network(seed=seed) as model:
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * pre_d)
 
         a = nengo.Ensemble(100, pre_d)
 
@@ -63,7 +68,7 @@ def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
         p_stim = nengo.Probe(stim)
 
     with Simulator(model) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     filt = nengo.synapses.Lowpass(0.03)
     filt_data = filt.filt(np.array(data))
@@ -127,12 +132,17 @@ def test_neurons2node(Simulator, seed, plt):
     assert np.sum(post[:, np.logical_not(on_neurons)]) > 0
 
 
-@pytest.mark.parametrize('pre_d', [1, 3])
-@pytest.mark.parametrize('post_d', [1, 3])
-@pytest.mark.parametrize('func', [False, True])
+@pytest.mark.parametrize(
+    "pre_d, post_d, func",
+    [(1, 1, False),
+     (1, 3, False),
+     (3, 1, True),
+     (3, 3, True)]
+)
 def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
+    simtime = 0.5
     with nengo.Network(seed=seed) as model:
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * pre_d)
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * pre_d)
 
         a = nengo.Ensemble(100, post_d)
 
@@ -149,7 +159,7 @@ def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
         p_a = nengo.Probe(a, synapse=0.03)
 
     with Simulator(model) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     # TODO: improve the bounds on these tests
     if post_d >= pre_d:

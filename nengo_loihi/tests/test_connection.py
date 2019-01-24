@@ -49,7 +49,7 @@ def test_ens_ens_constant(
 @pytest.mark.parametrize('dt', [3e-4, 1e-3])
 @pytest.mark.parametrize('precompute', [True, False])
 def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
-    tfinal = 1.0
+    tfinal = 0.4
 
     x = np.array([0.7, 0.3])
     A = np.array([[1, 1],
@@ -73,7 +73,7 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     with Simulator(model, dt=dt, precompute=precompute) as sim:
         sim.run(tfinal)
 
-    tsum = 0.5
+    tsum = tfinal / 2
     t = sim.trange()
     rates = (sim.data[ap][t > t[-1] - tsum] > 0).sum(axis=0) / tsum
 
@@ -85,17 +85,18 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
-@pytest.mark.parametrize("factor", [0.11, 0.26, 0.51, 1.01])
+@pytest.mark.parametrize("factor", [0.11, 0.26, 1.01])
 def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
     # note: we use these weird factor values so that voltages don't line up
     # exactly with the firing threshold.  since loihi neurons fire when
     # voltage > threshold (rather than >=), if the voltages line up
     # exactly then we need an extra spike each time to push `b` over threshold
     dt = 5e-4
+    simtime = 0.2
 
     with nengo.Network(seed=seed) as net:
         n = 10
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
         a = nengo.Ensemble(n, 1)
         nengo.Connection(stim, a)
 
@@ -108,7 +109,7 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
         p_b = nengo.Probe(b.neurons)
 
     with Simulator(net, dt=dt) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     y_ref = np.floor(np.sum(sim.data[p_a] > 0, axis=0) * factor)
     y_sim = np.sum(sim.data[p_b] > 0, axis=0)
@@ -189,11 +190,13 @@ def test_dists(Simulator, seed):
         p1 = nengo.Probe(d)
         p2 = nengo.Probe(b.neurons)
 
+    simtime = 0.1
+
     with Simulator(net) as sim:
-        sim.run(1.0)
+        sim.run(simtime)
 
     with Simulator(net) as sim2:
-        sim2.run(1.0)
+        sim2.run(simtime)
 
     assert np.allclose(sim.data[p0], sim2.data[p0])
     assert np.allclose(sim.data[p1], sim2.data[p1])
@@ -201,14 +204,14 @@ def test_dists(Simulator, seed):
 
     conn0.seed = seed + 1
     with Simulator(net) as sim2:
-        sim2.run(1.0)
+        sim2.run(simtime)
 
     assert not np.allclose(sim.data[p2], sim2.data[p2])
 
     conn0.seed = None
     conn1.seed = seed + 1
     with Simulator(net) as sim2:
-        sim2.run(1.0)
+        sim2.run(simtime)
     assert not np.allclose(sim.data[p1], sim2.data[p1])
 
 

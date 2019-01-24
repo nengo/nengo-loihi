@@ -9,16 +9,16 @@ from nengo_loihi.builder import (
 
 
 @pytest.mark.parametrize('decode_neurons, tolerance', [
-    (OnOffDecodeNeurons(), 0.33),
+    (OnOffDecodeNeurons(), 0.35),
     (NoisyDecodeNeurons(5), 0.12),
     (NoisyDecodeNeurons(10), 0.10),
     (Preset5DecodeNeurons(), 0.06),
     (Preset10DecodeNeurons(), 0.03),
 ])
 def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
-    sim_time = 2.
-    pres_time = 0.5
-    eval_time = 0.25
+    sim_time = 2.0
+    pres_time = sim_time / 4
+    eval_time = sim_time / 8
 
     stim_values = [[0.5, 0.5], [0.5, -0.9], [-0.7, -0.3], [-0.3, 1.0]]
     stim_times = np.arange(0, sim_time, pres_time)
@@ -77,9 +77,9 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
     (OnOffDecodeNeurons(), 0.01),
 ])
 def test_node_neurons(decode_neurons, tolerance, Simulator, seed, plt):
-    sim_time = 2.
+    sim_time = 0.2
 
-    stim_fn = lambda t: 0.9*np.sin(2*np.pi*t)
+    stim_fn = lambda t: 0.9*np.sin(2*np.pi*t / sim_time)
     out_synapse = nengo.Alpha(0.03)
     stim_synapse = out_synapse.combine(nengo.Alpha(0.005))
 

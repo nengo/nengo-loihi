@@ -195,7 +195,7 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     neuron_gain = 1.
     neuron_bias = 1.
 
-    pres_time = 1.0
+    pres_time = 0.2
 
     # --- compute ideal outputs
     def conv_pm(x, kernel):
@@ -332,7 +332,7 @@ def test_conv_connection(channels, Simulator, seed, rng, plt, allclose):
 
     neuron_type = LoihiLIF(tau_rc=tau_rc, tau_ref=tau_ref)
 
-    pres_time = 1.0
+    pres_time = 0.1
 
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)
@@ -552,13 +552,15 @@ def test_conv_split(Simulator, rng, plt, allclose):
             cc.append(c)
             cp.append(nengo.Probe(c.neurons))
 
+    simtime = 0.3
+
     with nengo.Simulator(net, optimize=False) as sim_nengo:
-        sim_nengo.run(1.0)
+        sim_nengo.run(simtime)
 
     with Simulator(net, seed=seed) as sim_loihi:
         if "loihi" in sim_loihi.sims:
             sim_loihi.sims["loihi"].snip_max_spikes_per_step = 100
-        sim_loihi.run(1.0)
+        sim_loihi.run(simtime)
 
     nengo_out = []
     loihi_out = []

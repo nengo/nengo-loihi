@@ -8,9 +8,11 @@ import pytest
 @pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
                     reason="Loihi only test")
 def test_precompute(allclose, Simulator, seed, plt):
+    simtime = 0.2
+
     with nengo.Network(seed=seed) as model:
         D = 2
-        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)] * D)
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * D)
 
         a = nengo.Ensemble(100, D)
 
@@ -25,9 +27,9 @@ def test_precompute(allclose, Simulator, seed, plt):
         p_out = nengo.Probe(output, synapse=0.03)
 
     with Simulator(model, precompute=False) as sim1:
-        sim1.run(1.0)
+        sim1.run(simtime)
     with Simulator(model, precompute=True) as sim2:
-        sim2.run(1.0)
+        sim2.run(simtime)
 
     plt.subplot(2, 1, 1)
     plt.plot(sim1.trange(), sim1.data[p_stim])
@@ -50,7 +52,8 @@ def test_precompute(allclose, Simulator, seed, plt):
 @pytest.mark.xfail(pytest.config.getoption("--target") == "loihi",
                    reason="Fails allclose check")
 def test_input_node_precompute(allclose, Simulator, plt):
-    input_fn = lambda t: np.sin(2 * np.pi * t)
+    simtime = 1.0
+    input_fn = lambda t: np.sin(6 * np.pi * t / simtime)
     targets = ["sim", "loihi"]
     x = {}
     u = {}
@@ -69,7 +72,7 @@ def test_input_node_precompute(allclose, Simulator, plt):
 
         with Simulator(model, precompute=True, target=target) as sim:
             print("Running in {}".format(target))
-            sim.run(3.)
+            sim.run(simtime)
 
         synapse = nengo.synapses.Lowpass(0.03)
         x[target] = synapse.filt(sim.data[ap])

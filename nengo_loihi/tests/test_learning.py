@@ -16,12 +16,13 @@ def pes_network(
         error_scale=1.,
         learn_synapse=0.005,
         probe_synapse=0.02,
+        period=1.0,
 ):
     if input_scale is None:
         input_scale = np.linspace(1, 0, dims + 1)[:-1]
     assert input_scale.size == dims
 
-    input_fn = lambda t: np.sin(t * 2 * np.pi) * input_scale
+    input_fn = lambda t: np.sin(t * 2 * np.pi / period) * input_scale
 
     probes = {}
     with nengo.Network(seed=seed) as model:
@@ -47,13 +48,15 @@ def pes_network(
     return model, probes
 
 
-@pytest.mark.parametrize('n_per_dim', [120, 200])
-@pytest.mark.parametrize('dims', [1, 3])
-def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
+@pytest.mark.parametrize("dims", (1, 3))
+def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
+    n_per_dim = 120
     tau = 0.01
-    model, probes = pes_network(n_per_dim, dims, seed, learn_synapse=tau)
+    simtime = 1.5
+    model, probes = pes_network(
+        n_per_dim, dims, seed, learn_synapse=tau,
+        learning_rule_type=nengo.PES(learning_rate=1e-2), period=simtime / 2)
 
-    simtime = 5.0
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(simtime)
 
@@ -65,7 +68,7 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
 
     t = nengo_sim.trange()
     pre_tmask = t > 0.1
-    post_tmask = t > simtime - 1.0
+    post_tmask = t > simtime / 2
 
     dec_tau = loihi_sim.model.decode_tau
     y = nengo_sim.data[probes['stim']]
@@ -99,14 +102,16 @@ def test_pes_comm_channel(allclose, plt, seed, Simulator, n_per_dim, dims):
     assert allclose(y_real, y_nengo, atol=0.2, rtol=0.2)
 
 
-def test_pes_overflow(allclose, plt, seed, Simulator):
+def test_pes_overflow(plt, seed, Simulator):
     dims = 3
     n_per_dim = 120
     tau = 0.01
-    model, probes = pes_network(n_per_dim, dims, seed, learn_synapse=tau,
-                                input_scale=np.linspace(1, 0.7, dims))
+    simtime = 0.6
+    model, probes = pes_network(
+        n_per_dim, dims, seed, learn_synapse=tau,
+        input_scale=np.linspace(1, 0.7, dims),
+        learning_rule_type=nengo.PES(learning_rate=1e-2), period=simtime)
 
-    simtime = 3.0
     loihi_model = nengo_loihi.builder.Model()
     # set learning_wgt_exp low to create overflow in weight values
     loihi_model.pes_wgt_exp = -1
@@ -115,7 +120,7 @@ def test_pes_overflow(allclose, plt, seed, Simulator):
         loihi_sim.run(simtime)
 
     t = loihi_sim.trange()
-    post_tmask = t > simtime - 1.0
+    post_tmask = t > simtime - 0.1
 
     dec_tau = loihi_sim.model.decode_tau
     y = loihi_sim.data[probes['stim']]
@@ -144,18 +149,19 @@ def test_pes_overflow(allclose, plt, seed, Simulator):
                                 % j)
 
 
-def test_pes_error_clip(allclose, plt, seed, Simulator):
+def test_pes_error_clip(plt, seed, Simulator):
     dims = 2
     n_per_dim = 120
     tau = 0.01
     error_scale = 5.  # scale up error signal so it clips
+    simtime = 0.3
     model, probes = pes_network(
         n_per_dim, dims, seed, learn_synapse=tau,
-        learning_rule_type=nengo.PES(learning_rate=1e-3 / error_scale),
+        learning_rule_type=nengo.PES(learning_rate=1e-2 / error_scale),
         input_scale=np.array([1., -1.]),
-        error_scale=error_scale)
+        error_scale=error_scale,
+        period=simtime)
 
-    simtime = 3.0
     with pytest.warns(UserWarning, match=r'.*PES error.*Clipping.'):
         with Simulator(model) as loihi_sim:
             loihi_sim.run(simtime)
@@ -195,14 +201,14 @@ def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
                 pre_ea.ea_ensembles[i],
                 output[i],
                 function=init_function,
-                learning_rule_type=nengo.PES(learning_rate=3e-3),
+                learning_rule_type=nengo.PES(learning_rate=1e-2),
             )
             nengo.Connection(target[i], conn.learning_rule, transform=-1)
             nengo.Connection(output[i], conn.learning_rule)
 
         probe = nengo.Probe(output, synapse=0.1)
 
-    simtime = 2.5
+    simtime = 0.5
     with Simulator(model) as sim:
         sim.run(simtime)
 
