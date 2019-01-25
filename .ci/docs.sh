@@ -13,7 +13,7 @@ if [[ "$COMMAND" == "install" ]]; then
     pip install "git+https://github.com/abr/abr_control.git"
     pip install -e .[docs]
 elif [[ "$COMMAND" == "script" ]]; then
-    sphinx-build -b linkcheck -v -D nbsphinx_execute=never docs docs/_build
+    sphinx-build -b linkcheck -v -W -D nbsphinx_execute=never docs docs/_build
 
     git clone -b gh-pages-release https://github.com/nengo/nengo-loihi.git ../nengo-docs
     RELEASES=$(find ../nengo-docs -maxdepth 1 -type d -name "v[0-9].*" -printf "%f,")

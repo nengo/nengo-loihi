@@ -33,8 +33,8 @@ using the NxSDK directly.
 
 Note, you *must* use Python 3.5.2 and NumPy 1.14.3
 when working with NxSDK.
-The easiest way to satisfy those constraints is to use
-`Miniconda <https://conda.io/docs/user-guide/install/index.html>`_
+The easiest way to satisfy those constraints is to use `Miniconda
+<https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
 to set up an isolated environment
 for running Loihi models.
 
