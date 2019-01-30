@@ -104,6 +104,10 @@ Release history
 - We now shut down the connection to the board more reliably, which should
   reduce the number of cases in which a model hangs indefinitely.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+- ``LoihiLIF`` neurons now round ``tau_rc`` to mimic the discretization that occurs on
+  Loihi, for more accurate simulation in Nengo (this was already done in the rate
+  equation and NengoDL implementation of this neuron).
+  (`#275 <https://github.com/nengo/nengo-loihi/pull/275>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

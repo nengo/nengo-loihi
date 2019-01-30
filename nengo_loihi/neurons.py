@@ -126,10 +126,11 @@ class LoihiLIF(LIF):
 
     def step_math(self, dt, J, spiked, voltage, refractory_time):
         tau_ref = discretize_tau_ref(self.tau_ref, dt)
+        tau_rc = discretize_tau_rc(self.tau_rc, dt)
 
         refractory_time -= dt
         delta_t = (dt - refractory_time).clip(0, dt)
-        voltage -= (J - voltage) * np.expm1(-delta_t / self.tau_rc)
+        voltage -= (J - voltage) * np.expm1(-delta_t / tau_rc)
 
         spiked_mask = voltage > 1
         spiked[:] = spiked_mask * (self.amplitude / dt)

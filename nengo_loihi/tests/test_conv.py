@@ -488,7 +488,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     ax = plt.subplot(rows, cols, 6)
     tile(np.transpose(sim_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    assert allclose(emu_out, ref_out, atol=1, rtol=1e-3)
+    assert allclose(emu_out, ref_out, atol=10, rtol=1e-3)
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
