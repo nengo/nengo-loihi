@@ -8,6 +8,8 @@ NAME=$0
 COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
+    # pip installs a more recent entrypoints version than conda
+    pip install entrypoints
     conda install --quiet jupyter
     pip install codespell flake8 pylint
 elif [[ "$COMMAND" == "script" ]]; then
