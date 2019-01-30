@@ -1,17 +1,19 @@
 import warnings
 
-import nengo
+from nengo import Connection, Lowpass, Node
+from nengo.connection import LearningRule
+from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, NengoException
 import numpy as np
 
 
 def is_passthrough(obj):
-    return isinstance(obj, nengo.Node) and obj.output is None
+    return isinstance(obj, Node) and obj.output is None
 
 
 def base_obj(obj):
     """Returns the Ensemble or Node underlying an object"""
-    if isinstance(obj, nengo.ensemble.Neurons):
+    if isinstance(obj, Neurons):
         return obj.ensemble
     return obj
 
@@ -83,13 +85,12 @@ class Cluster(object):
         elif syn2 is None:
             return syn1
         else:
-            assert isinstance(syn1, nengo.Lowpass) and isinstance(
-                syn2, nengo.Lowpass)
+            assert isinstance(syn1, Lowpass) and isinstance(syn2, Lowpass)
             warnings.warn(
                 "Combining two Lowpass synapses, this may change the "
                 "behaviour of the network (set `remove_passthrough=False` "
                 "to avoid this).")
-            return nengo.Lowpass(syn1.tau + syn2.tau)
+            return Lowpass(syn1.tau + syn2.tau)
 
     def generate_from(self, obj, outputs, previous=None):
         """Generates all direct Connections from obj out of the Cluster.
@@ -118,7 +119,7 @@ class Cluster(object):
         for c in outputs[obj]:
             if c.learning_rule_type is not None:
                 raise ClusterException("no learning allowed")
-            elif isinstance(c.post_obj, nengo.connection.LearningRule):
+            elif isinstance(c.post_obj, LearningRule):
                 raise ClusterException("no error signals allowed")
             elif c.post_obj in previous:
                 # cycles of passthrough Nodes are possible in Nengo, but
@@ -169,7 +170,7 @@ class Cluster(object):
                                               post.size_in)
 
                 if not np.allclose(trans, np.zeros_like(trans)):
-                    yield nengo.Connection(
+                    yield Connection(
                         pre=c.pre,
                         post=post,
                         function=c.function,

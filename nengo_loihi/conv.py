@@ -1,7 +1,5 @@
 import itertools
 
-import numpy as np
-
 import nengo
 from nengo import Direct, Ensemble, Node
 from nengo.builder import Signal
@@ -12,14 +10,15 @@ from nengo.dists import Distribution
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 from nengo.utils.compat import is_iterable
+import numpy as np
 
 try:
     import nengo_dl
 except ImportError:
     nengo_dl = None
 
-from nengo_loihi.loihi_cx import (
-    ChipReceiveNeurons, CxGroup, CxSpikeInput, CxSynapses, CxAxons)
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
+from nengo_loihi.inputs import ChipReceiveNeurons, LoihiInput
 
 
 def numpy_conv2d(x, kernel, strides=(1, 1), mode='valid', channels_last=True):
@@ -557,8 +556,8 @@ def build_conv2d_connection(model, conn):
 
     pre_cx = model.objs[conn.pre_obj]['out']
     post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, (CxGroup, CxSpikeInput))
-    assert isinstance(post_cx, CxGroup)
+    assert isinstance(pre_cx, (LoihiInput, LoihiBlock))
+    assert isinstance(post_cx, LoihiBlock)
 
     tau_s = 0.0
     if isinstance(conn.synapse, nengo.synapses.Lowpass):
@@ -598,19 +597,19 @@ def build_conv2d_connection(model, conn):
     weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
         conn.transform.copy(weights))
 
-    synapses = CxSynapses(input_shape.n_pixels, label="conv2d_weights")
-    synapses.set_population_weights(
+    synapse = Synapse(input_shape.n_pixels, label="conv2d_weights")
+    synapse.set_population_weights(
         weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
-    post_cx.add_synapses(synapses)
-    model.objs[conn]['weights'] = synapses
+    post_cx.add_synapse(synapse)
+    model.objs[conn]['weights'] = synapse
 
-    ax = CxAxons(input_shape.n_pixels, label="conv2d_weights")
-    ax.target = synapses
+    ax = Axon(input_shape.n_pixels, label="conv2d_weights")
+    ax.target = synapse
     ax.cx_to_axon_map = input_shape.pixel_idxs()
     ax.cx_atoms = input_shape.channel_idxs()
-    pre_cx.add_axons(ax)
+    pre_cx.add_axon(ax)
 
-    post_cx.configure_filter(tau_s, dt=model.dt)
+    post_cx.compartment.configure_filter(tau_s, dt=model.dt)
 
     model.params[conn] = BuiltConnection(
         eval_points=None,

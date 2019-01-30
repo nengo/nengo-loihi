@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import nengo
-import nengo_loihi
+
+from nengo_loihi.config import add_params
 
 
 @pytest.mark.parametrize('precompute', [True, False])
@@ -11,7 +12,7 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     simtime = 0.6
 
     with nengo.Network(seed=seed) as model:
-        nengo_loihi.add_params(model)
+        add_params(model)
 
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
 
@@ -53,7 +54,7 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     simtime = 1.0
 
     with nengo.Network(seed=seed) as model:
-        nengo_loihi.add_params(model)
+        add_params(model)
 
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
 

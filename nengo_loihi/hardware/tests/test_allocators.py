@@ -3,20 +3,20 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
-from nengo_loihi.allocators import core_stdp_pre_cfgs
-from nengo_loihi.loihi_api import Board
-from nengo_loihi.loihi_cx import CxSynapses
+from nengo_loihi.block import Synapse
+from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs
+from nengo_loihi.hardware.nxsdk_objects import Board
 
 
 def test_core_stdp_pre_cfgs():
     core = Board().new_chip().new_core()
 
     def new_syn(tracing_mag=None):
-        syn = CxSynapses(n_axons=1)
+        syn = Synapse(n_axons=1)
         syn.set_full_weights(np.array([[1]]))
         if tracing_mag is not None:
             syn.set_learning(tracing_mag=tracing_mag)
-        core.add_synapses(syn)
+        core.add_synapse(syn)
         return syn
 
     profile_idxs = {}
@@ -33,7 +33,7 @@ def test_core_stdp_pre_cfgs():
     assert ret_idxs == profile_idxs
 
 
-def test_group_size(Simulator):
+def test_block_size(Simulator):
     with nengo.Network() as net:
         nengo.Ensemble(1024, 1)
 

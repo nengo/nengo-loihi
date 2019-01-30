@@ -2,8 +2,13 @@ from nengo.utils.numpy import rms
 import numpy as np
 import pytest
 
-from nengo_loihi.loihi_api import (
-    overflow_signed, decay_int, decay_magnitude, SynapseFmt)
+from nengo_loihi.block import SynapseFmt
+from nengo_loihi.discretize import (
+    decay_int,
+    decay_magnitude,
+    discretize_weights,
+    overflow_signed,
+)
 
 
 @pytest.mark.parametrize("b", (8, 16, 17, 23))
@@ -95,7 +100,7 @@ def test_lossy_shift(lossy_shift, rng):
     w = rng.uniform(-100, 100, size=(10, 10))
     fmt = SynapseFmt(wgtBits=wgt_bits, wgtExp=0, fanoutType=0)
 
-    w2 = fmt.discretize_weights(w, lossy_shift=lossy_shift)
+    w2 = discretize_weights(fmt, w, lossy_shift=lossy_shift)
 
     clipped = np.round(w / 4).clip(-2 ** wgt_bits, 2 ** wgt_bits).astype(
         np.int32)

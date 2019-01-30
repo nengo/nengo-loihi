@@ -3,8 +3,9 @@ import nengo
 import numpy as np
 
 import nengo_loihi
-from nengo_loihi.builder import OnOffDecodeNeurons
-from nengo_loihi import splitter
+from nengo_loihi.decode_neurons import OnOffDecodeNeurons
+from nengo_loihi.inputs import ChipReceiveNode
+from nengo_loihi.splitter import split
 
 default_node_neurons = OnOffDecodeNeurons()
 
@@ -29,11 +30,11 @@ def test_passthrough_placement():
         nengo.Probe(g)
 
     nengo_loihi.add_params(model)
-    networks = splitter.split(model,
-                              precompute=False,
-                              node_neurons=default_node_neurons,
-                              node_tau=0.005,
-                              remove_passthrough=True)
+    networks = split(model,
+                     precompute=False,
+                     node_neurons=default_node_neurons,
+                     node_tau=0.005,
+                     remove_passthrough=True)
     chip = networks.chip
     host = networks.host
 
@@ -65,11 +66,11 @@ def test_transform_merging(d1, d2, d3):
         nengo.Connection(b, c, transform=t2)
 
     nengo_loihi.add_params(model)
-    networks = splitter.split(model,
-                              precompute=False,
-                              node_neurons=default_node_neurons,
-                              node_tau=0.005,
-                              remove_passthrough=True)
+    networks = split(model,
+                     precompute=False,
+                     node_neurons=default_node_neurons,
+                     node_tau=0.005,
+                     remove_passthrough=True)
     chip = networks.chip
 
     assert len(chip.connections) == 1
@@ -86,26 +87,26 @@ def test_identity_array(n_ensembles, ens_dimensions):
         nengo.Connection(a.output, b.input)
 
     nengo_loihi.add_params(model)
-    networks = splitter.split(model,
-                              precompute=False,
-                              node_neurons=default_node_neurons,
-                              node_tau=0.005,
-                              remove_passthrough=True)
+    networks = split(model,
+                     precompute=False,
+                     node_neurons=default_node_neurons,
+                     node_tau=0.005,
+                     remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
-    connections = [c for c in networks.chip.connections
-                   if not (isinstance(c.pre_obj, splitter.ChipReceiveNode)
-                           and c.post_obj in a.ensembles)]
+    connections = [conn for conn in networks.chip.connections
+                   if not (isinstance(conn.pre_obj, ChipReceiveNode)
+                           and conn.post_obj in a.ensembles)]
 
     assert len(connections) == n_ensembles
     pre = set()
     post = set()
-    for c in connections:
-        assert c.pre in a.all_ensembles or c.pre_obj is a.input
-        assert c.post in b.all_ensembles
-        assert np.allclose(c.transform, np.eye(ens_dimensions))
-        pre.add(c.pre)
-        post.add(c.post)
+    for conn in connections:
+        assert conn.pre in a.all_ensembles or conn.pre_obj is a.input
+        assert conn.post in b.all_ensembles
+        assert np.allclose(conn.transform, np.eye(ens_dimensions))
+        pre.add(conn.pre)
+        post.add(conn.post)
     assert len(pre) == n_ensembles
     assert len(post) == n_ensembles
 
@@ -120,25 +121,25 @@ def test_full_array(n_ensembles, ens_dimensions):
         nengo.Connection(a.output, b.input, transform=np.ones((D, D)))
 
     nengo_loihi.add_params(model)
-    networks = splitter.split(model,
-                              precompute=False,
-                              node_neurons=default_node_neurons,
-                              node_tau=0.005,
-                              remove_passthrough=True)
+    networks = split(model,
+                     precompute=False,
+                     node_neurons=default_node_neurons,
+                     node_tau=0.005,
+                     remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
-    connections = [c for c in networks.chip.connections
-                   if not (isinstance(c.pre_obj, splitter.ChipReceiveNode)
-                           and c.post_obj in a.ensembles)]
+    connections = [conn for conn in networks.chip.connections
+                   if not (isinstance(conn.pre_obj, ChipReceiveNode)
+                           and conn.post_obj in a.ensembles)]
 
     assert len(connections) == n_ensembles ** 2
     pairs = set()
-    for c in connections:
-        assert c.pre in a.all_ensembles
-        assert c.post in b.all_ensembles
-        assert np.allclose(c.transform, np.ones((ens_dimensions,
-                                                 ens_dimensions)))
-        pairs.add((c.pre, c.post))
+    for conn in connections:
+        assert conn.pre in a.all_ensembles
+        assert conn.post in b.all_ensembles
+        assert np.allclose(conn.transform,
+                           np.ones((ens_dimensions, ens_dimensions)))
+        pairs.add((conn.pre, conn.post))
     assert len(pairs) == n_ensembles ** 2
 
 
@@ -155,16 +156,16 @@ def test_synapse_merging(Simulator, seed):
         nengo.Connection(b[1], c.input[1], synapse=0.2)
 
     nengo_loihi.add_params(model)
-    networks = splitter.split(model,
-                              precompute=False,
-                              node_neurons=default_node_neurons,
-                              node_tau=0.005,
-                              remove_passthrough=True)
+    networks = split(model,
+                     precompute=False,
+                     node_neurons=default_node_neurons,
+                     node_tau=0.005,
+                     remove_passthrough=True)
 
     # ignore the a.input -> a.ensemble connections
-    connections = [c for c in networks.chip.connections
-                   if not (isinstance(c.pre_obj, splitter.ChipReceiveNode)
-                           and c.post_obj in a.ensembles)]
+    connections = [conn for conn in networks.chip.connections
+                   if not (isinstance(conn.pre_obj, ChipReceiveNode)
+                           and conn.post_obj in a.ensembles)]
 
     assert len(connections) == 4
     desired_filters = {
@@ -173,13 +174,14 @@ def test_synapse_merging(Simulator, seed):
         ('1', '0'): 0.1,
         ('1', '1'): 0.3,
     }
-    for c in connections:
-        if desired_filters[(c.pre.label, c.post.label)] is None:
-            assert c.synapse is None
+    for conn in connections:
+        if desired_filters[(conn.pre.label, conn.post.label)] is None:
+            assert conn.synapse is None
         else:
-            assert isinstance(c.synapse, nengo.Lowpass)
+            assert isinstance(conn.synapse, nengo.Lowpass)
             assert np.allclose(
-                c.synapse.tau, desired_filters[(c.pre.label, c.post.label)])
+                conn.synapse.tau,
+                desired_filters[(conn.pre.label, conn.post.label)])
 
     # check that model builds/runs correctly
     with Simulator(model, remove_passthrough=True) as sim:

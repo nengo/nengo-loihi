@@ -31,6 +31,9 @@ Release history
 - The neurons used to transmit decoded values on-chip can be configured.
   By default, we use ten pairs of heterogeneous neurons per dimension.
   (`#132 <https://github.com/nengo/nengo-loihi/pull/132>`_)
+- Internal classes and functions have been reorganized and refactored.
+  See the pull request for more details.
+  (`#159 <https://github.com/nengo/nengo-loihi/pull/159>`_)
 
 **Fixed**
 

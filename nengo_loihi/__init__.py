@@ -2,15 +2,12 @@ import logging
 
 from .version import version as __version__
 
-from . import loihi_api
-from . import loihi_cx
-from . import builder
-from . import allocators
-from . import loihi_interface
-
 from .simulator import Simulator
 from .config import add_params, set_defaults
 from .conv import Conv2D
+
+# Import builders so they are registered
+from . import builder
 
 logger = logging.getLogger(__name__)
 try:

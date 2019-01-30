@@ -3,7 +3,10 @@ import nengo
 import pytest
 
 from nengo_loihi.neurons import (
-    loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear)
+    loihi_rates,
+    LoihiLIF,
+    LoihiSpikingRectifiedLinear
+)
 
 
 @pytest.mark.parametrize('dt', [3e-4, 1e-3])

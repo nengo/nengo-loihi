@@ -3,69 +3,24 @@ import logging
 import traceback
 import warnings
 
+import nengo
+from nengo.exceptions import (
+    ReadonlyError,
+    SimulatorClosed,
+    ValidationError,
+)
+from nengo.simulator import ProbeDict as NengoProbeDict
+import nengo.utils.numpy as npext
 import numpy as np
 
-import nengo
-import nengo.utils.numpy as npext
-from nengo.exceptions import (
-    ReadonlyError, SimulatorClosed, ValidationError)
-from nengo.simulator import ProbeDict as NengoProbeDict
-
 from nengo_loihi.builder import Model
-from nengo_loihi.loihi_cx import CxSimulator
-from nengo_loihi.loihi_interface import LoihiSimulator
+from nengo_loihi.discretize import discretize_model
+from nengo_loihi.emulator import EmulatorInterface
+from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.splitter import split
 import nengo_loihi.config as config
 
 logger = logging.getLogger(__name__)
-
-
-class ProbeDict(NengoProbeDict):
-    """Map from Probe -> ndarray
-
-    This is more like a view on the dict that the simulator manipulates.
-    However, for speed reasons, the simulator uses Python lists,
-    and we want to return NumPy arrays. Additionally, this mapping
-    is readonly, which is more appropriate for its purpose.
-    """
-
-    def __init__(self, raw):
-        super(ProbeDict, self).__init__(raw=raw)
-        self.fallbacks = []
-
-    def add_fallback(self, fallback):
-        assert isinstance(fallback, NengoProbeDict)
-        self.fallbacks.append(fallback)
-
-    def __getitem__(self, key):
-        target = self.raw
-        if key not in target:
-            for fallback in self.fallbacks:
-                if key in fallback:
-                    target = fallback.raw
-                    break
-        assert key in target, "probed object not found"
-
-        if (key not in self._cache
-                or len(self._cache[key]) != len(target[key])):
-            rval = target[key]
-            if isinstance(rval, list):
-                rval = np.asarray(rval)
-                rval.setflags(write=False)
-            self._cache[key] = rval
-        return self._cache[key]
-
-    def __iter__(self):
-        for k in self.raw:
-            yield k
-        for fallback in self.fallbacks:
-            for k in fallback:
-                yield k
-
-    def __len__(self):
-        return len(self.raw) + sum(len(d) for d in self.fallbacks)
-
-    # TODO: Should we override __repr__ and __str__?
 
 
 class Simulator(object):
@@ -283,7 +238,7 @@ class Simulator(object):
          "max number of compartments exceeded"),
         ('test_neurons.py:test_lif*', "idxBits out of range"),
         ('test_basalganglia.py:test_basal_ganglia',
-         "output_axons exceedecd max"),
+         "output_axons exceeded max"),
         ('test_cortical.py:test_connect', "total synapse bits exceeded max"),
         ('test_cortical.py:test_transform', "total synapse bits exceeded max"),
         ('test_cortical.py:test_translate', "total synapse bits exceeded max"),
@@ -407,12 +362,12 @@ class Simulator(object):
         logger.info("Simulator precompute is %r", self.precompute)
 
         if target != "simreal":
-            self.model.discretize()
+            discretize_model(self.model)
 
         if target in ("simreal", "sim"):
-            self.sims["emulator"] = CxSimulator(self.model, seed=seed)
+            self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)
         elif target == 'loihi':
-            self.sims["loihi"] = LoihiSimulator(
+            self.sims["loihi"] = HardwareInterface(
                 self.model, use_snips=not self.precompute, seed=seed)
         else:
             raise ValidationError("Must be 'simreal', 'sim', or 'loihi'",
@@ -484,11 +439,11 @@ class Simulator(object):
                 "probe.sample_every not implemented")
             assert ("loihi" not in self.sims
                     or "emulator" not in self.sims)
-            cx_probe = self.model.objs[probe]['out']
+            loihi_probe = self.model.objs[probe]['out']
             if "loihi" in self.sims:
-                data = self.sims["loihi"].get_probe_output(cx_probe)
+                data = self.sims["loihi"].get_probe_output(loihi_probe)
             elif "emulator" in self.sims:
-                data = self.sims["emulator"].get_probe_output(cx_probe)
+                data = self.sims["emulator"].get_probe_output(loihi_probe)
             # TODO: stop recomputing this all the time
             del self._probe_outputs[probe][:]
             self._probe_outputs[probe].extend(data)
@@ -568,23 +523,23 @@ class Simulator(object):
             del sender.queue[:]
 
             if hasattr(receiver, 'collect_spikes'):
-                for cx_spike_input, t, spike_idxs in receiver.collect_spikes():
+                for spike_input, t, spike_idxs in receiver.collect_spikes():
                     ti = round(t / self.model.dt)
-                    spikes.append((cx_spike_input, ti, spike_idxs))
+                    spikes.append((spike_input, ti, spike_idxs))
             if hasattr(receiver, 'collect_errors'):
                 for probe, t, e in receiver.collect_errors():
                     conn = self.model.probe_conns[probe]
-                    synapses = self.model.objs[conn]['decoders']
-                    assert synapses.tracing
+                    synapse = self.model.objs[conn]['decoders']
+                    assert synapse.learning
                     ti = round(t / self.model.dt)
                     errors_ti = errors.setdefault(ti, {})
-                    if synapses in errors_ti:
-                        errors_ti[synapses] += e
+                    if synapse in errors_ti:
+                        errors_ti[synapse] += e
                     else:
-                        errors_ti[synapses] = e.copy()
+                        errors_ti[synapse] = e.copy()
 
-        errors = [(synapses, ti, e) for ti, ee in errors.items()
-                  for synapses, e in ee.items()]
+        errors = [(synapse, ti, e) for ti, ee in errors.items()
+                  for synapse, e in ee.items()]
         return spikes, errors
 
     def _host2chip(self, sim):
@@ -592,7 +547,7 @@ class Simulator(object):
         sim.host2chip(spikes, errors)
 
     def _chip2host(self, sim):
-        probes_receivers = {  # map cx_probes to receivers
+        probes_receivers = {  # map probes to receivers
             self.model.objs[probe]['out']: receiver
             for probe, receiver in self.networks.chip2host_receivers.items()}
         sim.chip2host(probes_receivers)
@@ -751,3 +706,51 @@ class Simulator(object):
         period = 1 if sample_every is None else sample_every / self.dt
         steps = np.arange(1, self.n_steps + 1)
         return self.dt * steps[steps % period < 1]
+
+
+class ProbeDict(NengoProbeDict):
+    """Map from Probe -> ndarray
+
+    This is more like a view on the dict that the simulator manipulates.
+    However, for speed reasons, the simulator uses Python lists,
+    and we want to return NumPy arrays. Additionally, this mapping
+    is readonly, which is more appropriate for its purpose.
+    """
+
+    def __init__(self, raw):
+        super(ProbeDict, self).__init__(raw=raw)
+        self.fallbacks = []
+
+    def add_fallback(self, fallback):
+        assert isinstance(fallback, NengoProbeDict)
+        self.fallbacks.append(fallback)
+
+    def __getitem__(self, key):
+        target = self.raw
+        if key not in target:
+            for fallback in self.fallbacks:
+                if key in fallback:
+                    target = fallback.raw
+                    break
+        assert key in target, "probed object not found"
+
+        if (key not in self._cache
+                or len(self._cache[key]) != len(target[key])):
+            rval = target[key]
+            if isinstance(rval, list):
+                rval = np.asarray(rval)
+                rval.setflags(write=False)
+            self._cache[key] = rval
+        return self._cache[key]
+
+    def __iter__(self):
+        for k in self.raw:
+            yield k
+        for fallback in self.fallbacks:
+            for k in fallback:
+                yield k
+
+    def __len__(self):
+        return len(self.raw) + sum(len(d) for d in self.fallbacks)
+
+    # TODO: Should we override __repr__ and __str__?

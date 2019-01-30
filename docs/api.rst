@@ -11,8 +11,8 @@ API reference
    nengo_loihi.Simulator
    nengo_loihi.builder.Model
    nengo_loihi.builder.Builder
-   nengo_loihi.loihi_cx.CxSimulator
-   nengo_loihi.loihi_interface.LoihiSimulator
+   nengo_loihi.emulator.EmulatorInterface
+   nengo_loihi.hardware.HardwareInterface
 
 .. autofunction:: nengo_loihi.add_params
 
@@ -24,6 +24,6 @@ API reference
 
 .. autoclass:: nengo_loihi.builder.Builder
 
-.. autoclass:: nengo_loihi.loihi_cx.CxSimulator
+.. autoclass:: nengo_loihi.emulator.EmulatorInterface
 
-.. autoclass:: nengo_loihi.loihi_interface.LoihiSimulator
+.. autoclass:: nengo_loihi.hardware.HardwareInterface

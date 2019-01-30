@@ -14,13 +14,23 @@ except ImportError:
     nengo_dl = None
 
 import nengo_loihi
-import nengo_loihi.loihi_cx as loihi_cx
+from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.builder import Model
 from nengo_loihi.conv import (
-    Conv2D, conv2d_loihi_weights, ImageShape, ImageSlice, split_transform)
-from nengo_loihi.loihi_cx import CxSimulator
-from nengo_loihi.loihi_interface import LoihiSimulator
+    Conv2D,
+    conv2d_loihi_weights,
+    ImageShape,
+    ImageSlice,
+    split_transform
+)
+from nengo_loihi.discretize import discretize_model
+from nengo_loihi.emulator import EmulatorInterface
+from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.neurons import (
-    loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear)
+    loihi_rates,
+    LoihiLIF,
+    LoihiSpikingRectifiedLinear,
+)
 
 home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, 'tests')
@@ -83,54 +93,54 @@ def test_pop_tiny(
     out_size = nyi * nyj * nf
     assert out_size <= 1024
 
-    model = loihi_cx.CxModel()
+    model = Model()
 
-    # input group
-    inp = loihi_cx.CxGroup(ni * nj * nk, label='inp')
-    assert inp.n <= 1024
-    inp.configure_relu()
-    inp.bias[:] = inp_biases.ravel()
+    # input block
+    inp = LoihiBlock(ni * nj * nk, label='inp')
+    assert inp.n_neurons <= 1024
+    inp.compartment.configure_relu()
+    inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = loihi_cx.CxAxons(nij, label='inp_ax')
+    inp_ax = Axon(nij, label='inp_ax')
     inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
-    inp.add_axons(inp_ax)
+    inp.add_axon(inp_ax)
 
-    model.add_group(inp)
+    model.add_block(inp)
 
-    # conv group
-    neurons = loihi_cx.CxGroup(out_size, label='neurons')
-    assert neurons.n <= 1024
-    neurons.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
-    neurons.configure_filter(tau_s, dt=dt)
-    neurons.bias[:] = neuron_bias
+    # conv block
+    neurons = LoihiBlock(out_size, label='neurons')
+    assert neurons.n_neurons <= 1024
+    neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
+    neurons.compartment.configure_filter(tau_s, dt=dt)
+    neurons.compartment.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(inp_shape.n_pixels, label='synapses')
+    synapse = Synapse(inp_shape.n_pixels, label='synapse')
     conv2d_transform = Conv2D.from_kernel(
         filters, inp_shape, strides=(sti, stj),
         output_channels_last=out_channels_last)
     weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
         conv2d_transform)
-    synapses.set_population_weights(
+    synapse.set_population_weights(
         weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
-    neurons.add_synapses(synapses)
+    neurons.add_synapse(synapse)
 
-    out_probe = loihi_cx.CxProbe(target=neurons, key='s')
+    out_probe = Probe(target=neurons, key='spiked')
     neurons.add_probe(out_probe)
 
-    inp_ax.target = synapses
-    model.add_group(neurons)
+    inp_ax.target = synapse
+    model.add_block(neurons)
 
     # simulation
-    model.discretize()
+    discretize_model(model)
 
     n_steps = int(pres_time / dt)
     target = request.config.getoption("--target")
     if target == 'loihi':
-        with LoihiSimulator(model, use_snips=False, seed=seed) as sim:
+        with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
     else:
-        with CxSimulator(model, seed=seed) as sim:
+        with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
 
@@ -225,52 +235,52 @@ def test_conv2d_weights(request, plt, seed, rng, allclose):
     nf, nyi, nyj = ref_out.shape
     assert out_size <= 1024
 
-    model = loihi_cx.CxModel()
+    model = Model()
 
-    # input group
-    inp = loihi_cx.CxGroup(inp_shape.size, label='inp')
-    assert inp.n <= 1024
-    inp.configure_relu()
-    inp.bias[:] = inp_biases.ravel()
+    # input block
+    inp = LoihiBlock(inp_shape.size, label='inp')
+    assert inp.n_neurons <= 1024
+    inp.compartment.configure_relu()
+    inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = loihi_cx.CxAxons(inp_shape.n_pixels, label='inp_ax')
+    inp_ax = Axon(inp_shape.n_pixels, label='inp_ax')
     inp_ax.set_axon_map(inp_shape.pixel_idxs(), inp_shape.channel_idxs())
-    inp.add_axons(inp_ax)
+    inp.add_axon(inp_ax)
 
-    model.add_group(inp)
+    model.add_block(inp)
 
-    # conv group
-    neurons = loihi_cx.CxGroup(out_size, label='neurons')
-    assert neurons.n <= 1024
-    neurons.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
-    neurons.configure_filter(tau_s, dt=dt)
-    neurons.bias[:] = neuron_bias
+    # conv block
+    neurons = LoihiBlock(out_size, label='neurons')
+    assert neurons.n_neurons <= 1024
+    neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
+    neurons.compartment.configure_filter(tau_s, dt=dt)
+    neurons.compartment.bias[:] = neuron_bias
 
-    synapses = loihi_cx.CxSynapses(inp_shape.n_pixels, label='synapses')
+    synapse = Synapse(inp_shape.n_pixels, label='synapse')
     weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
         conv2d_transform)
-    synapses.set_population_weights(
+    synapse.set_population_weights(
         weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
 
-    neurons.add_synapses(synapses)
+    neurons.add_synapse(synapse)
 
-    out_probe = loihi_cx.CxProbe(target=neurons, key='s')
+    out_probe = Probe(target=neurons, key='spiked')
     neurons.add_probe(out_probe)
 
-    inp_ax.target = synapses
-    model.add_group(neurons)
+    inp_ax.target = synapse
+    model.add_block(neurons)
 
     # simulation
-    model.discretize()
+    discretize_model(model)
 
     n_steps = int(pres_time / dt)
     target = request.config.getoption("--target")
     if target == 'loihi':
-        with LoihiSimulator(model, use_snips=False, seed=seed) as sim:
+        with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
     else:
-        with CxSimulator(model, seed=seed) as sim:
+        with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
 

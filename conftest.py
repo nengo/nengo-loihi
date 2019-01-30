@@ -13,12 +13,12 @@ from nengo.conftest import logger, plt, TestConfig  # noqa: F401
 from nengo.utils.compat import ensure_bytes
 
 import nengo_loihi
-from nengo_loihi.loihi_cx import CxSimulator
+from nengo_loihi.emulator import EmulatorInterface
 
 
 def pytest_configure(config):
     mpl.use("Agg")
-    CxSimulator.strict = True
+    EmulatorInterface.strict = True
 
     if config.getoption('seed_offset'):
         TestConfig.test_seed = config.getoption('seed_offset')[0]

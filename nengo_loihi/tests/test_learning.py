@@ -4,7 +4,7 @@ from nengo.utils.numpy import rms
 import numpy as np
 import pytest
 
-import nengo_loihi.builder
+from nengo_loihi.builder import Model
 
 
 def pes_network(
@@ -112,7 +112,7 @@ def test_pes_overflow(plt, seed, Simulator):
         input_scale=np.linspace(1, 0.7, dims),
         learning_rule_type=nengo.PES(learning_rate=1e-2), period=simtime)
 
-    loihi_model = nengo_loihi.builder.Model()
+    loihi_model = Model()
     # set learning_wgt_exp low to create overflow in weight values
     loihi_model.pes_wgt_exp = -1
 
