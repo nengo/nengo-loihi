@@ -11,7 +11,7 @@ NAME=$0
 COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
-    exe conda install --quiet matplotlib mkl numpy scipy tensorflow
+    conda install --quiet mkl numpy
     exe pip install nengo-dl
     exe pip install -e ".[tests]"
     exe pip install "$NENGO_VERSION"

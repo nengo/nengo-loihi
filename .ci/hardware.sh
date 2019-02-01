@@ -25,6 +25,7 @@ elif [[ "$COMMAND" == "script" ]]; then
         cd /tmp/nengo-loihi-$TRAVIS_JOB_NUMBER
         conda create -y -n travis-ci-$TRAVIS_JOB_NUMBER python=3.5.2 scipy
         source activate travis-ci-$TRAVIS_JOB_NUMBER
+        pip install nengo-dl
         pip install -e .[tests]
         pip install $NENGO_VERSION
         pip install ~/travis-ci/nxsdk-0.8.0.tar.gz

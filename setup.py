@@ -61,6 +61,7 @@ setup(
             "nengo-extras",
             "pytest>=3.4,<4",
             "matplotlib>=2.0",
+            "scipy",
         ],
     },
     entry_points={
