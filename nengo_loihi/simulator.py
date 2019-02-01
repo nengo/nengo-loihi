@@ -4,6 +4,7 @@ import traceback
 import warnings
 
 import nengo
+from nengo.cache import get_default_decoder_cache
 from nengo.exceptions import (
     ReadonlyError,
     SimulatorClosed,
@@ -14,6 +15,7 @@ import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
+from nengo_loihi.compat import seed_network
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
@@ -308,6 +310,10 @@ class Simulator(object):
             nengo.rc.set("decoder_cache", "enabled", "False")
             config.add_params(network)
 
+            # ensure seeds are identical to nengo
+            seed_network(network, seeds=self.model.seeds,
+                         seeded=self.model.seeded)
+
             # split the host into one, two or three networks
             self.networks = split(
                 network,
@@ -325,14 +331,25 @@ class Simulator(object):
             self.host_pre = self.networks.host_pre
 
             if len(self.host_pre.all_objects) > 0:
+                host_pre_model = self._get_host_model(
+                    self.host_pre, dt=dt, seeds=self.model.seeds,
+                    seeded=self.model.seeded)
                 self.sims["host_pre"] = nengo.Simulator(self.host_pre,
                                                         dt=self.dt,
+                                                        model=host_pre_model,
                                                         progress_bar=False,
                                                         optimize=False)
 
             if len(self.host.all_objects) > 0:
+                host_model = self._get_host_model(
+                    self.host, dt=dt, seeds=self.model.seeds,
+                    seeded=self.model.seeded)
                 self.sims["host"] = nengo.Simulator(
-                    self.host, dt=self.dt, progress_bar=False, optimize=False)
+                    self.host,
+                    dt=self.dt,
+                    model=host_model,
+                    progress_bar=False,
+                    optimize=False)
             elif not precompute:
                 # If there is no host and precompute=False, then all objects
                 # must be on the chip, which is precomputable in the sense that
@@ -379,6 +396,16 @@ class Simulator(object):
 
         self.closed = False
         self.reset(seed=seed)
+
+    @staticmethod
+    def _get_host_model(network, dt, seeds, seeded):
+        model = nengo.builder.Model(
+            dt=float(dt),
+            label="%s, dt=%f" % (network, dt),
+            decoder_cache=get_default_decoder_cache())
+        model.seeds.update(seeds)
+        model.seeded.update(seeded)
+        return model
 
     def __del__(self):
         """Raise a ResourceWarning if we are deallocated while open."""

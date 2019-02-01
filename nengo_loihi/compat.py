@@ -4,6 +4,7 @@ import nengo
 import numpy as np
 
 if LooseVersion(nengo.__version__) > LooseVersion('2.8.0'):
+    from nengo.builder.network import seed_network
     import nengo.transforms as nengo_transforms
 
     def conn_solver(solver, activities, targets, rng):
@@ -36,3 +37,8 @@ else:
     def sample_transform(conn, rng=np.random):
         return _get_samples(conn.transform, conn.size_out,
                             d=conn.size_mid, rng=rng)
+
+    def seed_network(*args, **kwargs):
+        # nengo <= 2.8.0 will overwrite any seeds set on the model, so no
+        # point doing anything in this function
+        pass

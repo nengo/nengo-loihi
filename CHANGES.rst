@@ -29,6 +29,13 @@ Release history
   this transition. The MNIST convnet example demonstrates the new syntax.
   (`#142 <https://github.com/nengo/nengo-loihi/pull/142>`__)
 
+**Fixed**
+
+- Objects in nengo-loihi will have the same random seeds as in
+  nengo core (and therefore any randomly generated parameters, such as
+  ensemble encoders, will be generated in the same way).
+  (`#70 <https://github.com/nengo/nengo-loihi/pull/70>`_)
+
 0.5.0 (February 12, 2019)
 =========================
 

@@ -310,3 +310,69 @@ def test_tau_s_warning(Simulator):
     assert any(rec.message.args[0] == (
         "tau_s is already set to 0.1, which is larger than 0.005. Using 0.1."
     ) for rec in record)
+
+
+@pytest.mark.xfail(nengo.version.version_info <= (2, 8, 0),
+                   reason="Nengo core controls seeds")
+@pytest.mark.parametrize('precompute', [False, True])
+def test_seeds(precompute, Simulator, seed):
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.add_params(net)
+
+        e0 = nengo.Ensemble(1, 1)
+        e1 = nengo.Ensemble(1, 1, seed=2)
+        e2 = nengo.Ensemble(1, 1)
+        net.config[e2].on_chip = False
+        nengo.Connection(e0, e1)
+        nengo.Connection(e0, e2)
+
+        with nengo.Network():
+            n = nengo.Node(0)
+            e = nengo.Ensemble(1, 1)
+            nengo.Node(1)
+            nengo.Connection(n, e)
+            nengo.Probe(e)
+
+        with nengo.Network(seed=8):
+            nengo.Ensemble(8, 1, seed=3)
+            nengo.Node(1)
+
+    # --- test that seeds are the same as nengo ref simulator
+    ref = nengo.Simulator(net)
+
+    with Simulator(net, precompute=precompute) as sim:
+        for obj in net.all_objects:
+            on_chip = (not isinstance(obj, nengo.Node) and (
+                not isinstance(obj, nengo.Ensemble)
+                or net.config[obj].on_chip))
+
+            seed = sim.model.seeds.get(obj, None)
+            assert seed is None or seed == ref.model.seeds[obj]
+            if on_chip:
+                assert seed is not None
+            if obj in sim.model.seeded:
+                assert sim.model.seeded[obj] == ref.model.seeded[obj]
+
+            if precompute:
+                seed0 = sim.sims["host_pre"].model.seeds.get(obj, None)
+                assert seed0 is None or seed0 == ref.model.seeds[obj]
+                seed1 = sim.sims["host"].model.seeds.get(obj, None)
+                assert seed1 is None or seed1 == ref.model.seeds[obj]
+            else:
+                seed0 = sim.sims["host"].model.seeds.get(obj, None)
+                assert seed0 is None or seed0 == ref.model.seeds[obj]
+                seed1 = None
+
+            if not on_chip:
+                assert seed0 is not None or seed1 is not None
+
+    # --- test that seeds that we set are preserved after splitting
+    model = nengo_loihi.builder.Model()
+    for i, o in enumerate(net.all_objects):
+        model.seeds[o] = i
+
+    with Simulator(net, model=model, precompute=precompute) as sim:
+        for i, o in enumerate(net.all_objects):
+            for name, subsim in sim.sims.items():
+                if name.startswith("host"):
+                    assert subsim.model.seeds[o] == i
