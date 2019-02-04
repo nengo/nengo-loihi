@@ -95,7 +95,7 @@ def signal_probe(model, key, probe):
                 weights = 1.0 / model.dt
 
             if hasattr(probe.target.ensemble.neuron_type, 'amplitude'):
-                weights = weights * probe.target.ensemble.neuron_type.amplitude
+                weights *= probe.target.ensemble.neuron_type.amplitude
 
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]['out']

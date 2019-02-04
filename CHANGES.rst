@@ -66,6 +66,9 @@ Release history
   is correct, even if the underlying values are integers).
   (`#169 <https://github.com/nengo/nengo-loihi/pull/124>`_,
   `#141 <https://github.com/nengo/nengo-loihi/issues/141>`_)
+- Neuron (spike) probes can now be filtered with ``synapse`` objects.
+  (`#182 <https://github.com/nengo/nengo-loihi/issues/182>`__,
+  `#183 <https://github.com/nengo/nengo-loihi/pull/180>`__)
 
 0.4.0 (December 6, 2018)
 ========================

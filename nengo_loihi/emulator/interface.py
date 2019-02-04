@@ -5,7 +5,7 @@ import logging
 import warnings
 
 from nengo.exceptions import SimulationError
-from nengo.utils.compat import iteritems, itervalues, range
+from nengo.utils.compat import is_array, is_number
 import numpy as np
 
 from nengo_loihi.discretize import (
@@ -230,7 +230,7 @@ class IterableState(object):
             warnings.warn(msg)
 
     def items(self):
-        return iteritems(self.slices)
+        return self.slices.items()
 
 
 class CompartmentState(IterableState):
@@ -493,7 +493,7 @@ class SynapseState(IterableState):
 
     def inject_current(self, t, spike_inputs, all_axons, spiked):
         # --- clear spikes going in to each synapse
-        for spike_queue in itervalues(self.spikes_in):
+        for spike_queue in self.spikes_in.values():
             spike_queue.clear()
 
         # --- inputs pass spikes to synapses
@@ -535,7 +535,7 @@ class SynapseState(IterableState):
             pes_errors += scale_pes_errors(e, scale=self.pes_error_scale)
 
     def update_weights(self, t, rng):
-        for synapse, pes_error in iteritems(self.pes_errors):
+        for synapse, pes_error in self.pes_errors.items():
             if t % synapse.learn_epoch == 0:
                 trace = self.traces[synapse]
                 e = np.hstack([-pes_error, pes_error])
@@ -599,7 +599,7 @@ class ProbeState(object):
 
         self.filters = {}
         self.filter_pos = {}
-        for probe, spike_input in iteritems(self.input_probes):
+        for probe, spike_input in self.input_probes.items():
             if probe.synapse is not None:
                 self.filters[probe] = probe.synapse.make_step(
                     shape=spike_input.spikes[0][probe.slice].shape[0],
@@ -609,10 +609,13 @@ class ProbeState(object):
                 )
                 self.filter_pos[probe] = 0
 
-        for probe, sl in iteritems(self.other_probes):
+        for probe, sl in self.other_probes.items():
             if probe.synapse is not None:
-                size = (sl.stop - sl.start if probe.weights is None
-                        else probe.weights.shape[1])
+                if probe.weights is None or is_number(probe.weights):
+                    size = sl.stop - sl.start
+                else:
+                    assert is_array(probe.weights) and probe.weights.ndim == 2
+                    size = probe.weights.shape[1]
                 self.filters[probe] = probe.synapse.make_step(
                     shape_in=(size,),
                     shape_out=(size,),
@@ -658,12 +661,12 @@ class ProbeState(object):
         return len(x)
 
     def update(self, t, compartment):
-        for probe, spike_input in iteritems(self.input_probes):
+        for probe, spike_input in self.input_probes.items():
             assert probe.key == 'spiked'
             output = spike_input.spikes[t][probe.slice].copy()
             self.outputs[probe].append(output)
 
-        for probe, out_idx in iteritems(self.other_probes):
+        for probe, out_idx in self.other_probes.items():
             p_slice = probe.slice
             assert hasattr(compartment, probe.key)
             output = getattr(compartment, probe.key)[out_idx][p_slice].copy()
