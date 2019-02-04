@@ -7,6 +7,7 @@
 #define N_ERRORS {{ n_errors }}
 #define MAX_ERROR_LEN {{ max_error_len }}
 #define SPIKE_SIZE 2
+#define ERROR_INFO_SIZE 2
 
 int guard_io(runState *s) {
     return 1;
@@ -23,7 +24,7 @@ void nengo_io(runState *s) {
     int outChannel = getChannelID("nengo_io_c2h");
     int32_t count[1];
     int32_t spike[SPIKE_SIZE];
-    int32_t error_info[2];
+    int32_t error_info[ERROR_INFO_SIZE];
     int32_t error_data[MAX_ERROR_LEN];
     int32_t error_index;
     int32_t output[N_OUTPUTS];
@@ -69,14 +70,14 @@ void nengo_io(runState *s) {
     s->userData[0] = N_ERRORS;
     error_index = 1;
     for (int i=0; i < N_ERRORS; i++) {
-        readChannel(inChannel, error_info, 2);
+        readChannel(inChannel, error_info, ERROR_INFO_SIZE);
         readChannel(inChannel, error_data, error_info[1]);
         s->userData[error_index] = error_info[0];
         s->userData[error_index + 1] = error_info[1];
         for (int j=0; j < error_info[1]; j++) {
-            s->userData[error_index + 2 + j] = error_data[j];
+            s->userData[error_index + ERROR_INFO_SIZE + j] = error_data[j];
         }
-        error_index += 2 + error_info[1];
+        error_index += ERROR_INFO_SIZE + error_info[1];
     }
 
     output[0] = s->time;
