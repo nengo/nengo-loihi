@@ -2,6 +2,7 @@
 #include <string.h>
 #include "nengo_io.h"
 
+#define DEBUG 0
 #define N_OUTPUTS {{ n_outputs }}
 #define N_ERRORS {{ n_errors }}
 #define MAX_ERROR_LEN {{ max_error_len }}
@@ -37,17 +38,23 @@ void nengo_io(runState *s) {
     }
 
     readChannel(inChannel, count, 1);
-    // printf("count %d\n", count[0]);
+    if (DEBUG) {
+        printf("count %d\n", count[0]);
+    }
 
     for (int i=0; i < count[0]; i++) {
         readChannel(inChannel, spike, SPIKE_SIZE);
-        // printf("send spike %d.%d\n", spike[0], spike[1]);
+        if (DEBUG) {
+            printf("send spike %d.%d\n", spike[0], spike[1]);
+        }
         coreId = (CoreId) { .id=(spike[0] >> 16) };
         axonId = spike[0] & 0x0000FFFF;
         axonType = spike[1] >> 16;
         atom = spike[1] & 0x0000FFFF;
-        // printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
-        //        coreId.id, axonId, axonType, atom);
+        if (DEBUG) {
+            printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
+                   coreId.id, axonId, axonType, atom);
+        }
         if (axonType == 0) {
             nx_send_discrete_spike(s->time, coreId, axonId);
         } else if (axonType == 32) {
