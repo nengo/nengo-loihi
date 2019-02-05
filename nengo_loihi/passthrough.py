@@ -22,7 +22,7 @@ def base_obj(obj):
     return obj
 
 
-class ClusterException(NengoException):
+class ClusterError(NengoException):
     pass
 
 
@@ -150,11 +150,11 @@ class Cluster:
             assert c.learning_rule_type is None
 
             if isinstance(c.post_obj, LearningRule):
-                raise ClusterException("no error signals allowed")
+                raise ClusterError("no error signals allowed")
             elif c.post_obj in previous:
                 # cycles of passthrough Nodes are possible in Nengo, but
                 # cannot be compiled away
-                raise ClusterException("no loops allowed")
+                raise ClusterError("no loops allowed")
 
             if c in self.conns_out:
                 # this is an output from the Cluster, so stop iterating
@@ -291,7 +291,7 @@ def convert_passthroughs(network, offchip):
             if has_input and ((onchip_input and onchip_output) or no_output):
                 try:
                     new_conns = list(cluster.generate_conns())
-                except ClusterException:
+                except ClusterError:
                     # this Cluster has an issue, so don't remove it
                     continue
 
