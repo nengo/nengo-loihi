@@ -282,21 +282,34 @@ def split_host_neurons_to_chip(networks, conn):
     receive = ChipReceiveNeurons(
         dim,
         neuron_type=conn.pre_obj.ensemble.neuron_type,
+        label=None if conn.label is None else "%s_neurons" % conn.label,
         add_to_container=False,
     )
     networks.add(receive, "chip")
     receive2post = Connection(
-        receive, conn.post,
+        receive,
+        conn.post,
         transform=conn.transform,
         synapse=conn.synapse,
+        label=None if conn.label is None else "%s_chip" % conn.label,
         add_to_container=False,
     )
     networks.add(receive2post, "chip")
 
     logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(dim, add_to_container=False)
+    send = HostSendNode(
+        dim,
+        label=None if conn.label is None else "%s_send" % conn.label,
+        add_to_container=False,
+    )
     networks.add(send, "host")
-    pre2send = Connection(conn.pre, send, synapse=None, add_to_container=False)
+    pre2send = Connection(
+        conn.pre,
+        send,
+        synapse=None,
+        label=None if conn.label is None else "%s_host" % conn.label,
+        add_to_container=False,
+    )
     networks.add(pre2send, "host")
 
     networks.host2chip_senders[send] = receive
@@ -307,11 +320,19 @@ def split_host_to_chip(networks, conn):
     dim = conn.size_out
     logger.debug("Creating ChipReceiveNode for %s", conn)
     receive = ChipReceiveNode(
-        dim * 2, size_out=dim, add_to_container=False)
+        dim * 2,
+        size_out=dim,
+        label=None if conn.label is None else "%s_node" % conn.label,
+        add_to_container=False,
+    )
     networks.add(receive, "chip")
-    receive2post = Connection(receive, conn.post,
-                              synapse=networks.node_tau,
-                              add_to_container=False)
+    receive2post = Connection(
+        receive,
+        conn.post,
+        synapse=networks.node_tau,
+        label=None if conn.label is None else "%s_chip" % conn.label,
+        add_to_container=False,
+    )
     networks.add(receive2post, "chip")
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
@@ -319,6 +340,7 @@ def split_host_to_chip(networks, conn):
         raise BuildError(
             "DecodeNeurons must be specified for host->chip connection.")
     ens = networks.node_neurons.get_ensemble(dim)
+    ens.label = None if conn.label is None else "%s_ens" % conn.label
     networks.add(ens, "host")
 
     if nengo_transforms is not None and isinstance(
@@ -341,21 +363,34 @@ def split_host_to_chip(networks, conn):
         transform = copy.copy(conn.transform)
         type(transform).init.data[transform] = weights
 
-    pre2ens = Connection(conn.pre, ens,
-                         function=conn.function,
-                         solver=conn.solver,
-                         eval_points=conn.eval_points,
-                         scale_eval_points=conn.scale_eval_points,
-                         synapse=conn.synapse,
-                         transform=transform,
-                         add_to_container=False)
+    pre2ens = Connection(
+        conn.pre,
+        ens,
+        function=conn.function,
+        solver=conn.solver,
+        eval_points=conn.eval_points,
+        scale_eval_points=conn.scale_eval_points,
+        synapse=conn.synapse,
+        transform=transform,
+        label=None if conn.label is None else "%s_enc" % conn.label,
+        add_to_container=False,
+    )
     networks.add(pre2ens, "host")
 
     logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(dim * 2, add_to_container=False)
+    send = HostSendNode(
+        dim * 2,
+        label=None if conn.label is None else "%s_send" % conn.label,
+        add_to_container=False,
+    )
     networks.add(send, "host")
     ensneurons2send = Connection(
-        ens.neurons, send, synapse=None, add_to_container=False)
+        ens.neurons,
+        send,
+        synapse=None,
+        label=None if conn.label is None else "%s_host" % conn.label,
+        add_to_container=False,
+    )
     networks.add(ensneurons2send, "host")
     networks.remove(conn)
 
@@ -380,10 +415,19 @@ def split_chip_to_host(networks, conn):
     dim = conn.size_out
 
     logger.debug("Creating HostReceiveNode for %s", conn)
-    receive = HostReceiveNode(dim, add_to_container=False)
+    receive = HostReceiveNode(
+        dim,
+        label=None if conn.label is None else "%s_receive" % conn.label,
+        add_to_container=False,
+    )
     networks.add(receive, "host")
     receive2post = Connection(
-        receive, conn.post, synapse=conn.synapse, add_to_container=False)
+        receive,
+        conn.post,
+        synapse=conn.synapse,
+        label=None if conn.label is None else "%s_host" % conn.label,
+        add_to_container=False,
+    )
     networks.add(receive2post, "host")
 
     logger.debug("Creating Probe for %s", conn)
@@ -400,6 +444,7 @@ def split_chip_to_host(networks, conn):
         eval_points=conn.eval_points,
         scale_eval_points=conn.scale_eval_points,
         transform=transform,
+        label=None if conn.label is None else "%s_probe" % conn.label,
     )
     networks.add(probe, "chip")
     networks.chip2host_receivers[probe] = receive
@@ -429,17 +474,25 @@ def split_host_to_learning_rules(networks, conns):
 def split_host_to_learning_rule(networks, conn):
     dim = conn.size_out
     logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(dim, add_to_container=False)
+    send = HostSendNode(
+        dim,
+        label=None if conn.label is None else "%s_send" % conn.label,
+        add_to_container=False,
+    )
     networks.add(send, "host")
 
-    pre2send = Connection(conn.pre, send,
-                          function=conn.function,
-                          solver=conn.solver,
-                          eval_points=conn.eval_points,
-                          scale_eval_points=conn.scale_eval_points,
-                          synapse=conn.synapse,
-                          transform=conn.transform,
-                          add_to_container=False)
+    pre2send = Connection(
+        conn.pre,
+        send,
+        function=conn.function,
+        solver=conn.solver,
+        eval_points=conn.eval_points,
+        scale_eval_points=conn.scale_eval_points,
+        synapse=conn.synapse,
+        transform=conn.transform,
+        label=conn.label,
+        add_to_container=False,
+    )
     networks.add(pre2send, "host")
     pes_target = networks.needs_sender[conn.post_obj]
     networks.host2chip_senders[send] = pes_target

@@ -39,10 +39,14 @@ class SpikeInput(LoihiInput):
 class HostSendNode(Node):
     """For sending host->chip messages"""
 
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, label=Default):
         self.queue = []
-        super(HostSendNode, self).__init__(self.update,
-                                           size_in=dimensions, size_out=0)
+        super(HostSendNode, self).__init__(
+            self.update,
+            size_in=dimensions,
+            size_out=0,
+            label=label,
+        )
 
     def update(self, t, x):
         assert len(self.queue) == 0 or t > self.queue[-1][0]
@@ -52,11 +56,15 @@ class HostSendNode(Node):
 class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
-    def __init__(self, dimensions):
+    def __init__(self, dimensions, label=Default):
         self.queue = [(0, np.zeros(dimensions))]
         self.queue_index = 0
-        super(HostReceiveNode, self).__init__(self.update,
-                                              size_in=0, size_out=dimensions)
+        super(HostReceiveNode, self).__init__(
+            self.update,
+            size_in=0,
+            size_out=dimensions,
+            label=label,
+        )
 
     def update(self, t):
         while (len(self.queue) > self.queue_index + 1

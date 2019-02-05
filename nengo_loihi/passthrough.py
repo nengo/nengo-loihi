@@ -186,8 +186,8 @@ class Cluster(object):
 
         for c in self.conns_in:
             assert c.post_obj in self.objs
-            for pre_slice, transform, synapse, post in self.generate_from(
-                    c.post_obj, outputs):
+            for k, (pre_slice, transform, synapse, post) in enumerate(
+                    self.generate_from(c.post_obj, outputs)):
                 syn = self.merge_synapses(c.synapse, synapse)
                 trans = self.merge_transforms(
                     c.post_obj,
@@ -204,7 +204,10 @@ class Cluster(object):
                         scale_eval_points=c.scale_eval_points,
                         synapse=syn,
                         transform=trans,
-                        add_to_container=False)
+                        add_to_container=False,
+                        label=(None if c.label is None
+                               else "%s_%d" % (c.label, k)),
+                    )
 
 
 def find_clusters(net, offchip):

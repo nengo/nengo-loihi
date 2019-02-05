@@ -19,9 +19,12 @@ def conn_probe(model, nengo_probe):
     # get any extra arguments if this probe was created to send data
     #  to an off-chip Node via the splitter
 
+    conn_label = (None if nengo_probe.label is None
+                  else "%s_conn" % nengo_probe.label)
     kwargs = model.chip2host_params.get(nengo_probe, None)
     if kwargs is not None:
         # this probe is for sending data to a Node
+        kwargs.setdefault('label', conn_label)
 
         # determine the dimensionality
         input_dim = nengo_probe.target.size_out
@@ -43,15 +46,24 @@ def conn_probe(model, nengo_probe):
 
         target = nengo.Node(size_in=output_dim, add_to_container=False)
 
-        conn = Connection(nengo_probe.target, target, synapse=synapse,
-                          solver=nengo_probe.solver, add_to_container=False,
-                          **kwargs
-                          )
+        conn = Connection(
+            nengo_probe.target,
+            target,
+            synapse=synapse,
+            solver=nengo_probe.solver,
+            add_to_container=False,
+            **kwargs
+        )
         model.probe_conns[nengo_probe] = conn
     else:
-        conn = Connection(nengo_probe.target, nengo_probe, synapse=synapse,
-                          solver=nengo_probe.solver, add_to_container=False,
-                          )
+        conn = Connection(
+            nengo_probe.target,
+            nengo_probe,
+            synapse=synapse,
+            solver=nengo_probe.solver,
+            add_to_container=False,
+            label=conn_label,
+        )
         target = nengo_probe
 
     # Set connection's seed to probe's (which isn't used elsewhere)
