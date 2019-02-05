@@ -1,4 +1,5 @@
 import nengo
+from nengo.exceptions import BuildError
 from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
@@ -224,3 +225,45 @@ def test_long_tau(Simulator):
 
     with Simulator(model) as sim:
         sim.run(0.002)  # Ensure it at least runs
+
+
+def test_zero_activity_error(Simulator):
+    with nengo.Network() as net:
+        a = nengo.Ensemble(5, 1,
+                           encoders=nengo.dists.Choice([[1.]]),
+                           intercepts=nengo.dists.Choice([0.]))
+        b = nengo.Ensemble(5, 1)
+        nengo.Connection(a, b, eval_points=[[-1]])
+
+    with pytest.raises(BuildError, match="activit.*zero"):
+        with Simulator(net):
+            pass
+
+
+def test_chip_to_host_function_points(Simulator, seed, plt, allclose):
+    """Connection from chip to host that computes a function using points"""
+    fn = lambda x: -x
+    probe_syn = nengo.Lowpass(0.03)
+    simtime = 0.3
+
+    with nengo.Network(seed=seed) as net:
+        u = nengo.Node(lambda t: np.sin((2*np.pi/simtime) * t))
+        a = nengo.Ensemble(100, 1)
+        # v has a function so it doesn't get removed as passthrough
+        v = nengo.Node(lambda t, x: x + 1e-8, size_in=1)
+        nengo.Connection(u, a, synapse=None)
+
+        x = np.linspace(-1, 1, 1000).reshape(-1, 1)
+        y = fn(x)
+        nengo.Connection(a, v, synapse=None, eval_points=x, function=y)
+
+        up = nengo.Probe(u, synapse=probe_syn.combine(nengo.Lowpass(0.005)))
+        vp = nengo.Probe(v, synapse=probe_syn)
+
+    with Simulator(net) as sim:
+        sim.run(simtime)
+
+    y_ref = fn(sim.data[up])
+    plt.plot(sim.trange(), y_ref)
+    plt.plot(sim.trange(), sim.data[vp])
+    assert allclose(sim.data[vp], y_ref, atol=0.1)

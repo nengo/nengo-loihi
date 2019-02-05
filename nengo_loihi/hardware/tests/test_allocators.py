@@ -1,10 +1,14 @@
 import nengo
-from nengo.exceptions import BuildError
+from nengo.exceptions import BuildError, ValidationError
 import numpy as np
 import pytest
 
-from nengo_loihi.block import Synapse
-from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs
+from nengo_loihi.block import LoihiBlock, Synapse
+from nengo_loihi.builder import Model
+from nengo_loihi.hardware.allocators import (
+    core_stdp_pre_cfgs,
+    one_to_one_allocator,
+)
 from nengo_loihi.hardware.nxsdk_objects import Board
 
 
@@ -46,3 +50,11 @@ def test_block_size(Simulator):
     with pytest.raises(BuildError):
         with Simulator(net):
             pass
+
+
+def test_one_to_one_allocator_big_block_error():
+    model = Model()
+    model.add_block(LoihiBlock(1050))
+
+    with pytest.raises(ValidationError):
+        one_to_one_allocator(model)

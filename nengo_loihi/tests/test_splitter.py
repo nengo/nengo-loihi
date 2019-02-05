@@ -1,3 +1,5 @@
+from distutils.version import LooseVersion
+
 import pytest
 import nengo
 from nengo.exceptions import BuildError
@@ -228,16 +230,15 @@ def test_split_host_to_chip():
         networks.adds.clear()  # makes next loop iteration easier
 
 
-def test_split_host_to_chip_no_node_neurons():
+def test_split_no_node_neuron_error():
     with nengo.Network() as net:
+        add_params(net)
         node_offchip = nengo.Node(np.sin)
         ens_onchip = nengo.Ensemble(10, 1)
-        conn = nengo.Connection(node_offchip, ens_onchip)
-    networks = SplitNetworks(net)
-    networks.move(node_offchip, "host")
-    networks.move(ens_onchip, "chip")
-    with pytest.raises(BuildError):
-        split_host_to_chip(networks, conn)
+        nengo.Connection(node_offchip, ens_onchip)
+
+    with pytest.raises(BuildError, match="DecodeNeurons"):
+        split(net, precompute=False, node_neurons=None, node_tau=None)
 
 
 def test_split_chip_to_host():
@@ -438,3 +439,88 @@ def test_consistent_order():
                 bb = getattr(getattr(networks, net), 'all_' + attr)
                 for a, b in zip(aa, bb):
                     assert a.label == b.label
+
+
+@pytest.mark.skipif(LooseVersion(nengo.__version__) <= LooseVersion('2.8.0'),
+                    reason="requires more recent Nengo version")
+def test_split_conv2d_transform_error():
+    with nengo.Network() as net:
+        add_params(net)
+        node_offchip = nengo.Node([1])
+        ens_onchip = nengo.Ensemble(10, 1)
+        conv2d = nengo.Convolution(
+            n_filters=1, input_shape=(1, 1, 1), kernel_size=(1, 1))
+        nengo.Connection(node_offchip, ens_onchip, transform=conv2d)
+
+    with pytest.raises(BuildError, match="Conv2D"):
+        split(net, precompute=False, node_neurons=default_node_neurons,
+              node_tau=0.005)
+
+
+def test_split_precompute_loop_error():
+    with nengo.Network() as net:
+        add_params(net)
+        node_offchip = nengo.Node(lambda t, x: x + 1, size_in=1, size_out=1)
+        ens_onchip = nengo.Ensemble(10, 1)
+        nengo.Connection(node_offchip, ens_onchip)
+        nengo.Connection(ens_onchip, node_offchip)
+
+    with pytest.raises(BuildError, match="precompute"):
+        split(net, precompute=True, node_neurons=default_node_neurons,
+              node_tau=0.005)
+
+
+def test_splitnetwork_bad_add_type():
+    net = nengo.Network()
+    networks = SplitNetworks(net)
+    networks.add(1, "chip")
+    with pytest.raises(AssertionError):
+        networks.finalize()
+
+
+def test_splitnetwork_remove_add():
+    net = nengo.Network()
+    networks = SplitNetworks(net)
+    e = nengo.Ensemble(1, 1, add_to_container=False)
+    networks.add(e, "chip")
+    networks.remove(e)
+    assert e not in networks.adds
+
+
+def test_pesmodulatorytarget_interface():
+    target = "target"
+    p = PESModulatoryTarget(target)
+
+    t0 = 4
+    e0 = [1.8, 2.4, 3.3]
+    t1 = t0 + 3
+    e1 = [7.2, 2.2, 4.1]
+    e01 = np.array(e0) + np.array(e1)
+
+    p.receive(t0, e0)
+    assert isinstance(p.errors[t0], np.ndarray)
+    assert np.allclose(p.errors[t0], e0)
+
+    p.receive(t0, e1)
+    assert np.allclose(p.errors[t0], e01)
+
+    with pytest.raises(AssertionError):
+        p.receive(t0 - 1, e0)  # time needs to be >= last time
+
+    p.receive(t1, e1)
+    assert np.allclose(p.errors[t1], e1)
+
+    errors = list(p.collect_errors())
+    assert len(errors) == 2
+    assert errors[0][:2] == (target, t0) and np.allclose(errors[0][2], e01)
+    assert errors[1][:2] == (target, t1) and np.allclose(errors[1][2], e1)
+
+    p.clear()
+    assert len(list(p.collect_errors())) == 0
+
+
+def test_bad_obj_type():
+    split = SplitNetworks(nengo.Network())
+    split.adds = {"woops": "host"}
+    with pytest.raises(AssertionError, match="cannot handle type"):
+        split.finalize()

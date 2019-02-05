@@ -6,6 +6,12 @@ from nengo_loihi.block import Axon, LoihiBlock, Synapse, Probe
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model, VTH_MAX
 from nengo_loihi.emulator import EmulatorInterface
+from nengo_loihi.emulator.interface import (
+    BlockInfo,
+    CompartmentState,
+    NoiseState,
+    SynapseState,
+)
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.inputs import SpikeInput
 
@@ -103,3 +109,16 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
 
     assert allclose(emu_u, sim_u)
     assert allclose(emu_v, sim_v)
+
+
+def test_dtype_errors():
+    block = LoihiBlock(1)
+    block_info = BlockInfo([block])
+    block.compartment.vth = block.compartment.vth.astype(np.float64)
+
+    with pytest.raises(ValueError, match="dtype.*not supported"):
+        CompartmentState(block_info)
+    with pytest.raises(ValueError, match="dtype.*not supported"):
+        NoiseState(block_info)
+    with pytest.raises(ValueError, match="dtype.*not supported"):
+        SynapseState(block_info)

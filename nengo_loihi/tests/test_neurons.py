@@ -47,6 +47,17 @@ def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     assert allclose(est_rates, ref_rates, atol=1, rtol=0, xtol=1)
 
 
+def test_loihi_rates_other_type(allclose):
+    """Test using a neuron type that has no Loihi-specific implementation"""
+    neuron_type = nengo.neurons.Sigmoid()
+    x = np.linspace(-7, 10)
+    gain, bias = 0.2, 0.4
+    dt = 0.002
+    ref_rates = neuron_type.rates(x, gain, bias)
+    rates = loihi_rates(neuron_type, x, gain, bias, dt)
+    assert allclose(rates, ref_rates)
+
+
 @pytest.mark.parametrize('neuron_type', [
     LoihiLIF(),
     LoihiSpikingRectifiedLinear(),

@@ -1,6 +1,9 @@
-import numpy as np
 import nengo
+from nengo.exceptions import BuildError
+import numpy as np
 import pytest
+
+from nengo_loihi.builder import Model
 
 
 @pytest.mark.parametrize("tau_ref", [0.001, 0.003, 0.005])
@@ -119,3 +122,23 @@ def test_amplitude(Simulator, amplitude, neuron_type, seed, plt, allclose):
 
     # note: one-timestep delay, despite synapse=None
     assert allclose(sim.data[neuron_p][:-1], sim.data[indirect_p][1:])
+
+
+def test_bad_gain_error(Simulator):
+    with nengo.Network() as net:
+        nengo.Ensemble(5, 1, intercepts=nengo.dists.Choice([2.]))
+
+    model = Model()
+    model.intercept_limit = 10.
+    with pytest.raises(BuildError, match="negative.*gain"):
+        with Simulator(net, model=model):
+            pass
+
+
+def test_nonloihi_neuron_error(Simulator):
+    with nengo.Network() as net:
+        nengo.Ensemble(5, 1, neuron_type=nengo.neurons.Sigmoid(tau_ref=0.005))
+
+    with pytest.raises(BuildError, match="cannot be simulated"):
+        with Simulator(net):
+            pass

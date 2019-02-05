@@ -1,6 +1,7 @@
-import pytest
 import nengo
+from nengo.exceptions import BuildError
 import numpy as np
+import pytest
 
 import nengo_loihi
 from nengo_loihi.compat import transform_array
@@ -209,3 +210,30 @@ def test_no_input(Simulator, seed, allclose):
         sim_remove.run_steps(100)
 
     assert allclose(sim_base.data[p], sim_remove.data[p])
+
+
+def test_transform_errors(Simulator):
+    def make_net(transform1=1., transform2=1.):
+        with nengo.Network() as net:
+            a = nengo.Ensemble(3, 2)
+            q = nengo.Node(size_in=2)
+            b = nengo.Ensemble(4, 2)
+            nengo.Connection(a, q, transform=transform1)
+            nengo.Connection(q, b, transform=transform2)
+
+        return net
+
+    net = make_net(transform1=[1, 1])
+    with pytest.raises(BuildError, match="transform"):
+        with Simulator(net, remove_passthrough=True):
+            pass
+
+    net = make_net(transform2=[1, 1])
+    with pytest.raises(BuildError, match="transform"):
+        with Simulator(net, remove_passthrough=True):
+            pass
+
+    net = make_net()
+    with pytest.warns(UserWarning, match="synapse"):
+        with Simulator(net, remove_passthrough=True):
+            pass

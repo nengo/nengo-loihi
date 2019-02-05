@@ -1,6 +1,7 @@
 import inspect
 
 import nengo
+from nengo.exceptions import ReadonlyError, ValidationError
 import numpy as np
 import pytest
 
@@ -46,6 +47,25 @@ def test_probedict_fallbacks(precompute, Simulator):
     #       replaced in the splitting process
     assert conn_ab  # in sim.data
     assert conn_bc  # in sim.data
+
+
+def test_probedict_interface(Simulator):
+    with nengo.Network(label='net') as net:
+        u = nengo.Node(1, label='u')
+        a = nengo.Ensemble(9, 1, label='a')
+        nengo.Connection(u, a)
+
+    with Simulator(net) as sim:
+        pass
+
+    objs = [u, a]
+    count = 0
+    for o in sim.data:
+        count += 1
+        if o in objs:
+            objs.remove(o)
+    assert len(sim.data) == count
+    assert len(objs) == 0, "Objects did not appear in probedict: %s" % objs
 
 
 @pytest.mark.xfail
@@ -376,3 +396,56 @@ def test_seeds(precompute, Simulator, seed):
             for name, subsim in sim.sims.items():
                 if name.startswith("host"):
                     assert subsim.model.seeds[o] == i
+
+
+def test_interface(Simulator, allclose):
+    """Tests for the Simulator API for things that aren't covered elsewhere"""
+    # test sim.time
+    with nengo.Network() as model:
+        nengo.Ensemble(2, 1)
+
+    simtime = 0.003
+    with Simulator(model) as sim:
+        sim.run(simtime)
+
+    assert allclose(sim.time, simtime)
+
+    # test that sim.dt is read-only
+    with pytest.raises(ReadonlyError, match="dt"):
+        sim.dt = 0.002
+
+    # test error for bad target
+    with pytest.raises(ValidationError, match="target"):
+        with Simulator(model, target="foo"):
+            pass
+
+    # test negative runtime
+    with pytest.raises(ValidationError, match="[Mm]ust be positive"):
+        with Simulator(model):
+            sim.run(-0.1)
+
+    # test zero step warning
+    with pytest.warns(UserWarning, match="0 timesteps"):
+        with Simulator(model):
+            sim.run(1e-8)
+
+
+@pytest.mark.hang
+@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
+                    reason="Only Loihi has special shutdown procedure")
+def test_loihi_simulation_exception(Simulator):
+    """Test that Loihi shuts down properly after exception durin simulation"""
+    def node_fn(t):
+        if t < 0.002:
+            return 0
+        else:
+            raise RuntimeError("exception to kill the simulation")
+
+    with nengo.Network() as net:
+        u = nengo.Node(node_fn)
+        e = nengo.Ensemble(8, 1)
+        nengo.Connection(u, e)
+
+    with Simulator(net, precompute=False) as sim:
+        sim.run(0.01)
+        assert not sim.sims['loihi'].nxDriver.conn

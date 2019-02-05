@@ -1,11 +1,16 @@
+import nengo
+from nengo.exceptions import BuildError
 from nengo.utils.numpy import rms
 import numpy as np
 import pytest
 
-from nengo_loihi.block import SynapseFmt
+from nengo_loihi.block import LoihiBlock, SynapseFmt
+from nengo_loihi.builder import Model
+from nengo_loihi.decode_neurons import NoisyDecodeNeurons
 from nengo_loihi.discretize import (
     decay_int,
     decay_magnitude,
+    discretize_block,
     discretize_weights,
     overflow_signed,
 )
@@ -106,3 +111,43 @@ def test_lossy_shift(lossy_shift, rng):
         np.int32)
 
     assert np.allclose(w2, np.left_shift(clipped, 8))
+
+
+def test_bad_weight_exponent_error(Simulator):
+    with nengo.Network() as net:
+        a = nengo.Ensemble(5, 1)
+        b = nengo.Ensemble(5, 1, neuron_type=nengo.LIF(tau_rc=5.))
+        nengo.Connection(a.neurons, b.neurons,
+                         transform=1e-8*np.ones((5, 5)), synapse=5.)
+
+    with pytest.raises(BuildError, match="[Cc]ould not find.*weight exp"):
+        with Simulator(net):
+            pass
+
+
+def test_bad_bias_scaling_error(Simulator):
+    block = LoihiBlock(10)
+    block.compartment.configure_lif(tau_rc=5., vth=1e8)
+    block.compartment.bias[:] = 1000.
+
+    with pytest.raises(BuildError, match="[Cc]ould not find.*bias scaling"):
+        discretize_block(block)
+
+
+def test_noise_amplitude_warnings(Simulator, seed):
+    with nengo.Network(seed=seed) as net:
+        a = nengo.Ensemble(5, 1)
+        b = nengo.Ensemble(5, 1)
+        nengo.Connection(a, b)
+
+    model = Model()
+    model.decode_neurons = NoisyDecodeNeurons(10, noise_exp=5)
+    with pytest.warns(UserWarning, match="[Nn]oise.*exceeds.*upper"):
+        with Simulator(net, model=model):
+            pass
+
+    model = Model()
+    model.decode_neurons = NoisyDecodeNeurons(10, noise_exp=-7)
+    with pytest.warns(UserWarning, match="[Nn]oise.*below.*lower"):
+        with Simulator(net, model=model):
+            pass
