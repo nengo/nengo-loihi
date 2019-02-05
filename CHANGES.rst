@@ -48,6 +48,10 @@ Release history
   nengo core (and therefore any randomly generated parameters, such as
   ensemble encoders, will be generated in the same way).
   (`#70 <https://github.com/nengo/nengo-loihi/pull/70>`_)
+- Seeded networks that have learning are now deterministic on both
+  emulator and hardware.
+  (`#140 <https://github.com/nengo/nengo-loihi/pull/140>`__)
+
 
 0.5.0 (February 12, 2019)
 =========================

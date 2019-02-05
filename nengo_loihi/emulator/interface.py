@@ -1,7 +1,6 @@
 from __future__ import division
 
-import collections
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 import logging
 import warnings
 
@@ -144,7 +143,7 @@ class BlockInfo(object):
 
     def __init__(self, blocks):
         self.blocks = list(blocks)
-        self.slices = {}
+        self.slices = OrderedDict()
 
         assert self.dtype in (np.float32, np.int32)
 
@@ -193,9 +192,10 @@ class IterableState(object):
 
         blocks_items = list(
             self._blocks_items(block_info.blocks, block_key))
-        self.block_map = {item: block for block, item in blocks_items}
-        self.slices = {item: block_info.slices[block]
-                       for block, item in blocks_items}
+        self.block_map = OrderedDict(
+            (item, block) for block, item in blocks_items)
+        self.slices = OrderedDict(
+            (item, block_info.slices[block]) for block, item in blocks_items)
 
     @staticmethod
     def _blocks_items(blocks, block_key):
@@ -409,10 +409,10 @@ class SynapseState(IterableState):
 
         self.pes_error_scale = pes_error_scale
 
-        self.spikes_in = {}
-        self.traces = {}
-        self.trace_spikes = {}
-        self.pes_errors = {}
+        self.spikes_in = OrderedDict()
+        self.traces = OrderedDict()
+        self.trace_spikes = OrderedDict()
+        self.pes_errors = OrderedDict()
         for synapse in self.slices:
             n = synapse.n_axons
             self.spikes_in[synapse] = []
@@ -594,7 +594,7 @@ class ProbeState(object):
                 )
                 self.filter_pos[probe] = 0
 
-        self.outputs = collections.defaultdict(list)
+        self.outputs = defaultdict(list)
 
     def __getitem__(self, probe):
         assert isinstance(probe, Probe)

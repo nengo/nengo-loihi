@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import warnings
 
 from nengo import Connection, Lowpass, Node
@@ -212,7 +213,7 @@ def find_clusters(net, offchip):
     # find which objects have Probes, as we need to make sure to keep them
     probed_objs = set(base_obj(p.target) for p in net.all_probes)
 
-    clusters = {}   # mapping from object to its Cluster
+    clusters = OrderedDict()  # mapping from object to its Cluster
     for c in net.all_connections:
         base_pre = base_obj(c.pre_obj)
         base_post = base_obj(c.post_obj)

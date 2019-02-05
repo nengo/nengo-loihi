@@ -1,5 +1,6 @@
 from __future__ import division
 
+import collections
 from distutils.version import LooseVersion
 import logging
 import os
@@ -49,7 +50,7 @@ class HardwareInterface(object):
         self.nengo_io_c2h = None  # IO snip chip-to-host channel
         self._probe_filters = {}
         self._probe_filter_pos = {}
-        self._snip_probe_data = {}
+        self._snip_probe_data = collections.OrderedDict()
         self._chip2host_sent_steps = 0
 
         # Maximum number of spikes that can be sent through
@@ -62,9 +63,6 @@ class HardwareInterface(object):
         self.cwd = os.getcwd()
         logger.debug("cd to %s", nxsdk_dir)
         os.chdir(nxsdk_dir)
-
-        if seed is not None:
-            warnings.warn("Seed will be ignored when running on Loihi")
 
         # probeDict is a class attribute, so might contain things left over
         # from previous simulators
@@ -121,7 +119,7 @@ class HardwareInterface(object):
         self.board = allocator(self.model)
 
         # --- build
-        self.n2board = build_board(self.board)
+        self.n2board = build_board(self.board, seed=seed)
 
     def run_steps(self, steps, blocking=True):
         if self.use_snips and self.nengo_io_h2c is None:

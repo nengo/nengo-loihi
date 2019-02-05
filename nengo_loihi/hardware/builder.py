@@ -2,6 +2,7 @@ from __future__ import division
 
 import logging
 
+import nengo.utils.numpy as npext
 from nengo.utils.stdlib import groupby
 import numpy as np
 
@@ -22,7 +23,7 @@ from nengo_loihi.inputs import SpikeInput
 logger = logging.getLogger(__name__)
 
 
-def build_board(board):
+def build_board(board, seed=None):
     n_chips = board.n_chips()
     n_cores_per_chip = board.n_cores_per_chip()
     n_synapses_per_core = board.n_synapses_per_core()
@@ -39,21 +40,25 @@ def build_board(board):
 
     # build all chips
     assert len(board.chips) == len(n2board.n2Chips)
+    rng = np.random.RandomState(seed)
     for chip, n2chip in zip(board.chips, n2board.n2Chips):
         logger.debug("Building chip %s", chip)
-        build_chip(n2chip, chip)
+        seed = rng.randint(npext.maxint)
+        build_chip(n2chip, chip, seed=seed)
 
     return n2board
 
 
-def build_chip(n2chip, chip):
+def build_chip(n2chip, chip, seed=None):
     assert len(chip.cores) == len(n2chip.n2Cores)
+    rng = np.random.RandomState(seed)
     for core, n2core in zip(chip.cores, n2chip.n2Cores):
         logger.debug("Building core %s", core)
-        build_core(n2core, core)
+        seed = rng.randint(npext.maxint)
+        build_core(n2core, core, seed=seed)
 
 
-def build_core(n2core, core):  # noqa: C901
+def build_core(n2core, core, seed=None):  # noqa: C901
     assert len(core.cxProfiles) < CX_PROFILES_MAX
     assert len(core.vthProfiles) < VTH_PROFILES_MAX
 
@@ -107,6 +112,19 @@ def build_core(n2core, core):  # noqa: C901
             spikeLevelFrac=traceCfg.spikeLevelFrac,
         )
         tc.writeToRegister(n2core.stdpPreCfg[i])
+
+    # --- seed randomness
+    def seed_trace(trace_random, rng):
+        trace_random.random0 = rng.randint(2**32)
+        trace_random.random1 = rng.randint(2**32)
+        trace_random.random2 = rng.randint(2**32)
+
+    rng = np.random.RandomState(seed)
+    n2core.dendriteRandom.word = rng.randint(2**32)  # neuron noise
+    seed_trace(n2core.stdpPreRandom, rng)  # pre trace rounding
+    seed_trace(n2core.stdpPostRandom, rng)  # post trace rounding
+    seed_trace(n2core.somaRandom, rng)  # soma activity trace rounding
+    n2core.synapseRepackRandom.word = rng.randint(2**32)  # synaptic rounding
 
     # --- learning
     firstLearningIndex = None
