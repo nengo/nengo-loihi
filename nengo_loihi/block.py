@@ -65,6 +65,7 @@ class LoihiBlock(object):
             self.named_axons[name] = axon
 
     def add_probe(self, probe):
+        assert probe.target is self
         self.probes.append(probe)
 
 
