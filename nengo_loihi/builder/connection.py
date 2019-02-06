@@ -379,9 +379,8 @@ def build_connection(model, conn):
         model.objs[conn]['mid_axon'] = mid_ax
 
         post_cx.compartment.configure_filter(post_tau, dt=model.dt)
-    elif isinstance(conn.post_obj, Node):
-        raise NotImplementedError()
     else:
+        # This includes Node, since nodes can't be targets on-chip
         raise NotImplementedError()
 
     model.params[conn] = BuiltConnection(

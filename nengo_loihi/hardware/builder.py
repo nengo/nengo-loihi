@@ -119,12 +119,13 @@ def build_core(n2core, core):  # noqa: C901
     numStdp = 0
     if firstLearningIndex is not None:
         for synapse in core.iterate_synapses():
+            assert synapse.learning, (
+                "Currently, all synapses on core are learning or none are")
+
             axons = np.array(core.synapse_axons[synapse])
             if synapse.learning:
                 numStdp += len(axons)
                 assert np.all(axons >= firstLearningIndex)
-            else:
-                assert np.all(axons < firstLearningIndex)
 
     if numStdp > 0:
         logger.debug("- Configuring PES learning")
@@ -443,8 +444,7 @@ def build_axons(n2core, core, block, all_axons):  # noqa C901
     axon_id = 0
     axon_map = {}
     for cx_id, axons in axons_by_cx:
-        if len(axons) == 0:
-            continue
+        assert len(axons) > 0
 
         # axon -> (cx, atom, type, tchip_id, tcore_id, taxon_id)
         assert all(axon[0] == cx_id for axon in axons)

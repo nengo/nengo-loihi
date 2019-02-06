@@ -144,8 +144,8 @@ class HardwareInterface(object):
             if len(x) > 0:
                 if increment is None:
                     increment = len(x)
-                else:
-                    assert increment == len(x)
+
+                assert increment == len(x), "All x need same number of steps"
 
                 if probe.weights is not None:
                     x = np.dot(x, probe.weights)
@@ -169,10 +169,8 @@ class HardwareInterface(object):
             x = data[snip_range[probe]]
             assert x.ndim == 1
             if probe.key == 'spiked':
-                if isinstance(probe.target, LoihiBlock):
-                    refract_delays = probe.target.compartment.refractDelay
-                else:
-                    refract_delays = 1
+                assert isinstance(probe.target, LoihiBlock)
+                refract_delays = probe.target.compartment.refractDelay
 
                 # Loihi uses the voltage value to indicate where we
                 # are in the refractory period. We want to find neurons

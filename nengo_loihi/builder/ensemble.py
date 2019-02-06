@@ -62,6 +62,8 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
 
 @Builder.register(Ensemble)
 def build_ensemble(model, ens):
+    if isinstance(ens.neuron_type, nengo.Direct):
+        raise NotImplementedError("Direct neurons not implemented")
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[ens])
@@ -69,13 +71,12 @@ def build_ensemble(model, ens):
     eval_points = gen_eval_points(ens, ens.eval_points, rng=rng)
 
     # Set up encoders
-    if isinstance(ens.neuron_type, nengo.Direct):
-        encoders = np.identity(ens.dimensions)
-    elif isinstance(ens.encoders, Distribution):
+    if isinstance(ens.encoders, Distribution):
         encoders = get_samples(
             ens.encoders, ens.n_neurons, ens.dimensions, rng=rng)
     else:
         encoders = npext.array(ens.encoders, min_dims=2, dtype=np.float64)
+
     if ens.normalize_encoders:
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
 
@@ -95,13 +96,8 @@ def build_ensemble(model, ens):
         raise NotImplementedError("Ensemble noise not implemented")
 
     # Scale the encoders
-    if isinstance(ens.neuron_type, nengo.Direct):
-        raise NotImplementedError("Direct neurons not implemented")
-        # scaled_encoders = encoders
-    else:
-        # to keep scaling reasonable, we don't include the radius
-        # scaled_encoders = encoders * (gain / ens.radius)[:, np.newaxis]
-        scaled_encoders = encoders * gain[:, np.newaxis]
+    # we exclude the radius to keep scaling reasonable for decode neurons
+    scaled_encoders = encoders * gain[:, np.newaxis]
 
     model.add_block(block)
 
