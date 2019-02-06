@@ -1,6 +1,7 @@
 from __future__ import division
 
 import collections
+from collections import OrderedDict
 import logging
 import warnings
 
@@ -587,29 +588,15 @@ class ProbeState(object):
 
     def __init__(self, block_info, inputs, dt):
         self.dt = dt
-        self.input_probes = {}
-        for spike_input in inputs:
-            for probe in spike_input.probes:
-                assert probe.key == 'spiked'
-                self.input_probes[probe] = spike_input
-        self.other_probes = {}
+
+        self.probes = OrderedDict()
         for block in block_info.blocks:
             for probe in block.probes:
-                self.other_probes[probe] = block_info.slices[block]
+                self.probes[probe] = block_info.slices[block]
 
         self.filters = {}
         self.filter_pos = {}
-        for probe, spike_input in self.input_probes.items():
-            if probe.synapse is not None:
-                self.filters[probe] = probe.synapse.make_step(
-                    shape=spike_input.spikes[0][probe.slice].shape[0],
-                    dt=self.dt,
-                    rng=None,
-                    dtype=spike_input.spikes.dtype,
-                )
-                self.filter_pos[probe] = 0
-
-        for probe, sl in self.other_probes.items():
+        for probe, sl in self.probes.items():
             if probe.synapse is not None:
                 if probe.weights is None or is_number(probe.weights):
                     size = sl.stop - sl.start
@@ -661,13 +648,8 @@ class ProbeState(object):
         return len(x)
 
     def update(self, t, compartment):
-        for probe, spike_input in self.input_probes.items():
-            assert probe.key == 'spiked'
-            output = spike_input.spikes[t][probe.slice].copy()
-            self.outputs[probe].append(output)
-
-        for probe, out_idx in self.other_probes.items():
+        for probe, sl in self.probes.items():
             p_slice = probe.slice
             assert hasattr(compartment, probe.key)
-            output = getattr(compartment, probe.key)[out_idx][p_slice].copy()
+            output = getattr(compartment, probe.key)[sl][p_slice].copy()
             self.outputs[probe].append(output)

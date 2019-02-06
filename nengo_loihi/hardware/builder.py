@@ -274,10 +274,6 @@ def build_block(n2core, core, block, cx_idxs, ax_range):
 
 def build_input(n2core, core, spike_input, cx_idxs):
     assert len(spike_input.axons) > 0
-
-    for probe in spike_input.probes:
-        build_probe(n2core, core, spike_input, probe, cx_idxs)
-
     n2board = n2core.parent.parent
 
     assert isinstance(spike_input, SpikeInput)

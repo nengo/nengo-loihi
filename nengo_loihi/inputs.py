@@ -11,16 +11,9 @@ class LoihiInput(object):
     def __init__(self, label=None):
         self.label = label
         self.axons = []
-        self.probes = []
 
     def add_axon(self, axon):
         self.axons.append(axon)
-
-    def add_probe(self, probe):
-        if probe.target is None:
-            probe.target = self
-        assert probe.target is self
-        self.probes.append(probe)
 
 
 class SpikeInput(LoihiInput):
