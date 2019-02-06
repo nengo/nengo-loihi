@@ -237,3 +237,67 @@ def test_transform_errors(Simulator):
     with pytest.warns(UserWarning, match="synapse"):
         with Simulator(net, remove_passthrough=True):
             pass
+
+
+def test_cluster_errors(Simulator, seed, plt):
+    """Test that situations with ClusterErrors keep passthrough nodes"""
+    simtime = 0.2
+
+    def make_net(learn_error=False, loop=False):
+        probes = {}
+        with nengo.Network(seed=seed) as net:
+            u = nengo.Node(lambda t: -np.sin((2 * np.pi / simtime) * t))
+            a = nengo.Ensemble(50, 1)
+            q = nengo.Node(size_in=1, label='q')
+            b = nengo.Ensemble(50, 1)
+
+            nengo.Connection(u, a, synapse=None)
+            nengo.Connection(a, q)
+            nengo.Connection(q, b)
+
+            if learn_error:
+                ab = nengo.Connection(a, b, learning_rule_type=nengo.PES())
+                nengo.Connection(q, ab.learning_rule)
+
+            if loop:
+                p = nengo.Node(size_in=1, label='p')
+                nengo.Connection(q, p)
+                nengo.Connection(p, q, transform=0.5)
+
+            probes['b'] = nengo.Probe(b, synapse=0.02)
+
+        return net, probes
+
+    # Since `convert_passthroughs` catches its own cluster errors, we won't see
+    # the error here. We ensure identical behaviour (so nodes are not removed).
+
+    # Test learning rule node input
+    net, probes = make_net(learn_error=True)
+    with Simulator(net, remove_passthrough=False) as sim0:
+        sim0.run(simtime)
+
+    with Simulator(net, remove_passthrough=True) as sim1:
+        sim1.run(simtime)
+
+    y0_learn_error = sim0.data[probes['b']]
+    y1_learn_error = sim1.data[probes['b']]
+    plt.subplot(211)
+    plt.plot(sim0.trange(), y0_learn_error)
+    plt.plot(sim1.trange(), y1_learn_error)
+
+    # Test loop
+    net, probes = make_net(loop=True)
+    with Simulator(net, remove_passthrough=False) as sim0:
+        sim0.run(simtime)
+
+    with Simulator(net, remove_passthrough=True) as sim1:
+        sim1.run(simtime)
+
+    y0_loop = sim0.data[probes['b']]
+    y1_loop = sim1.data[probes['b']]
+    plt.subplot(212)
+    plt.plot(sim0.trange(), y0_loop)
+    plt.plot(sim1.trange(), y1_loop)
+
+    assert np.allclose(y1_learn_error, y0_learn_error)
+    assert np.allclose(y1_loop, y0_loop)

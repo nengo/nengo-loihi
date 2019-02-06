@@ -145,9 +145,10 @@ class Cluster(object):
             yield (slice(None), trans1, None, obj)
 
         for c in outputs[obj]:
-            if c.learning_rule_type is not None:
-                raise ClusterException("no learning allowed")
-            elif isinstance(c.post_obj, LearningRule):
+            # should not be possible to have learning on connection from node
+            assert c.learning_rule_type is None
+
+            if isinstance(c.post_obj, LearningRule):
                 raise ClusterException("no error signals allowed")
             elif c.post_obj in previous:
                 # cycles of passthrough Nodes are possible in Nengo, but
