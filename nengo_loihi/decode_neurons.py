@@ -2,10 +2,7 @@ import nengo
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Synapse
-from nengo_loihi.neurons import (
-    LoihiSpikingRectifiedLinear,
-    NIF,
-)
+from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 
 
 class DecodeNeurons(object):
@@ -179,7 +176,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
         encoders = np.vstack([np.eye(dim), -np.eye(dim)] * self.pairs_per_dim)
         ens = nengo.Ensemble(
             n_neurons, dim,
-            neuron_type=NIF(tau_ref=0.0),
+            neuron_type=nengo.SpikingRectifiedLinear(),
             encoders=encoders,
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),

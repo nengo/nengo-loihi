@@ -28,6 +28,10 @@ Release history
   the classes previously in ``conv.py`` have been moved to Nengo as part of
   this transition. The MNIST convnet example demonstrates the new syntax.
   (`#142 <https://github.com/nengo/nengo-loihi/pull/142>`__)
+- Removed the ``NIF`` and ``NIFRate`` neuron types. These types were only used
+  for encoding node values in spikes to send to the chip, which can be done
+  just as well with ``nengo.SpikingRectifiedLinear`` neurons.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 
 **Fixed**
 

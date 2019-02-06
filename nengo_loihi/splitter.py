@@ -314,7 +314,7 @@ def split_host_to_chip(networks, conn):
                               add_to_container=False)
     networks.add(receive2post, "chip")
 
-    logger.debug("Creating NIF ensemble for %s", conn)
+    logger.debug("Creating DecodeNeuron ensemble for %s", conn)
     if networks.node_neurons is None:
         raise BuildError(
             "DecodeNeurons must be specified for host->chip connection.")
