@@ -83,9 +83,7 @@ def signal_probe(model, key, probe):
     kwargs = model.chip2host_params.get(probe, None)
     weights = None
     if kwargs is not None:
-        if kwargs['function'] is not None:
-            raise BuildError("Functions not supported for signal probe")
-
+        assert kwargs['function'] is None
         weights = kwargs['transform'].T / model.dt
 
     if isinstance(probe.target, nengo.ensemble.Neurons):

@@ -29,9 +29,6 @@ class SpikeInput(LoihiInput):
         assert ti not in self.spikes
         self.spikes[ti] = spike_idxs
 
-    def clear_spikes(self):
-        self.spikes.clear()
-
     def spike_times(self):
         return sorted(self.spikes)
 

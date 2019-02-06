@@ -32,6 +32,8 @@ Release history
   for encoding node values in spikes to send to the chip, which can be done
   just as well with ``nengo.SpikingRectifiedLinear`` neurons.
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+- Removed the unused/untested ``Synapse.set_diagonal_weights``.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 
 **Fixed**
 

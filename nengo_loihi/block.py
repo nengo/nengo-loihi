@@ -26,8 +26,6 @@ class LoihiBlock(object):
         Compartment object representing all compartments in the block.
     n_neurons : int
         The number of neurons in the block.
-    named_axons : dict {str: Axon}
-        Mapping from a name to an Axon object.
     named_synapses : dict {str: Synape}
         Mapping from a name to a Synapse object.
     label : string
@@ -43,7 +41,6 @@ class LoihiBlock(object):
 
         self.compartment = Compartment(n_compartments=n_neurons)
         self.axons = []
-        self.named_axons = {}
         self.synapses = []
         self.named_synapses = {}
         self.probes = []
@@ -58,11 +55,8 @@ class LoihiBlock(object):
             assert name not in self.named_synapses
             self.named_synapses[name] = synapse
 
-    def add_axon(self, axon, name=None):
+    def add_axon(self, axon):
         self.axons.append(axon)
-        if name is not None:
-            assert name not in self.named_axons
-            self.named_axons[name] = axon
 
     def add_probe(self, probe):
         assert probe.target is self
@@ -595,16 +589,6 @@ class Synapse(object):
             "Indices shapes must match weights shapes")
         assert len(weights) == len(indices)
         self.indices = indices
-
-    def set_diagonal_weights(self, diag):
-        weights = diag.ravel()
-        indices = list(range(len(weights)))
-        self._set_weights_indices(weights, indices)
-        assert len(self.weights) == self.n_axons
-
-        idxBits = self.idx_bits()
-        self.format(compression=3, idxBits=idxBits, fanoutType=1,
-                    numSynapses=63, wgtBits=7)
 
     def set_full_weights(self, weights):
         self._set_weights_indices(weights)

@@ -92,8 +92,8 @@ def test_population_input(request, allclose):
             sim.run_steps(steps, blocking=False)
             for ti in range(1, steps+1):
                 spikes_i = [spike for spike in spikes if spike[1] == ti]
-                sim.host2chip(spikes_i, [])
-                sim.chip2host()
+                sim.host2chip(spikes=spikes_i, errors=[])
+                sim.chip2host(probes_receivers={})
 
             y = sim.get_probe_output(probe)
     else:

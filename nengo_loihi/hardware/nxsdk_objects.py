@@ -48,9 +48,6 @@ class Board(object):
     def find_synapse(self, synapse):
         return self.synapse_index[synapse]
 
-    def cores(self):
-        return (core for chip in self.chips for core in chip.cores)
-
     def n_chips(self):
         return len(self.chips)
 
@@ -350,32 +347,6 @@ class VthProfile(Profile):
     def __init__(self, vth):
         super(VthProfile, self).__init__()
         self.vth = vth
-
-
-class StdpProfile(Profile):
-    params = (
-        'uCodePtr', 'decimateExp', 'numProducts', 'requireY', 'usesXepoch')
-
-    def __init__(self, uCodePtr=0, decimateExp=0, numProducts=0, requireY=0,
-                 usesXepoch=0):
-        super(StdpProfile, self).__init__()
-        self.uCodePtr = uCodePtr
-        self.decimateExp = decimateExp
-        self.numProducts = numProducts
-        self.requireY = requireY
-        self.usesXepoch = usesXepoch
-
-
-class StdpPreProfile(Profile):
-    params = ('updateAlways', 'numTraces', 'numTraceHist', 'stdpProfile')
-
-    def __init__(
-            self, updateAlways=1, numTraces=0, numTraceHist=0, stdpProfile=0):
-        super(StdpPreProfile, self).__init__()
-        self.updateAlways = updateAlways
-        self.numTraces = numTraces
-        self.numTraceHist = numTraceHist
-        self.stdpProfile = stdpProfile
 
 
 class TraceCfg(Profile):
