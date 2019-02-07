@@ -449,3 +449,24 @@ def test_loihi_simulation_exception(Simulator):
     with Simulator(net, precompute=False) as sim:
         sim.run(0.01)
         assert not sim.sims['loihi'].nxDriver.conn
+
+
+@pytest.mark.parametrize('precompute', [True, False])
+def test_double_run(precompute, Simulator, seed, allclose):
+    simtime = 0.2
+    with nengo.Network(seed=seed) as net:
+        stim = nengo.Node(lambda t: np.sin((2*np.pi/simtime) * t))
+        ens = nengo.Ensemble(10, 1)
+        probe = nengo.Probe(ens)
+        nengo.Connection(stim, ens, synapse=None)
+
+    with Simulator(net, precompute=True) as sim0:
+        sim0.run(simtime)
+
+    with Simulator(net, precompute=precompute) as sim1:
+        sim1.run(simtime / 2)
+        sim1.run(simtime / 2)
+
+    assert allclose(sim1.time, sim0.time)
+    assert len(sim1.trange()) == len(sim0.trange())
+    assert allclose(sim1.data[probe], sim0.data[probe])
