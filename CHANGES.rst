@@ -37,6 +37,10 @@ Release history
 - Emulator now fails for any cx_base < 0, except -1 which indicates
   an unused axon.
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+- Noise now works correctly with small exponents on both the chip and
+  emulator. Previously, the emulator did not allow very small exponents, and
+  such exponents produced noise with the wrong magnitude on the chip.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 
 **Fixed**
 

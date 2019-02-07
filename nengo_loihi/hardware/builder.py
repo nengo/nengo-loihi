@@ -210,6 +210,9 @@ def build_core(n2core, core):  # noqa: C901
         assert all(block.compartment.noiseAtDendOrVm == noiseAtDendOrVm
                    for block in core.blocks)
 
+        if noiseExp0 < 7:  # unexpected shifting: exp < 7 acts as exp + 1
+            noiseExp0 = noiseExp0 - 1
+
         n2core.dendriteSharedCfg.configure(
             posVmLimit=int(posVmLimit),
             negVmLimit=int(negVmLimit),

@@ -282,12 +282,13 @@ def discretize_compartment(comp, w_max):
     assert (v_scale[0] == v_scale).all()
     enable_noise = np.any(comp.enableNoise)
     noiseExp0 = np.round(np.log2(10.**comp.noiseExp0 * v_scale[0]))
-    if enable_noise and noiseExp0 < 0:
+    if enable_noise and noiseExp0 < 1:
         warnings.warn("Noise amplitude falls below lower limit")
+        enable_noise = False
     if enable_noise and noiseExp0 > 23:
         warnings.warn(
             "Noise amplitude exceeds upper limit (%d > 23)" % (noiseExp0,))
-    comp.noiseExp0 = int(np.clip(noiseExp0, 0, 23))
+    comp.noiseExp0 = int(np.clip(noiseExp0, 1, 23))
     comp.noiseMantOffset0 = int(np.round(2*comp.noiseMantOffset0))
 
     # --- vmin and vmax

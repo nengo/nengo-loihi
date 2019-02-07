@@ -478,19 +478,29 @@ def test_double_run(precompute, Simulator, seed, allclose):
     assert allclose(sim1.data[probe], sim0.data[probe])
 
 
-def test_simulator_noise(request, plt, seed):
+# These base-10 exp values translate to noiseExp of [5, 10, 13] on the chip.
+@pytest.mark.parametrize('exp', [-4.5, -3, -2])
+def test_simulator_noise(exp, request, plt, seed, allclose):
+    # TODO: test that the mean falls within a number of standard errors
+    # of the expected mean, and that non-zero offsets work correctly.
+    # Currently, there is an unexpected negative bias for small noise
+    # exponents, apparently because there is a probability of generating
+    # the shifted equivalent of -128, whereas with e.g. exp = 7 all the
+    # generated numbers fall in [-127, 127].
+    offset = 0
+
     target = request.config.getoption("--target")
-    n_cx = 10
+    n_cx = 1000
 
     model = Model()
     block = LoihiBlock(n_cx)
     block.compartment.configure_relu()
 
-    block.compartment.bias[:] = np.linspace(0, 0.01, n_cx)
+    block.compartment.vmin = -1
 
     block.compartment.enableNoise[:] = 1
-    block.compartment.noiseExp0 = -2
-    block.compartment.noiseMantOffset0 = 0
+    block.compartment.noiseExp0 = exp
+    block.compartment.noiseMantOffset0 = offset
     block.compartment.noiseAtDendOrVm = 1
 
     probe = Probe(target=block, key='voltage')
@@ -498,18 +508,45 @@ def test_simulator_noise(request, plt, seed):
     model.add_block(block)
 
     discretize_model(model)
+    exp2 = block.compartment.noiseExp0
+    offset2 = block.compartment.noiseMantOffset0
 
+    n_steps = 100
     if target == 'loihi':
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
-            sim.run_steps(1000)
+            sim.run_steps(n_steps)
             y = sim.get_probe_output(probe)
     else:
         with EmulatorInterface(model, seed=seed) as sim:
-            sim.run_steps(1000)
+            sim.run_steps(n_steps)
             y = sim.get_probe_output(probe)
 
-    plt.plot(y)
-    plt.yticks(())
+    t = np.arange(1, n_steps+1)
+    bias = offset2 * 2.**(exp2 - 1)
+    std = 2.**exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
+    rmean = t * bias
+    rstd = np.sqrt(t) * std
+    rerr = rstd / np.sqrt(n_cx)
+    ymean = y.mean(axis=1)
+    ystd = y.std(axis=1)
+    diffs = np.diff(np.vstack([np.zeros_like(y[0]), y]), axis=0)
+
+    plt.subplot(311)
+    plt.hist(diffs.ravel(), bins=256)
+
+    plt.subplot(312)
+    plt.plot(rmean, 'k')
+    plt.plot(rmean + 3*rerr, 'k--')
+    plt.plot(rmean - 3*rerr, 'k--')
+    plt.plot(ymean)
+    plt.title('mean')
+
+    plt.subplot(313)
+    plt.plot(rstd, 'k')
+    plt.plot(ystd)
+    plt.title('std')
+
+    assert allclose(ystd, rstd, rtol=0.1, atol=1)
 
 
 def test_population_input(request, allclose):

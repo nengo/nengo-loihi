@@ -353,15 +353,13 @@ class NoiseState(IterableState):
             self.target_u[sl] = compartment.noiseAtDendOrVm
 
         if self.dtype == np.int32:
-            if np.any(self.exp < 7):
-                warnings.warn("Noise amplitude falls below lower limit")
-                self.exp[self.exp < 7] = 7
-
-            self.mult = np.where(self.enabled, 2**(self.exp - 7), 0)
+            # TODO: if we could do this mult with shifts, it'd be faster, but
+            # numpy has no function taking a vector of positive/negative shifts
+            self.mult = np.where(self.enabled, 2.**(self.exp - 7), 0)
             self.mant_offset *= 64
 
             def uniform(rng, n=self.n_compartments):
-                return rng.randint(-128, 128, size=n, dtype=np.int32)
+                return rng.randint(-127, 128, size=n, dtype=np.int32)
 
         elif self.dtype == np.float32:
             self.mult = np.where(self.enabled, 10.**self.exp, 0)
@@ -381,7 +379,7 @@ class NoiseState(IterableState):
 
     def sample(self, rng):
         x = self._uniform(rng)
-        return (x + self.mant_offset) * self.mult
+        return ((x + self.mant_offset) * self.mult).astype(self.dtype)
 
 
 class SynapseState(IterableState):
