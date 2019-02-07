@@ -59,6 +59,7 @@ def pytest_runtest_setup(item):
     if (getattr(item.obj, "hang", False)
             and item.config.getvalue("--target") == "loihi"
             and item.config.getvalue("--no-hang")):
+        # pragma: no cover, in case we don't have any tests marked "hang" atm
         pytest.xfail("This test causes Loihi to hang indefinitely")
 
 
@@ -225,6 +226,7 @@ def pytest_collection_modifyitems(session, config, items):
     ]
     config.hook.pytest_deselected(items=deselected)
     for item in deselected:
+        # pragma: no cover, because we may not be running Nengo tests on Loihi
         items.remove(item)
 
 
