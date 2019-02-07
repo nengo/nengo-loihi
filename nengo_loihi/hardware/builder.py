@@ -369,7 +369,8 @@ def build_synapse(n2core, core, block, synapse, cx_idxs):  # noqa C901
             n2core.synapseMap[axon_id].population32MapEntry.configure(
                 cxBase=cx_base)
         else:
-            raise ValueError("Unrecognized pop_type: %d" % (synapse.pop_type))
+            raise ValueError("Synapse: unrecognized pop_type: %s" % (
+                synapse.pop_type,))
 
         if synapse.learning:
             assert core.stdp_pre_profile_idx is not None
@@ -417,7 +418,8 @@ def collect_axons(n2core, core, block, axon, cx_ids):
                     or (n_blocks == 1 and block is core.blocks[0]))
             assert len(block.probes) == 0
         else:
-            raise ValueError("Unrecognized pop_type: %d" % (synapse.pop_type))
+            raise ValueError("Axon: unrecognized pop_type: %s" % (
+                synapse.pop_type,))
 
     return all_axons
 
@@ -462,9 +464,9 @@ def build_axons(n2core, core, block, all_axons):  # noqa C901
 
             for axon in axons:
                 pop_type, tchip_id, tcore_id, taxon_id = axon[2:]
-                if pop_type == 0:  # discrete
-                    assert False, "Should have been handled in code above"
-                elif pop_type == 16:  # pop16
+                # note: pop_type==0 should have been handled in code above
+                assert pop_type in (16, 32)
+                if pop_type == 16:  # pop16
                     n2core.axonCfg[axon_id].pop16.configure(
                         coreId=tcore_id, axonId=taxon_id)
                     axon_id += 1
@@ -475,8 +477,6 @@ def build_axons(n2core, core, block, all_axons):  # noqa C901
                     n2core.axonCfg[axon_id+1].pop32_1.configure()
                     axon_id += 2
                     axon_len += 2
-                else:
-                    raise ValueError("Unrecognized pop_type: %d" % (pop_type,))
 
             axon_map[key] = (axon_id0, axon_len)
 

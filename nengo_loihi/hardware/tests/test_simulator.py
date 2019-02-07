@@ -1,6 +1,11 @@
 import pytest
 
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
+from nengo_loihi.builder import Model
+from nengo_loihi.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
+from nengo_loihi.hardware.allocators import one_to_one_allocator
+from nengo_loihi.hardware.builder import build_board
 
 
 class MockNxsdk:
@@ -36,3 +41,52 @@ def test_warn_on_future_version(monkeypatch):
     monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
     with pytest.warns(UserWarning):
         hardware_interface.HardwareInterface.check_nxsdk_version()
+
+
+def test_builder_poptype_errors():
+    pytest.importorskip('nxsdk')
+
+    # Test error in build_synapse
+    model = Model()
+    block = LoihiBlock(1)
+    block.compartment.configure_lif()
+    model.add_block(block)
+
+    synapse = Synapse(1)
+    synapse.set_full_weights([1])
+    synapse.pop_type = 8
+    block.add_synapse(synapse)
+
+    discretize_model(model)
+
+    allocator = one_to_one_allocator  # one core per ensemble
+    board = allocator(model)
+
+    with pytest.raises(ValueError, match="[Ss]ynapse.*[Uu]nrec.*pop.*type"):
+        build_board(board)
+
+    # Test error in collect_axons
+    model = Model()
+    block0 = LoihiBlock(1)
+    block0.compartment.configure_lif()
+    model.add_block(block0)
+    block1 = LoihiBlock(1)
+    block1.compartment.configure_lif()
+    model.add_block(block1)
+
+    axon = Axon(1)
+    block0.add_axon(axon)
+
+    synapse = Synapse(1)
+    synapse.set_full_weights([1])
+    synapse.pop_type = 8
+    axon.target = synapse
+    block1.add_synapse(synapse)
+
+    discretize_model(model)
+
+    allocator = one_to_one_allocator  # one core per ensemble
+    board = allocator(model)
+
+    with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):
+        build_board(board)
