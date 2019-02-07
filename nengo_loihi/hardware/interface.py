@@ -292,7 +292,9 @@ class HardwareInterface(object):
             raise SimulationError("Could not connect to the board")
 
     def close(self):
-        self.n2board.disconnect()
+        if self.n2board is not None:
+            self.n2board.disconnect()
+
         # TODO: can we chdir back earlier?
         if self.cwd is not None:
             logger.debug("cd to %s", self.cwd)

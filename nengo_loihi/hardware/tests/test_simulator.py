@@ -1,3 +1,5 @@
+import nengo
+from nengo.exceptions import SimulationError
 import pytest
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
@@ -90,3 +92,28 @@ def test_builder_poptype_errors():
 
     with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):
         build_board(board)
+
+
+@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
+                    reason="Loihi-only test")
+def test_interface_connection_errors(Simulator):
+    with nengo.Network() as net:
+        nengo.Ensemble(2, 1)
+
+    # test unbuilt model error
+    with Simulator(net) as sim:
+        sim.sims['loihi'].n2board = None
+
+        with pytest.raises(SimulationError, match="build.*before running"):
+            sim.step()
+
+    # test failed connection error
+    def startDriver(*args, **kwargs):
+        raise Exception("Mock failure to connect")
+
+    with Simulator(net) as sim:
+        interface = sim.sims['loihi']
+        interface.n2board.startDriver = startDriver
+
+        with pytest.raises(SimulationError, match="[Cc]ould not connect"):
+            interface.connect(attempts=1)
