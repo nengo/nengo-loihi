@@ -54,3 +54,8 @@ def test_probemap_bad_type_error(Simulator, monkeypatch):
     with pytest.raises(BuildError, match="not probeable"):
         with Simulator(net):
             pass
+
+
+def test_builder_strings():
+    model = Model(label="myModel")
+    assert str(model) == "Model(myModel)"

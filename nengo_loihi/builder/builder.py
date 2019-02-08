@@ -138,7 +138,7 @@ class Model(object):
         raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
 
     def __str__(self):
-        return "Model: %s" % self.label
+        return "%s(%s)" % (type(self).__name__, self.label)
 
     def add_input(self, input):
         assert isinstance(input, LoihiInput)
