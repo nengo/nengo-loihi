@@ -46,6 +46,9 @@ Release history
 - Internal classes and functions have been reorganized and refactored.
   See the pull request for more details.
   (`#159 <https://github.com/nengo/nengo-loihi/pull/159>`_)
+- Simulator now gives a warning if the user requests a progress bar, instead
+  of an error. This avoids potential problems in ``nengo_gui`` and elsewhere.
+  (`#187 <https://github.com/nengo/nengo-loihi/pull/187>`_)
 
 **Fixed**
 

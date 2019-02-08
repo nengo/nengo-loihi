@@ -277,7 +277,7 @@ def test_progressbar_values(Simulator):
         pass
 
     # progress bar not yet implemented
-    with pytest.raises(NotImplementedError):
+    with pytest.warns(UserWarning, match="progress bar"):
         with Simulator(model, progress_bar=True):
             pass
 

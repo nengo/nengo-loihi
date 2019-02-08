@@ -283,7 +283,7 @@ class Simulator(object):
     ):
         self.closed = True  # Start closed in case constructor raises exception
         if progress_bar:
-            raise NotImplementedError("progress bars not implemented")
+            warnings.warn("nengo-loihi does not support progress bars")
 
         if model is None:
             # Call the builder to make a model
