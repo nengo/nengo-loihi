@@ -34,6 +34,9 @@ Release history
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 - Removed the unused/untested ``Synapse.set_diagonal_weights``.
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+- Emulator now fails for any cx_base < 0, except -1 which indicates
+  an unused axon.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 
 **Fixed**
 

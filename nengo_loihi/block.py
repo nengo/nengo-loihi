@@ -525,7 +525,9 @@ class Synapse(object):
         if self.axon_cx_bases is None:
             return 0
         cx_base = self.axon_cx_bases[axon_idx]
-        return cx_base if cx_base > -1024 else None
+
+        # negative indicates unused axon
+        return cx_base if cx_base >= 0 else None
 
     def axon_populations(self, axon_idx):
         weight_idx = self.axon_weight_idx(axon_idx)

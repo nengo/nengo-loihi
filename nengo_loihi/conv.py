@@ -227,7 +227,7 @@ def conv2d_loihi_weights(transform):
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
             # this axon is not needed, so indicate this in cx_bases and skip
-            cx_bases[ij] = -2048
+            cx_bases[ij] = -1
             continue
 
         weight_key = (tuple(wmask_i), tuple(wmask_j))

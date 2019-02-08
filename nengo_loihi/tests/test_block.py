@@ -1,7 +1,13 @@
 from nengo.exceptions import BuildError
+import numpy as np
 import pytest
 
-from nengo_loihi.block import Axon, LoihiBlock, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.builder import Model
+from nengo_loihi.discretize import discretize_model
+from nengo_loihi.emulator import EmulatorInterface
+from nengo_loihi.hardware import HardwareInterface
+from nengo_loihi.inputs import SpikeInput
 
 
 def test_compartment_errors():
@@ -39,3 +45,54 @@ def test_strings():
 
     spike = Axon.Spike(axon_id=7, atom=2)
     assert str(spike) == "Spike(axon_id=7, atom=2)"
+
+
+@pytest.mark.xfail(pytest.config.getvalue("--target") == "loihi",
+                   reason="Existing bug with negative cx_base on Loihi")
+def test_negative_cxbase(request, seed):
+    n_axons = 3
+
+    model = Model()
+
+    input = SpikeInput(n_axons)
+    input.add_spikes(1, list(range(n_axons)))
+    model.add_input(input)
+
+    axon = Axon(n_axons)
+    input.add_axon(axon)
+
+    block = LoihiBlock(3)
+    block.compartment.configure_relu()
+    model.add_block(block)
+
+    synapse = Synapse(n_axons)
+    weights = [0.1, 0.1, 0.1]
+    indices = [0, 1, 2]
+    axon_to_weight_map = list(range(n_axons))
+    cx_bases = [0, 1, -1]
+    synapse.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=32)
+    axon.target = synapse
+    block.add_synapse(synapse)
+
+    probe = Probe(target=block, key='voltage')
+    block.add_probe(probe)
+
+    discretize_model(model)
+
+    n_steps = 2
+    if request.config.getoption("--target") == 'loihi':
+        with HardwareInterface(model, use_snips=False, seed=seed) as sim:
+            sim.run_steps(n_steps)
+            y = sim.get_probe_output(probe)
+    else:
+        with EmulatorInterface(model, seed=seed) as sim:
+            sim.run_steps(n_steps)
+            y = sim.get_probe_output(probe)
+
+    # Compartments 0 and 2 should change from axons 0 and 1.
+    # Axon 2 should have no effect, and not change compartment 1 (the sum of
+    # its cx_base and index), or other compartments (e.g. 2 if cx_base ignored)
+    assert np.allclose(y[1, 1], 0), "Third axon not ignored"
+    assert np.allclose(y[1, 0], y[1, 2]), "Third axon targeting another"
+    assert not np.allclose(y[1], y[0]), "Voltage not changing"

@@ -68,10 +68,11 @@ def validate_axon(axon):
 def validate_synapse(synapse):
     validate_synapse_fmt(synapse.synapse_fmt)
     if synapse.axon_cx_bases is not None:
-        assert np.all(synapse.axon_cx_bases < 256), "CxBase cannot be > 256"
+        assert all(-1 <= b < 256 for b in synapse.axon_cx_bases), (
+            "CxBase must be >= 0 and < 256 (or -1 indicating unused)")
     if synapse.pop_type == 16:
         if synapse.axon_cx_bases is not None:
-            assert np.all(synapse.axon_cx_bases % 4 == 0)
+            assert all(b % 4 == 0 for b in synapse.axon_cx_bases)
 
 
 def validate_synapse_fmt(synapse_fmt):
