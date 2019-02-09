@@ -22,7 +22,7 @@ from nengo_loihi.passthrough import convert_passthroughs
 logger = logging.getLogger(__name__)
 
 
-class PESModulatoryTarget(object):
+class PESModulatoryTarget:
     def __init__(self, target):
         self.target = target
         self.errors = OrderedDict()
@@ -52,7 +52,7 @@ def base_obj(obj):
     return obj
 
 
-class SplitNetworks(object):
+class SplitNetworks:
     def __init__(self, original, node_neurons=None, node_tau=0.005):
         self.original = original
         self.node_neurons = node_neurons

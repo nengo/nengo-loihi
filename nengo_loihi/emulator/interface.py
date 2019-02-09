@@ -24,7 +24,7 @@ from nengo_loihi.validate import validate_model
 logger = logging.getLogger(__name__)
 
 
-class EmulatorInterface(object):
+class EmulatorInterface:
     """Software emulator for Loihi chip behaviour.
 
     Parameters
@@ -123,7 +123,7 @@ class EmulatorInterface(object):
         return self.probes[probe]
 
 
-class BlockInfo(object):
+class BlockInfo:
     """Provide information about all the LoihiBlocks in the model.
 
     Attributes
@@ -162,7 +162,7 @@ class BlockInfo(object):
         return self.blocks[0].compartment.vth.dtype
 
 
-class IterableState(object):
+class IterableState:
     """Base class for aspects of the emulator state.
 
     This class takes the name of a LoihiBlock attribute as the
@@ -551,7 +551,7 @@ class AxonState(IterableState):
         super(AxonState, self).__init__(block_info, "axons")
 
 
-class ProbeState(object):
+class ProbeState:
     """State representing all probes.
 
     Attributes

@@ -12,7 +12,7 @@ VTH_PROFILES_MAX = 8
 SYNAPSE_FMTS_MAX = 16
 
 
-class Board(object):
+class Board:
     def __init__(self, board_id=1):
         self.board_id = board_id
 
@@ -59,7 +59,7 @@ class Board(object):
                 for chip in self.chips]
 
 
-class Chip(object):
+class Chip:
     def __init__(self, board):
         self.board = board
 
@@ -83,7 +83,7 @@ class Chip(object):
         return len(self.cores)
 
 
-class Core(object):
+class Core:
     def __init__(self, chip):
         self.chip = chip
         self.blocks = []
@@ -189,7 +189,7 @@ class Core(object):
             return len(self.synapseFmts) - 1  # index
 
 
-class LoihiSpikeInput(object):
+class LoihiSpikeInput:
     """Stores information needed to send spikes to the actual chip.
 
     This acts as a bridge between a SpikeInput and the actual chip.
@@ -202,7 +202,7 @@ class LoihiSpikeInput(object):
         particular locations on the chip.
     """
 
-    class LoihiAxon(object):
+    class LoihiAxon:
         """Represents an axon going to the chip.
 
         Parameters
@@ -238,7 +238,7 @@ class LoihiSpikeInput(object):
         def __repr__(self):
             return "%s(%s)" % (type(self).__name__, self._slots_str())
 
-    class LoihiSpike(object):
+    class LoihiSpike:
         """Represents a spike going to the chip.
 
         Parameters

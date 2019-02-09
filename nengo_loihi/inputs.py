@@ -7,7 +7,7 @@ from nengo.utils.compat import is_integer
 import numpy as np
 
 
-class LoihiInput(object):
+class LoihiInput:
     def __init__(self, label=None):
         self.label = label
         self.axons = []

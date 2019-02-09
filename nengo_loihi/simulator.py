@@ -25,7 +25,7 @@ import nengo_loihi.config as config
 logger = logging.getLogger(__name__)
 
 
-class Simulator(object):
+class Simulator:
     """Nengo Loihi simulator for Loihi hardware and emulator.
 
     The simulator takes a `nengo.Network` and builds internal data structures

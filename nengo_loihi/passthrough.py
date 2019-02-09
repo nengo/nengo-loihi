@@ -26,7 +26,7 @@ class ClusterException(NengoException):
     pass
 
 
-class Cluster(object):
+class Cluster:
     """A collection of passthrough Nodes directly connected to each other.
 
     When removing passthrough Nodes, we often have large chains of Nodes that

@@ -16,7 +16,7 @@ from nengo_loihi.inputs import LoihiInput
 logger = logging.getLogger(__name__)
 
 
-class Model(object):
+class Model:
     """The data structure for the emulator/hardware simulator.
 
     Defines methods for adding inputs and blocks. Also handles build

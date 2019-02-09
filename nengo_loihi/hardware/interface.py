@@ -26,7 +26,7 @@ from nengo_loihi.validate import validate_model
 logger = logging.getLogger(__name__)
 
 
-class HardwareInterface(object):
+class HardwareInterface:
     """Simulator to place a Model onto a Loihi board and run it.
 
     Parameters
@@ -426,7 +426,7 @@ class HardwareInterface(object):
         self.nengo_io_snip_range = snip_range
 
 
-class SpikePacker(object):
+class SpikePacker:
     """Packs spikes for sending to chip
 
     Currently represents a spike as two int32s.

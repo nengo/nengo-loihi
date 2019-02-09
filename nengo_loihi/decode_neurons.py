@@ -5,7 +5,7 @@ from nengo_loihi.block import LoihiBlock, Synapse
 from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 
 
-class DecodeNeurons(object):
+class DecodeNeurons:
     """Defines parameters for a group of decode neurons.
 
     DecodeNeurons are used on the chip to facilitate NEF-style connections,

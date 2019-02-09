@@ -5,7 +5,7 @@ from nengo.exceptions import BuildError
 import numpy as np
 
 
-class LoihiBlock(object):
+class LoihiBlock:
     """Class holding Loihi objects that can be placed on the chip.
 
     This class can be thought of as a block of the Loihi board, and is how
@@ -63,7 +63,7 @@ class LoihiBlock(object):
         self.probes.append(probe)
 
 
-class Profile(object):
+class Profile:
     def __eq__(self, obj):
         return isinstance(obj, type(self)) and all(
             self.__dict__[key] == obj.__dict__[key] for key in self.params)
@@ -72,7 +72,7 @@ class Profile(object):
         return hash(tuple(self.__dict__[key] for key in self.params))
 
 
-class Compartment(object):
+class Compartment:
     """Stores information for configuring Loihi compartments.
 
     The information stored here will be associated with some block,
@@ -271,7 +271,7 @@ class Compartment(object):
         self.scaleV = False
 
 
-class Axon(object):
+class Axon:
     """A group of axons targeting a specific Synapse object.
 
     Attributes
@@ -286,7 +286,7 @@ class Axon(object):
         Target synapses for these axons.
     """
 
-    class Spike(object):
+    class Spike:
         """A spike targeting a particular axon within a Synapse object.
 
         The Synapse target is implicit, given by the Axon object that
@@ -452,7 +452,7 @@ class SynapseFmt(Profile):
             setattr(self, key, value)
 
 
-class Synapse(object):
+class Synapse:
     """A group of Loihi synapses that share some properties.
 
     Attributes
@@ -642,7 +642,7 @@ class Synapse(object):
         return sum(w.size for w in self.weights)
 
 
-class Probe(object):
+class Probe:
     _slice = slice
 
     def __init__(self, target=None, key=None, slice=None, weights=None,
