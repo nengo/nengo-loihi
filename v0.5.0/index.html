@@ -1,0 +1,444 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Nengo Loihi &#8212; Nengo Loihi 0.5.0 docs</title>
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="_static/js/webflow.js"></script>
+    <script type="text/javascript" src="_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="_static/js/custom.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="overview.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="index">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="#">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+</div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.5.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../index.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.5.0</div>
+                
+            
+                
+                    <a href="../v0.4.0/index.html" class="w-dropdown-link">v0.4.0</a>
+                
+            
+                
+                    <a href="../v0.3.0/index.html" class="w-dropdown-link">v0.3.0</a>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <div class="section" id="nengo-loihi">
+<h1>Nengo Loihi<a class="headerlink" href="#nengo-loihi" title="Permalink to this headline">¶</a></h1>
+<p>A backend for running Nengo models on Intel’s Loihi architecture.</p>
+<p>To use the backend, simply replace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nengo</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#software">Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#running-models">Running models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#inrc-superhost">INRC/Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/communication_channel.html">Communication channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/integrator.html">Integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/integrator_multi_d.html">Multidimensional integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/oscillator.html">Simple oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/oscillator_nonlinear.html">Nonlinear oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/neuron_to_neuron.html">Neuron to neuron connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/learn_communication_channel.html">PES learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/keyword_spotting.html">Keyword spotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/mnist_convnet.html">Convolutional networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/adaptive_motor_control.html">Nonlinear adaptive control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#model-zoo">Model zoo</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html#increasing-snip-max-spikes-per-step">Increasing snip_max_spikes_per_step</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#superhost">Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="setup/host-board.html">Board and host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup/superhost.html">Superhost</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+</ul>
+</div>
+<div class="section" id="release-history">
+<h1>Release history<a class="headerlink" href="#release-history" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="february-12-2019">
+<h2>0.5.0 (February 12, 2019)<a class="headerlink" href="#february-12-2019" title="Permalink to this headline">¶</a></h2>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li>Allow <code class="docutils literal notranslate"><span class="pre">LIF.min_voltage</span></code> to have effect. The exact minimum voltage on the
+chip is highly affected by discritization (since the chip only allows
+minimum voltages in powers of two), but this will at least provide something
+in the ballpark.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/169">#169</a>)</li>
+<li>Population spikes can now be used to send information more efficiently
+to the chip. Population spikes are necessary for larger models
+like those using CIFAR-10 data.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/161">#161</a>)</li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li>PES learning in Nengo Loihi more closely matches learning in core Nengo.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/139">#139</a>)</li>
+<li>Learning in the emulator more closely matches learning on hardware.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/139">#139</a>)</li>
+<li>The neurons used to transmit decoded values on-chip can be configured.
+By default, we use ten pairs of heterogeneous neurons per dimension.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/132">#132</a>)</li>
+<li>Internal classes and functions have been reorganized and refactored.
+See the pull request for more details.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/159">#159</a>)</li>
+<li>Simulator now gives a warning if the user requests a progress bar, instead
+of an error. This avoids potential problems in <code class="docutils literal notranslate"><span class="pre">nengo_gui</span></code> and elsewhere.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/187">#187</a>)</li>
+<li>Nengo Loihi now supports NxSDK version 0.8.0.
+Versions 0.7.0 and 0.7.5 are still supported.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/188">#188</a>)</li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li>We integrate current (U) and voltage (V) more accurately now by accounting
+for rounding during the decay process. This integral is used when
+discretizing weights and firing thresholds. This change significantly
+improves accuracy for many networks, but in particular dynamical systems
+like integrators.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#124</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/114">#114</a>)</li>
+<li>Ensure things in the build and execution happen in a consistent order from
+one build/run to the next (by using <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code>, which is deterministic,
+instead of <code class="docutils literal notranslate"><span class="pre">dict</span></code>, which is not). This makes debugging easier and seeding
+consistent.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/151">#151</a>)</li>
+<li>Probes that use snips on the chip (when running with <code class="docutils literal notranslate"><span class="pre">precompute=False</span></code>)
+now deal with negative values correctly.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#169</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/141">#141</a>)</li>
+<li>Filtering for probes on the chip
+is guaranteed to use floating-point now (so that the filtered output
+is correct, even if the underlying values are integers).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#169</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/141">#141</a>)</li>
+<li>Neuron (spike) probes can now be filtered with <code class="docutils literal notranslate"><span class="pre">synapse</span></code> objects.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/182">#182</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/180">#183</a>)</li>
+</ul>
+</div>
+<div class="section" id="december-6-2018">
+<h2>0.4.0 (December 6, 2018)<a class="headerlink" href="#december-6-2018" title="Permalink to this headline">¶</a></h2>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li>Added version tracking to documentation.</li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li>An error is now raised if
+a learning rule is applied to a non-decoded connection.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/103">#103</a>)</li>
+<li>Switched documentation to new
+<a class="reference external" href="https://github.com/nengo/nengo-sphinx-theme">nengo-sphinx-theme</a>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/143">#143</a>)</li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li>Snips directory included when pip installing nengo-loihi.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/134">#134</a>)</li>
+<li>Closing <code class="docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code> will now close all the inner
+sub-simulators as well.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/102">#102</a>)</li>
+</ul>
+</div>
+<div class="section" id="september-28-2018">
+<h2>0.3.0 (September 28, 2018)<a class="headerlink" href="#september-28-2018" title="Permalink to this headline">¶</a></h2>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li>Models can now use the <code class="docutils literal notranslate"><span class="pre">nengo.SpikingRectifiedLinear</span></code> neuron model
+on both the emulator and hardware backends.</li>
+<li>Models can now run with different <code class="docutils literal notranslate"><span class="pre">dt</span></code> values
+(the default is 0.001, or 1 millisecond).</li>
+<li>Added support for Distributions on Connection transforms.</li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li>Now compatible with NxSDK 0.7. We are currently not supporting
+older versions of NxSDK, but may in the future.</li>
+<li>Models will not be precomputed by default. To precompute models,
+you must explicitly pass <code class="docutils literal notranslate"><span class="pre">precompute=True</span></code> to <code class="docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code>.</li>
+<li>Models that do not run any objects on Loihi will raise an error.</li>
+<li>Ensemble intercept values are capped to 0.95 to fix issues with
+the current discretization method.</li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li>Tuning curves now take into account the Loihi discretization,
+improving accuracy on most models.</li>
+<li>PES learning can now be done with multidimensional error signals.</li>
+<li>Manually reset spike probes when Simulator is initialized.</li>
+<li>Several fixes to filtering and connecting
+between objects on and off chip.</li>
+</ul>
+</div>
+<div class="section" id="august-27-2018">
+<h2>0.2.0 (August 27, 2018)<a class="headerlink" href="#august-27-2018" title="Permalink to this headline">¶</a></h2>
+<p>First public alpha release of Nengo Loihi!
+If you have any questions,
+please <a class="reference external" href="https://forum.nengo.ai/c/backends/loihi">ask on our forum</a>
+and if you run into any issues
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues">let us know</a>.</p>
+</div>
+<div class="section" id="july-4-2018">
+<h2>0.1.0 (July 4, 2018)<a class="headerlink" href="#july-4-2018" title="Permalink to this headline">¶</a></h2>
+<p>Pre-alpha release of Nengo Loihi for testing at the
+2018 Telluride neuromorphic engineering conference.
+Thanks to all participants who tried out
+this early version of Nengo Loihi
+and provided feedback.</p>
+</div>
+</div>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

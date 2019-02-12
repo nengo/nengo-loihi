@@ -1,0 +1,821 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Keyword spotting &#8212; Nengo Loihi 0.5.0 docs</title>
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../_static/js/custom.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Convolutional networks" href="mnist_convnet.html" />
+    <link rel="prev" title="PES learning" href="learn_communication_channel.html" />
+<link rel="stylesheet" type="text/css" href="../_static/custom.css">
+
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="examples/keyword_spotting">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Example models</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="communication_channel.html">Communication channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator.html">Integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator_multi_d.html">Multidimensional integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator.html">Simple oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator_nonlinear.html">Nonlinear oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neuron_to_neuron.html">Neuron to neuron connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="learn_communication_channel.html">PES learning</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Keyword spotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mnist_convnet.html">Convolutional networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adaptive_motor_control.html">Nonlinear adaptive control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#model-zoo">Model zoo</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+</div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.5.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../examples/keyword_spotting.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.5.0</div>
+                
+            
+                
+                    <a href="../../v0.4.0/examples/keyword_spotting.html" class="w-dropdown-link">v0.4.0</a>
+                
+            
+                
+                    <a href="../../v0.3.0/examples/keyword_spotting.html" class="w-dropdown-link">v0.3.0</a>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput,
+div.nbinput div.prompt,
+div.nbinput div.input_area,
+div.nbinput div[class*=highlight],
+div.nbinput div[class*=highlight] pre,
+div.nboutput,
+div.nbinput div.prompt,
+div.nbinput div.output_area,
+div.nboutput div[class*=highlight],
+div.nboutput div[class*=highlight] pre {
+    background: none;
+    border: none;
+    padding: 0 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* avoid gaps between output lines */
+div.nboutput div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput,
+div.nboutput {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput,
+    div.nboutput {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput div.prompt,
+div.nboutput div.prompt {
+    min-width: 7ex;
+    padding-top: 0.4em;
+    padding-right: 0.4em;
+    text-align: right;
+    flex: 0;
+}
+@media (max-width: 540px) {
+    div.nbinput div.prompt,
+    div.nboutput div.prompt {
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput div.prompt.empty {
+        padding: 0;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput div.prompt pre,
+div.nboutput div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput div.input_area,
+div.nboutput div.output_area {
+    padding: 0.4em;
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput div.input_area,
+    div.nboutput div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    background: #f5f5f5;
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="Keyword-spotting">
+<h1>Keyword spotting<a class="headerlink" href="#Keyword-spotting" title="Permalink to this headline">¶</a></h1>
+<p>In the keyword spotting task, the goal is to identify a target phrase in an audio speech signal. In this example, we solve the keyword spotting task in a deep neural network trained with <a class="reference external" href="https://www.nengo.ai/nengo-dl/">Nengo DL</a> and converted to a normal Nengo model that we run on Nengo Loihi.</p>
+<p>This example uses optimized parameters generated by Nengo DL:</p>
+<ul class="simple">
+<li><a class="reference external" href="https://drive.google.com/open?id=149rLqXnJqZPBiqvWpOAysGyq4fvunlnM">reference_params.pkl</a></li>
+<li><a class="reference external" href="https://drive.google.com/open?id=1AQavHjQKNu1sso0jqYhWj6zUBLKuGNvV">test_stream.pkl</a></li>
+</ul>
+<p>If you have <code class="docutils literal notranslate"><span class="pre">requests</span></code> installed, we will attempt to download these files automatically. If not, you can download the files manually and place them in the same directory as this example.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">string</span>
+
+<span class="kn">import</span> <span class="nn">nengo</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">requests</span>
+    <span class="n">has_requests</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">has_requests</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">import</span> <span class="nn">nengo_loihi</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/travis/miniconda/envs/test/lib/python3.5/site-packages/nengo/builder/builder.py:234: UserWarning: Type &#39;&lt;class &#39;nengo.connection.Connection&#39;&gt;&#39; already has a builder. Overwriting.
+  % nengo_class)
+</pre></div></div>
+</div>
+<p>These helper functions simplify the rest of the example.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="n">chars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Merge repeated characters and strip blank CTC symbol&quot;&quot;&quot;</span>
+    <span class="n">acc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">acc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">acc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="n">acc</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">acc</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;-&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">acc</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">Linear</span><span class="p">(</span><span class="n">nengo</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">NeuronType</span><span class="p">):</span>
+    <span class="n">probeable</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;rates&quot;</span><span class="p">,)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Linear</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">=</span> <span class="n">amplitude</span>
+
+    <span class="k">def</span> <span class="nf">gain_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_rates</span><span class="p">,</span> <span class="n">intercepts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Determine gain and bias by shifting and scaling the lines.&quot;&quot;&quot;</span>
+        <span class="n">max_rates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">max_rates</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">intercepts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intercepts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="n">max_rates</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">intercepts</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="o">-</span><span class="n">intercepts</span> <span class="o">*</span> <span class="n">gain</span>
+        <span class="k">return</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span>
+
+    <span class="k">def</span> <span class="nf">max_rates_intercepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the inverse of gain_bias.&quot;&quot;&quot;</span>
+        <span class="n">intercepts</span> <span class="o">=</span> <span class="o">-</span><span class="n">bias</span> <span class="o">/</span> <span class="n">gain</span>
+        <span class="n">max_rates</span> <span class="o">=</span> <span class="n">gain</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">intercepts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">max_rates</span><span class="p">,</span> <span class="n">intercepts</span>
+
+    <span class="k">def</span> <span class="nf">step_math</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Implement the rectification nonlinearity.&quot;&quot;&quot;</span>
+        <span class="n">output</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">*</span> <span class="n">J</span>
+
+
+<span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">drive_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Download a file from Google Drive.</span>
+
+<span class="sd">    Adapted from https://stackoverflow.com/a/39225039/1306923</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">get_confirm_token</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">cookies</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;download_warning&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">save_response_content</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">destination</span><span class="p">):</span>
+        <span class="n">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">32768</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">destination</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">CHUNK_SIZE</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>  <span class="c1"># filter out keep-alive new chunks</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://docs.google.com/uc?export=download&quot;</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">drive_id</span><span class="p">},</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">get_confirm_token</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">token</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">drive_id</span><span class="p">,</span> <span class="s1">&#39;confirm&#39;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">save_response_content</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">drive_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fname</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">has_requests</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Downloading </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">fname</span><span class="p">)</span>
+            <span class="n">download</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">drive_id</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saved </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">link</span> <span class="o">=</span> <span class="s2">&quot;https://drive.google.com/open?id=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">drive_id</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot find &#39;</span><span class="si">%s</span><span class="s2">&#39;. Download the file from</span><span class="se">\n</span><span class="s2">  </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;and place it in </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">fname</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span>
+</pre></div>
+</div>
+</div>
+<p>Define some parameters and load the data from files.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">n_inputs</span> <span class="o">=</span> <span class="mi">390</span>
+<span class="n">n_outputs</span> <span class="o">=</span> <span class="mi">29</span>
+<span class="n">n_neurons</span> <span class="o">=</span> <span class="mi">256</span>
+
+<span class="n">allowed_text</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;loha&quot;</span><span class="p">,</span> <span class="s2">&quot;alha&quot;</span><span class="p">,</span> <span class="s2">&quot;aloa&quot;</span><span class="p">,</span> <span class="s2">&quot;aloh&quot;</span><span class="p">,</span> <span class="s2">&quot;aoha&quot;</span><span class="p">,</span> <span class="s2">&quot;aloha&quot;</span><span class="p">]</span>
+<span class="n">id_to_char</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_lowercase</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> -|&quot;</span><span class="p">])</span>
+
+<span class="n">params</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;reference_params.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;149rLqXnJqZPBiqvWpOAysGyq4fvunlnM&quot;</span><span class="p">)</span>
+<span class="n">test_stream</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;test_stream.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;1AQavHjQKNu1sso0jqYhWj6zUBLKuGNvV&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Downloading reference_params.pkl...
+Saved reference_params.pkl to /home/travis/build/nengo/nengo-loihi/docs/examples
+Loading reference_params.pkl
+Downloading test_stream.pkl...
+Saved test_stream.pkl to /home/travis/build/nengo/nengo-loihi/docs/examples
+Loading test_stream.pkl
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># core speech model for keyword spotting</span>
+<span class="k">with</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Network</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Keyword spotting&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+    <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">]</span><span class="o">.</span><span class="n">synapse</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># network was trained with amplitude of 0.002</span>
+    <span class="c1"># scaling up improves performance on Loihi</span>
+    <span class="n">neuron_type</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">LIF</span><span class="p">(</span><span class="n">tau_rc</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
+                            <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+                            <span class="n">amplitude</span><span class="o">=</span><span class="mf">0.005</span><span class="p">)</span>
+
+    <span class="c1"># below is the core model architecture</span>
+    <span class="n">inp</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_inputs</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;in&quot;</span><span class="p">)</span>
+
+    <span class="n">layer_1</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="n">n_neurons</span><span class="o">=</span><span class="n">n_neurons</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                             <span class="n">neuron_type</span><span class="o">=</span><span class="n">neuron_type</span><span class="p">,</span>
+                             <span class="n">gain</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_0&quot;</span><span class="p">][</span><span class="s2">&quot;gain&quot;</span><span class="p">],</span>
+                             <span class="n">bias</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_0&quot;</span><span class="p">][</span><span class="s2">&quot;bias&quot;</span><span class="p">],</span>
+                             <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Layer 1&quot;</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">layer_1</span><span class="p">]</span><span class="o">.</span><span class="n">on_chip</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">(</span>
+        <span class="n">inp</span><span class="p">,</span> <span class="n">layer_1</span><span class="o">.</span><span class="n">neurons</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;input_node -&gt; x_c_0&quot;</span><span class="p">])</span>
+
+    <span class="n">layer_2</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="n">n_neurons</span><span class="o">=</span><span class="n">n_neurons</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                             <span class="n">neuron_type</span><span class="o">=</span><span class="n">neuron_type</span><span class="p">,</span>
+                             <span class="n">gain</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_1&quot;</span><span class="p">][</span><span class="s2">&quot;gain&quot;</span><span class="p">],</span>
+                             <span class="n">bias</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_1&quot;</span><span class="p">][</span><span class="s2">&quot;bias&quot;</span><span class="p">],</span>
+                             <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Layer 2&quot;</span><span class="p">)</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">(</span>
+        <span class="n">layer_1</span><span class="o">.</span><span class="n">neurons</span><span class="p">,</span> <span class="n">layer_2</span><span class="o">.</span><span class="n">neurons</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_0 -&gt; x_c_1&quot;</span><span class="p">])</span>
+
+    <span class="n">char_synapse</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">Alpha</span><span class="p">(</span><span class="mf">0.005</span><span class="p">)</span>
+
+    <span class="c1"># --- char_out as node</span>
+    <span class="n">char_out</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;out&quot;</span><span class="p">,</span> <span class="n">size_in</span><span class="o">=</span><span class="n">n_outputs</span><span class="p">)</span>
+    <span class="n">char_output_bias</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;char_output_bias&quot;</span><span class="p">])</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">(</span><span class="n">char_output_bias</span><span class="p">,</span> <span class="n">char_out</span><span class="p">,</span> <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">(</span>
+        <span class="n">layer_2</span><span class="o">.</span><span class="n">neurons</span><span class="p">,</span> <span class="n">char_out</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s2">&quot;x_c_1 -&gt; char_output&quot;</span><span class="p">])</span>
+    <span class="n">char_probe</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">char_out</span><span class="p">,</span> <span class="n">synapse</span><span class="o">=</span><span class="n">char_synapse</span><span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">inp</span> <span class="o">=</span> <span class="n">inp</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">predict_text</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">,</span> <span class="n">p_time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Predict a text transcription from the current simulation state&quot;&quot;&quot;</span>
+    <span class="n">n_frames</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_steps</span> <span class="o">/</span> <span class="n">p_time</span><span class="p">)</span>
+    <span class="n">char_data</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">char_probe</span><span class="p">]</span>
+    <span class="n">n_chars</span> <span class="o">=</span> <span class="n">char_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># reshape to separate out each window frame that was presented</span>
+    <span class="n">char_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">char_data</span><span class="p">,</span> <span class="p">(</span><span class="n">n_frames</span><span class="p">,</span> <span class="n">p_time</span><span class="p">,</span> <span class="n">n_chars</span><span class="p">))</span>
+
+    <span class="c1"># take most ofter predicted char over each frame presentation interval</span>
+    <span class="n">char_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">char_out</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">char_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">char_ids</span><span class="p">]</span>
+
+    <span class="n">text</span> <span class="o">=</span> <span class="n">merge</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">id_to_char</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">char_ids</span><span class="p">]))</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">merge</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>  <span class="c1"># merge repeats to help autocorrect</span>
+
+    <span class="k">return</span> <span class="n">text</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;fp&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;tp&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;fn&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;tn&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;aloha&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;not-aloha&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">speaker_id</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">test_stream</span><span class="p">[:</span><span class="mi">10</span><span class="p">]:</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="mf">0.001</span>
+    <span class="n">stream</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="s2">&quot;inp&quot;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">stream</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">stream</span> <span class="o">=</span> <span class="n">stream</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">play_stream</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">):</span>
+        <span class="n">ti</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">stream</span><span class="p">[</span><span class="n">ti</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">stream</span><span class="p">)]</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">inp</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">play_stream</span>
+    <span class="n">n_steps</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">sim</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">precompute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">sim</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">run_steps</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>
+
+    <span class="n">p_text</span> <span class="o">=</span> <span class="n">predict_text</span><span class="p">(</span><span class="n">sim</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">,</span> <span class="n">p_time</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted:</span><span class="se">\t</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">p_text</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actual:</span><span class="se">\t\t</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">text</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">text</span> <span class="o">==</span> <span class="s1">&#39;aloha&#39;</span><span class="p">:</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;aloha&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">p_text</span> <span class="ow">in</span> <span class="n">allowed_text</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True positive&quot;</span><span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;tp&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;False negative&quot;</span><span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;fn&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;not-aloha&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">p_text</span> <span class="ow">in</span> <span class="n">allowed_text</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;False positive&quot;</span><span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;fp&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True negative&quot;</span><span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;tn&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Summary&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=======&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True positive rate:</span><span class="se">\t</span><span class="si">%.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;tp&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;aloha&quot;</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;False negative rate:</span><span class="se">\t</span><span class="si">%.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;fn&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;not-aloha&quot;</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True negative rate:</span><span class="se">\t</span><span class="si">%.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;tn&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;not-aloha&quot;</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;False positive rate:</span><span class="se">\t</span><span class="si">%.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;fp&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;aloha&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Predicted:      aloha
+Actual:         aloha
+True positive
+
+Predicted:      lohea
+Actual:         all the while
+True negative
+
+Predicted:      aloha
+Actual:         aloha
+True positive
+
+Predicted:      tk lof
+Actual:         take a load off
+True negative
+
+Predicted:      loha
+Actual:         aloha
+True positive
+
+Predicted:      ele
+Actual:         hello
+True negative
+
+Predicted:      aloha
+Actual:         aloha
+True positive
+
+Predicted:      alaloy
+Actual:         metal alloy
+True negative
+
+Predicted:      loha
+Actual:         aloha
+True positive
+
+Predicted:      te elf
+Actual:         take a load off
+True negative
+
+Summary
+=======
+True positive rate:     1.000
+False negative rate:    0.000
+
+True negative rate:     1.000
+False positive rate:    0.000
+</pre></div></div>
+</div>
+</div>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>
