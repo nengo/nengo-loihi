@@ -1,15 +1,16 @@
 global-include *.py
 include *.rst
 global-include *.sh
-include pytest.ini
 
-# Include files for snips
+# Include files for snips, CI, and recreating the source dist
 recursive-include nengo_loihi *.c
 recursive-include nengo_loihi *.h
 recursive-include nengo_loihi *.template
-
-# Include this file, to ensure we can recreate source distributions
 include MANIFEST.in
+include .codecov.yml
+include .gitlint
+include .pylintrc
+include pytest.ini
 
 # Directories to include
 graft docs
@@ -20,8 +21,13 @@ prune dist
 prune .git
 prune .github
 prune .tox
+prune .eggs
 
-# Patterns to exclude from any directory
+# Exclude encrypted and auto-generated files
+exclude .ci/travis_rsa.enc
+recursive-exclude docs/examples *.py
+
+# Exclude notebook checkpoints and pickle files
 global-exclude *-checkpoint.ipynb
 global-exclude *.pkl
 
