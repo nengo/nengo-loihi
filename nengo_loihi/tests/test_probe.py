@@ -103,7 +103,7 @@ def test_neuron_probes(precompute, probe_target, Simulator, seed, plt,
         assert np.all(y[sneg] < 0)
 
 
-def test_neuron_probe_with_synapse(Simulator, seed, plt, allclose):
+def test_neuron_probe_with_synapse(Simulator, seed, allclose):
     synapse = nengo.Lowpass(0.01)
     with nengo.Network(seed=seed) as net:
         ens = nengo.Ensemble(10, 1)
