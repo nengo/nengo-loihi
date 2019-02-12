@@ -17,6 +17,7 @@ from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_shim import (
     assert_nxsdk,
     nxsdk,
+    nxsdk_version,
     N2SpikeProbe,
 )
 from nengo_loihi.validate import validate_model
@@ -85,7 +86,7 @@ class HardwareInterface(object):
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
         minimum = LooseVersion("0.7.0")
-        max_tested = LooseVersion("0.7.5")
+        max_tested = LooseVersion("0.8.0")
         if version < minimum:
             raise ImportError("nengo-loihi requires nxsdk>=%s, found %s"
                               % (minimum, version))
@@ -394,6 +395,8 @@ class HardwareInterface(object):
             max_error_len=max_error_len,
             cores=cores,
             probes=probes,
+            time_step=('time' if nxsdk_version < LooseVersion('0.8.0')
+                       else 'time_step'),
         )
         with open(c_path, 'w') as f:
             f.write(code)

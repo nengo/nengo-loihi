@@ -49,6 +49,9 @@ Release history
 - Simulator now gives a warning if the user requests a progress bar, instead
   of an error. This avoids potential problems in ``nengo_gui`` and elsewhere.
   (`#187 <https://github.com/nengo/nengo-loihi/pull/187>`_)
+- Nengo Loihi now supports NxSDK version 0.8.0.
+  Versions 0.7.0 and 0.7.5 are still supported.
+  (`#188 <https://github.com/nengo/nengo-loihi/pull/188>`__)
 
 **Fixed**
 

@@ -36,8 +36,8 @@ void nengo_io(runState *s) {
         return;
     }
 
-    if (s->time % 100 == 0) {
-        printf("time %d\n", s->time);
+    if (s->{{ time_step }} % 100 == 0) {
+        printf("time %d\n", s->{{ time_step }});
     }
 
     readChannel(in_channel, count, 1);
@@ -59,9 +59,9 @@ void nengo_io(runState *s) {
                    core_id.id, axon_id, axon_type, atom);
         }
         if (axon_type == 0) {
-            nx_send_discrete_spike(s->time, core_id, axon_id);
+            nx_send_discrete_spike(s->{{ time_step }}, core_id, axon_id);
         } else if (axon_type == 32) {
-            nx_send_pop32_spike(s->time, core_id, axon_id, atom, 0, 0, 0);
+            nx_send_pop32_spike(s->{{ time_step }}, core_id, axon_id, atom, 0, 0, 0);
         } else {
             printf("Got invalid axon_type: %d\n", axon_type);
             return;
@@ -82,7 +82,7 @@ void nengo_io(runState *s) {
         error_index += ERROR_INFO_SIZE + error_info[1];
     }
 
-    output[0] = s->time;
+    output[0] = s->{{ time_step }};
 {% for n_out, core, cx, key in probes %}
 {% if key == 'u' %}
     output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].U;

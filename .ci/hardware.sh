@@ -21,7 +21,7 @@ elif [[ "$COMMAND" == "script" ]]; then
         conda create -y -n travis-ci-$TRAVIS_JOB_NUMBER python=3.5.2 scipy
         source activate travis-ci-$TRAVIS_JOB_NUMBER
         pip install -e .[tests]
-        pip install ~/travis-ci/nxsdk-0.7.5.tar.gz
+        pip install ~/travis-ci/nxsdk-0.8.0.tar.gz
         SLURM=1 coverage run -m pytest --target loihi --no-hang -v --durations 50 --color=yes && \
         coverage report -m && \
         coverage xml
