@@ -16,6 +16,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe pip install cython jupyter matplotlib pillow requests scipy nengo-dl
     exe pip install "git+https://github.com/abr/abr_control.git"
     exe pip install -e .[docs]
+    exe pip install "$NENGO_VERSION"
 elif [[ "$COMMAND" == "script" ]]; then
     exe sphinx-build -b linkcheck -v -W -D nbsphinx_execute=never docs docs/_build
 
@@ -29,7 +30,7 @@ elif [[ "$COMMAND" == "script" ]]; then
         exe sphinx-build -b html docs ../nengo-docs -vW -A building_version=latest -A releases="$RELEASES"
     fi
 elif [[ "$COMMAND" == "after_success" ]]; then
-    cd ../nengo-docs
+    cd ../nengo-docs || exit
     git config --global user.email "travis@travis-ci.org"
     git config --global user.name "TravisCI"
     git add --all

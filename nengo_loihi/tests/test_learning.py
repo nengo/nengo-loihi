@@ -208,7 +208,7 @@ def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
 
         probe = nengo.Probe(output, synapse=0.1)
 
-    simtime = 0.5
+    simtime = 0.6
     with Simulator(model) as sim:
         sim.run(simtime)
 

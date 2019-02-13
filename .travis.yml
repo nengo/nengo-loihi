@@ -7,13 +7,20 @@ notifications:
 env:
   global:
     - PYTHON="3.5.2"
+    - NENGO_VERSION="nengo"
 
 matrix:
   include:
-    - env: MODE="emulator"
-    - env: MODE="hardware"
+    - stage: basic
+      env: MODE="emulator"
     - env: MODE="static"
+    - stage: advanced
+      env: MODE="emulator"
+           NENGO_VERSION="git+https://github.com/nengo/nengo.git"
+    - env: MODE="hardware"
+           NENGO_VERSION="git+https://github.com/nengo/nengo.git"
     - env: MODE="docs"
+           NENGO_VERSION="git+https://github.com/nengo/nengo.git"
 
 before_install:
   - source .ci/conda.sh install

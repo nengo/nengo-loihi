@@ -15,6 +15,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe conda install --quiet matplotlib mkl numpy scipy tensorflow
     exe pip install nengo-dl
     exe pip install -e ".[tests]"
+    exe pip install "$NENGO_VERSION"
 elif [[ "$COMMAND" == "script" ]]; then
     exe coverage run -m pytest nengo_loihi -v --duration 20 --plots --color=yes
     exe coverage run -a -m pytest --pyargs nengo -v --duration 20 --color=yes
