@@ -29,6 +29,7 @@ elif [[ "$COMMAND" == "script" ]]; then
     exe flake8 --ignore=E226,E703,W291,W391,W503 docs || STATUS=1
     exe pylint docs nengo_loihi || STATUS=1
     exe codespell -q 3 --skip="./build,./docs/_build,*-checkpoint.ipynb" || STATUS=1
+    exe shellcheck -e SC2087 .ci/*.sh || STATUS=1
     # undo single-branch cloning
     git config --replace-all remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
     git fetch origin master
