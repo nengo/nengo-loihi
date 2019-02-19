@@ -54,6 +54,7 @@ nbsphinx_timeout = -1
 # -- sphinx
 nitpicky = True
 exclude_patterns = ['_build']
+linkcheck_timeout = 30
 source_suffix = '.rst'
 source_encoding = 'utf-8'
 master_doc = 'index'
