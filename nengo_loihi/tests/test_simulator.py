@@ -6,6 +6,12 @@ import numpy as np
 import pytest
 
 import nengo_loihi
+from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.builder import Model
+from nengo_loihi.discretize import discretize_model
+from nengo_loihi.emulator import EmulatorInterface
+from nengo_loihi.hardware import HardwareInterface
+from nengo_loihi.inputs import SpikeInput
 
 
 def test_model_validate_notempty(Simulator):
@@ -434,7 +440,7 @@ def test_interface(Simulator, allclose):
 @pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
                     reason="Only Loihi has special shutdown procedure")
 def test_loihi_simulation_exception(Simulator):
-    """Test that Loihi shuts down properly after exception durin simulation"""
+    """Test that Loihi shuts down properly after exception during simulation"""
     def node_fn(t):
         if t < 0.002:
             return 0
@@ -470,3 +476,199 @@ def test_double_run(precompute, Simulator, seed, allclose):
     assert allclose(sim1.time, sim0.time)
     assert len(sim1.trange()) == len(sim0.trange())
     assert allclose(sim1.data[probe], sim0.data[probe])
+
+
+def test_simulator_noise(request, plt, seed):
+    target = request.config.getoption("--target")
+    n_cx = 10
+
+    model = Model()
+    block = LoihiBlock(n_cx)
+    block.compartment.configure_relu()
+
+    block.compartment.bias[:] = np.linspace(0, 0.01, n_cx)
+
+    block.compartment.enableNoise[:] = 1
+    block.compartment.noiseExp0 = -2
+    block.compartment.noiseMantOffset0 = 0
+    block.compartment.noiseAtDendOrVm = 1
+
+    probe = Probe(target=block, key='voltage')
+    block.add_probe(probe)
+    model.add_block(block)
+
+    discretize_model(model)
+
+    if target == 'loihi':
+        with HardwareInterface(model, use_snips=False, seed=seed) as sim:
+            sim.run_steps(1000)
+            y = sim.get_probe_output(probe)
+    else:
+        with EmulatorInterface(model, seed=seed) as sim:
+            sim.run_steps(1000)
+            y = sim.get_probe_output(probe)
+
+    plt.plot(y)
+    plt.yticks(())
+
+
+def test_population_input(request, allclose):
+    target = request.config.getoption("--target")
+    dt = 0.001
+
+    n_inputs = 3
+    n_axons = 1
+    n_cx = 2
+
+    steps = 6
+    spike_times_inds = [(1, [0]),
+                        (3, [1]),
+                        (5, [2])]
+
+    model = Model()
+
+    input = SpikeInput(n_inputs)
+    model.add_input(input)
+    spikes = [(input, ti, inds) for ti, inds in spike_times_inds]
+
+    input_axon = Axon(n_axons)
+    axon_map = np.zeros(n_inputs, dtype=int)
+    atoms = np.arange(n_inputs)
+    input_axon.set_axon_map(axon_map, atoms)
+    input.add_axon(input_axon)
+
+    block = LoihiBlock(n_cx)
+    block.compartment.configure_lif(tau_rc=0., tau_ref=0., dt=dt)
+    block.compartment.configure_filter(0, dt=dt)
+    model.add_block(block)
+
+    synapse = Synapse(n_axons)
+    weights = 0.1 * np.array([[[1, 2], [2, 3], [4, 5]]], dtype=float)
+    indices = np.array([[[0, 1], [0, 1], [0, 1]]], dtype=int)
+    axon_to_weight_map = np.zeros(n_axons, dtype=int)
+    cx_bases = np.zeros(n_axons, dtype=int)
+    synapse.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=32)
+    block.add_synapse(synapse)
+    input_axon.target = synapse
+
+    probe = Probe(target=block, key='voltage')
+    block.add_probe(probe)
+
+    discretize_model(model)
+
+    if target == 'loihi':
+        with HardwareInterface(model, use_snips=True) as sim:
+            sim.run_steps(steps, blocking=False)
+            for ti in range(1, steps+1):
+                spikes_i = [spike for spike in spikes if spike[1] == ti]
+                sim.host2chip(spikes=spikes_i, errors=[])
+                sim.chip2host(probes_receivers={})
+
+            y = sim.get_probe_output(probe)
+    else:
+        for inp, ti, inds in spikes:
+            inp.add_spikes(ti, inds)
+
+        with EmulatorInterface(model) as sim:
+            sim.run_steps(steps)
+            y = sim.get_probe_output(probe)
+
+    vth = block.compartment.vth[0]
+    assert (block.compartment.vth == vth).all()
+    z = y / vth
+    assert allclose(z[[1, 3, 5]], weights[0], atol=4e-2, rtol=0)
+
+
+@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
+                    reason="Loihi only test")
+def test_precompute(allclose, Simulator, seed, plt):
+    simtime = 0.2
+
+    with nengo.Network(seed=seed) as model:
+        D = 2
+        stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * D)
+
+        a = nengo.Ensemble(100, D)
+
+        nengo.Connection(stim, a)
+
+        output = nengo.Node(size_in=D)
+
+        nengo.Connection(a, output)
+
+        p_stim = nengo.Probe(stim, synapse=0.03)
+        p_a = nengo.Probe(a, synapse=0.03)
+        p_out = nengo.Probe(output, synapse=0.03)
+
+    with Simulator(model, precompute=False) as sim1:
+        sim1.run(simtime)
+    with Simulator(model, precompute=True) as sim2:
+        sim2.run(simtime)
+
+    plt.subplot(2, 1, 1)
+    plt.plot(sim1.trange(), sim1.data[p_stim])
+    plt.plot(sim1.trange(), sim1.data[p_a])
+    plt.plot(sim1.trange(), sim1.data[p_out])
+    plt.title('precompute=False')
+    plt.subplot(2, 1, 2)
+    plt.plot(sim2.trange(), sim2.data[p_stim])
+    plt.plot(sim2.trange(), sim2.data[p_a])
+    plt.plot(sim2.trange(), sim2.data[p_out])
+    plt.title('precompute=True')
+
+    assert np.array_equal(sim1.data[p_stim], sim2.data[p_stim])
+    assert allclose(sim1.data[p_a], sim2.data[p_a], atol=0.2)
+    assert allclose(sim1.data[p_out], sim2.data[p_out], atol=0.2)
+
+
+@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
+                    reason="Loihi only test")
+@pytest.mark.xfail(pytest.config.getoption("--target") == "loihi",
+                   reason="Fails allclose check")
+def test_input_node_precompute(allclose, Simulator, plt):
+    simtime = 1.0
+    input_fn = lambda t: np.sin(6 * np.pi * t / simtime)
+    targets = ["sim", "loihi"]
+    x = {}
+    u = {}
+    v = {}
+    for target in targets:
+        n = 4
+        with nengo.Network(seed=1) as model:
+            inp = nengo.Node(input_fn)
+
+            a = nengo.Ensemble(n, 1)
+            ap = nengo.Probe(a, synapse=0.01)
+            aup = nengo.Probe(a.neurons, 'input')
+            avp = nengo.Probe(a.neurons, 'voltage')
+
+            nengo.Connection(inp, a)
+
+        with Simulator(model, precompute=True, target=target) as sim:
+            print("Running in {}".format(target))
+            sim.run(simtime)
+
+        synapse = nengo.synapses.Lowpass(0.03)
+        x[target] = synapse.filt(sim.data[ap])
+
+        u[target] = sim.data[aup][:25]
+        u[target] = (
+            np.round(u[target] * 1000)
+            if str(u[target].dtype).startswith('float') else
+            u[target])
+
+        v[target] = sim.data[avp][:25]
+        v[target] = (
+            np.round(v[target] * 1000)
+            if str(v[target].dtype).startswith('float') else
+            v[target])
+
+        plt.plot(sim.trange(), x[target], label=target)
+
+    t = sim.trange()
+    u = input_fn(t)
+    plt.plot(t, u, 'k:', label='input')
+    plt.legend(loc='best')
+
+    assert allclose(x['sim'], x['loihi'], atol=0.1, rtol=0.01)
