@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e  # exit immediately on error
 if [[ ! -e .ci/common.sh || ! -e nengo_loihi ]]; then
     echo "Run this script from the root directory of this repository"
     exit 1
@@ -19,23 +18,24 @@ if [[ "$COMMAND" == "install" ]]; then
     ssh -o StrictHostKeyChecking=no loihihost "echo 'Connected to loihihost'"
     exe scp -r . "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER"
 elif [[ "$COMMAND" == "script" ]]; then
-    ssh loihihost << EOF
+    exe ssh loihihost << EOF
         sh /etc/profile
         sh ~/.bashrc
+        HW_STATUS=0
         cd /tmp/nengo-loihi-$TRAVIS_JOB_NUMBER
         conda create -y -n travis-ci-$TRAVIS_JOB_NUMBER python=3.5.2 scipy
         source activate travis-ci-$TRAVIS_JOB_NUMBER
         pip install -e .[tests]
         pip install $NENGO_VERSION
         pip install ~/travis-ci/nxsdk-0.8.0.tar.gz
-        SLURM=1 coverage run -m pytest --target loihi --no-hang -v --durations 50 --color=yes && \
-        coverage report -m && \
+        SLURM=1 coverage run -m pytest --target loihi --no-hang -v --durations 50 --color=yes || HW_STATUS=1
+        coverage report -m
         coverage xml
+        exit \$HW_STATUS
 EOF
-elif [[ "$COMMAND" == "after_success" ]]; then
+elif [[ "$COMMAND" == "after_script" ]]; then
     exe scp "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER/coverage.xml" coverage.xml
     eval "bash <(curl -s https://codecov.io/bash)"
-elif [[ "$COMMAND" == "after_script" ]]; then
     exe ssh loihihost "conda-env remove -y -n travis-ci-$TRAVIS_JOB_NUMBER"
 elif [[ -z "$COMMAND" ]]; then
     echo "$NAME requires a command like 'install' or 'script'"
@@ -43,4 +43,4 @@ else
     echo "$NAME does not define $COMMAND"
 fi
 
-set +e  # reset options in case this is sourced
+exit "$STATUS"

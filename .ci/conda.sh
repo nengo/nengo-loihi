@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e  # exit immediately on error
 if [[ ! -e .ci/common.sh || ! -e nengo_loihi ]]; then
     echo "Run this script from the root directory of this repository"
     exit 1
@@ -26,5 +25,3 @@ elif [[ -z "$COMMAND" ]]; then
 else
     echo "$NAME does not define $COMMAND"
 fi
-
-set +e  # reset options in case this is sourced
