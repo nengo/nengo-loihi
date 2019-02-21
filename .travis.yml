@@ -3,11 +3,17 @@ sudo: false
 notifications:
   email:
     - tbekolay@gmail.com
+cache:
+  directories:
+  - $HOME/miniconda
+  timeout: 600
 
 env:
   global:
     - PYTHON="3.5.2"
     - NENGO_VERSION="nengo"
+    - PIP_UPGRADE="true"
+    - PIP_UPGRADE_STRATEGY="eager"
 
 matrix:
   include:
@@ -17,6 +23,7 @@ matrix:
     - stage: advanced
       env: MODE="emulator"
            NENGO_VERSION="git+https://github.com/nengo/nengo.git"
+      cache: false
     - env: MODE="hardware"
            NENGO_VERSION="git+https://github.com/nengo/nengo.git"
     - env: MODE="docs"
@@ -30,6 +37,9 @@ install:
 
 script:
   - .ci/$MODE.sh script
+
+before_cache:
+  - .ci/conda.sh before_cache
 
 after_success:
   - .ci/$MODE.sh after_success
