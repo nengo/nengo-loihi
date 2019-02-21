@@ -16,8 +16,8 @@ if [[ "$COMMAND" == "install" ]]; then
     exe pip install -e ".[tests]"
     exe pip install "$NENGO_VERSION"
 elif [[ "$COMMAND" == "script" ]]; then
-    exe coverage run -m pytest nengo_loihi -v --duration 20 --plots --color=yes
-    exe coverage run -a -m pytest --pyargs nengo -v --duration 20 --color=yes
+    exe coverage run -m pytest nengo_loihi -v --duration 20 --plots --color=yes -n 2
+    exe coverage run -a -m pytest --pyargs nengo -v --duration 20 --color=yes -n 2
     exe coverage report -m
 elif [[ "$COMMAND" == "after_script" ]]; then
     eval "bash <(curl -s https://codecov.io/bash)"

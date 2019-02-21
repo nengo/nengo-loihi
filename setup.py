@@ -60,6 +60,7 @@ setup(
             "coverage>=4.3",
             "nengo-extras",
             "pytest>=3.4,<4",
+            "pytest-xdist>=1.26.0",
             "matplotlib>=2.0",
             "scipy",
         ],
