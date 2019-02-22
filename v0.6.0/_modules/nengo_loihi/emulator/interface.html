@@ -1,0 +1,892 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>nengo_loihi.emulator.interface &#8212; Nengo Loihi 0.6.0 docs</title>
+    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../../../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../../../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../../../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../../../_static/js/custom.js"></script>
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../../_static/custom.css">
+
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="_modules/nengo_loihi/emulator/interface">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../../../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+</div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.6.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../../../_modules/nengo_loihi/emulator/interface.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.6.0</div>
+                
+            
+                
+                    <a href="../../../../v0.5.0/_modules/nengo_loihi/emulator/interface.html" class="w-dropdown-link">v0.5.0</a>
+                
+            
+                
+                    <a href="../../../../v0.4.0/_modules/nengo_loihi/emulator/interface.html" class="w-dropdown-link">v0.4.0</a>
+                
+            
+                
+                    <a href="../../../../v0.3.0/_modules/nengo_loihi/emulator/interface.html" class="w-dropdown-link">v0.3.0</a>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <h1>Source code for nengo_loihi.emulator.interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">nengo.exceptions</span> <span class="k">import</span> <span class="n">SimulationError</span>
+<span class="kn">from</span> <span class="nn">nengo.utils.compat</span> <span class="k">import</span> <span class="n">is_array</span><span class="p">,</span> <span class="n">is_number</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.discretize</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">decay_int</span><span class="p">,</span>
+    <span class="n">LEARN_FRAC</span><span class="p">,</span>
+    <span class="n">learn_overflow_bits</span><span class="p">,</span>
+    <span class="n">overflow_signed</span><span class="p">,</span>
+    <span class="n">scale_pes_errors</span><span class="p">,</span>
+    <span class="n">shift</span><span class="p">,</span>
+    <span class="n">Q_BITS</span><span class="p">,</span>
+    <span class="n">U_BITS</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.block</span> <span class="k">import</span> <span class="n">Probe</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.validate</span> <span class="k">import</span> <span class="n">validate_model</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="EmulatorInterface"><a class="viewcode-back" href="../../../api.html#nengo_loihi.emulator.EmulatorInterface">[docs]</a><span class="k">class</span> <span class="nc">EmulatorInterface</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Software emulator for Loihi chip behaviour.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : Model</span>
+<span class="sd">        Model specification that will be simulated.</span>
+<span class="sd">    seed : int, optional (Default: None)</span>
+<span class="sd">        A seed for all stochastic operations done in this simulator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">strict</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">validate_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;EmulatorInterface seed: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_info</span> <span class="o">=</span> <span class="n">BlockInfo</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">blocks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;EmulatorInterface dtype: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_info</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span> <span class="o">=</span> <span class="n">CompartmentState</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_info</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span> <span class="o">=</span> <span class="n">SynapseState</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">block_info</span><span class="p">,</span>
+            <span class="n">pes_error_scale</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;pes_error_scale&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
+            <span class="n">strict</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span> <span class="o">=</span> <span class="n">AxonState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="n">ProbeState</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">block_info</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chip2host_sent_steps</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">closed</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># remove references to states to free memory (except probes)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">chip2host</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probes_receivers</span><span class="p">):</span>
+        <span class="n">increment</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">probe</span><span class="p">,</span> <span class="n">receiver</span> <span class="ow">in</span> <span class="n">probes_receivers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">inc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chip2host_sent_steps</span><span class="p">,</span> <span class="n">receiver</span><span class="p">)</span>
+            <span class="n">increment</span> <span class="o">=</span> <span class="n">inc</span> <span class="k">if</span> <span class="n">increment</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">increment</span>
+            <span class="k">assert</span> <span class="n">inc</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">increment</span> <span class="o">==</span> <span class="n">inc</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_chip2host_sent_steps</span> <span class="o">+=</span> <span class="n">increment</span>
+
+    <span class="k">def</span> <span class="nf">host2chip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spikes</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">spike_input</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">spike_idxs</span> <span class="ow">in</span> <span class="n">spikes</span><span class="p">:</span>
+            <span class="n">spike_input</span><span class="o">.</span><span class="n">add_spikes</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">spike_idxs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">update_pes_errors</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EmulatorInterface.run_steps"><a class="viewcode-back" href="../../../api.html#nengo_loihi.emulator.EmulatorInterface.run_steps">[docs]</a>    <span class="k">def</span> <span class="nf">run_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Simulate for the given number of ``dt`` steps.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        steps : int</span>
+<span class="sd">            Number of steps to run the simulation for.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EmulatorInterface.step"><a class="viewcode-back" href="../../../api.html#nengo_loihi.emulator.EmulatorInterface.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Advance the simulation by 1 step (``dt`` seconds).&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">advance_input</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">inject_current</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axons</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">spiked</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">update_input</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">update_traces</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">update_weights</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_probe_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span></div>
+
+
+<span class="k">class</span> <span class="nc">BlockInfo</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Provide information about all the LoihiBlocks in the model.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dtype : dtype</span>
+<span class="sd">        Datatype of the blocks. Either ``np.float32`` if the blocks are not</span>
+<span class="sd">        discretized or ``np.int32`` if they are. All blocks are the same.</span>
+<span class="sd">    blocks : list of LoihiBlock</span>
+<span class="sd">        List of all the blocks in the model.</span>
+<span class="sd">    n_compartments : int</span>
+<span class="sd">        Total number of compartments across all blocks.</span>
+<span class="sd">    slices : dict of {LoihiBlock: slice}</span>
+<span class="sd">        Maps each block to a slice for that block&#39;s compartments with</span>
+<span class="sd">        respect to all compartments. Used to slice into any array storing</span>
+<span class="sd">        data across all compartments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocks</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">blocks</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">start_ix</span> <span class="o">=</span> <span class="n">end_ix</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="n">end_ix</span> <span class="o">+=</span> <span class="n">block</span><span class="o">.</span><span class="n">n_neurons</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">block</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">start_ix</span><span class="p">,</span> <span class="n">end_ix</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">vth</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="k">assert</span> <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="n">start_ix</span> <span class="o">=</span> <span class="n">end_ix</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span> <span class="o">=</span> <span class="n">end_ix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">vth</span><span class="o">.</span><span class="n">dtype</span>
+
+
+<span class="k">class</span> <span class="nc">IterableState</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base class for aspects of the emulator state.</span>
+
+<span class="sd">    This class takes the name of a LoihiBlock attribute as the</span>
+<span class="sd">    ``block_key`` and maps these objects to their parent blocks and slices.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dtype : dtype</span>
+<span class="sd">        Datatype of the state elements (given by the BlockInfo datatype).</span>
+<span class="sd">    block_map : dict of {item: block}</span>
+<span class="sd">        Maps an item (determined by ``block_key``) to the block</span>
+<span class="sd">        it belongs to.</span>
+<span class="sd">    n_compartments : int</span>
+<span class="sd">        The total number of neuron compartments (given by BlockInfo).</span>
+<span class="sd">    slices : dict of {item: slice}</span>
+<span class="sd">        Maps an item to the ``block_info.slice`` for the block</span>
+<span class="sd">        it belongs to.</span>
+<span class="sd">    strict : bool (Default: True)</span>
+<span class="sd">        Whether &quot;undesired&quot; chip effects (ex. overflow) raise errors (``True``)</span>
+<span class="sd">        or whether they only raise warnings (``False``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">,</span> <span class="n">block_key</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span> <span class="o">=</span> <span class="n">block_info</span><span class="o">.</span><span class="n">n_compartments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">block_info</span><span class="o">.</span><span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strict</span> <span class="o">=</span> <span class="n">strict</span>
+
+        <span class="n">blocks_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_blocks_items</span><span class="p">(</span><span class="n">block_info</span><span class="o">.</span><span class="n">blocks</span><span class="p">,</span> <span class="n">block_key</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span> <span class="k">for</span> <span class="n">block</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">blocks_items</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slices</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">block_info</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">block</span><span class="p">])</span> <span class="k">for</span> <span class="n">block</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">blocks_items</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_blocks_items</span><span class="p">(</span><span class="n">blocks</span><span class="p">,</span> <span class="n">block_key</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">blocks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">block_key</span> <span class="o">==</span> <span class="s2">&quot;compartment&quot;</span><span class="p">:</span>
+                <span class="c1"># one item per block</span>
+                <span class="k">yield</span> <span class="n">block</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">block_key</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># multiple items per block (attribute is iterable)</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">block_key</span><span class="p">):</span>
+                    <span class="k">yield</span> <span class="n">block</span><span class="p">,</span> <span class="n">item</span>
+
+    <span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strict</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">CompartmentState</span><span class="p">(</span><span class="n">IterableState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;State representing the Compartments of all blocks.&quot;&quot;&quot;</span>
+
+    <span class="n">MAX_DELAY</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># delay not yet implemented</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CompartmentState</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">block_info</span><span class="p">,</span> <span class="s2">&quot;compartment&quot;</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+
+        <span class="c1"># Initialize NumPy arrays to store compartment-related data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MAX_DELAY</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">voltage</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spiked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spike_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_count</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="c1"># Fill in arrays with parameters from CompartmentSegments</span>
+        <span class="k">for</span> <span class="n">compartment</span><span class="p">,</span> <span class="n">sl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">decayU</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">decayV</span>
+            <span class="k">if</span> <span class="n">compartment</span><span class="o">.</span><span class="n">scaleU</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">decayU</span>
+            <span class="k">if</span> <span class="n">compartment</span><span class="o">.</span><span class="n">scaleV</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">decayV</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">vth</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">vmin</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">vmax</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">bias</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">refractDelay</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vmin</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vmax</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decay_current</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">u</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decay_voltage</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_int</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">)</span> <span class="o">+</span> <span class="n">u</span>
+
+            <span class="k">def</span> <span class="nf">overflow</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">o</span> <span class="o">=</span> <span class="n">overflow_signed</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="n">bits</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Overflow&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot; in </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">decay_float</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">s</span><span class="o">*</span><span class="n">u</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decay_current</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_float</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decay_voltage</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">decay_float</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">overflow</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="k">pass</span>  <span class="c1"># do not do overflow in floating point</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dtype </span><span class="si">%r</span><span class="s2"> not supported&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overflow</span> <span class="o">=</span> <span class="n">overflow</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseState</span><span class="p">(</span><span class="n">block_info</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">advance_input</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">q0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">q0</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">target_u</span><span class="p">]</span> <span class="o">+=</span> <span class="n">noise</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">target_u</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overflow</span><span class="p">(</span><span class="n">q0</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="n">Q_BITS</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;q0&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decay_current</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="n">q0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overflow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="n">U_BITS</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;current&quot;</span><span class="p">)</span>
+        <span class="n">u2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span>
+        <span class="n">u2</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">target_u</span><span class="p">]</span> <span class="o">+=</span> <span class="n">noise</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">target_u</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overflow</span><span class="p">(</span><span class="n">u2</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="n">U_BITS</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;u2&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decay_voltage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">,</span> <span class="n">u2</span><span class="p">)</span>
+        <span class="c1"># We have not been able to create V overflow on the chip, so we do</span>
+        <span class="c1"># not include it here. See github.com/nengo/nengo-loihi/issues/130</span>
+        <span class="c1"># self.overflow(self.v, bits=V_BIT, name=&quot;V&quot;)</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># TODO^: don&#39;t zero voltage in case neuron is saving overshoot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">spiked</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">voltage</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">voltage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spiked</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref_count</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spiked</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spiked</span><span class="p">]</span>
+        <span class="c1"># decrement ref_count</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_count</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">spike_count</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spiked</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+
+<span class="k">class</span> <span class="nc">NoiseState</span><span class="p">(</span><span class="n">IterableState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;State representing the noise parameters for all compartments.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoiseState</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">block_info</span><span class="p">,</span> <span class="s2">&quot;compartment&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mant_offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+                                   <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># Fill in arrays with parameters from Compartment</span>
+        <span class="k">for</span> <span class="n">compartment</span><span class="p">,</span> <span class="n">sl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">enableNoise</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">noiseExp0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mant_offset</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">noiseMantOffset0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_u</span><span class="p">[</span><span class="n">sl</span><span class="p">]</span> <span class="o">=</span> <span class="n">compartment</span><span class="o">.</span><span class="n">noiseAtDendOrVm</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="c1"># TODO: if we could do this mult with shifts, it&#39;d be faster, but</span>
+            <span class="c1"># numpy has no function taking a vector of positive/negative shifts</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span> <span class="mf">2.</span><span class="o">**</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span> <span class="o">-</span> <span class="mi">7</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mant_offset</span> <span class="o">*=</span> <span class="mi">64</span>
+
+            <span class="k">def</span> <span class="nf">uniform</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="mi">127</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span> <span class="mf">10.</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">uniform</span><span class="p">(</span><span class="n">rng</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dtype </span><span class="si">%r</span><span class="s2"> not supported&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mant_offset</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_u</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mult</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_uniform</span> <span class="o">=</span> <span class="n">uniform</span>
+
+    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uniform</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mant_offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mult</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SynapseState</span><span class="p">(</span><span class="n">IterableState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;State representing all synapses.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pes_error_scale : float</span>
+<span class="sd">        Scaling for the errors of PES learning rules.</span>
+<span class="sd">    pes_errors : {Synapse: ndarray(n_neurons / 2)}</span>
+<span class="sd">        Maps synapse to PES learning rule errors for those synapses.</span>
+<span class="sd">    spikes_in : {Synapse: list}</span>
+<span class="sd">        Maps synapse to a queue of input spikes targeting those synapses.</span>
+<span class="sd">    traces : {Synapse: ndarray(Synapse.n_axons)}</span>
+<span class="sd">        Maps synapse to trace values for each of their axons.</span>
+<span class="sd">    trace_spikes : {Synapse: set}</span>
+<span class="sd">        Maps synapse to a queue of input spikes waiting to be added to those</span>
+<span class="sd">        synapse traces.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">,</span>  <span class="c1"># noqa: C901</span>
+                 <span class="n">pes_error_scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+                 <span class="n">strict</span><span class="o">=</span><span class="kc">True</span>
+             <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SynapseState</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">block_info</span><span class="p">,</span> <span class="s2">&quot;synapses&quot;</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pes_error_scale</span> <span class="o">=</span> <span class="n">pes_error_scale</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">traces</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace_spikes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pes_errors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">synapse</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">slices</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">n_axons</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="n">synapse</span><span class="o">.</span><span class="n">learning</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">traces</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trace_spikes</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pes_errors</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">block_map</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span><span class="o">.</span><span class="n">n_neurons</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="c1"># ^ Currently, PES learning only happens on Nodes, where we</span>
+                <span class="c1"># have pairs of on/off neurons. Therefore, the number of error</span>
+                <span class="c1"># dimensions is half the number of neurons.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">stochastic_round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">clip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;values&quot;</span><span class="p">):</span>
+                <span class="n">x_sign</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">x_frac</span><span class="p">,</span> <span class="n">x_int</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">modf</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">x_int</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">x_frac</span> <span class="o">&gt;</span> <span class="n">p</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">q</span> <span class="o">=</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">clip</span>
+                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+                        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Clipping </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+                    <span class="n">y</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">clip</span>
+                <span class="k">return</span> <span class="n">x_sign</span> <span class="o">*</span> <span class="n">y</span>
+
+            <span class="k">def</span> <span class="nf">trace_round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">stochastic_round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span> <span class="n">clip</span><span class="o">=</span><span class="mi">127</span><span class="p">,</span>
+                                        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;synapse trace&quot;</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">weight_update</span><span class="p">(</span><span class="n">synapse</span><span class="p">,</span> <span class="n">delta_ws</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="n">synapse_fmt</span> <span class="o">=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">synapse_fmt</span>
+                <span class="n">wgt_exp</span> <span class="o">=</span> <span class="n">synapse_fmt</span><span class="o">.</span><span class="n">realWgtExp</span>
+                <span class="n">shift_bits</span> <span class="o">=</span> <span class="n">synapse_fmt</span><span class="o">.</span><span class="n">shift_bits</span>
+                <span class="n">overflow</span> <span class="o">=</span> <span class="n">learn_overflow_bits</span><span class="p">(</span><span class="n">n_factors</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">delta_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">synapse</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">delta_ws</span><span class="p">):</span>
+                    <span class="n">product</span> <span class="o">=</span> <span class="n">shift</span><span class="p">(</span>
+                        <span class="n">delta_w</span> <span class="o">*</span> <span class="n">synapse</span><span class="o">.</span><span class="n">_lr_int</span><span class="p">,</span>
+                        <span class="n">LEARN_FRAC</span> <span class="o">+</span> <span class="n">synapse</span><span class="o">.</span><span class="n">_lr_exp</span> <span class="o">-</span> <span class="n">overflow</span><span class="p">)</span>
+                    <span class="n">learn_w</span> <span class="o">=</span> <span class="n">shift</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">LEARN_FRAC</span> <span class="o">-</span> <span class="n">wgt_exp</span><span class="p">)</span> <span class="o">+</span> <span class="n">product</span>
+                    <span class="n">learn_w</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">stochastic_round</span><span class="p">(</span>
+                        <span class="n">learn_w</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">LEARN_FRAC</span> <span class="o">-</span> <span class="n">shift_bits</span><span class="p">),</span>
+                        <span class="n">clip</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="p">(</span><span class="mi">8</span> <span class="o">-</span> <span class="n">shift_bits</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;learning weights&quot;</span><span class="p">)</span>
+                    <span class="n">w</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">left_shift</span><span class="p">(</span><span class="n">learn_w</span><span class="p">,</span> <span class="n">wgt_exp</span> <span class="o">+</span> <span class="n">shift_bits</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">trace_round</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">x</span>  <span class="c1"># no rounding</span>
+
+            <span class="k">def</span> <span class="nf">weight_update</span><span class="p">(</span><span class="n">synapse</span><span class="p">,</span> <span class="n">delta_ws</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">delta_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">synapse</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">delta_ws</span><span class="p">):</span>
+                    <span class="n">w</span> <span class="o">+=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">delta_w</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dtype </span><span class="si">%r</span><span class="s2"> not supported&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trace_round</span> <span class="o">=</span> <span class="n">trace_round</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_update</span> <span class="o">=</span> <span class="n">weight_update</span>
+
+    <span class="k">def</span> <span class="nf">inject_current</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">spike_inputs</span><span class="p">,</span> <span class="n">all_axons</span><span class="p">,</span> <span class="n">spiked</span><span class="p">):</span>
+        <span class="c1"># --- clear spikes going in to each synapse</span>
+        <span class="k">for</span> <span class="n">spike_queue</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">spike_queue</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+        <span class="c1"># --- inputs pass spikes to synapses</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># input spikes take one time-step to arrive</span>
+            <span class="k">for</span> <span class="n">spike_input</span> <span class="ow">in</span> <span class="n">spike_inputs</span><span class="p">:</span>
+                <span class="n">cx_idxs</span> <span class="o">=</span> <span class="n">spike_input</span><span class="o">.</span><span class="n">spike_idxs</span><span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">axon</span> <span class="ow">in</span> <span class="n">spike_input</span><span class="o">.</span><span class="n">axons</span><span class="p">:</span>
+                    <span class="n">spikes</span> <span class="o">=</span> <span class="n">axon</span><span class="o">.</span><span class="n">map_cx_spikes</span><span class="p">(</span><span class="n">cx_idxs</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="p">[</span><span class="n">axon</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spikes</span><span class="p">)</span>
+
+        <span class="c1"># --- axons pass spikes to synapses</span>
+        <span class="k">for</span> <span class="n">axon</span><span class="p">,</span> <span class="n">a_idx</span> <span class="ow">in</span> <span class="n">all_axons</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">cx_idxs</span> <span class="o">=</span> <span class="n">spiked</span><span class="p">[</span><span class="n">a_idx</span><span class="p">]</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">spikes</span> <span class="o">=</span> <span class="n">axon</span><span class="o">.</span><span class="n">map_cx_spikes</span><span class="p">(</span><span class="n">cx_idxs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="p">[</span><span class="n">axon</span><span class="o">.</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spikes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">synapse</span><span class="p">,</span> <span class="n">s_slice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">qb</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[:,</span> <span class="n">s_slice</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">spike</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="p">[</span><span class="n">synapse</span><span class="p">]:</span>
+                <span class="n">cx_base</span> <span class="o">=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">axon_cx_base</span><span class="p">(</span><span class="n">spike</span><span class="o">.</span><span class="n">axon_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cx_base</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">weights</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">axon_weights_indices</span><span class="p">(</span>
+                    <span class="n">spike</span><span class="o">.</span><span class="n">axon_id</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">spike</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span>
+                <span class="n">qb</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">cx_base</span> <span class="o">+</span> <span class="n">indices</span><span class="p">]</span> <span class="o">+=</span> <span class="n">weights</span>
+
+    <span class="k">def</span> <span class="nf">update_pes_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">errors</span><span class="p">):</span>
+        <span class="c1"># TODO: these are sent every timestep, but learning only happens every</span>
+        <span class="c1"># `tepoch * 2**learn_k` timesteps (see Synapse). Need to average.</span>
+        <span class="k">for</span> <span class="n">pes_errors</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pes_errors</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">pes_errors</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">synapse</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+            <span class="n">pes_errors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pes_errors</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">pes_errors</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">e</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">pes_errors</span> <span class="o">+=</span> <span class="n">scale_pes_errors</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pes_error_scale</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">synapse</span><span class="p">,</span> <span class="n">pes_error</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pes_errors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">%</span> <span class="n">synapse</span><span class="o">.</span><span class="n">learn_epoch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">traces</span><span class="p">[</span><span class="n">synapse</span><span class="p">]</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="o">-</span><span class="n">pes_error</span><span class="p">,</span> <span class="n">pes_error</span><span class="p">])</span>
+                <span class="n">delta_w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">trace</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_weight_update</span><span class="p">(</span><span class="n">synapse</span><span class="p">,</span> <span class="n">delta_w</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update_traces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">synapse</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">traces</span><span class="p">:</span>
+            <span class="n">trace_spikes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trace_spikes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">synapse</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trace_spikes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">spike</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">spikes_in</span><span class="p">[</span><span class="n">synapse</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">spike</span><span class="o">.</span><span class="n">axon_id</span> <span class="ow">in</span> <span class="n">trace_spikes</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Synaptic trace spikes lost&quot;</span><span class="p">)</span>
+                    <span class="n">trace_spikes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">spike</span><span class="o">.</span><span class="n">axon_id</span><span class="p">)</span>
+
+            <span class="n">trace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">traces</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">synapse</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">%</span> <span class="n">synapse</span><span class="o">.</span><span class="n">train_epoch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tau</span> <span class="o">=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">tracing_tau</span>
+                <span class="n">decay</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">synapse</span><span class="o">.</span><span class="n">train_epoch</span> <span class="o">/</span> <span class="n">tau</span><span class="p">)</span>
+                <span class="n">trace1</span> <span class="o">=</span> <span class="n">decay</span> <span class="o">*</span> <span class="n">trace</span>
+                <span class="n">trace1</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">trace_spikes</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">synapse</span><span class="o">.</span><span class="n">tracing_mag</span>
+                <span class="n">trace</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trace_round</span><span class="p">(</span><span class="n">trace1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+                <span class="n">trace_spikes</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">AxonState</span><span class="p">(</span><span class="n">IterableState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;State representing all (output) Axons.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AxonState</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">block_info</span><span class="p">,</span> <span class="s2">&quot;axons&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">ProbeState</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;State representing all probes.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time constant of the Emulator.</span>
+<span class="sd">    filters : {nengo_loihi.Probe: function}</span>
+<span class="sd">        Maps Probes to the filtering function for that probe.</span>
+<span class="sd">    filter_pos : {nengo_loihi.Probe: int}</span>
+<span class="sd">        Maps Probes to the position of their filter in the data.</span>
+<span class="sd">    block_probes : {nengo_loihi.Probe: slice}</span>
+<span class="sd">        Maps Probes to the BlockInfo slice for the block they are probing.</span>
+<span class="sd">    input_probes : {nengo_loihi.Probe: SpikeInput}</span>
+<span class="sd">        Maps Probes to the SpikeInput that they are probing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_info</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">block_info</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">block</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">block_info</span><span class="o">.</span><span class="n">slices</span><span class="p">[</span><span class="n">block</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_pos</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">probe</span><span class="p">,</span> <span class="n">sl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">synapse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">is_number</span><span class="p">(</span><span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="p">):</span>
+                    <span class="n">size</span> <span class="o">=</span> <span class="n">sl</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">sl</span><span class="o">.</span><span class="n">start</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">is_array</span><span class="p">(</span><span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="ow">and</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+                    <span class="n">size</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">synapse</span><span class="o">.</span><span class="n">make_step</span><span class="p">(</span>
+                    <span class="n">shape_in</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,),</span>
+                    <span class="n">shape_out</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,),</span>
+                    <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filter_pos</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">Probe</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">probe</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="p">(</span><span class="n">probe</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="n">probe</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filters</span> <span class="k">else</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_pos</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span>
+        <span class="n">filt_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">filt_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">step</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_pos</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">k</span>
+        <span class="k">return</span> <span class="n">filt_data</span>
+
+    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">,</span> <span class="n">already_sent</span><span class="p">,</span> <span class="n">receiver</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Send probed data to the receiver node.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        steps : int</span>
+<span class="sd">            The number of steps sent to the receiver.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">probe</span><span class="p">][</span><span class="n">already_sent</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">xx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+                <span class="n">receiver</span><span class="o">.</span><span class="n">receive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="n">already_sent</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">xx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">compartment</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">probe</span><span class="p">,</span> <span class="n">sl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">p_slice</span> <span class="o">=</span> <span class="n">probe</span><span class="o">.</span><span class="n">slice</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">compartment</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">compartment</span><span class="p">,</span> <span class="n">probe</span><span class="o">.</span><span class="n">key</span><span class="p">)[</span><span class="n">sl</span><span class="p">][</span><span class="n">p_slice</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+</pre></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

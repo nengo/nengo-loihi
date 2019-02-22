@@ -1,0 +1,666 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Tips and tricks &#8212; Nengo Loihi 0.6.0 docs</title>
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="_static/js/webflow.js"></script>
+    <script type="text/javascript" src="_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="_static/js/custom.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Hardware setup" href="setup/index.html" />
+    <link rel="prev" title="API reference" href="api.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="tips">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tips and tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#local-machine">Local machine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-hosts">SSH hosts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-keys">SSH keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-port-tunneling">Remote port tunneling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#syncing-with-rsync">Syncing with rsync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-editing-with-sshfs">Remote editing with SSHFS</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#superhost">Superhost</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plotting">Plotting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ipython-jupyter">IPython / Jupyter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slurm-cheatsheet">Slurm cheatsheet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-slurm-by-default">Use Slurm by default</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-large-models">Running large models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+</div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.6.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../tips.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.6.0</div>
+                
+            
+                
+                    <a href="../v0.5.0/tips.html" class="w-dropdown-link">v0.5.0</a>
+                
+            
+                
+                    <a href="../v0.4.0/tips.html" class="w-dropdown-link">v0.4.0</a>
+                
+            
+                
+                    <a href="../v0.3.0/tips.html" class="w-dropdown-link">v0.3.0</a>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <div class="section" id="tips-and-tricks">
+<h1>Tips and tricks<a class="headerlink" href="#tips-and-tricks" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="local-machine">
+<h2>Local machine<a class="headerlink" href="#local-machine" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="ssh-hosts">
+<h3>SSH hosts<a class="headerlink" href="#ssh-hosts" title="Permalink to this headline">¶</a></h3>
+<p>Adding <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">hosts</span></code> to your SSH configuration
+will make working with remote superhosts, hosts, and boards
+much quicker and easier.
+After setting them up,
+you will be able to connect to any machine
+through a single <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">&lt;machine&gt;</span></code> command.</p>
+<p>To begin, make a <code class="docutils literal notranslate"><span class="pre">~/.ssh/config</span></code> file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch ~/.ssh/config
+</pre></div>
+</div>
+<p>Then open that file in a text editor
+and add a <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry
+for each machine that you want to interact with remotely.</p>
+<p>Typically machines that you can connect to directly
+will have a configuration like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  User &lt;username&gt;
+  HostName &lt;host name or IP address&gt;
+</pre></div>
+</div>
+<p>For security, the port on which ssh connections are accepted
+is often changed. To specify a port, add the following
+to the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  ...
+  Port 1234
+</pre></div>
+</div>
+<p>Finally, many machines (especially hosts and boards)
+are not accessible through the open internet
+and must instead be accessed through another machine,
+like a superhost.
+To access these with one command,
+add the following to the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry.
+<code class="docutils literal notranslate"><span class="pre">&lt;tunnel</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> refers to the <code class="docutils literal notranslate"><span class="pre">&lt;short</span> <span class="pre">name&gt;</span></code>
+of the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry through which
+you access the machine
+(e.g., the <code class="docutils literal notranslate"><span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> entry uses
+the superhost’s short name for <code class="docutils literal notranslate"><span class="pre">&lt;tunnel</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code>).</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  ...
+  ProxyCommand ssh &lt;tunnel short name&gt; -W %h:%p
+</pre></div>
+</div>
+<p>Once host entries are defined, you can access those machine with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh &lt;short name&gt;
+</pre></div>
+</div>
+<p>You can also use the short name in <code class="docutils literal notranslate"><span class="pre">rsync</span></code>, <code class="docutils literal notranslate"><span class="pre">scp</span></code>,
+and other commands that use <code class="docutils literal notranslate"><span class="pre">ssh</span></code> under the hood.</p>
+<p>For more details and options, see <a class="reference external" href="https://www.digitalocean.com/community/tutorials/how-to-configure-custom-connection-options-for-your-ssh-client">this tutorial</a>.</p>
+<p>We recommend that Loihi system administrators
+make specific host entries for their system
+available to all users.</p>
+</div>
+<div class="section" id="ssh-keys">
+<h3>SSH keys<a class="headerlink" href="#ssh-keys" title="Permalink to this headline">¶</a></h3>
+<p>SSH keys allow you to log in to remote machines
+without providing your password.
+This is especially useful when accessing
+a board through a host and superhost,
+each of which require authentication.</p>
+<p>You may already have created
+an SSH key for another purpose.
+By default, SSH keys are stored as</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">~/.ssh/id_rsa</span></code> (private key)</li>
+<li><code class="docutils literal notranslate"><span class="pre">~/.ssh/id_rsa.pub</span></code> (public key)</li>
+</ul>
+<p>If these files exist when you do <code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">~/.ssh</span></code>,
+then you already have an SSH key.</p>
+<p>If you do not have an SSH key,
+you can create one with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh-keygen
+</pre></div>
+</div>
+<p>Follow the prompts,
+using the default values when unsure.
+We recommend setting a passphrase
+in case someone obtains
+your SSH key pair.</p>
+<p>Once you have an SSH key pair,
+you will copy your public key
+to each machine you want to
+log into without a password.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh-copy-id &lt;host short name&gt;
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> is the name you specified
+in your SSH config file for that host
+(e.g., <code class="docutils literal notranslate"><span class="pre">ssh-copy-id</span> <span class="pre">loihi-host</span></code>).
+You will be prompted for your password
+in order to copy the key.
+Once it is copied, try <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code>
+to confirm that you can log in
+without providing a password.</p>
+</div>
+<div class="section" id="remote-port-tunneling">
+<h3>Remote port tunneling<a class="headerlink" href="#remote-port-tunneling" title="Permalink to this headline">¶</a></h3>
+<p>Tunneling a remote port to your local machine
+allows you to run the Jupyter notebook server
+or the Nengo GUI server on the superhost or host,
+but access the web-based interface
+on your local machine.</p>
+<p>To do this, we will
+create a new terminal window on the local machine
+that we will keep open while the tunnel is active.
+In this terminal, do</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh -L &lt;<span class="nb">local</span> port&gt;:localhost:&lt;remote port&gt;
+</pre></div>
+</div>
+<p>You will then enter an SSH session
+in which you can start the process
+that will communicate over <code class="docutils literal notranslate"><span class="pre">&lt;remote</span> <span class="pre">port&gt;</span></code>.</p>
+<p><strong>Example 1</strong>:
+Starting a Nengo GUI server on port 8000
+of <code class="docutils literal notranslate"><span class="pre">superhost-1</span></code>,
+which has a <code class="docutils literal notranslate"><span class="pre">loihi</span></code> conda environment.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In a new terminal window on your local machine</span>
+ssh -L <span class="m">8000</span>:localhost:8000 superhost-1
+<span class="c1"># We are now on superhost-1</span>
+<span class="nb">source</span> activate loihi
+<span class="nb">cd</span> ~/nengo-loihi/docs/examples
+nengo --port <span class="m">8000</span> --no-browser --auto-shutdown <span class="m">0</span> --backend nengo_loihi
+</pre></div>
+</div>
+<p>On your local machine,
+open <code class="docutils literal notranslate"><span class="pre">http://localhost:8000/</span></code>
+and you should see the Nengo GUI interface.</p>
+<p><strong>Example 2</strong>:
+Starting a Jupyter notebook server on port 8080
+of <code class="docutils literal notranslate"><span class="pre">superhost-2</span></code>,
+which has a <code class="docutils literal notranslate"><span class="pre">loihi</span></code> virtualenv environment.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In a new terminal window on your local machine</span>
+ssh -L <span class="m">8080</span>:localhost:8080 superhost-2
+<span class="c1"># We are now on superhost-2</span>
+workon loihi
+<span class="nb">cd</span> ~/nengo-loihi/docs/examples
+jupyter notebook --no-browser --port <span class="m">8080</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">jupyter</span></code> command should print out a URL of the form
+<code class="docutils literal notranslate"><span class="pre">http://localhost:8888/?token=&lt;long-strong&gt;</span></code>,
+which you can open on your local machine.</p>
+</div>
+<div class="section" id="syncing-with-rsync">
+<h3>Syncing with rsync<a class="headerlink" href="#syncing-with-rsync" title="Permalink to this headline">¶</a></h3>
+<p>If you work on your local machine
+and push changes to multiple remote superhosts,
+it is worth spending some time to set up
+a robust solution for syncing files
+between your local machine and the superhosts.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rsync</span></code> is a good option because it is fast
+(it detects what has changed and only sends changes)
+and can be configured to ensure that
+the files on your local machine are the canonical files
+and are not overwritten by changes made on remotes.
+<code class="docutils literal notranslate"><span class="pre">rsync</span></code> also uses SSH under the hood,
+so the SSH hosts you set up previously can be used.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rsync</span></code> is available from most package managers
+(e.g. <code class="docutils literal notranslate"><span class="pre">apt</span></code>, <code class="docutils literal notranslate"><span class="pre">brew</span></code>)
+and in many cases
+will already be installed
+on your system.</p>
+<p>The basic command that is most useful is</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rsync -rtuv --exclude<span class="o">=</span>*.pyc /src/folder /dst/folder
+</pre></div>
+</div>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">-r</span></code> recurses into subdirectories</li>
+<li><code class="docutils literal notranslate"><span class="pre">-t</span></code> copies and updates file modifications times</li>
+<li><code class="docutils literal notranslate"><span class="pre">-u</span></code> replaces files with the most up-to-date version
+as determined by modification time</li>
+<li><code class="docutils literal notranslate"><span class="pre">-v</span></code> adds more console output to see what has changed</li>
+<li><code class="docutils literal notranslate"><span class="pre">--exclude=*.pyc</span></code> ensures that <code class="docutils literal notranslate"><span class="pre">*.pyc</span></code> files are not copied</li>
+</ul>
+<p>See also <a class="reference external" href="https://ss64.com/bash/rsync_options.html">more details and options</a>.</p>
+<p>When sending files to a remote host,
+you may also want to use the <code class="docutils literal notranslate"><span class="pre">--delete</span></code> option
+to delete files in the destination folder
+that have been removed from the source folder.</p>
+<p>To simplify <code class="docutils literal notranslate"><span class="pre">rsync</span></code> usage,
+you can make small <code class="docutils literal notranslate"><span class="pre">bash</span></code> functions
+to make your workflow explicit.</p>
+<p>For example, the following
+bash functions will sync the <code class="docutils literal notranslate"><span class="pre">NxSDK</span></code>
+and <code class="docutils literal notranslate"><span class="pre">nengo-loihi</span></code> folders
+between the local machine
+and the user’s home directory on <code class="docutils literal notranslate"><span class="pre">host-1</span></code>.
+In this example, the <code class="docutils literal notranslate"><span class="pre">--delete</span></code> flag
+is only used on pushing so that files
+are never deleted from the local machine.
+The <code class="docutils literal notranslate"><span class="pre">--exclude=*.pyc</span></code> flag
+is only used for <code class="docutils literal notranslate"><span class="pre">nengo-loihi</span></code> because
+<code class="docutils literal notranslate"><span class="pre">*.pyc</span></code> files are an important
+part of the NxSDK source tree.
+These and other options can be adapted
+based on your personal workflow.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LOIHI</span><span class="o">=</span><span class="s2">&quot;/path/to/nengo-loihi/&quot;</span>
+<span class="nv">NXSDK</span><span class="o">=</span><span class="s2">&quot;/path/to/NxSDK/&quot;</span>
+push_host1<span class="o">()</span> <span class="o">{</span>
+    rsync -rtuv --exclude<span class="o">=</span>*.pyc --delete <span class="s2">&quot;</span><span class="nv">$LOIHI</span><span class="s2">&quot;</span> <span class="s2">&quot;host-1:nengo-loihi&quot;</span>
+    rsync -rtuv --delete <span class="s2">&quot;</span><span class="nv">$NXSDK</span><span class="s2">&quot;</span> <span class="s2">&quot;host-1:NxSDK&quot;</span>
+<span class="o">}</span>
+pull_host1<span class="o">()</span> <span class="o">{</span>
+    rsync -rtuv --exclude<span class="o">=</span>*.pyc <span class="s2">&quot;host-1:nengo-loihi/&quot;</span> <span class="s2">&quot;</span><span class="nv">$LOIHI</span><span class="s2">&quot;</span>
+    rsync -rtuv <span class="s2">&quot;host-1:NxSDK&quot;</span> <span class="s2">&quot;</span><span class="nv">$NXSDK</span><span class="s2">&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>These functions are placed in the <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> file
+and executed at a terminal with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>push_host1
+pull_host1
+</pre></div>
+</div>
+</div>
+<div class="section" id="remote-editing-with-sshfs">
+<h3>Remote editing with SSHFS<a class="headerlink" href="#remote-editing-with-sshfs" title="Permalink to this headline">¶</a></h3>
+<p>If you primarily work with a single remote superhost,
+SSHFS is a good option that allows you
+to mount a remote filesystem to your local machine,
+meaning that you manipulate files as you
+normally would on your local machine,
+but those files will actually exist
+on the remote machine.
+SSHFS ensures that change you make locally
+are efficiently sent to the remote.</p>
+<p>SSHFS is available from most package managers,
+including <code class="docutils literal notranslate"><span class="pre">apt</span></code> and <code class="docutils literal notranslate"><span class="pre">brew</span></code>.</p>
+<p>To mount a remote directory to your local machine,
+create a directory to mount to,
+then call <code class="docutils literal notranslate"><span class="pre">sshfs</span></code> to mount it.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir -p &lt;mount point&gt;
+sshfs -o allow_other,defer_permissions &lt;host short name&gt;:&lt;remote directory&gt; &lt;mount point&gt;
+</pre></div>
+</div>
+<p>When you are done using the remote files,
+unmount the mount point.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>fusermount -u &lt;mount point&gt;
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">fusermount</span></code> is not available
+and you have <code class="docutils literal notranslate"><span class="pre">sudo</span></code> access, you can also unmount with</p>
+<div class="last highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo umount &lt;mount point&gt;
+</pre></div>
+</div>
+</div>
+<p>As with <code class="docutils literal notranslate"><span class="pre">rsync</span></code>, since you may do these commands frequently,
+it can save time to make a short bash function.
+The following example functions mount and unmount
+the <code class="docutils literal notranslate"><span class="pre">host-2</span></code> <code class="docutils literal notranslate"><span class="pre">~/loihi</span></code> directory
+to the local machine’s <code class="docutils literal notranslate"><span class="pre">~/remote/host-2</span></code> directory.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mount_host2<span class="o">()</span> <span class="o">{</span>
+    mkdir -p ~/remote/host-2
+    sshfs host-2:loihi ~/remote/host-2
+<span class="o">}</span>
+unmount_host2<span class="o">()</span> <span class="o">{</span>
+    fusermount -u ~/remote/host-2
+<span class="o">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="superhost">
+<h2>Superhost<a class="headerlink" href="#superhost" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="plotting">
+<h3>Plotting<a class="headerlink" href="#plotting" title="Permalink to this headline">¶</a></h3>
+<p>If you are generating plots with Matplotlib
+on the superhost or host,
+you may run into issues due to there being
+no monitor attached to those machines
+(i.e., they are “headless”).
+Rather than plotting to a screen,
+you can instead save plots as files
+with <code class="docutils literal notranslate"><span class="pre">plt.savefig</span></code>.
+You will also need to configure
+Matplotlib to use a headless backend by default.</p>
+<p>The easiest way to do this is with a <code class="docutils literal notranslate"><span class="pre">matplotlibrc</span></code> file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir -p ~/.config/matplotlib
+<span class="nb">echo</span> <span class="s2">&quot;backend: Agg&quot;</span> &gt;&gt; ~/.config/matplotlib/matplotlibrc
+</pre></div>
+</div>
+</div>
+<div class="section" id="ipython-jupyter">
+<h3>IPython / Jupyter<a class="headerlink" href="#ipython-jupyter" title="Permalink to this headline">¶</a></h3>
+<p>If you want to use the IPython interpreter
+or the Jupyter notebook on a superhost
+(e.g., the INRC superhost),
+you may run into issues due to the
+network file system (NFS),
+which does not work well
+with how IPython and Jupyter track command history.
+You can configure IPython and Jupyter
+to instead store command history to memory only.</p>
+<p>To do this, start by generating the configuration files.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jupyter notebook --generate-config
+ipython profile create
+</pre></div>
+</div>
+<p>Then add a line to three files to
+configure the command history for NFS.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span> <span class="s2">&quot;c.NotebookNotary.db_file = &#39;:memory:&#39;&quot;</span> &gt;&gt; ~/.jupyter/jupyter_notebook_config.py
+<span class="nb">echo</span> <span class="s2">&quot;c.HistoryAccessor.hist_file = &#39;:memory:&#39;&quot;</span> &gt;&gt; ~/.ipython/profile_default/ipython_config.py
+<span class="nb">echo</span> <span class="s2">&quot;c.HistoryAccessor.hist_file = &#39;:memory:&#39;&quot;</span> &gt;&gt; ~/.ipython/profile_default/ipython_kernel_config.py
+</pre></div>
+</div>
+</div>
+<div class="section" id="slurm-cheatsheet">
+<h3>Slurm cheatsheet<a class="headerlink" href="#slurm-cheatsheet" title="Permalink to this headline">¶</a></h3>
+<p>Most Loihi superhosts use <a class="reference external" href="https://slurm.schedmd.com/">Slurm</a>
+to schedule and distribute jobs to Loihi hosts.
+Below are the commands that Slurm makes available
+and what they do.</p>
+<dl class="docutils">
+<dt><code class="docutils literal notranslate"><span class="pre">sinfo</span></code></dt>
+<dd>Check the status (availability) of connected hosts.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">squeue</span></code></dt>
+<dd>Check the status of your jobs.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">scancel</span> <span class="pre">&lt;jobid&gt;</span></code></dt>
+<dd>Kill one of your jobs.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">scancel</span> <span class="pre">--user=&lt;username&gt;</span></code></dt>
+<dd>Kill all of your jobs.</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">scontrol</span> <span class="pre">update</span> <span class="pre">nodename=&quot;&lt;nodename&gt;&quot;</span> <span class="pre">state=&quot;idle&quot;</span></code></dt>
+<dd><p class="first">Mark a Loihi host as “idle”,
+which places it in the pool of available hosts to be used.
+Use this when a Loihi host that was down comes back up.</p>
+<div class="last admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This should only be done by a system administrator.</p>
+</div>
+</dd>
+</dl>
+</div>
+<div class="section" id="use-slurm-by-default">
+<h3>Use Slurm by default<a class="headerlink" href="#use-slurm-by-default" title="Permalink to this headline">¶</a></h3>
+<p>Most superhosts use Slurm to run models on the host.
+Normally you can opt in to executing a command with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SLURM</span><span class="o">=</span><span class="m">1</span> my-command
+</pre></div>
+</div>
+<p>However, you will usually want to use Slurm,
+so to switch to an opt-out setup,
+open your shell configuration file
+in a text editor (usually <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code>),
+and add the following line to the end of the file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">SLURM</span><span class="o">=</span><span class="m">1</span>
+</pre></div>
+</div>
+<p>Once making this change you can opt out of using Slurm
+by executing a command with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SLURM</span><span class="o">=</span><span class="m">0</span> my-command
+</pre></div>
+</div>
+</div>
+<div class="section" id="running-large-models">
+<h3>Running large models<a class="headerlink" href="#running-large-models" title="Permalink to this headline">¶</a></h3>
+<p>Normally you do not need to do anything
+other than setting the <code class="docutils literal notranslate"><span class="pre">SLURM</span></code> environment variable
+to run a model on Slurm.
+However, in some situation Slurm may kill your job
+due to long run times or other factors.</p>
+<p>Custom Slurm partitions can be used to run
+your job with different sets of restrictions.
+Your system administrator will have to set up the partition.
+You can see a list of all partitions and nodes with <code class="docutils literal notranslate"><span class="pre">sinfo</span></code>.</p>
+<p>To run a job with the <code class="docutils literal notranslate"><span class="pre">loihiinf</span></code> partition,
+set the environment variable <code class="docutils literal notranslate"><span class="pre">PARTITION</span></code>.
+For example, you can run <code class="docutils literal notranslate"><span class="pre">bigmodel.py</span></code>
+using this partition with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PARTITION</span><span class="o">=</span>loihiinf python bigmodel.py
+</pre></div>
+</div>
+<p>Similarly, if you wish to use
+a particular board (called a “node” in Slurm),
+set the <code class="docutils literal notranslate"><span class="pre">BOARD</span></code> environment variable.
+For example, to run <code class="docutils literal notranslate"><span class="pre">model.py</span></code> on the
+<code class="docutils literal notranslate"><span class="pre">loihimh</span></code> board, do</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">BOARD</span><span class="o">=</span>loihimh python model.py
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>
