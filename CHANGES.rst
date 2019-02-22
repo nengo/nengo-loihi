@@ -19,8 +19,8 @@ Release history
    - Removed
    - Fixed
 
-0.6.0 (unreleased)
-==================
+0.6.0 (February 22, 2019)
+=========================
 
 **Changed**
 
@@ -28,12 +28,6 @@ Release history
   the classes previously in ``conv.py`` have been moved to Nengo as part of
   this transition. The MNIST convnet example demonstrates the new syntax.
   (`#142 <https://github.com/nengo/nengo-loihi/pull/142>`__)
-- Removed the ``NIF`` and ``NIFRate`` neuron types. These types were only used
-  for encoding node values in spikes to send to the chip, which can be done
-  just as well with ``nengo.SpikingRectifiedLinear`` neurons.
-  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
-- Removed the unused/untested ``Synapse.set_diagonal_weights``.
-  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
 - Emulator now fails for any cx_base < 0, except -1 which indicates
   an unused axon.
   (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
@@ -45,6 +39,15 @@ Release history
   of neuron on the chip, improving the accuracy of these model.
   (`#140 <https://github.com/nengo/nengo-loihi/pull/140>`__)
 
+**Removed**
+
+- Removed the ``NIF`` and ``NIFRate`` neuron types. These types were only used
+  for encoding node values in spikes to send to the chip, which can be done
+  just as well with ``nengo.SpikingRectifiedLinear`` neurons.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+- Removed the unused/untested ``Synapse.set_diagonal_weights``.
+  (`#185 <https://github.com/nengo/nengo-loihi/pull/185>`__)
+
 **Fixed**
 
 - Objects in nengo-loihi will have the same random seeds as in
@@ -54,7 +57,6 @@ Release history
 - Seeded networks that have learning are now deterministic on both
   emulator and hardware.
   (`#140 <https://github.com/nengo/nengo-loihi/pull/140>`__)
-
 
 0.5.0 (February 12, 2019)
 =========================
