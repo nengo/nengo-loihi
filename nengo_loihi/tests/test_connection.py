@@ -489,12 +489,14 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
 def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     """Ensure that neuron to neuron connections work on and off chip."""
 
+    if not seed_ens and nengo.version.version_info <= (2, 8, 0):
+        plt.saveas = None
+        pytest.xfail("Seeds change when moving ensembles off/on chip")
+
     n_neurons = 50
     # When the ensemble is seeded, the output plots will make more sense,
     # but the test should work whether they're seeded or not.
     ens_seed = (seed + 1) if seed_ens else None
-    if not seed_ens:
-        pytest.xfail("Seeds change when moving ensembles off/on chip")
     simtime = 1.0
 
     with nengo.Network(seed=seed) as model:

@@ -186,6 +186,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     if channels_last:
+        plt.saveas = None
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     pop_type = 32
@@ -329,6 +330,7 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
 def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
                          allclose):
     if channels_last:
+        plt.saveas = None
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     # load data
