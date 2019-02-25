@@ -1,13 +1,34 @@
 import itertools
 
+from nengo.exceptions import ValidationError
 import numpy as np
 
 from nengo_loihi.compat import nengo_transforms
 
 
 class ImageSlice:
+    """Represents a slice of a larger image across rows/columns/channels.
+
+    Parameters
+    ----------
+    full_shape : nengo.transforms.ChannelShape
+        Full shape of the image to slice.
+    row_slice : slice
+        Slice across the image rows.
+    col_slice : slice
+        Slice across the image columns.
+    channel_slice : slice
+        Slice across the image channels.
+    """
     def __init__(self, full_shape, row_slice=slice(None),
                  col_slice=slice(None), channel_slice=slice(None)):
+        if nengo_transforms is None:
+            raise NotImplementedError("ImageSlice requires newer Nengo")
+        if not (isinstance(full_shape, nengo_transforms.ChannelShape)
+                and full_shape.dimensions == 2):
+            raise ValidationError(
+                "must be 2-D ChannelShape (got %r)" % full_shape,
+                attr='full_shape', obj=self)
         self.full_shape = full_shape
         self.row_slice = row_slice
         self.col_slice = col_slice
@@ -17,13 +38,13 @@ class ImageSlice:
         return self.row_slice == slice(None) and self.col_slice == slice(None)
 
     def row_idxs(self):
-        return list(range(self.full_shape.rows))[self.row_slice]
+        return list(range(self.full_shape.spatial_shape[0]))[self.row_slice]
 
     def col_idxs(self):
-        return list(range(self.full_shape.cols))[self.col_slice]
+        return list(range(self.full_shape.spatial_shape[1]))[self.col_slice]
 
     def channel_idxs(self):
-        return list(range(self.full_shape.channels))[self.channel_slice]
+        return list(range(self.full_shape.n_channels))[self.channel_slice]
 
 
 def split_transform(transform, in_slice=None, out_slice=None):

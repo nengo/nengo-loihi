@@ -722,3 +722,26 @@ def test_conv_non_lowpass(Simulator):
     with pytest.raises(NotImplementedError, match="non-Lowpass synapses"):
         with Simulator(model):
             pass
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_imageslice_api():
+    imageshape = nengo_transforms.ChannelShape((5, 6, 8))
+    imageslice = conv.ImageSlice(imageshape,
+                                 row_slice=slice(None, None, 2),
+                                 col_slice=slice(1, 4),
+                                 channel_slice=slice(1, None, 2))
+    assert not imageslice.channel_slice_only()
+    assert imageslice.row_idxs() == [0, 2, 4]
+    assert imageslice.col_idxs() == [1, 2, 3]
+    assert imageslice.channel_idxs() == [1, 3, 5, 7]
+
+    imageslice = conv.ImageSlice(imageshape, channel_slice=slice(2, None, 2))
+    assert imageslice.channel_slice_only()
+    assert imageslice.row_idxs() == list(range(5))
+    assert imageslice.col_idxs() == list(range(6))
+    assert imageslice.channel_idxs() == [2, 4, 6]
+
+    with pytest.raises(ValidationError, match="must be 2-D ChannelShape"):
+        conv.ImageSlice(nengo_transforms.ChannelShape((5, 6, 7, 8)))
