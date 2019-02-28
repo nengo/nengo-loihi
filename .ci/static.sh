@@ -15,7 +15,8 @@ if [[ "$COMMAND" == "install" ]]; then
     # pip installs a more recent entrypoints version than conda
     exe pip install entrypoints
     exe conda install --quiet jupyter
-    exe pip install codespell flake8 pylint gitlint
+    # astroid==2.2 causes an error when running pylint
+    exe pip install codespell flake8 pylint gitlint "astroid<2.2.0"
 elif [[ "$COMMAND" == "script" ]]; then
     # Convert notebooks to Python scripts
     jupyter-nbconvert \
