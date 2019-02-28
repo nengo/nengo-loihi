@@ -29,9 +29,7 @@ elif [[ "$COMMAND" == "script" ]]; then
         pip install -e .[tests]
         pip install $NENGO_VERSION
         pip install ~/travis-ci/nxsdk-0.8.0.tar.gz
-        SLURM=1 coverage run -m pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 || HW_STATUS=1
-        coverage report -m
-        coverage xml
+        SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml || HW_STATUS=1
         exit \$HW_STATUS
 EOF
 elif [[ "$COMMAND" == "after_script" ]]; then
