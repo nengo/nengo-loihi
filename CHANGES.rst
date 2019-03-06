@@ -22,7 +22,13 @@ Release history
 0.7.0 (unreleased)
 ==================
 
+**Added**
 
+- Added ``RoundRobin`` allocator, which allows networks to be run across
+  multiple chips (multi-chip) by assigning each ensemble to a different chip
+  in a round-robin format. This allocator can be selected using the
+  ``hardware_options`` argument when creating ``nengo_loihi.Simulator``.
+  (`#197 <https://github.com/nengo/nengo-loihi/pull/197>`__)
 
 0.6.0 (February 22, 2019)
 =========================

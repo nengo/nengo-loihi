@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 def build_board(board, seed=None):
-    n_chips = board.n_chips()
-    n_cores_per_chip = board.n_cores_per_chip()
-    n_synapses_per_core = board.n_synapses_per_core()
+    n_chips = board.n_chips
+    n_cores_per_chip = board.n_cores_per_chip
+    n_synapses_per_core = board.n_synapses_per_core
     n2board = N2Board(
         board.board_id, n_chips, n_cores_per_chip, n_synapses_per_core)
 

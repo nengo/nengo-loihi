@@ -13,7 +13,7 @@ import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Probe
 from nengo_loihi.discretize import scale_pes_errors
-from nengo_loihi.hardware.allocators import one_to_one_allocator
+from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_shim import (
     assert_nxsdk,
@@ -21,6 +21,7 @@ from nengo_loihi.hardware.nxsdk_shim import (
     nxsdk_version,
     N2SpikeProbe,
 )
+from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
@@ -33,15 +34,24 @@ class HardwareInterface:
     ----------
     model : Model
         Model specification that will be placed on the Loihi board.
+    use_snips : boolean, optional (Default: True)
+        Whether to use snips (e.g., for ``precompute=False``).
     seed : int, optional (Default: None)
         A seed for stochastic operations.
     snip_max_spikes_per_step : int
         The maximum number of spikes that can be sent to the chip in one
         timestep if ``.use_snips`` is True.
+    allocator : Allocator, optional (Default: ``OneToOne()``)
+        Callable object that allocates the board's devices to given models.
+        Defaults to one block and one input per core on a single chip.
     """
 
     def __init__(self, model, use_snips=True, seed=None,
-                 snip_max_spikes_per_step=50):
+                 snip_max_spikes_per_step=50, allocator=OneToOne()):
+        if isinstance(allocator, RoundRobin) and use_snips:
+            raise SimulationError("snips are not supported for the "
+                                  "RoundRobin allocator")
+
         self.closed = False
         self.use_snips = use_snips
         self.check_nxsdk_version()
@@ -69,7 +79,7 @@ class HardwareInterface:
         # from previous simulators
         N2SpikeProbe.probeDict.clear()
 
-        self.build(model, seed=seed)
+        self.build(model, allocator=allocator, seed=seed)
 
     def __enter__(self):
         return self
@@ -102,7 +112,7 @@ class HardwareInterface:
             for probe in block.probes:
                 yield probe
 
-    def build(self, model, seed=None):
+    def build(self, model, allocator, seed=None):
         validate_model(model)
         self.model = model
         self.pes_error_scale = getattr(model, 'pes_error_scale', 1.)
@@ -114,10 +124,11 @@ class HardwareInterface:
                 probe.use_snip = True
                 self._snip_probe_data[probe] = []
 
-        # --- allocate --
-        # maps Model to cores and chips
-        allocator = one_to_one_allocator  # one core per ensemble
+        # --- allocate
         self.board = allocator(self.model)
+
+        # --- validate
+        validate_board(self.board)
 
         # --- build
         self.n2board = build_board(self.board, seed=seed)

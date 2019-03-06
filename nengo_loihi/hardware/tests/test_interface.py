@@ -6,7 +6,7 @@ from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
-from nengo_loihi.hardware.allocators import one_to_one_allocator
+from nengo_loihi.hardware.allocators import OneToOne
 from nengo_loihi.hardware.builder import build_board
 
 
@@ -61,7 +61,7 @@ def test_builder_poptype_errors():
 
     discretize_model(model)
 
-    allocator = one_to_one_allocator  # one core per ensemble
+    allocator = OneToOne()  # one core per ensemble
     board = allocator(model)
 
     with pytest.raises(ValueError, match="[Ss]ynapse.*[Uu]nrec.*pop.*type"):
@@ -87,7 +87,6 @@ def test_builder_poptype_errors():
 
     discretize_model(model)
 
-    allocator = one_to_one_allocator  # one core per ensemble
     board = allocator(model)
 
     with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):

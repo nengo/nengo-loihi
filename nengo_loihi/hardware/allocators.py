@@ -1,3 +1,5 @@
+import logging
+
 from nengo.exceptions import ValidationError
 import numpy as np
 
@@ -11,7 +13,8 @@ from nengo_loihi.hardware.nxsdk_objects import (
     TraceCfg,
     VthProfile,
 )
-from nengo_loihi.hardware.validate import validate_board
+
+logger = logging.getLogger(__name__)
 
 
 def compute_profiles(core, list_profiles):
@@ -84,11 +87,18 @@ def core_stdp_pre_cfgs(core):
     return profiles, profile_idxs
 
 
-def one_to_one_allocator(model):
-    board = Board()
-    chip = board.new_chip()
+class Allocator:
+    """Responsible for allocating the board's devices to models."""
 
-    for block in model.blocks:
+    def __call__(self, model):
+        """Returns a Board object corresponding to the given model."""
+        raise NotImplementedError()
+
+
+class OneToOne(Allocator):
+    """Assigns each block and input to distinct cores on the same chip."""
+
+    def block_to_chip(self, block, chip):
         if block.compartment.n_compartments > 1024:
             raise ValidationError("Segment does not fit on one chip",
                                   "n_neurons")
@@ -107,9 +117,6 @@ def one_to_one_allocator(model):
         for synapse in block.synapses:
             core.add_synapse(synapse)
 
-        for axon in block.axons:
-            core.add_axon(axon)
-
         stdp_pre_cfgs, stdp_pre_cfg_idxs = core_stdp_pre_cfgs(core)
         [core.add_stdp_pre_cfg(stdp_pre_cfg) for stdp_pre_cfg in stdp_pre_cfgs]
         core.stdp_pre_cfg_idxs = stdp_pre_cfg_idxs
@@ -117,12 +124,50 @@ def one_to_one_allocator(model):
         core.stdp_pre_profile_idx = None  # hardware.builder will set
         core.stdp_profile_idx = None  # hardware.builder will set
 
-    for input in model.inputs:
+    def input_to_chip(self, input, chip):
         # TODO: how to allocate inputs?
         core = chip.new_core()
         core.add_input(input)
-        for axon in input.axons:
-            core.add_axon(axon)
 
-    validate_board(board)
-    return board
+    def __call__(self, model):
+        board = Board()
+        chip = board.new_chip()
+
+        for block in model.blocks:
+            self.block_to_chip(block, chip)
+
+        for input in model.inputs:
+            self.input_to_chip(input, chip)
+
+        return board
+
+
+class RoundRobin(OneToOne):
+    """Assigns each block and input to the next chip in round-robin order."""
+
+    def __init__(self, n_chips):
+        self.n_chips = n_chips
+
+    def __call__(self, model):
+        board = Board()
+
+        # We must dynamically allocate the chips
+        # as needed because nxsdk==0.8.0 hits
+        # an assertion if any chips contain 0 cores
+        def get_chip(i):
+            if i < self.n_chips:
+                board.new_chip()
+            return board.chips[i % self.n_chips]
+
+        i = 0
+        for block in model.blocks:
+            self.block_to_chip(block, get_chip(i))
+            i += 1
+
+        for input in model.inputs:
+            self.input_to_chip(input, get_chip(i))
+            i += 1
+
+        logger.info("Round-robin allocation across %d chips", board.n_chips)
+
+        return board

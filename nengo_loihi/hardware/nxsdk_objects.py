@@ -23,6 +23,19 @@ class Board:
 
         self.probe_map = {}
 
+    @property
+    def n_chips(self):
+        return len(self.chips)
+
+    @property
+    def n_cores_per_chip(self):
+        return [chip.n_cores for chip in self.chips]
+
+    @property
+    def n_synapses_per_core(self):
+        return [[core.n_synapses for core in chip.cores]
+                for chip in self.chips]
+
     def _add_chip(self, chip):
         assert chip not in self.chips
         self.chip_idxs[chip] = len(self.chips)
@@ -48,16 +61,6 @@ class Board:
     def find_synapse(self, synapse):
         return self.synapse_index[synapse]
 
-    def n_chips(self):
-        return len(self.chips)
-
-    def n_cores_per_chip(self):
-        return [chip.n_cores() for chip in self.chips]
-
-    def n_synapses_per_core(self):
-        return [[core.n_synapses() for core in chip.cores]
-                for chip in self.chips]
-
 
 class Chip:
     def __init__(self, board):
@@ -65,6 +68,10 @@ class Chip:
 
         self.cores = []
         self.core_idxs = {}
+
+    @property
+    def n_cores(self):
+        return len(self.cores)
 
     def _add_core(self, core):
         assert core not in self.cores
@@ -78,9 +85,6 @@ class Chip:
 
     def core_index(self, core):
         return self.core_idxs[core]
-
-    def n_cores(self):
-        return len(self.cores)
 
 
 class Core:
@@ -107,6 +111,11 @@ class Core:
     @property
     def synapses(self):
         return list(self.synapse_axons)
+
+    @property
+    def n_synapses(self):
+        return sum(synapse.size() for block in self.blocks
+                   for synapse in block.synapses)
 
     def iterate_blocks(self):
         i0 = 0
@@ -151,10 +160,6 @@ class Core:
         self.stdpPreCfgs.append(stdp_pre_cfg)
         return len(self.stdpPreCfgs) - 1  # index
 
-    def n_synapses(self):
-        return sum(synapse.size() for block in self.blocks
-                   for synapse in block.synapses)
-
     def add_synapse(self, synapse):
         synapse_fmt_idx = self.get_synapse_fmt_idx(synapse.synapse_fmt)
         self.synapse_fmt_idxs[synapse] = synapse_fmt_idx
@@ -174,9 +179,6 @@ class Core:
             s0 = self.synapse_entries[last][1]
         s1 = s0 + synapse.size()
         self.synapse_entries[synapse] = (s0, s1)
-
-    def add_axon(self, axon):
-        pass
 
     def get_synapse_fmt(self, synapse):
         return self.synapseFmts[self.synapse_fmt_idxs[synapse]]
