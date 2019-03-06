@@ -22,10 +22,13 @@ elif [[ "$COMMAND" == "script" ]]; then
         --log-level WARN \
         --to python \
         --TemplateExporter.exclude_input_prompt=True \
-        -- **/*.ipynb
-    sed -i -e 's/# $/#/g' -e '/get_ipython()/d' -- docs/**/*.py
+        -- docs/examples/**/*.ipynb
+    # Remove style issues introduced in the conversion:
+    #   s/# $/#/g replaces lines with just '# ' with '#'
+    #   /get_ipython()/d removes lines containing 'get_ipython()'
+    sed -i -e 's/# $/#/g' -e '/get_ipython()/d' -- docs/examples/**/*.py
     exe flake8 nengo_loihi
-    exe flake8 --ignore=E226,E703,W291,W391,W503 docs
+    exe flake8 --ignore=E226,E703,W391,W503 docs
     exe pylint docs nengo_loihi
     exe codespell -q 3 --skip="./build,./docs/_build,*-checkpoint.ipynb"
     exe shellcheck -e SC2087 .ci/*.sh

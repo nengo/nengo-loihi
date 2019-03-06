@@ -2,20 +2,44 @@ import os
 import warnings
 
 import nengo
+from nengo.utils.stdlib import execfile
+try:
+    from nengo.utils.ipython import iter_cells, load_notebook
+except ImportError as err:
+    def iter_cells(*args, err=err, **kwargs):
+        raise err
+
+    def load_notebook(*args, err=err, **kwargs):
+        raise err
+
 import numpy as np
 import pytest
+import _pytest.capture
 
+# Monkeypatch _pytest.capture.DontReadFromInput
+#  If we don't do this, importing IPython will choke as it reads the current
+#  sys.stdin to figure out the encoding it will use; pytest installs
+#  DontReadFromInput as sys.stdin to capture output.
+#  Running with -s option doesn't have this issue, but this monkeypatch
+#  doesn't have any side effects, so it's fine.
+_pytest.capture.DontReadFromInput.encoding = "utf-8"
+_pytest.capture.DontReadFromInput.write = lambda: None
+_pytest.capture.DontReadFromInput.flush = lambda: None
 
 examples_dir = os.path.realpath(os.path.join(
     os.path.dirname(__file__), os.pardir, os.pardir, "docs", "examples"
 ))
 
+all_examples = []
+for subdir, _, files in os.walk(examples_dir):
+    if (os.path.sep + '.') in subdir:
+        continue
+    files = [f for f in files if f.endswith('.ipynb')]
+    examples = [os.path.join(subdir, os.path.splitext(f)[0]) for f in files]
+    all_examples.extend(examples)
 
-def execfile(path, global_vars, local_vars):
-    fname = os.path.basename(path)
-    with open(path) as f:
-        code = compile(f.read(), fname, "exec")
-        exec(code, global_vars, local_vars)
+# os.walk goes in arbitrary order, so sort after the fact to keep pytest happy
+all_examples.sort()
 
 
 def execexample(fname):
@@ -27,6 +51,42 @@ def execexample(fname):
     example_ns = {}
     execfile(example, example_ns, example_ns)
     return example_ns
+
+
+@pytest.mark.parametrize('nb_file', all_examples)
+def test_no_outputs(nb_file):
+    """Ensure that no cells have output."""
+    pytest.importorskip("IPython", minversion="3.0")
+    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+    for cell in iter_cells(nb):
+        assert cell.outputs == [], "Cell outputs not cleared"
+        assert cell.execution_count is None, "Execution count not cleared"
+
+
+@pytest.mark.parametrize('nb_file', all_examples)
+def test_version_4(nb_file):
+    pytest.importorskip("IPython", minversion="3.0")
+    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+    assert nb.nbformat == 4
+
+
+@pytest.mark.parametrize('nb_file', all_examples)
+def test_minimal_metadata(nb_file):
+    pytest.importorskip("IPython", minversion="3.0")
+    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+
+    assert "kernelspec" not in nb.metadata
+    assert "signature" not in nb.metadata
+
+    badinfo = (
+        "codemirror_mode",
+        "file_extension",
+        "mimetype",
+        "nbconvert_exporter",
+        "version",
+    )
+    for info in badinfo:
+        assert info not in nb.metadata.language_info
 
 
 def test_ens_ens(allclose, plt):
