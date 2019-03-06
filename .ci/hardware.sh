@@ -16,7 +16,7 @@ if [[ "$COMMAND" == "install" ]]; then
     chmod 600 ~/.ssh/id_rsa
     echo -e "$INTELHOST_INFO" >> ~/.ssh/config  # ssh config, stored in travis-ci settings
     ssh -o StrictHostKeyChecking=no loihihost "echo 'Connected to loihihost'"
-    exe scp -r . "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER"
+    exe scp -r "$(pwd)" "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER"
 elif [[ "$COMMAND" == "script" ]]; then
     exe ssh loihihost << EOF
         sh /etc/profile
