@@ -3,6 +3,7 @@ from __future__ import division
 import logging
 
 import nengo.utils.numpy as npext
+from nengo.exceptions import BuildError
 from nengo.utils.stdlib import groupby
 import numpy as np
 
@@ -435,6 +436,14 @@ def collect_axons(n2core, core, block, axon, cx_ids):
             assert (n_blocks == 0
                     or (n_blocks == 1 and block is core.blocks[0]))
             assert len(block.probes) == 0
+            tchip_id_source = n2board.n2Chips[core.chip.index].id
+            if tchip_id != tchip_id_source:
+                raise BuildError("pop16 and pop32 weights are not "
+                                 "supported across multiple chips "
+                                 "(%d -> %d); this is likely raised due "
+                                 "to convolutional weights being used "
+                                 "with a multi-chip allocator" % (
+                                     tchip_id_source, tchip_id))
         else:
             raise ValueError("Axon: unrecognized pop_type: %s" % (
                 synapse.pop_type,))

@@ -3,7 +3,7 @@ import pickle
 
 import nengo
 from nengo.dists import Uniform
-from nengo.exceptions import ValidationError
+from nengo.exceptions import BuildError, ValidationError
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
 import numpy as np
@@ -18,6 +18,7 @@ from nengo_loihi import conv
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
+from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.neurons import (
     loihi_rates,
     LoihiLIF,
@@ -653,4 +654,34 @@ def test_conv_gain(Simulator):
 
     with pytest.raises(ValidationError):
         with Simulator(net):
+            pass
+
+
+@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
+                    reason="RoundRobin allocator is Loihi-only")
+def test_conv_round_robin_unsupported(Simulator, seed):
+    k = 10
+    d = 5
+    with nengo.Network(seed=seed) as model:
+        u = nengo.Node(output=np.linspace(-1, 1, k))
+
+        a = nengo.Ensemble(n_neurons=k**2, dimensions=k)
+
+        x = nengo.Ensemble(n_neurons=d, dimensions=d,
+                           gain=np.ones(d), bias=np.ones(d))
+
+        nengo.Connection(u, a)
+
+        conv = nengo.Convolution(
+            n_filters=d, input_shape=(k, k, 1),
+            strides=(1, 1), kernel_size=(k, k))
+        assert conv.size_in == k**2
+        assert conv.size_out == d
+
+        nengo.Connection(a.neurons, x.neurons, transform=conv)
+
+    with pytest.raises(BuildError, match="multi-chip allocator"):
+        with Simulator(model,
+                       hardware_options={'allocator': RoundRobin(n_chips=8)},
+                       precompute=True):
             pass
