@@ -71,6 +71,9 @@ class Simulator:
         Whether the simulator should target the emulator (``'sim'``) or
         Loihi hardware (``'loihi'``). If None, *target* will default to
         ``'loihi'`` if NxSDK is installed, and the emulator if it is not.
+    hardware_options : dict, optional (Default: {})
+        Dictionary of additional configuration for the hardware.
+        See `.hardware.HardwareInterface` for possible parameters.
 
     Attributes
     ----------
@@ -287,7 +290,8 @@ class Simulator:
             precompute=False,
             target=None,
             progress_bar=None,
-            remove_passthrough=True
+            remove_passthrough=True,
+            hardware_options=None,
     ):
         # initialize values used in __del__ and close() first
         self.closed = True
@@ -295,6 +299,8 @@ class Simulator:
         self.networks = None
         self.sims = OrderedDict()
         self._run_steps = None
+
+        hardware_options = {} if hardware_options is None else hardware_options
 
         if progress_bar:
             warnings.warn("nengo-loihi does not support progress bars")
@@ -392,7 +398,8 @@ class Simulator:
         elif target == 'loihi':
             assert HAS_NXSDK, "Must have NxSDK installed to use Loihi hardware"
             self.sims["loihi"] = HardwareInterface(
-                self.model, use_snips=not self.precompute, seed=seed)
+                self.model, use_snips=not self.precompute, seed=seed,
+                **hardware_options)
         else:
             raise ValidationError("Must be 'simreal', 'sim', or 'loihi'",
                                   attr="target")

@@ -35,9 +35,13 @@ class HardwareInterface:
         Model specification that will be placed on the Loihi board.
     seed : int, optional (Default: None)
         A seed for stochastic operations.
+    snip_max_spikes_per_step : int
+        The maximum number of spikes that can be sent to the chip in one
+        timestep if ``.use_snips`` is True.
     """
 
-    def __init__(self, model, use_snips=True, seed=None):
+    def __init__(self, model, use_snips=True, seed=None,
+                 snip_max_spikes_per_step=50):
         self.closed = False
         self.use_snips = use_snips
         self.check_nxsdk_version()
@@ -52,7 +56,7 @@ class HardwareInterface:
 
         # Maximum number of spikes that can be sent through
         # the nengo_io_h2c channel on one timestep.
-        self.snip_max_spikes_per_step = 50
+        self.snip_max_spikes_per_step = snip_max_spikes_per_step
 
         nxsdk_dir = os.path.realpath(
             os.path.join(os.path.dirname(nxsdk.__file__), "..")
