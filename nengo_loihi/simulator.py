@@ -17,11 +17,11 @@ import numpy as np
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
 from nengo_loihi.compat import seed_network
+import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
 from nengo_loihi.splitter import split
-import nengo_loihi.config as config
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +289,13 @@ class Simulator:
             progress_bar=None,
             remove_passthrough=True
     ):
-        self.closed = True  # Start closed in case constructor raises exception
+        # initialize values used in __del__ and close() first
+        self.closed = True
+        self.precompute = precompute
+        self.networks = None
+        self.sims = OrderedDict()
+        self._run_steps = None
+
         if progress_bar:
             warnings.warn("nengo-loihi does not support progress bars")
 
@@ -304,11 +310,6 @@ class Simulator:
                 "model is not type 'nengo_loihi.builder.Model'")
             self.model = model
             assert self.model.dt == dt
-
-        self.precompute = precompute
-        self.networks = None
-        self.sims = OrderedDict()
-        self._run_steps = None
 
         if network is not None:
             nengo.rc.set("decoder_cache", "enabled", "False")
