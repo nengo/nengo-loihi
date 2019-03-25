@@ -343,11 +343,11 @@ def test_tau_s_warning(Simulator):
     with pytest.warns(UserWarning) as record:
         with Simulator(net):
             pass
-    # The 0.001 synapse is applied first due to splitting rules putting
-    # the stim -> ens connection later than the ens -> ens connection
+
     assert any(rec.message.args[0] == (
-        "tau_s is currently 0.001, which is smaller than 0.005. "
-        "Overwriting tau_s with 0.005.") for rec in record)
+        "tau_s is already set to 0.005, which is larger than 0.001. "
+        "Using 0.005."
+    ) for rec in record)
 
     with net:
         nengo.Connection(ens, ens,
@@ -356,9 +356,10 @@ def test_tau_s_warning(Simulator):
     with pytest.warns(UserWarning) as record:
         with Simulator(net):
             pass
+
     assert any(rec.message.args[0] == (
-        "tau_s is already set to 0.1, which is larger than 0.005. Using 0.1."
-    ) for rec in record)
+        "tau_s is currently 0.005, which is smaller than 0.1. "
+        "Overwriting tau_s with 0.1.") for rec in record)
 
 
 @pytest.mark.xfail(nengo.version.version_info <= (2, 8, 0),
@@ -368,63 +369,44 @@ def test_seeds(precompute, Simulator, seed):
     with nengo.Network(seed=seed) as net:
         nengo_loihi.add_params(net)
 
-        e0 = nengo.Ensemble(1, 1)
-        e1 = nengo.Ensemble(1, 1, seed=2)
-        e2 = nengo.Ensemble(1, 1)
+        e0 = nengo.Ensemble(1, 1, label="e0")
+        e1 = nengo.Ensemble(1, 1, seed=2, label="e1")
+        e2 = nengo.Ensemble(1, 1, label="e2")
         net.config[e2].on_chip = False
         nengo.Connection(e0, e1)
         nengo.Connection(e0, e2)
 
         with nengo.Network():
             n = nengo.Node(0)
-            e = nengo.Ensemble(1, 1)
+            e = nengo.Ensemble(1, 1, label="e")
             nengo.Node(1)
             nengo.Connection(n, e)
             nengo.Probe(e)
 
         with nengo.Network(seed=8):
-            nengo.Ensemble(8, 1, seed=3)
+            nengo.Ensemble(8, 1, seed=3, label="unnamed")
             nengo.Node(1)
+
+    def get_seed(sim, obj):
+        return sim.model.seeds.get(
+            obj, sim.model.host.seeds.get(
+                obj, sim.model.host_pre.seeds.get(obj, None)))
 
     # --- test that seeds are the same as nengo ref simulator
     ref = nengo.Simulator(net)
 
     with Simulator(net, precompute=precompute) as sim:
         for obj in net.all_objects:
-            on_chip = (not isinstance(obj, nengo.Node) and (
-                not isinstance(obj, nengo.Ensemble)
-                or net.config[obj].on_chip))
-
-            seed = sim.model.seeds.get(obj, None)
-            assert seed is None or seed == ref.model.seeds[obj]
-            if on_chip:
-                assert seed is not None
-            if obj in sim.model.seeded:
-                assert sim.model.seeded[obj] == ref.model.seeded[obj]
-
-            if precompute:
-                seed0 = sim.sims["host_pre"].model.seeds.get(obj, None)
-                assert seed0 is None or seed0 == ref.model.seeds[obj]
-                seed1 = sim.sims["host"].model.seeds.get(obj, None)
-                assert seed1 is None or seed1 == ref.model.seeds[obj]
-            else:
-                seed0 = sim.sims["host"].model.seeds.get(obj, None)
-                assert seed0 is None or seed0 == ref.model.seeds[obj]
-                seed1 = None
-
-            if not on_chip:
-                assert seed0 is not None or seed1 is not None
+            assert get_seed(sim, obj) == ref.model.seeds.get(obj, None)
 
     # --- test that seeds that we set are preserved after splitting
     model = nengo_loihi.builder.Model()
-    for i, o in enumerate(net.all_objects):
-        model.seeds[o] = i
+    for i, obj in enumerate(net.all_objects):
+        model.seeds[obj] = i
 
     with Simulator(net, model=model, precompute=precompute) as sim:
-        for i, o in enumerate(net.all_objects):
-            for name, subsim in sim.sims.items():
-                if name.startswith("host"):
-                    assert subsim.model.seeds[o] == i
+        for i, obj in enumerate(net.all_objects):
+            assert get_seed(sim, obj) == i
 
 
 def test_interface(Simulator, allclose):
@@ -640,8 +622,6 @@ def test_population_input(request, allclose):
     assert allclose(z[[1, 3, 5]], weights[0], atol=4e-2, rtol=0)
 
 
-@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
-                    reason="Loihi only test")
 def test_precompute(allclose, Simulator, seed, plt):
     simtime = 0.2
 
@@ -677,9 +657,43 @@ def test_precompute(allclose, Simulator, seed, plt):
     plt.plot(sim2.trange(), sim2.data[p_out])
     plt.title('precompute=True')
 
+    # check that each is using the right placement
+    assert stim in sim1.model.host.params
+    assert stim not in sim1.model.host_pre.params
+    assert stim not in sim2.model.host.params
+    assert stim in sim2.model.host_pre.params
+
+    assert p_stim not in sim1.model.params
+    assert p_stim in sim1.model.host.params
+    assert p_stim not in sim1.model.host_pre.params
+
+    assert p_stim not in sim2.model.params
+    assert p_stim not in sim2.model.host.params
+    assert p_stim in sim2.model.host_pre.params
+
+    for sim in (sim1, sim2):
+        assert a in sim.model.params
+        assert a not in sim.model.host.params
+        assert a not in sim.model.host_pre.params
+
+        assert output not in sim.model.params
+        assert output in sim.model.host.params
+        assert output not in sim.model.host_pre.params
+
+        assert p_a in sim.model.params
+        assert p_a not in sim.model.host.params
+        assert p_a not in sim.model.host_pre.params
+
+        assert p_out not in sim.model.params
+        assert p_out in sim.model.host.params
+        assert p_out not in sim.model.host_pre.params
+
     assert np.array_equal(sim1.data[p_stim], sim2.data[p_stim])
-    assert allclose(sim1.data[p_a], sim2.data[p_a], atol=0.2)
-    assert allclose(sim1.data[p_out], sim2.data[p_out], atol=0.2)
+    assert sim1.target == sim2.target
+
+    # precompute should not make a difference in outputs
+    assert allclose(sim1.data[p_a], sim2.data[p_a])
+    assert allclose(sim1.data[p_out], sim2.data[p_out])
 
 
 @pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
@@ -732,3 +746,64 @@ def test_input_node_precompute(allclose, Simulator, plt):
     plt.legend(loc='best')
 
     assert allclose(x['sim'], x['loihi'], atol=0.1, rtol=0.01)
+
+
+@pytest.mark.parametrize("remove_passthrough", [True, False])
+def test_simulator_passthrough(remove_passthrough, Simulator):
+    with nengo.Network() as model:
+        host_input = nengo.Node(0)
+        host_a = nengo.Node(size_in=1)
+        host_b = nengo.Node(size_in=1)
+
+        chip_x = nengo.Ensemble(10, 1)
+        remove_c = nengo.Node(size_in=1)
+        chip_y = nengo.Ensemble(10, 1)
+
+        host_d = nengo.Node(size_in=1)
+
+        conn_input_a = nengo.Connection(host_input, host_a)
+        conn_a_b = nengo.Connection(host_a, host_b)
+        conn_b_x = nengo.Connection(host_b, chip_x)
+        conn_x_c = nengo.Connection(chip_x, remove_c)
+        conn_c_y = nengo.Connection(remove_c, chip_y)
+        conn_y_d = nengo.Connection(chip_y, host_d)
+
+        probe_y = nengo.Probe(chip_y)
+        probe_d = nengo.Probe(host_d)
+
+    with Simulator(model, remove_passthrough=remove_passthrough) as sim:
+        pass
+
+    assert host_input in sim.model.host.params
+    assert probe_d in sim.model.host.params
+
+    assert chip_x in sim.model.params
+    assert chip_y in sim.model.params
+    assert probe_y in sim.model.params
+
+    # Passthrough nodes are not removed on the host
+    assert host_a in sim.model.host.params
+    assert host_b in sim.model.host.params
+    assert host_d in sim.model.host.params
+    assert conn_input_a in sim.model.host.params
+    assert conn_a_b in sim.model.host.params
+
+    if remove_passthrough:
+        assert remove_c not in sim.model.host.params
+    else:
+        assert remove_c in sim.model.host.params
+
+    # These connections currently aren't built in either case
+    for model in (sim.model, sim.model.host):
+        assert conn_b_x not in model.params
+        assert conn_x_c not in model.params
+        assert conn_c_y not in model.params
+        assert conn_y_d not in model.params
+
+
+def test_network_unchanged(Simulator):
+    with nengo.Network() as model:
+        nengo.Ensemble(100, 1)
+        with Simulator(model):
+            pass
+        assert model.all_networks == []

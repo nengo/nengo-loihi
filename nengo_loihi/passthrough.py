@@ -1,12 +1,12 @@
 from collections import OrderedDict
 import warnings
 
-from nengo import Connection, Lowpass, Node
+from nengo import Connection, Lowpass, Node, Probe
+from nengo.base import ObjView
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, NengoException
 import numpy as np
-
 
 from nengo_loihi.compat import nengo_transforms, transform_array
 
@@ -16,7 +16,9 @@ def is_passthrough(obj):
 
 
 def base_obj(obj):
-    """Returns the Ensemble or Node underlying an object"""
+    """Returns the object underlying some view or neurons."""
+    if isinstance(obj, ObjView):
+        obj = obj.obj
     if isinstance(obj, Neurons):
         return obj.ensemble
     return obj
@@ -210,51 +212,7 @@ class Cluster:
                     )
 
 
-def find_clusters(net, offchip):
-    """Create the Clusters for a given nengo Network."""
-
-    # find which objects have Probes, as we need to make sure to keep them
-    probed_objs = set(base_obj(p.target) for p in net.all_probes)
-
-    clusters = OrderedDict()  # mapping from object to its Cluster
-    for c in net.all_connections:
-        base_pre = base_obj(c.pre_obj)
-        base_post = base_obj(c.post_obj)
-
-        pass_pre = is_passthrough(c.pre_obj) and c.pre_obj not in offchip
-        if pass_pre and c.pre_obj not in clusters:
-            # add new objects to their own initial Cluster
-            clusters[c.pre_obj] = Cluster(c.pre_obj)
-            if c.pre_obj in probed_objs:
-                clusters[c.pre_obj].probed_objs.add(c.pre_obj)
-
-        pass_post = is_passthrough(c.post_obj) and c.post_obj not in offchip
-        if pass_post and c.post_obj not in clusters:
-            # add new objects to their own initial Cluster
-            clusters[c.post_obj] = Cluster(c.post_obj)
-            if c.post_obj in probed_objs:
-                clusters[c.post_obj].probed_objs.add(c.post_obj)
-
-        if pass_pre and pass_post:
-            # both pre and post are passthrough, so merge the two
-            # clusters into one cluster
-            cluster = clusters[base_pre]
-            cluster.merge_with(clusters[base_post])
-            for obj in cluster.objs:
-                clusters[obj] = cluster
-            cluster.conns_mid.add(c)
-        elif pass_pre:
-            # pre is passthrough but post is not, so this is an output
-            cluster = clusters[base_pre]
-            cluster.conns_out.add(c)
-        elif pass_post:
-            # pre is not a passthrough but post is, so this is an input
-            cluster = clusters[base_post]
-            cluster.conns_in.add(c)
-    return clusters
-
-
-def convert_passthroughs(network, offchip):
+class PassthroughSplit:
     """Create a set of Connections that could replace the passthrough Nodes.
 
     This does not actually modify the Network, but instead returns the
@@ -262,42 +220,97 @@ def convert_passthroughs(network, offchip):
     and the Connections that should be added to replace the Nodes and
     Connections.
 
-    The parameter offchip provides a list of objects that should be considered
-    to be offchip. The system will only remove passthrough Nodes that go
-    between two onchip objects.
+    The parameter ignore provides a list of objects (i.e., ensembles and nodes)
+    that should not be considered by the passthrough removal process.
+    The system will only remove passthrough Nodes where neither pre nor post
+    are ignored.
     """
-    clusters = find_clusters(network, offchip=offchip)
 
-    removed_passthroughs = set()
-    removed_connections = set()
-    added_connections = set()
-    handled_clusters = set()
-    for cluster in clusters.values():
-        if cluster not in handled_clusters:
-            handled_clusters.add(cluster)
-            onchip_input = False
-            onchip_output = False
-            for c in cluster.conns_in:
-                if base_obj(c.pre_obj) not in offchip:
-                    onchip_input = True
-                    break
-            for c in cluster.conns_out:
-                if base_obj(c.post_obj) not in offchip:
-                    onchip_output = True
-                    break
-            has_input = len(cluster.conns_in) > 0
-            no_output = len(cluster.conns_out) + len(cluster.probed_objs) == 0
+    def __init__(self, network, ignore=None):
+        self.network = network
+        self.ignore = ignore if ignore is not None else set()
 
-            if has_input and ((onchip_input and onchip_output) or no_output):
-                try:
-                    new_conns = list(cluster.generate_conns())
-                except ClusterError:
-                    # this Cluster has an issue, so don't remove it
-                    continue
+        self.to_remove = set()
+        self.to_add = set()
 
-                removed_passthroughs.update(cluster.objs - cluster.probed_objs)
-                removed_connections.update(cluster.conns_in
-                                           | cluster.conns_mid
-                                           | cluster.conns_out)
-                added_connections.update(new_conns)
-    return removed_passthroughs, removed_connections, added_connections
+        if self.network is not None:
+            self.clusters = self._find_clusters()
+            self._already_split = set()
+            for cluster in self.clusters.values():
+                if cluster not in self._already_split:
+                    self._split_cluster(cluster)
+
+    def _find_clusters(self):
+        """Find Clusters for the given Network."""
+
+        # find which objects have Probes, as we need to make sure to keep them
+        probed_objs = set(base_obj(p.target) for p in self.network.all_probes)
+
+        clusters = OrderedDict()  # mapping from object to its Cluster
+        for c in self.network.all_connections:
+            # We assume that neither pre nor post can be a probe which
+            # simplifies things slightly because we don't need to be
+            # concerned with any underlying target.
+            base_pre = base_obj(c.pre)
+            base_post = base_obj(c.post)
+            assert not isinstance(base_pre, Probe)
+            assert not isinstance(base_post, Probe)
+
+            pass_pre = (is_passthrough(c.pre_obj)
+                        and c.pre_obj not in self.ignore)
+            if pass_pre and c.pre_obj not in clusters:
+                # add new objects to their own initial Cluster
+                clusters[c.pre_obj] = Cluster(c.pre_obj)
+                if c.pre_obj in probed_objs:
+                    clusters[c.pre_obj].probed_objs.add(c.pre_obj)
+
+            pass_post = (is_passthrough(c.post_obj)
+                         and c.post_obj not in self.ignore)
+            if pass_post and c.post_obj not in clusters:
+                # add new objects to their own initial Cluster
+                clusters[c.post_obj] = Cluster(c.post_obj)
+                if c.post_obj in probed_objs:
+                    clusters[c.post_obj].probed_objs.add(c.post_obj)
+
+            if pass_pre and pass_post:
+                # both pre and post are passthrough, so merge the two
+                # clusters into one cluster
+                cluster = clusters[base_pre]
+                cluster.merge_with(clusters[base_post])
+                for obj in cluster.objs:
+                    clusters[obj] = cluster
+                cluster.conns_mid.add(c)
+            elif pass_pre:
+                # pre is passthrough but post is not, so this is an output
+                cluster = clusters[base_pre]
+                cluster.conns_out.add(c)
+            elif pass_post:
+                # pre is not a passthrough but post is, so this is an input
+                cluster = clusters[base_post]
+                cluster.conns_in.add(c)
+        return clusters
+
+    def _split_cluster(self, cluster):
+        """Split a Cluster."""
+        assert cluster not in self._already_split
+        self._already_split.add(cluster)
+
+        onchip_input = any(base_obj(c.pre) not in self.ignore
+                           for c in cluster.conns_in)
+        onchip_output = any(base_obj(c.post) not in self.ignore
+                            for c in cluster.conns_out)
+
+        has_input = len(cluster.conns_in) > 0
+        no_output = len(cluster.conns_out) + len(cluster.probed_objs) == 0
+
+        if has_input and ((onchip_input and onchip_output) or no_output):
+            try:
+                new_conns = list(cluster.generate_conns())
+            except ClusterError:
+                # this Cluster has an issue, so don't remove it
+                return
+
+            self.to_remove.update(cluster.objs - cluster.probed_objs)
+            self.to_remove.update(
+                cluster.conns_in | cluster.conns_mid | cluster.conns_out)
+            self.to_add.update(new_conns)

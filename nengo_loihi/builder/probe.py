@@ -45,6 +45,10 @@ def conn_probe(model, nengo_probe):
             raise NotImplementedError()
 
         target = nengo.Node(size_in=output_dim, add_to_container=False)
+        # TODO: This is a hack so that the builder can properly delegate the
+        # connection build to the right method
+        model.split._seen_objects.add(target)
+        model.split._chip_objects.add(target)
 
         conn = Connection(
             nengo_probe.target,

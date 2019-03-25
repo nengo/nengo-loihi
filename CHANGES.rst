@@ -38,6 +38,14 @@ Release history
   Previously this was possible, but unlikely to work as expected.
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__)
 
+**Fixed**
+
+- The splitting and passthrough removal procedures were significantly
+  refactored, which fixed an issue in which networks could be modified
+  in the splitting process.
+  (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
+  `#211 <https://github.com/nengo/nengo-loihi/issues/211>`__)
+
 0.6.0 (February 22, 2019)
 =========================
 

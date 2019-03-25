@@ -1,7 +1,8 @@
 from collections import defaultdict, OrderedDict
 import logging
 
-from nengo import Network
+from nengo import Ensemble, Network, Node, Probe
+from nengo.builder import Model as NengoModel
 from nengo.builder.builder import Builder as NengoBuilder
 from nengo.builder.network import build_network
 from nengo.cache import NoDecoderCache
@@ -106,9 +107,22 @@ class Model:
         self.build_callback = None
         self.decoder_cache = NoDecoderCache()
 
+        # TODO: these models may not look/behave exactly the same as
+        # standard nengo models, because they don't have a toplevel network
+        # built into them or configs set
+        self.host_pre = NengoModel(
+            dt=float(dt), label="%s:host_pre, dt=%f" % (label, dt),
+        )
+        self.host = NengoModel(
+            dt=float(dt), label="%s:host, dt=%f" % (label, dt),
+        )
+
         # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()
         self.blocks = OrderedDict()
+
+        # Will be filled in by the simulator __init__
+        self.split = None
 
         # Will be filled in by the network builder
         self.toplevel = None
@@ -145,8 +159,11 @@ class Model:
         # magnitude/weight resolution)
         self.pes_wgt_exp = 4
 
-        # Will be provided by Simulator
+        # Used to track interactions between host models
         self.chip2host_params = {}
+        self.chip2host_receivers = OrderedDict()
+        self.host2chip_senders = OrderedDict()
+        self.needs_sender = {}
 
     def __getstate__(self):
         raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
@@ -168,13 +185,38 @@ class Model:
         self.blocks[block] = len(self.blocks)
 
     def build(self, obj, *args, **kwargs):
-        built = self.builder.build(self, obj, *args, **kwargs)
+        # Don't build the objects marked as "to_remove" by PassthroughSplit
+        if obj in self.split.passthrough.to_remove:
+            return None
+
+        if not isinstance(obj, (Node, Ensemble, Probe)):
+            model = self
+        elif self.split.on_chip(obj):
+            model = self
+        else:
+            # Note: callbacks for the host_model will not be invoked
+            model = self.host_model(obj)
+
+            # done for compatibility with nengo<=2.8.0
+            # otherwise we could just copy over the initial
+            # seeding to all other models
+            model.seeds[obj] = self.seeds[obj]
+            model.seeded[obj] = self.seeded[obj]
+
+        built = model.builder.build(model, obj, *args, **kwargs)
         if self.build_callback is not None:
             self.build_callback(obj)
         return built
 
     def has_built(self, obj):
         return obj in self.params
+
+    def host_model(self, obj):
+        """Returns the Model corresponding to where obj should be built."""
+        if self.split.is_precomputable(obj):
+            return self.host_pre
+        else:
+            return self.host
 
 
 class Builder(NengoBuilder):

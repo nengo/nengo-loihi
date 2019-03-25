@@ -1,524 +1,151 @@
-from collections import defaultdict, OrderedDict
-import copy
-import logging
-import warnings
+from collections import defaultdict
 
-from nengo import Connection, Direct, Ensemble, Network, Node, Probe
-from nengo.base import ObjView
-from nengo.connection import LearningRule
-from nengo.ensemble import Neurons
+from nengo import Direct, Ensemble, Node, Probe
 from nengo.exceptions import BuildError
-import numpy as np
+from nengo.connection import LearningRule
 
-from nengo_loihi.builder.inputs import (
-    ChipReceiveNode,
-    ChipReceiveNeurons,
-    HostSendNode,
-    HostReceiveNode,
-    PESModulatoryTarget,
-)
-from nengo_loihi.compat import nengo_transforms, sample_transform
-from nengo_loihi.passthrough import convert_passthroughs
-
-logger = logging.getLogger(__name__)
+from nengo_loihi.passthrough import base_obj, is_passthrough, PassthroughSplit
 
 
-def base_obj(obj):
-    if isinstance(obj, ObjView):
-        obj = obj.obj
-    if isinstance(obj, Neurons):
-        return obj.ensemble
-    elif isinstance(obj, LearningRule):
-        return obj.connection
-    return obj
+class Split:
+    """Creates a set of directives to guide the builder."""
 
+    def __init__(self, network, precompute=False, remove_passthrough=True):
+        self.network = network
 
-class SplitNetworks:
-    def __init__(self, original, node_neurons=None, node_tau=0.005):
-        self.original = original
-        self.node_neurons = node_neurons
-        self.node_tau = node_tau
+        # subset of network: only nodes and ensembles;
+        # probes are handled dynamically
+        self._seen_objects = set()
 
-        self.host = Network(seed=original.seed)
-        self.chip = Network(seed=original.seed)
-        self.host_pre = Network(seed=original.seed)
+        # subset of seen, marking which are run on the hardware;
+        # those running on the host are "seen - chip"
+        self._chip_objects = set()
 
-        self.targets = ("host", "chip", "host_pre")
+        # Step 1. Place nodes on host
+        self._seen_objects.update(network.all_nodes)
 
-        # Interactions between rules
-        self.needs_sender = {}
+        # Step 2. Place all possible ensembles on chip
+        # Note: assumes add_params already called by the simulator
+        for ens in network.all_ensembles:
+            if (network.config[ens].on_chip in (None, True)
+                    and not isinstance(ens.neuron_type, Direct)):
+                self._chip_objects.add(ens)
+            self._seen_objects.add(ens)
 
-        # Used later in the build process
-        self.chip2host_params = {}
-        self.chip2host_receivers = OrderedDict()
-        self.host2chip_senders = OrderedDict()
+        # Step 3. Move learning ensembles (post and error) to host
+        for conn in network.all_connections:
+            pre = base_obj(conn.pre)
+            post = base_obj(conn.post)
+            if (conn.learning_rule_type is not None
+                    and isinstance(post, Ensemble)
+                    and post in self._chip_objects):
+                self._chip_objects.remove(post)
+            elif (isinstance(post, LearningRule)
+                  and isinstance(pre, Ensemble)
+                  and pre in self._chip_objects):
+                self._chip_objects.remove(pre)
 
-        self.adds = OrderedDict()
-        self.moves = OrderedDict()
-        self.removes = []
-
-    def __contains__(self, obj):
-        obj = base_obj(obj)
-        return (obj in self.moves
-                or obj in self.adds
-                or obj in self.removes)
-
-    def add(self, obj, target):
-        assert target in self.targets, "invalid target"
-        obj = base_obj(obj)
-        assert obj not in self, "obj already moved"
-        self.adds[obj] = target
-
-    def finalize(self):
-        def _add(obj, net):
-            for cls in type(obj).__mro__:
-                if cls in net.objects:
-                    net.objects[cls].append(obj)
-                    break
-            else:
-                assert False, "cannot handle type %r" % (type(obj).__name__,)
-
-        # Ensure that all objects have been dealt with
-        for obj in self.original.all_objects:
-            if not isinstance(obj, Network):
-                assert obj in self, (
-                    "%s not moved or explicitly removed" % (obj,))
-
-        # Process moves and adds
-        for obj, target in self.moves.items():
-            _add(obj, getattr(self, target))
-        for obj, target in self.adds.items():
-            _add(obj, getattr(self, target))
-
-    def location(self, obj, default=None):
-        obj = base_obj(obj)
-        return self.moves.get(obj, self.adds.get(obj, default))
-
-    def move(self, obj, target, force=False):
-        obj = base_obj(obj)
-        if not force:
-            assert obj not in self, "already moved"
-        assert target in self.targets, "invalid target"
-        logger.debug("Moving %s to %s", obj, target)
-        if obj in self.adds:
-            self.adds[obj] = target
+        # Step 4. Mark passthrough nodes for removal
+        if remove_passthrough:
+            passthroughs = set(
+                obj for obj in network.all_nodes if is_passthrough(obj))
+            ignore = self._seen_objects - self._chip_objects - passthroughs
+            self.passthrough = PassthroughSplit(network, ignore)
         else:
-            self.moves[obj] = target
+            self.passthrough = PassthroughSplit(None)
 
-    def remove(self, obj):
-        obj = base_obj(obj)
-        logger.debug("Removing %s", obj)
-        self.removes.append(obj)
-        if obj in self.adds:
-            del self.adds[obj]
-        elif obj in self.moves:
-            del self.moves[obj]
-
-
-def split(net, precompute, node_neurons, node_tau, remove_passthrough=False):
-    logger.info("Splitting model into host and chip parts")
-    networks = SplitNetworks(net, node_neurons=node_neurons,
-                             node_tau=node_tau)
-
-    # --- Step 1: place ensembles and nodes
-    place_nodes(networks)
-    place_ensembles(networks)
-
-    # --- Step 1b: remove passthrough nodes
-    if remove_passthrough:
-        conns = merge_passthrough_nodes(networks)
-    else:
-        conns = networks.original.all_connections
-
-    # --- Step 2: place simple connections
-    place_internetwork_connections(networks, conns)
-
-    # --- Step 3: split complex connections
-    split_host_to_chip_connections(networks, conns)
-    split_chip_to_host_connections(networks, conns)
-    split_host_to_learning_rules(networks, conns)
-
-    # --- Step 4: place precomputable parts of host
-    if precompute:
-        split_pre_from_host(networks)
-
-    # --- Step 5: place probes
-    place_probes(networks)
-
-    # Commit to the moves marked in the previous steps
-    networks.finalize()
-    if precompute:
-        if len(networks.host_pre.all_objects) == 0:
-            warnings.warn("No precomputable objects. Setting precompute=True "
-                          "has no effect.")
-    else:
-        assert len(networks.host_pre.all_objects) == 0, (
-            "Object erroneously added to host_pre")
-
-    return networks
-
-
-def place_nodes(networks):
-    # Only ChipReceiveNodes can be run on chip
-    for node in networks.original.all_nodes:
-        if isinstance(node, ChipReceiveNode):
-            # Typically ChipReceiveNodes are created by the splitter, but
-            # it's conceivable that advanced users might make them manually
-            networks.move(node, "chip")
+        # Step 5. Split precomputable parts of host
+        # This is a subset of host, marking which are precomputable
+        if precompute:
+            self._host_precomputable_objects = self._preclosure()
         else:
-            networks.move(node, "host")
+            self._host_precomputable_objects = set()
 
+    def _preclosure(self):  # noqa: C901
+        """Returns all objects that [in]directly send data to chip."""
+        # performs a "transitive closure" on all host objects that
+        # send data to the chip. if any of these objects receive
+        # output from the chip, then a BuildError is raised
+        precomputable = set()
 
-def place_ensembles(networks):
-    config = networks.original.config
+        # forwards and backwards adjacency lists
+        pre_to_conn = defaultdict(list)
+        post_to_conn = defaultdict(list)
 
-    for ens in networks.original.all_ensembles:
-        # User-specified config takes precedence
-        if config[ens].on_chip is not None:
-            networks.move(ens, "chip" if config[ens].on_chip else "host")
-        # Direct mode ensembles must be off-chip
-        elif isinstance(ens.neuron_type, Direct):
-            networks.move(ens, "host")
+        # data-structure for breadth-first search
+        queue = []
+        head = 0
 
-    for conn in networks.original.all_connections:
-        # `post` of learning rules must be off chip
-        if (conn.learning_rule_type is not None
-                and isinstance(base_obj(conn.post_obj), Ensemble)
-                and conn.post_obj not in networks):
-            networks.move(conn.post_obj, "host")
-        # `error` of learning rules must be off chip
-        elif (isinstance(conn.post_obj, LearningRule)
-              and isinstance(base_obj(conn.pre_obj), Ensemble)
-              and conn.pre_obj not in networks):
-            networks.move(conn.pre_obj, "host")
-
-    # All other ensembles are placed on chip
-    for ens in networks.original.all_ensembles:
-        if ens not in networks:
-            networks.move(ens, "chip")
-
-
-def merge_passthrough_nodes(networks):
-    offchip = set()
-    for obj, target in networks.moves.items():
-        if isinstance(obj, Node) and obj.output is None:
-            # this is a passthrough Node so don't force it to be offchip
-            continue
-        elif target == 'host':
-            offchip.add(obj)
-
-    remove_nodes, remove_conns, add_conns = convert_passthroughs(
-        networks.original, offchip)
-    for n in remove_nodes:
-        networks.remove(n)
-    for c in remove_conns:
-        networks.remove(c)
-
-    conns = networks.original.all_connections
-    for c in remove_conns:
-        conns.remove(c)
-    conns.extend(add_conns)
-
-    return conns
-
-
-def place_internetwork_connections(networks, conns):
-    """Connections from two objects placed in the same location go there.
-
-    That is, connections from two objects on the host are done on the host,
-    and connections from two objects on the chip are done on the chip.
-    """
-    for conn in conns:
-        pre_loc = networks.location(conn.pre_obj)
-        post_loc = networks.location(conn.post_obj)
-        if pre_loc == post_loc:
-            if pre_loc == "chip":
-                assert conn.learning_rule_type is None
-            networks.move(conn, pre_loc)
-
-
-def split_host_to_chip_connections(networks, conns):
-    for conn in conns:
-        if conn in networks:
-            # Already processed
-            continue
-
-        pre_loc = networks.location(conn.pre_obj)
-        post_loc = networks.location(conn.post_obj)
-        if pre_loc == "host" and post_loc == "chip":
-            if isinstance(conn.pre_obj, Neurons):
-                split_host_neurons_to_chip(networks, conn)
-            else:
-                split_host_to_chip(networks, conn)
-            assert conn in networks
-
-
-def split_host_neurons_to_chip(networks, conn):
-    """Send spikes over and do the rest of the connection on-chip"""
-
-    assert not isinstance(conn.post, LearningRule)
-    dim = conn.size_in
-
-    logger.debug("Creating ChipReceiveNeurons for %s", conn)
-    receive = ChipReceiveNeurons(
-        dim,
-        neuron_type=conn.pre_obj.ensemble.neuron_type,
-        label=None if conn.label is None else "%s_neurons" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive, "chip")
-    receive2post = Connection(
-        receive,
-        conn.post,
-        transform=conn.transform,
-        synapse=conn.synapse,
-        label=None if conn.label is None else "%s_chip" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive2post, "chip")
-
-    logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(
-        dim,
-        label=None if conn.label is None else "%s_send" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(send, "host")
-    pre2send = Connection(
-        conn.pre,
-        send,
-        synapse=None,
-        label=None if conn.label is None else "%s_host" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(pre2send, "host")
-
-    networks.host2chip_senders[send] = receive
-    networks.remove(conn)
-
-
-def split_host_to_chip(networks, conn):
-    dim = conn.size_out
-    logger.debug("Creating ChipReceiveNode for %s", conn)
-    receive = ChipReceiveNode(
-        dim * 2,
-        size_out=dim,
-        label=None if conn.label is None else "%s_node" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive, "chip")
-    receive2post = Connection(
-        receive,
-        conn.post,
-        synapse=networks.node_tau,
-        label=None if conn.label is None else "%s_chip" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive2post, "chip")
-
-    logger.debug("Creating DecodeNeuron ensemble for %s", conn)
-    if networks.node_neurons is None:
-        raise BuildError(
-            "DecodeNeurons must be specified for host->chip connection.")
-    ens = networks.node_neurons.get_ensemble(dim)
-    ens.label = None if conn.label is None else "%s_ens" % conn.label
-    networks.add(ens, "host")
-
-    if nengo_transforms is not None and isinstance(
-            conn.transform, nengo_transforms.Convolution):
-        raise BuildError(
-            "Conv2D transforms not supported for off-chip to "
-            "on-chip connections where `pre` is not a Neurons object.")
-
-    # Scale the input spikes based on the radius of the target ensemble
-    seed = networks.original.seed if conn.seed is None else conn.seed
-    weights = sample_transform(conn, rng=np.random.RandomState(seed=seed))
-
-    if isinstance(conn.post_obj, Ensemble):
-        weights = weights / conn.post_obj.radius
-
-    if nengo_transforms is None:
-        transform = weights
-    else:
-        # copy the Transform information, setting `init` to the sampled weights
-        transform = copy.copy(conn.transform)
-        type(transform).init.data[transform] = weights
-
-    pre2ens = Connection(
-        conn.pre,
-        ens,
-        function=conn.function,
-        solver=conn.solver,
-        eval_points=conn.eval_points,
-        scale_eval_points=conn.scale_eval_points,
-        synapse=conn.synapse,
-        transform=transform,
-        label=None if conn.label is None else "%s_enc" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(pre2ens, "host")
-
-    logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(
-        dim * 2,
-        label=None if conn.label is None else "%s_send" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(send, "host")
-    ensneurons2send = Connection(
-        ens.neurons,
-        send,
-        synapse=None,
-        label=None if conn.label is None else "%s_host" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(ensneurons2send, "host")
-    networks.remove(conn)
-
-    networks.host2chip_senders[send] = receive
-
-
-def split_chip_to_host_connections(networks, conns):
-    for conn in conns:
-        if conn in networks:
-            # Already processed
-            continue
-
-        pre_loc = networks.location(conn.pre_obj)
-        post_loc = networks.location(conn.post_obj)
-        # All other connections should be processed by this point
-        if pre_loc == "chip" and post_loc == "host":
-            split_chip_to_host(networks, conn)
-            assert conn in networks
-
-
-def split_chip_to_host(networks, conn):
-    dim = conn.size_out
-
-    logger.debug("Creating HostReceiveNode for %s", conn)
-    receive = HostReceiveNode(
-        dim,
-        label=None if conn.label is None else "%s_receive" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive, "host")
-    receive2post = Connection(
-        receive,
-        conn.post,
-        synapse=conn.synapse,
-        label=None if conn.label is None else "%s_host" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(receive2post, "host")
-
-    logger.debug("Creating Probe for %s", conn)
-    seed = networks.original.seed if conn.seed is None else conn.seed
-    transform = sample_transform(conn, rng=np.random.RandomState(seed=seed))
-
-    probe = Probe(conn.pre,
-                  synapse=None,
-                  solver=conn.solver,
-                  add_to_container=False)
-    networks.chip2host_params[probe] = dict(
-        learning_rule_type=conn.learning_rule_type,
-        function=conn.function,
-        eval_points=conn.eval_points,
-        scale_eval_points=conn.scale_eval_points,
-        transform=transform,
-        label=None if conn.label is None else "%s_probe" % conn.label,
-    )
-    networks.add(probe, "chip")
-    networks.chip2host_receivers[probe] = receive
-
-    if conn.learning_rule_type is not None:
-        if not isinstance(conn.pre_obj, Ensemble):
-            raise NotImplementedError(
-                "Learning rule presynaptic object must be an Ensemble "
-                "(got %r)" % type(conn.pre_obj).__name__)
-        networks.needs_sender[conn.learning_rule] = PESModulatoryTarget(probe)
-    networks.remove(conn)
-
-
-def split_host_to_learning_rules(networks, conns):
-    for conn in conns:
-        if conn in networks:
-            # Already processed
-            continue
-
-        pre_loc = networks.location(conn.pre_obj)
-        if (pre_loc == "host"
-                and isinstance(conn.post_obj, LearningRule)):
-            split_host_to_learning_rule(networks, conn)
-            assert conn in networks
-
-
-def split_host_to_learning_rule(networks, conn):
-    dim = conn.size_out
-    logger.debug("Creating HostSendNode for %s", conn)
-    send = HostSendNode(
-        dim,
-        label=None if conn.label is None else "%s_send" % conn.label,
-        add_to_container=False,
-    )
-    networks.add(send, "host")
-
-    pre2send = Connection(
-        conn.pre,
-        send,
-        function=conn.function,
-        solver=conn.solver,
-        eval_points=conn.eval_points,
-        scale_eval_points=conn.scale_eval_points,
-        synapse=conn.synapse,
-        transform=conn.transform,
-        label=conn.label,
-        add_to_container=False,
-    )
-    networks.add(pre2send, "host")
-    pes_target = networks.needs_sender[conn.post_obj]
-    networks.host2chip_senders[send] = pes_target
-    networks.remove(conn)
-
-
-def place_probes(networks):
-    for probe in networks.original.all_probes:
-        target = base_obj(probe.target)
-        networks.move(probe, networks.location(target))
-
-
-def split_pre_from_host(networks):  # noqa: C901
-    logger.info("Splitting pre model from host")
-
-    inputs = defaultdict(list)
-    outputs = defaultdict(list)
-    queue = []
-
-    for d in [networks.moves, networks.adds]:
-        for obj in d:
-            if isinstance(obj, Connection):
-                inputs[base_obj(obj.post_obj)].append(obj)
-                outputs[base_obj(obj.pre_obj)].append(obj)
-            elif isinstance(obj, HostSendNode):
-                networks.move(obj, "host_pre", force=True)
+        def mark_precomputable(obj):
+            assert isinstance(obj, (Node, Ensemble))
+            if obj not in precomputable:
+                precomputable.add(obj)
                 queue.append(obj)
 
-    while len(queue) > 0:
-        node_or_ens = queue.pop()
+        # determine which connections will actually be built
+        conns = ((set(self.network.all_connections)
+                  | self.passthrough.to_add) - self.passthrough.to_remove)
 
-        for conn in inputs[node_or_ens] + outputs[node_or_ens]:
-            if networks.location(conn) != "host":
-                continue
-            networks.move(conn, "host_pre", force=True)
+        # Initialize queue with the pre objects on host->chip connections.
+        # We assume that all `conn.pre` objects are pre-computable, and then
+        # raise an error later if one of them turns out to rely on chip output.
+        # Learning rules are not supported with precompute=True because
+        # this would require a hybrid simulation where some parts of the
+        # model interact with the host while other parts are precomputed
+        # ahead of time. The simulator assumes that precompute=True does not
+        # require any interaction between host and chip between time-steps.
+        # Also see issue #214.
+        for conn in conns:
+            pre, post = base_obj(conn.pre), base_obj(conn.post)
+            pre_to_conn[pre].append(conn)
+            post_to_conn[post].append(conn)
+            assert pre not in self.passthrough.to_remove
+            assert post not in self.passthrough.to_remove
 
-            if conn in inputs[node_or_ens]:
-                obj = base_obj(conn.pre_obj)
-            elif conn in outputs[node_or_ens]:
-                obj = base_obj(conn.post_obj)
+            if (isinstance(post, LearningRule)
+                    or conn.learning_rule is not None):
+                raise BuildError("precompute=True not supported when using "
+                                 "learning rules")
 
-            if (isinstance(obj, (Node, Ensemble))
-                    and networks.location(obj) == "host"):
-                if isinstance(obj, HostReceiveNode):
+            if self.on_chip(post) and not self.on_chip(pre):
+                mark_precomputable(pre)
+
+        # traverse all connected objects breadth-first
+        while head < len(queue):
+            node_or_ens = queue[head]
+            head += 1
+
+            # handle forwards adjacencies
+            for conn in pre_to_conn[node_or_ens]:
+                assert base_obj(conn.pre) is node_or_ens
+                post = base_obj(conn.post)
+                if not self.on_chip(post):
+                    mark_precomputable(post)
+
+            # handle backwards adjacencies
+            for conn in post_to_conn[node_or_ens]:
+                assert base_obj(conn.post) is node_or_ens
+                pre = base_obj(conn.pre)
+                if self.on_chip(pre):
                     raise BuildError("Cannot precompute input, "
                                      "as it is dependent on output")
-                networks.move(obj, "host_pre", force=True)
-                queue.append(obj)
+                mark_precomputable(pre)
+
+        return precomputable
+
+    def is_precomputable(self, obj):
+        if isinstance(obj, Probe):
+            obj = base_obj(obj.target)
+        return (not self.on_chip(obj)
+                and obj in self._host_precomputable_objects)
+
+    def on_chip(self, obj):
+        if isinstance(obj, Probe):
+            obj = base_obj(obj.target)
+        if not isinstance(obj, (Ensemble, Node)):
+            raise BuildError("Locations are only established for ensembles ",
+                             "nodes, and probes -- not for %r" % (obj,))
+        if obj not in self._seen_objects:
+            raise BuildError("Object (%r) is not a part of the network"
+                             % (obj,))
+        return obj in self._chip_objects
