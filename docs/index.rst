@@ -17,8 +17,8 @@ with::
 
    overview
    installation
+   configuration
    examples
-   troubleshooting
    api
    tips
    setup/index

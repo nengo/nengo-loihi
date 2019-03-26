@@ -121,6 +121,7 @@ by doing::
 
   nengo_loihi.Simulator(model, target='sim')
 
+See :doc:`configuration` for advanced configuration options.
 See :doc:`api` for additional options
 and other functions and classes available
 in Nengo Loihi.

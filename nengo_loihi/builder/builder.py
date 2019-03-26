@@ -22,6 +22,17 @@ class Model:
     Defines methods for adding inputs and blocks. Also handles build
     functions, and information associated with building the Nengo model.
 
+    Some of the Model attributes can be modified before the build process
+    to change how certain build functions work. Those attributes are listed
+    first in the attributes section below. To change them, create an instance
+    of `.Model` and pass it in to `.Simulator` along with your network::
+
+        model = nengo_loihi.builder.Model(dt=0.001)
+        model.pes_error_scale = 50.
+
+        with nengo_loihi.Simulator(network, model=model) as sim:
+            sim.run(1.0)
+
     Parameters
     ----------
     dt : float, optional (Default: 0.001)
@@ -34,6 +45,31 @@ class Model:
 
     Attributes
     ----------
+
+    Build parameters
+
+    decode_neurons : DecodeNeurons
+        Type of neurons used to facilitate decoded (NEF-style) connections.
+    decode_tau : float
+        Time constant of lowpass synaptic filter used with decode neurons.
+    intercept_limit : float
+        Limit for clipping intercepts, to avoid neurons with high gains.
+    node_neurons : DecodeNeurons
+        Type of neurons used to convert real-valued node outputs to spikes
+        for the chip.
+    pes_error_scale : float
+        Scaling for PES errors, before rounding and clipping to -127..127.
+    pes_wgt_exp : int
+        Learning weight exponent (base 2) for PES learning connections. This
+        controls the maximum weight magnitude (where a larger exponent means
+        larger potential weights, but lower weight resolution).
+    vth_nonspiking : float
+        Voltage threshold for non-spiking neurons (i.e. voltage decoders).
+
+    Internal attributes
+
+    blocks : list of LoihiBlock
+        List of Loihi blocks simulated by this model.
     builder : Builder
         The build functions used by this model.
     dt : float
@@ -41,32 +77,15 @@ class Model:
     chip2host_params : dict
         Mapping from Nengo objects to any additional parameters associated
         with those objects for use during the build process.
-    decode_neurons : DecodeNeurons
-        Type of neurons used to facilitate decoded (NEF-style) connections.
-    decode_tau : float
-        Time constant of lowpass synaptic filter used with decode neurons.
-    blocks : list of LoihiBlock
-        List of Loihi blocks simulated by this model.
     inputs : list of LoihiInput
         List of inputs to this model.
-    intercept_limit : float
-        Limit for clipping intercepts, to avoid neurons with high gains.
     label : str or None
         A name or description to differentiate models.
-    node_neurons : DecodeNeurons
-        Type of neurons used to convert real-valued node outputs to spikes
-        for the chip.
     objs : dict
         Dictionary mapping from Nengo objects to Nengo Loihi objects.
     params : dict
         Mapping from objects to namedtuples containing parameters generated
         in the build process.
-    pes_error_scale : float
-        Scaling for PES errors, before rounding and clipping to -127..127.
-    pes_wgt_exp : int
-        Learning weight exponent (base 2) for PES learning connections. This
-        controls the maximum weight magnitude (where a larger exponent means
-        larger potential weights, but lower weight resolution).
     probes : list
         List of all probes. Probes must be added to this list in the build
         process, as this list is used by Simulator.
@@ -79,8 +98,6 @@ class Model:
         ancestor network of the network in which the object resides.
     seeds : dict
         Mapping from objects to the integer seed assigned to that object.
-    vth_nonspiking : float
-        Voltage threshold for non-spiking neurons (i.e. voltage decoders).
     """
     def __init__(self, dt=0.001, label=None, builder=None):
         self.dt = dt

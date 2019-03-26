@@ -205,7 +205,7 @@ class HardwareInterface:
             warnings.warn(
                 "Too many spikes (%d) sent in one timestep. Increase the "
                 "value of `snip_max_spikes_per_step` (currently set to %d). "
-                "See\n  https://www.nengo.ai/nengo-loihi/troubleshooting.html"
+                "See\n  https://www.nengo.ai/nengo-loihi/configuration.html\n"
                 "for details." % (len(loihi_spikes), max_spikes))
             del loihi_spikes[max_spikes:]
 
