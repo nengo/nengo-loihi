@@ -162,12 +162,12 @@ class LowpassRCNoise(NeuronOutputNoise):
     """Noise model combining Lowpass synapse and neuron membrane filters.
 
     Samples "noise" (i.e. variability) from a regular spike train filtered
-    by the following transfer function, where :math:`\tau_{rc}` is the
-    membrane time constant and :math:`\tau_s` is the synapse time constant:
+    by the following transfer function, where :math:`\\tau_{rc}` is the
+    membrane time constant and :math:`\\tau_s` is the synapse time constant:
 
     .. math::
 
-        H(s) = [(\tau_s s + 1) (\tau_{rc} s + 1)]^{-1}
+        H(s) = [(\\tau_s s + 1) (\\tau_{rc} s + 1)]^{-1}
 
     See [1]_ for background and derivations.
 
@@ -193,12 +193,12 @@ class AlphaRCNoise(NeuronOutputNoise):
     """Noise model combining Alpha synapse and neuron membrane filters.
 
     Samples "noise" (i.e. variability) from a regular spike train filtered
-    by the following transfer function, where :math:`\tau_{rc}` is the
-    membrane time constant and :math:`\tau_s` is the synapse time constant:
+    by the following transfer function, where :math:`\\tau_{rc}` is the
+    membrane time constant and :math:`\\tau_s` is the synapse time constant:
 
     .. math::
 
-        H(s) = [(\tau_s s + 1)^2 (\tau_rc s + 1)]^{-1}
+        H(s) = [(\\tau_s s + 1)^2 (\\tau_{rc} s + 1)]^{-1}
 
     See [1]_ for background and derivations.
 

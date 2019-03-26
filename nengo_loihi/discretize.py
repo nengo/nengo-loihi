@@ -189,12 +189,31 @@ def shift(x, s, **kwargs):
 
 
 def discretize_model(model):
-    """Discretize a `.Model` in-place."""
+    """Discretize a `.Model` in-place.
+
+    Turns a floating-point `.Model` into a discrete (integer) model
+    appropriate for Loihi.
+
+    Parameters
+    ----------
+    model : `.Model`
+        The model to discretize.
+    """
     for block in model.blocks:
         discretize_block(block)
 
 
 def discretize_block(block):
+    """Discretize a `.LoihiBlock` in-place.
+
+    Turns a floating-point `.LoihiBlock` into a discrete (integer)
+    block appropriate for Loihi.
+
+    Parameters
+    ----------
+    block : `.LoihiBlock`
+        The block to discretize.
+    """
     w_maxs = [s.max_abs_weight() for s in block.synapses]
     w_max = max(w_maxs) if len(w_maxs) > 0 else 0
 
@@ -206,6 +225,20 @@ def discretize_block(block):
 
 
 def discretize_compartment(comp, w_max):
+    """Discretize a `.Compartment` in-place.
+
+    Turns a floating-point `.Compartment` into a discrete (integer)
+    block appropriate for Loihi.
+
+    Parameters
+    ----------
+    comp : `.Compartment`
+        The compartment to discretize.
+    w_max : float
+        The largest connection weight in the `.LoihiBlock` containing
+        ``comp``. Used to set several scaling factors.
+    """
+
     # --- discretize decayU and decayV
     # subtract 1 from decayU here because it gets added back by the chip
     decayU = comp.decayU * (2**12 - 1) - 1
@@ -307,6 +340,25 @@ def discretize_compartment(comp, w_max):
 
 
 def discretize_synapse(synapse, w_max, w_scale, w_exp):
+    """Discretize a `.Synapse` in-place.
+
+    Turns a floating-point `.Synapse` into a discrete (integer)
+    block appropriate for Loihi.
+
+    Parameters
+    ----------
+    synapse : `.Synapse`
+        The synapse to discretize.
+    w_max : float
+        The largest connection weight in the `.LoihiBlock` containing
+        ``synapse``. Used to scale weights appropriately.
+    w_scale : float
+        Connection weight scaling factor. Usually computed by
+        `.discretize_compartment`.
+    w_exp : float
+        Exponent on the connection weight scaling factor. Usually computed by
+        `.discretize_compartment`.
+    """
     w_max_i = synapse.max_abs_weight()
     if synapse.learning:
         w_exp2 = synapse.learning_wgt_exp

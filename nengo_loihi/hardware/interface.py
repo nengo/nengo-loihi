@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class HardwareInterface:
-    """Simulator to place a Model onto a Loihi board and run it.
+    """Place a Model onto a Loihi board and run it.
 
     Parameters
     ----------
