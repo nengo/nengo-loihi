@@ -1,6 +1,8 @@
 from distutils.version import LooseVersion
 import os
+import shutil
 import sys
+import tempfile
 
 try:
     import nxsdk
@@ -13,6 +15,27 @@ try:
     def assert_nxsdk():
         pass
 
+    from nxsdk.graph import graph
+
+    class PatchedGraph(graph.Graph):
+        def __init__(self, *args, **kwargs):
+            super(PatchedGraph, self).__init__(*args, **kwargs)
+            self.nengo_tmp_dirs = []
+
+        def createProcess(self, name, cFilePath, *args, **kwargs):
+            # copy the c file to a temporary directory (so that multiple
+            # simulations can use the same snip files without running into
+            # problems)
+            tmp = tempfile.TemporaryDirectory()
+            self.nengo_tmp_dirs.append(tmp)
+
+            tmp_path = os.path.join(tmp.name, os.path.basename(cFilePath))
+            shutil.copyfile(cFilePath, tmp_path)
+
+            return super(PatchedGraph, self).createProcess(
+                name, tmp_path, *args, **kwargs)
+
+    graph.Graph = PatchedGraph
 except ImportError:
     HAS_NXSDK = False
     nxsdk_dir = None
