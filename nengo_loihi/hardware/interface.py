@@ -35,9 +35,6 @@ class HardwareInterface:
         Model specification that will be placed on the Loihi board.
     seed : int, optional (Default: None)
         A seed for stochastic operations.
-
-        .. warning :: Setting the seed has no effect on stochastic
-                      operations run on the Loihi board.
     """
 
     def __init__(self, model, use_snips=True, seed=None):
