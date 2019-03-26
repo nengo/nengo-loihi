@@ -643,6 +643,23 @@ class Synapse:
 
 
 class Probe:
+    """Record data from compartment states of a LoihiBlock.
+
+    Parameters
+    ----------
+    target : LoihiBlock
+        The block to record values from. Use ``slice`` to record from a subset
+        of compartments.
+    key : string ('current', 'voltage', 'spiked')
+        The compartment attribute to probe.
+    slice : slice or list
+        Select a subset of the compartments in the block to record from.
+    synapse : nengo.synapses.Synapse
+        A synapse to use for filtering the probe.
+    weights : np.ndarray
+        A linear transformation to apply to the outputs.
+    """
+
     _slice = slice
 
     def __init__(self, target=None, key=None, slice=None, weights=None,
