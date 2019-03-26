@@ -118,7 +118,7 @@ def seed(request):
 def allclose(request):
     def safe_rms(x):
         x = np.asarray(x)
-        return npext.rms(x) if x.size > 0 else np.nan
+        return npext.rms(x).item() if x.size > 0 else np.nan
 
     def _allclose(a, b, rtol=1e-5, atol=1e-8, xtol=0,
                   equal_nan=False, print_fail=5):

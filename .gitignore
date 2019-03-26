@@ -21,6 +21,7 @@ htmlcov
 *.dist-info/
 .vscode
 .idea
+.ci/*.sh
 
 .pytest_cache/
 *.analytics/
