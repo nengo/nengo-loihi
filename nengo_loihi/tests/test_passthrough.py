@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import nengo_loihi
+from nengo_loihi.builder.inputs import ChipReceiveNode
 from nengo_loihi.compat import transform_array
 from nengo_loihi.decode_neurons import OnOffDecodeNeurons
-from nengo_loihi.inputs import ChipReceiveNode
 from nengo_loihi.splitter import split
 
 default_node_neurons = OnOffDecodeNeurons()

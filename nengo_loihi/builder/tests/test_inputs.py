@@ -2,7 +2,7 @@ import nengo
 from nengo.exceptions import SimulationError
 import pytest
 
-from nengo_loihi.inputs import ChipReceiveNode
+from nengo_loihi.builder.inputs import ChipReceiveNode
 
 
 def test_chipreceivenode_run_error():

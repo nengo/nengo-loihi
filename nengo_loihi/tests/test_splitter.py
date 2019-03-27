@@ -5,14 +5,14 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.decode_neurons import OnOffDecodeNeurons
-from nengo_loihi.config import add_params
-from nengo_loihi.inputs import (
+from nengo_loihi.builder.inputs import (
     ChipReceiveNeurons,
     ChipReceiveNode,
     HostReceiveNode,
     HostSendNode,
 )
+from nengo_loihi.decode_neurons import OnOffDecodeNeurons
+from nengo_loihi.config import add_params
 from nengo_loihi.splitter import (
     PESModulatoryTarget,
     place_ensembles,

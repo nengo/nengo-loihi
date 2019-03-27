@@ -1,7 +1,8 @@
 from nengo import Node
 
 from nengo_loihi.builder.builder import Builder
-from nengo_loihi.inputs import ChipReceiveNode, SpikeInput
+from nengo_loihi.builder.inputs import ChipReceiveNode
+from nengo_loihi.inputs import SpikeInput
 
 
 @Builder.register(Node)

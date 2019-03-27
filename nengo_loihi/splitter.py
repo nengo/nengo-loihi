@@ -10,36 +10,17 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.compat import nengo_transforms, sample_transform
-from nengo_loihi.inputs import (
+from nengo_loihi.builder.inputs import (
     ChipReceiveNode,
     ChipReceiveNeurons,
     HostSendNode,
     HostReceiveNode,
+    PESModulatoryTarget,
 )
+from nengo_loihi.compat import nengo_transforms, sample_transform
 from nengo_loihi.passthrough import convert_passthroughs
 
 logger = logging.getLogger(__name__)
-
-
-class PESModulatoryTarget:
-    def __init__(self, target):
-        self.target = target
-        self.errors = OrderedDict()
-
-    def clear(self):
-        self.errors.clear()
-
-    def receive(self, t, x):
-        assert len(self.errors) == 0 or t >= next(reversed(self.errors))
-        if t in self.errors:
-            self.errors[t] += x
-        else:
-            self.errors[t] = np.array(x)
-
-    def collect_errors(self):
-        for t, x in self.errors.items():
-            yield (self.target, t, x)
 
 
 def base_obj(obj):
