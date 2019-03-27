@@ -1,7 +1,8 @@
 import inspect
 
 import nengo
-from nengo.exceptions import ReadonlyError, ValidationError, SimulationError
+from nengo.exceptions import (
+    BuildError, ReadonlyError, SimulationError, ValidationError)
 import numpy as np
 import pytest
 
@@ -15,6 +16,11 @@ from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.inputs import SpikeInput
 
 
+def test_none_network(Simulator):
+    with pytest.raises(ValidationError, match="network parameter"):
+        Simulator(None)
+
+
 def test_model_validate_notempty(Simulator):
     with nengo.Network() as model:
         nengo_loihi.add_params(model)
@@ -22,7 +28,7 @@ def test_model_validate_notempty(Simulator):
         a = nengo.Ensemble(10, 1)
         model.config[a].on_chip = False
 
-    with pytest.raises(nengo.exceptions.BuildError):
+    with pytest.raises(BuildError, match="No neurons marked"):
         with Simulator(model):
             pass
 

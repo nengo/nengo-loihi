@@ -48,7 +48,7 @@ class Simulator:
 
     Parameters
     ----------
-    network : Network or None
+    network : Network
         A network object to be built and then simulated. If None,
         then the *model* parameter must be provided instead.
     dt : float, optional (Default: 0.001)
@@ -62,7 +62,7 @@ class Simulator:
         want to build the network manually, or you want to inject build
         artifacts in the model before building the network, then you can
         pass in a `.Model` instance.
-    precompute : bool, optional (Default: True)
+    precompute : bool, optional (Default: False)
         Whether model inputs should be precomputed to speed up simulation.
         When *precompute* is False, the simulator will be run one step
         at a time in order to use model outputs as inputs in other parts
@@ -131,60 +131,63 @@ class Simulator:
             self.model = model
             assert self.model.dt == dt
 
-        if network is not None:
-            nengo.rc.set("decoder_cache", "enabled", "False")
-            config.add_params(network)
+        if network is None:
+            raise ValidationError("network parameter must not be None",
+                                  attr="network")
 
-            # ensure seeds are identical to nengo
-            seed_network(network, seeds=self.model.seeds,
-                         seeded=self.model.seeded)
+        nengo.rc.set("decoder_cache", "enabled", "False")
+        config.add_params(network)
 
-            # split the host into one, two or three networks
-            self.networks = split(
-                network,
-                precompute=precompute,
-                node_neurons=self.model.node_neurons,
-                node_tau=self.model.decode_tau,
-                remove_passthrough=remove_passthrough,
-            )
-            network = self.networks.chip
+        # ensure seeds are identical to nengo
+        seed_network(network, seeds=self.model.seeds,
+                     seeded=self.model.seeded)
 
-            self.model.chip2host_params = self.networks.chip2host_params
+        # split the host into one, two or three networks
+        self.networks = split(
+            network,
+            precompute=precompute,
+            node_neurons=self.model.node_neurons,
+            node_tau=self.model.decode_tau,
+            remove_passthrough=remove_passthrough,
+        )
+        network = self.networks.chip
 
-            self.chip = self.networks.chip
-            self.host = self.networks.host
-            self.host_pre = self.networks.host_pre
+        self.model.chip2host_params = self.networks.chip2host_params
 
-            if len(self.host_pre.all_objects) > 0:
-                host_pre_model = self._get_host_model(
-                    self.host_pre, dt=dt, seeds=self.model.seeds,
-                    seeded=self.model.seeded)
-                self.sims["host_pre"] = nengo.Simulator(self.host_pre,
-                                                        dt=self.dt,
-                                                        model=host_pre_model,
-                                                        progress_bar=False,
-                                                        optimize=False)
+        self.chip = self.networks.chip
+        self.host = self.networks.host
+        self.host_pre = self.networks.host_pre
 
-            if len(self.host.all_objects) > 0:
-                host_model = self._get_host_model(
-                    self.host, dt=dt, seeds=self.model.seeds,
-                    seeded=self.model.seeded)
-                self.sims["host"] = nengo.Simulator(
-                    self.host,
-                    dt=self.dt,
-                    model=host_model,
-                    progress_bar=False,
-                    optimize=False)
-            elif not precompute:
-                # If there is no host and precompute=False, then all objects
-                # must be on the chip, which is precomputable in the sense that
-                # no communication has to happen with the host.
-                # We could warn about this, but we want to avoid people having
-                # to specify `precompute` unless they absolutely have to.
-                self.precompute = True
+        if len(self.host_pre.all_objects) > 0:
+            host_pre_model = self._get_host_model(
+                self.host_pre, dt=dt, seeds=self.model.seeds,
+                seeded=self.model.seeded)
+            self.sims["host_pre"] = nengo.Simulator(self.host_pre,
+                                                    dt=self.dt,
+                                                    model=host_pre_model,
+                                                    progress_bar=False,
+                                                    optimize=False)
 
-            # Build the network into the model
-            self.model.build(network)
+        if len(self.host.all_objects) > 0:
+            host_model = self._get_host_model(
+                self.host, dt=dt, seeds=self.model.seeds,
+                seeded=self.model.seeded)
+            self.sims["host"] = nengo.Simulator(
+                self.host,
+                dt=self.dt,
+                model=host_model,
+                progress_bar=False,
+                optimize=False)
+        elif not precompute:
+            # If there is no host and precompute=False, then all objects
+            # must be on the chip, which is precomputable in the sense that
+            # no communication has to happen with the host.
+            # We could warn about this, but we want to avoid people having
+            # to specify `precompute` unless they absolutely have to.
+            self.precompute = True
+
+        # Build the network into the model
+        self.model.build(network)
 
         self._probe_outputs = self.model.params
         self.data = ProbeDict(self._probe_outputs)

@@ -34,6 +34,9 @@ Release history
 
 - Switched to nengo-bones templating system for TravisCI config/scripts.
   (`#204 <https://github.com/nengo/nengo-loihi/pull/204>`__)
+- It is no longer possible to pass ``network=None`` to ``Simulator``.
+  Previously this was possible, but unlikely to work as expected.
+  (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__)
 
 0.6.0 (February 22, 2019)
 =========================
