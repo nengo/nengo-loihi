@@ -28,9 +28,14 @@ def test_model_validate_notempty(Simulator):
         a = nengo.Ensemble(10, 1)
         model.config[a].on_chip = False
 
+    assert nengo.rc.get("decoder_cache", "enabled")
+
     with pytest.raises(BuildError, match="No neurons marked"):
         with Simulator(model):
             pass
+
+    # Ensure cache config not changed
+    assert nengo.rc.get("decoder_cache", "enabled")
 
 
 @pytest.mark.parametrize("precompute", [True, False])

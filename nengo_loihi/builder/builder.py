@@ -111,10 +111,14 @@ class Model:
         # standard nengo models, because they don't have a toplevel network
         # built into them or configs set
         self.host_pre = NengoModel(
-            dt=float(dt), label="%s:host_pre, dt=%f" % (label, dt),
+            dt=float(dt),
+            label="%s:host_pre, dt=%f" % (label, dt),
+            decoder_cache=NoDecoderCache(),
         )
         self.host = NengoModel(
-            dt=float(dt), label="%s:host, dt=%f" % (label, dt),
+            dt=float(dt),
+            label="%s:host, dt=%f" % (label, dt),
+            decoder_cache=NoDecoderCache(),
         )
 
         # Objects created by the model for simulation on Loihi

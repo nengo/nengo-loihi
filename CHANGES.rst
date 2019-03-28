@@ -50,7 +50,9 @@ Release history
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
   `#205 <https://github.com/nengo/nengo-loihi/issues/205>`__,
   `#206 <https://github.com/nengo/nengo-loihi/issues/206>`__)
-
+- We no longer disable the Nengo decoder cache for all models.
+  (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
+  `#207 <https://github.com/nengo/nengo-loihi/issues/207>`__)
 
 0.6.0 (February 22, 2019)
 =========================
