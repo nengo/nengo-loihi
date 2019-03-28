@@ -6,11 +6,16 @@ from nengo.utils.stdlib import execfile
 try:
     from nengo.utils.ipython import iter_cells, load_notebook
 except ImportError as err:
-    def iter_cells(*args, err=err, **kwargs):
-        raise err
+    def iter_cells(nb, cell_type="code"):
+        return (cell for cell in nb.cells if cell.cell_type == cell_type)
 
-    def load_notebook(*args, err=err, **kwargs):
-        raise err
+    def load_notebook(nb_path):
+        import io
+        from nengo.utils.ipython import nbformat
+
+        with io.open(nb_path, 'r', encoding='utf-8') as f:
+            nb = nbformat.read(f, as_version=4)
+        return nb
 
 import numpy as np
 import pytest
