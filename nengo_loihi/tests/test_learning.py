@@ -91,14 +91,14 @@ def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
 
     x_loihi = loihi_sim.data[probes['pre']]
     assert allclose(x_loihi[pre_tmask], y_dpre[pre_tmask],
-                    atol=0.1, rtol=0.05)
+                    atol=0.15, rtol=0.05)
 
     assert allclose(y_loihi[post_tmask], y_dpost[post_tmask],
-                    atol=0.1, rtol=0.05)
+                    atol=0.15, rtol=0.05)
     assert allclose(y_loihi, y_nengo, atol=0.2, rtol=0.2)
 
     assert allclose(y_real[post_tmask], y_dpost[post_tmask],
-                    atol=0.1, rtol=0.05)
+                    atol=0.15, rtol=0.05)
     assert allclose(y_real, y_nengo, atol=0.2, rtol=0.2)
 
 
