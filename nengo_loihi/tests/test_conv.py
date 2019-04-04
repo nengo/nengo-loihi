@@ -697,3 +697,28 @@ def test_conv_round_robin_unsupported(Simulator, seed):
                        hardware_options={'allocator': RoundRobin(n_chips=8)},
                        precompute=True):
             pass
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_conv_non_lowpass(Simulator):
+    k = 10
+    d = 5
+    with nengo.Network() as model:
+        a = nengo.Ensemble(n_neurons=k**2, dimensions=k)
+
+        x = nengo.Ensemble(n_neurons=d, dimensions=d,
+                           gain=np.ones(d), bias=np.ones(d))
+
+        conv = nengo.Convolution(
+            n_filters=d, input_shape=(k, k, 1),
+            strides=(1, 1), kernel_size=(k, k))
+        assert conv.size_in == k**2
+        assert conv.size_out == d
+
+        nengo.Connection(a.neurons, x.neurons, transform=conv,
+                         synapse=nengo.Alpha(0.005))
+
+    with pytest.raises(NotImplementedError, match="non-Lowpass synapses"):
+        with Simulator(model):
+            pass
