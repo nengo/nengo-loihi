@@ -49,6 +49,7 @@ jobs:
   -
     env:
       NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo"
+      PIP_UPGRADE="False"
       SCRIPT="docs"
 
 before_install:
