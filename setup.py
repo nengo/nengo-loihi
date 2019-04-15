@@ -43,7 +43,8 @@ tests_require = [
     "nengo-extras",
     "pytest>=3.4,<4",
     "pytest-cov>=2.6.0",
-    "pytest-xdist>=1.26.0",
+    # pytest-xdist>=1.28 requires pytest>=4.4, which nengo<3 doesn't support
+    "pytest-xdist>=1.26.0,<1.28.0",
     "matplotlib>=2.0",
     "scipy",
 ]
