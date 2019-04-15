@@ -1,7 +1,8 @@
+from functools import partial
 import hashlib
 import logging
 import os
-from functools import partial
+import shlex
 
 import matplotlib as mpl
 import nengo.utils.numpy as npext
@@ -26,12 +27,33 @@ def pytest_configure(config):
     # Only log warnings from Nengo
     logging.getLogger("nengo").setLevel(logging.WARNING)
 
+    # add unsupported attribute to Simulator (for compatibility with nengo<3.0)
+    # join all the lines and then split (preserving quoted strings)
+    unsupported = shlex.split(
+        " ".join(config.getini("nengo_test_unsupported")))
+    # group pairs (representing testname + reason)
+    unsupported = [
+        unsupported[i:i + 2] for i in range(0, len(unsupported), 2)]
+    # wrap square brackets to interpret them literally
+    # (see https://docs.python.org/3/library/fnmatch.html)
+    for i, (testname, _) in enumerate(unsupported):
+        unsupported[i][0] = "".join("[%s]" % c if c in ('[', ']') else c
+                                    for c in testname)
+
+    nengo_loihi.Simulator.unsupported = unsupported
+
 
 def pytest_addoption(parser):
     parser.addoption("--target", type=str, default="sim",
                      help="Platform on which to run tests ('sim' or 'loihi')")
     parser.addoption("--no-hang", action="store_true", default=False,
                      help="Skip tests that hang")
+
+    if nengo.version.version_info <= (2, 8, 0):
+        # add the pytest option from future nengo versions
+        parser.addini("nengo_test_unsupported", type="linelist",
+                      help="List of unsupported unit tests with reason for "
+                           "exclusion")
 
 
 def pytest_report_header(config, startdir):
