@@ -1,5 +1,6 @@
 import nengo
 from nengo import Ensemble, Connection, Node
+from nengo.base import ObjView
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
@@ -74,10 +75,15 @@ def conn_probe(model, nengo_probe):
     model.seeded[conn] = model.seeded[nengo_probe]
     model.seeds[conn] = model.seeds[nengo_probe]
 
+    if isinstance(nengo_probe.target, ObjView):
+        target_obj = nengo_probe.target.obj
+    else:
+        target_obj = nengo_probe.target
+
     d = conn.size_out
-    if isinstance(nengo_probe.target, Ensemble):
+    if isinstance(target_obj, Ensemble):
         # probed values are scaled by the target ensemble's radius
-        scale = nengo_probe.target.radius
+        scale = target_obj.radius
         w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:

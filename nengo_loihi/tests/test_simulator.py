@@ -801,6 +801,47 @@ def test_simulator_passthrough(remove_passthrough, Simulator):
         assert conn_y_d not in model.params
 
 
+def test_slicing_bugs(Simulator, seed):
+
+    n = 50
+    with nengo.Network() as model:
+        a = nengo.Ensemble(n, 1, label="a")
+        p0 = nengo.Probe(a[0])
+        p = nengo.Probe(a)
+
+    with Simulator(model) as sim:
+        sim.run(0.1)
+
+    assert np.allclose(sim.data[p0], sim.data[p])
+    assert a in sim.model.params
+    assert a not in sim.model.host.params
+
+    with nengo.Network() as model:
+        nengo_loihi.add_params(model)
+
+        a = nengo.Ensemble(n, 1, label="a")
+
+        b0 = nengo.Ensemble(n, 1, label="b0", seed=seed)
+        model.config[b0].on_chip = False
+        nengo.Connection(a[0], b0)
+
+        b = nengo.Ensemble(n, 1, label="b", seed=seed)
+        model.config[b].on_chip = False
+        nengo.Connection(a, b)
+
+        p0 = nengo.Probe(b0)
+        p = nengo.Probe(b)
+
+    with Simulator(model) as sim:
+        sim.run(0.1)
+
+    assert np.allclose(sim.data[p0], sim.data[p])
+    assert a in sim.model.params
+    assert a not in sim.model.host.params
+    assert b not in sim.model.params
+    assert b in sim.model.host.params
+
+
 def test_network_unchanged(Simulator):
     with nengo.Network() as model:
         nengo.Ensemble(100, 1)

@@ -262,6 +262,26 @@ def test_split_remove_passthrough(remove_passthrough):
         assert split.passthrough.to_add == set()
 
 
+def test_sliced_passthrough_bug():
+    with nengo.Network() as model:
+        add_params(model)
+
+        a = nengo.Ensemble(1, 1, label="a")
+        passthrough = nengo.Node(size_in=1, label="passthrough")
+
+        nengo.Connection(a, passthrough)
+        p = nengo.Probe(passthrough[0])
+
+    split = Split(model, remove_passthrough=True)
+
+    assert len(split.passthrough.to_add) == 0
+    assert len(split.passthrough.to_remove) == 0
+
+    assert split.on_chip(a)
+    assert not split.on_chip(passthrough)
+    assert not split.on_chip(p)
+
+
 def test_precompute_remove_passthrough():
     with nengo.Network() as net:
         add_params(net)

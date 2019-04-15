@@ -45,6 +45,12 @@ Release history
   in the splitting process.
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
   `#211 <https://github.com/nengo/nengo-loihi/issues/211>`__)
+- It is now possible to make connections and probes with object slices
+  (e.g., ``nengo.Probe(my_ensemble[0])``).
+  (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
+  `#205 <https://github.com/nengo/nengo-loihi/issues/205>`__,
+  `#206 <https://github.com/nengo/nengo-loihi/issues/206>`__)
+
 
 0.6.0 (February 22, 2019)
 =========================
