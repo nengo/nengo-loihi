@@ -39,10 +39,18 @@ class Split:
             if (conn.learning_rule_type is not None
                     and isinstance(post, Ensemble)
                     and post in self._chip_objects):
+                if network.config[post].on_chip:
+                    raise BuildError("Post ensemble (%r) of learned "
+                                     "connection (%r) must not be configured "
+                                     "as on_chip." % (post, conn))
                 self._chip_objects.remove(post)
             elif (isinstance(post, LearningRule)
                   and isinstance(pre, Ensemble)
                   and pre in self._chip_objects):
+                if network.config[pre].on_chip:
+                    raise BuildError("Pre ensemble (%r) of error "
+                                     "connection (%r) must not be configured "
+                                     "as on_chip." % (pre, conn))
                 self._chip_objects.remove(pre)
 
         # Step 4. Mark passthrough nodes for removal

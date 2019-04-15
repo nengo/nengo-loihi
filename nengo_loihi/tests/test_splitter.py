@@ -216,6 +216,34 @@ def test_split_precompute_loop_error():
         Split(net, precompute=True)
 
 
+def test_chip_learning_errors():
+    with nengo.Network() as net:
+        add_params(net)
+
+        a = nengo.Ensemble(100, 1)
+        b = nengo.Ensemble(100, 1)
+        net.config[b].on_chip = True
+
+        nengo.Connection(a, b, learning_rule_type=nengo.PES())
+
+    with pytest.raises(BuildError, match="Post ensemble"):
+        Split(net)
+
+    with nengo.Network() as net:
+        add_params(net)
+
+        a = nengo.Ensemble(100, 1)
+        b = nengo.Ensemble(100, 1)
+        error = nengo.Ensemble(100, 1)
+        net.config[error].on_chip = True
+
+        conn = nengo.Connection(a, b, learning_rule_type=nengo.PES())
+        nengo.Connection(error, conn.learning_rule)
+
+    with pytest.raises(BuildError, match="Pre ensemble"):
+        Split(net)
+
+
 @pytest.mark.parametrize("remove_passthrough", [True, False])
 def test_split_remove_passthrough(remove_passthrough):
     with nengo.Network() as net:

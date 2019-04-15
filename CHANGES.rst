@@ -37,6 +37,11 @@ Release history
 - It is no longer possible to pass ``network=None`` to ``Simulator``.
   Previously this was possible, but unlikely to work as expected.
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__)
+- Better error messages are raised when attempting to simulate networks
+  in which certain objects participating in a learning rule are on-chip.
+  (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
+  `#208 <https://github.com/nengo/nengo-loihi/issues/208>`__,
+  `#209 <https://github.com/nengo/nengo-loihi/issues/209>`__)
 
 **Fixed**
 
