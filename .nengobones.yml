@@ -2,8 +2,8 @@ pkg_name: nengo_loihi
 repo_name: nengo/nengo-loihi
 
 travis_yml:
+  python: 3.5.2
   global_vars:
-    PYTHON_VERSION: 3.5.2
     NENGO_VERSION: nengo
   jobs:
     - stage: basic
@@ -20,25 +20,20 @@ travis_yml:
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo
-        PIP_UPGRADE: false
 
 ci_scripts:
   - template: docs
-    conda_install:
-      - cython
     pip_install:
-      - pip
-      - --upgrade  # Hack to `pip --upgrade`
       - git+https://github.com/abr/abr_control.git
       - $NENGO_VERSION
+      - cython
   - template: test
     output_name: emulator
-    conda_install:
-      - numpy
     pip_install:
       - nengo-dl
       - $NENGO_VERSION
       - jupyter
+      - numpy
     coverage: true
     nengo_tests: true
   - template: hardware
