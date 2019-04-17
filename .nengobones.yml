@@ -3,6 +3,7 @@ repo_name: nengo/nengo-loihi
 
 travis_yml:
   python: 3.5.2
+  bones_install: git+https://github.com/nengo/nengo-bones@no-conda
   global_vars:
     NENGO_VERSION: nengo
   jobs:
