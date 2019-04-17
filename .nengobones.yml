@@ -1,9 +1,111 @@
+project_name: Nengo Loihi
 pkg_name: nengo_loihi
 repo_name: nengo/nengo-loihi
 
+copyright_start: 2018
+description: Run Nengo models on the Loihi chip
+
+license_rst: {}
+
+contributing_rst: {}
+
+contributors_rst: {}
+
+manifest_in:
+  global-exclude:
+    - "*.pkl"
+  recursive-include:
+    - nengo_loihi *.c
+    - nengo_loihi *.h
+    - nengo_loihi *.template
+  include:
+    - pytest.ini
+  exclude:
+    - .ci/travis_rsa.enc
+
+setup_py:
+  python_requires: ">=3.4"
+  entry_points:
+    nengo.backends:
+      - loihi = nengo_loihi:Simulator
+  package_data:
+    nengo_loihi:
+      - nengo_loihi/snips/*
+  include_package_data: True
+  install_req:
+    - jinja2
+    - nengo>=2.8.0
+  docs_req:
+    - abr_control @ git+https://github.com/abr/abr_control
+    - jupyter
+    - matplotlib>=2.0
+    - nbsphinx
+    - nbconvert
+    - nengo-dl>=2.1.1
+    - nengo-extras
+    - nengo_sphinx_theme>=0.7
+    - numpydoc>=0.6
+    - sphinx>=1.8
+  tests_req:
+    - coverage>=4.3
+    - nengo-extras
+    - pytest>=3.4,<4
+    - pytest-cov>=2.6.0
+    - pytest-xdist>=1.26.0,<1.28.0
+    - matplotlib>=2.0
+    - scipy
+  classifiers:
+    - "Development Status :: 3 - Alpha"
+    - "Framework :: Nengo"
+    - "Intended Audience :: Science/Research"
+    - "License :: Free for non-commercial use"
+    - "Operating System :: OS Independent"
+    - "Programming Language :: Python :: 3.4"
+    - "Programming Language :: Python :: 3.5"
+    - "Programming Language :: Python :: 3.6"
+    - "Topic :: Scientific/Engineering :: Artificial Intelligence"
+
+setup_cfg:
+  coverage:
+    exclude_lines:
+      - "# Don't complain if non-runnable code isn't run:"
+      - "if __name__ == .__main__.:"
+  pylint:
+    ignore:
+      - compat.py
+    disable:
+      # TODO: fix these and start checking for them
+      - bad-continuation
+      - broad-except
+      - cell-var-from-loop
+      - consider-using-enumerate
+      - consider-using-in
+      - expression-not-assigned
+      - inconsistent-return-statements
+      - logging-not-lazy
+      - missing-docstring
+      - no-value-for-parameter
+      - not-callable
+      - redefined-outer-name
+      - superfluous-parens
+      - undefined-loop-variable
+      - unnecessary-pass
+      - unused-import
+      - unused-variable
+      - wrong-import-position
+    known_third_party:
+      - abr_control
+      - nengo_dl
+      - nengo_extras
+
+docs_conf_py:
+  intersphinx_mapping:
+    scipy: https://docs.scipy.org/doc/scipy/reference
+  nengo_logo: nengo-loihi-full-light.svg
+
 travis_yml:
+  python: 3.5.2
   global_vars:
-    PYTHON_VERSION: 3.5.2
     NENGO_VERSION: nengo
   jobs:
     - stage: basic
@@ -20,36 +122,26 @@ travis_yml:
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo
-        PIP_UPGRADE: false
 
 ci_scripts:
   - template: docs
-    conda_install:
-      - cython
     pip_install:
-      - pip
-      - --upgrade  # Hack to `pip --upgrade`
       - git+https://github.com/abr/abr_control.git
       - $NENGO_VERSION
+      - cython
   - template: test
     output_name: emulator
-    conda_install:
-      - numpy
     pip_install:
       - nengo-dl
       - $NENGO_VERSION
       - jupyter
+      - numpy
     coverage: true
     nengo_tests: true
   - template: hardware
     pip_install:
       - coverage
   - template: static
-    pip_install:
-      - flake8
-    post_commands:
-      - flake8 nengo_loihi
-      - flake8 --ignore=E226,E703,W391,W503 docs
   - template: deploy
 
 codecov_yml: {}

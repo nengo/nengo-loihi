@@ -1,4 +1,4 @@
-{% extends "base_script.sh.template" %}
+{% extends "templates/base_script.sh.template" %}
 
 {% block install %}
 {{ super() }}
