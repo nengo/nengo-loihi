@@ -56,10 +56,26 @@ def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt):
     return out
 
 
+def _broadcast_rates_inputs(x, gain, bias):
+    x = np.array(x, dtype=float, copy=False, ndmin=1)
+    gain = np.array(gain, dtype=float, copy=False, ndmin=1)
+    bias = np.array(bias, dtype=float, copy=False, ndmin=1)
+    if x.ndim == 1:
+        x = x[:, np.newaxis] * np.ones(gain.shape[-1])
+    return x, gain, bias
+
+
 def loihi_rates(neuron_type, x, gain, bias, dt):
+    x, gain, bias = _broadcast_rates_inputs(x, gain, bias)
     for cls in type(neuron_type).__mro__:
         if cls in loihi_rate_functions:
             return loihi_rate_functions[cls](neuron_type, x, gain, bias, dt)
+    return neuron_type.rates(x, gain, bias)
+
+
+def nengo_rates(neuron_type, x, gain, bias):
+    """Call NeuronType.rates with Nengo 3.0 broadcasting rules"""
+    x, gain, bias = _broadcast_rates_inputs(x, gain, bias)
     return neuron_type.rates(x, gain, bias)
 
 

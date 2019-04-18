@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from nengo_loihi.builder import Model
+from nengo_loihi.neurons import nengo_rates
 
 
 @pytest.mark.parametrize("tau_ref", [0.001, 0.003, 0.005])
@@ -27,9 +28,13 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
 
     scount = np.sum(sim.data[ap] > 0, axis=0)
 
-    upper_bound = nengo.LIF(tau_ref=tau_ref).rates(0., gain, bias)
-    lower_bound = nengo.LIF(tau_ref=tau_ref + dt).rates(0., gain, bias)
-    mid = nengo.LIF(tau_ref=tau_ref + 0.5 * dt).rates(0., gain, bias)
+    def rates(tau_ref, gain=gain, bias=bias):
+        lif = nengo.LIF(tau_ref=tau_ref)
+        return nengo_rates(lif, 0., gain, bias).squeeze(axis=0)
+
+    upper_bound = rates(tau_ref=tau_ref)
+    lower_bound = rates(tau_ref=tau_ref + dt)
+    mid = rates(tau_ref=tau_ref + 0.5*dt)
     plt.title("tau_ref=%.3f" % tau_ref)
     plt.plot(bias, upper_bound, "k")
     plt.plot(bias, lower_bound, "k")
@@ -39,6 +44,7 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
     plt.ylabel("Firing rate (Hz)")
     plt.legend(loc="best")
 
+    assert scount.shape == upper_bound.shape == lower_bound.shape
     assert np.all(scount <= upper_bound + 1)
     assert np.all(scount >= lower_bound - 1)
 

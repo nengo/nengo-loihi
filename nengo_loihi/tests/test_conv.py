@@ -186,6 +186,18 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
                     reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
+    def loihi_rates_n(neuron_type, x, gain, bias, dt):
+        """Compute Loihi rates on higher dimensional inputs"""
+        y = x.reshape(-1, x.shape[-1])
+        gain = np.asarray(gain)
+        bias = np.asarray(bias)
+        if gain.ndim == 0:
+            gain = gain * np.ones(x.shape[-1])
+        if bias.ndim == 0:
+            bias = bias * np.ones(x.shape[-1])
+        rates = loihi_rates(neuron_type, y, gain, bias, dt)
+        return rates.reshape(*x.shape)
+
     if channels_last:
         plt.saveas = None
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
@@ -223,11 +235,11 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
         return [y0, -y1]
 
     ref_out = np.array([test_x, -test_x])
-    ref_out = loihi_rates(encode_type, ref_out, encode_gain, encode_bias, dt)
+    ref_out = loihi_rates_n(encode_type, ref_out, encode_gain, encode_bias, dt)
     ref_out = ref_out / encode_gain
     ref_out = np.array([conv_pm(ref_out, kernel) for kernel in filters])
     ref_out = ref_out.sum(axis=1)  # sum positive and negative parts
-    ref_out = loihi_rates(neuron_type, ref_out, neuron_gain, neuron_bias, dt)
+    ref_out = loihi_rates_n(neuron_type, ref_out, neuron_gain, neuron_bias, dt)
 
     # --- compute nengo_loihi outputs
     inp_biases = np.stack([test_x, -test_x], axis=-1 if channels_last else 0)

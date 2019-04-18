@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from nengo_loihi.config import add_params
+from nengo_loihi.neurons import nengo_rates
 
 
 @pytest.mark.parametrize('weight_solver', [False, True])
@@ -62,7 +63,7 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     bias = [0] * len(y)
 
     neuron_type = nengo.LIF()
-    z = neuron_type.rates(y, gain, bias)
+    z = nengo_rates(neuron_type, y[np.newaxis, :], gain, bias).squeeze(axis=0)
 
     with nengo.Network() as model:
         u = nengo.Node(x, label='u')
@@ -83,6 +84,7 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     plt.bar(np.arange(len(z)) + bar_width, rates, bar_width, label='rates')
     plt.legend(loc='best')
 
+    assert rates.shape == z.shape
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
