@@ -47,7 +47,7 @@ ci_scripts:
     pip_install:
       - flake8
     post_commands:
-      - flake8 nengo
+      - flake8 nengo_loihi
       - flake8 --ignore=E226,E703,W391,W503 docs
   - template: deploy
 

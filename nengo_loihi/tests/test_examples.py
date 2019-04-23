@@ -5,7 +5,7 @@ import nengo
 from nengo.utils.stdlib import execfile
 try:
     from nengo.utils.ipython import iter_cells, load_notebook
-except ImportError as err:
+except ImportError:
     def iter_cells(nb, cell_type="code"):
         return (cell for cell in nb.cells if cell.cell_type == cell_type)
 
