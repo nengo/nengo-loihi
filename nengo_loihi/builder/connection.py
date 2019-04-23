@@ -1,3 +1,5 @@
+import copy
+
 import nengo
 from nengo import Ensemble, Connection, Node
 from nengo.builder.connection import (
@@ -12,12 +14,12 @@ from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
 import numpy as np
 
-from nengo_loihi import conv
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder.builder import Builder
 from nengo_loihi.builder.inputs import ChipReceiveNeurons
 from nengo_loihi.compat import (
     nengo_transforms, sample_transform, conn_solver)
+from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
 from nengo_loihi.inputs import LoihiInput
 from nengo_loihi.neurons import loihi_rates
 
@@ -120,7 +122,7 @@ def build_connection(model, conn):
     if nengo_transforms is not None:
         if isinstance(conn.transform, nengo_transforms.Convolution):
             # TODO: integrate these into the same function
-            conv.build_conv2d_connection(model, conn)
+            build_conv2d_connection(model, conn)
             return
         elif not isinstance(conn.transform, nengo_transforms.Dense):
             raise NotImplementedError(
@@ -388,4 +390,91 @@ def build_connection(model, conn):
         eval_points=eval_points,
         solver_info=solver_info,
         transform=transform,
+        weights=weights)
+
+
+def build_conv2d_connection(model, conn):
+    if nengo_transforms is None:
+        # It should not be possible to reach this, because this function is
+        # only called for a Convolution transform, which can exist only if
+        # nengo_transforms exists.
+        raise NotImplementedError("Convolution requires newer Nengo")
+
+    if conn.transform.dimensions != 2:
+        raise NotImplementedError("nengo-loihi only supports 2D convolution")
+    if conn.transform.padding != "valid":
+        raise NotImplementedError(
+            "nengo-loihi only supports convolution with 'valid' padding")
+
+    # Create random number generator
+    rng = np.random.RandomState(model.seeds[conn])
+
+    pre_cx = model.objs[conn.pre_obj]['out']
+    post_cx = model.objs[conn.post_obj]['in']
+    assert isinstance(pre_cx, (LoihiInput, LoihiBlock))
+    assert isinstance(post_cx, LoihiBlock)
+
+    tau_s = 0.0
+    if isinstance(conn.synapse, nengo.synapses.Lowpass):
+        tau_s = conn.synapse.tau
+    elif conn.synapse is not None:
+        raise NotImplementedError("Cannot handle non-Lowpass synapses")
+
+    # --- pre
+    assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
+    assert conn.pre_slice == slice(None)
+
+    assert isinstance(conn.transform, nengo_transforms.Convolution)
+
+    weights = conn.transform.sample(rng=rng)
+    input_shape = conn.transform.input_shape
+
+    # Account for nengo spike height of 1/dt
+    weights = weights / model.dt
+
+    if isinstance(conn.pre_obj, ChipReceiveNeurons):
+        neuron_type = conn.pre_obj.neuron_type
+    elif isinstance(conn.pre_obj, Neurons):
+        neuron_type = conn.pre_obj.ensemble.neuron_type
+
+    if neuron_type is not None and hasattr(neuron_type, 'amplitude'):
+        weights = weights * neuron_type.amplitude
+
+    # --- post
+    assert isinstance(conn.post_obj, Neurons)
+    assert conn.post_slice == slice(None)
+
+    gain = model.params[conn.post_obj.ensemble].gain
+    if not np.all(gain == gain[0]):
+        # TODO: support this?
+        raise ValidationError(
+            "All neurons targeted by a Convolution connection must "
+            "have the same gain", "gain", obj=conn.post_obj.ensemble)
+    weights = weights * gain[0]
+
+    pop_type = 32  # TODO: pick this
+    new_transform = copy.copy(conn.transform)
+    type(new_transform).init.data[new_transform] = weights
+    weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
+        new_transform)
+
+    synapse = Synapse(np.prod(input_shape.spatial_shape),
+                      label="conv2d_weights")
+    synapse.set_population_weights(
+        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
+    post_cx.add_synapse(synapse)
+    model.objs[conn]['weights'] = synapse
+
+    ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")
+    ax.target = synapse
+    ax.cx_to_axon_map = pixel_idxs(input_shape)
+    ax.cx_atoms = channel_idxs(input_shape)
+    pre_cx.add_axon(ax)
+
+    post_cx.compartment.configure_filter(tau_s, dt=model.dt)
+
+    model.params[conn] = BuiltConnection(
+        eval_points=None,
+        solver_info=None,
+        transform=None,
         weights=weights)
