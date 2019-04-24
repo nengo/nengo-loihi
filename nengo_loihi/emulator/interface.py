@@ -4,7 +4,7 @@ from collections import defaultdict, OrderedDict
 import logging
 import warnings
 
-from nengo.exceptions import SimulationError
+from nengo.exceptions import SimulationError, ValidationError
 from nengo.utils.compat import is_array, is_number
 import numpy as np
 
@@ -294,7 +294,8 @@ class CompartmentState(IterableState):
             def overflow(x, bits, name=None):
                 pass  # do not do overflow in floating point
         else:
-            raise ValueError("dtype %r not supported" % self.dtype)
+            raise ValidationError("dtype %r not supported" % self.dtype,
+                                  attr='dtype', obj=block_info)
 
         self._overflow = overflow
 
@@ -367,7 +368,8 @@ class NoiseState(IterableState):
             def uniform(rng, n=self.n_compartments):
                 return rng.uniform(-1, 1, size=n).astype(np.float32)
         else:
-            raise ValueError("dtype %r not supported" % self.dtype)
+            raise ValidationError("dtype %r not supported" % self.dtype,
+                                  attr='dtype', obj=block_info)
 
         assert not np.any(np.isnan(self.enabled))
         assert not np.any(np.isnan(self.exp))
@@ -469,7 +471,8 @@ class SynapseState(IterableState):
                 for w, delta_w in zip(synapse.weights, delta_ws):
                     w += synapse.learning_rate * delta_w
         else:
-            raise ValueError("dtype %r not supported" % self.dtype)
+            raise ValidationError("dtype %r not supported" % self.dtype,
+                                  attr='dtype', obj=block_info)
 
         self._trace_round = trace_round
         self._weight_update = weight_update

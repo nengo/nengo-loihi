@@ -388,7 +388,7 @@ def build_synapse(n2core, core, block, synapse, cx_idxs):  # noqa C901
             n2core.synapseMap[axon_id].population32MapEntry.configure(
                 cxBase=cx_base)
         else:
-            raise ValueError("Synapse: unrecognized pop_type: %s" % (
+            raise BuildError("Synapse: unrecognized pop_type: %s" % (
                 synapse.pop_type,))
 
         if synapse.learning:
@@ -445,7 +445,7 @@ def collect_axons(n2core, core, block, axon, cx_ids):
                                  "with a multi-chip allocator" % (
                                      tchip_id_source, tchip_id))
         else:
-            raise ValueError("Axon: unrecognized pop_type: %s" % (
+            raise BuildError("Axon: unrecognized pop_type: %s" % (
                 synapse.pop_type,))
 
     return all_axons
