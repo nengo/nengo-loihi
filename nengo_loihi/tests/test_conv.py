@@ -664,7 +664,7 @@ def test_conv_gain(Simulator):
         nengo.Connection(a.neurons, b.neurons,
                          transform=nengo_transforms.Convolution(1, (4, 4, 1)))
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="must have the same gain"):
         with Simulator(net):
             pass
 

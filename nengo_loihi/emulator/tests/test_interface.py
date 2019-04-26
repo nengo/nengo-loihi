@@ -29,7 +29,7 @@ def test_strict_mode(strict, monkeypatch):
     assert emu.strict == strict
 
     if strict:
-        check = pytest.raises(SimulationError)
+        check = pytest.raises(SimulationError, match="Error in emulator")
     else:
         check = pytest.warns(UserWarning)
 

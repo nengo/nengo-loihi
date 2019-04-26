@@ -54,7 +54,8 @@ def test_manual_decoders(
         post_probe = nengo.Probe(post, synapse=None)
 
     if not use_solver and learn:
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(NotImplementedError,
+                           match="presynaptic object must be an Ensemble"):
             with Simulator(model) as sim:
                 pass
     else:

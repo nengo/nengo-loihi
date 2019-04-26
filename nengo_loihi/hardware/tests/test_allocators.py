@@ -51,7 +51,7 @@ def test_block_size(Simulator):
 
     with nengo.Network() as net:
         nengo.Ensemble(1025, 1)
-    with pytest.raises(BuildError):
+    with pytest.raises(BuildError, match="Number of compartments"):
         with Simulator(net):
             pass
 
@@ -60,7 +60,7 @@ def test_one_to_one_allocator_big_block_error():
     model = Model()
     model.add_block(LoihiBlock(1050))
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="Segment does not fit"):
         OneToOne()(model)
 
 

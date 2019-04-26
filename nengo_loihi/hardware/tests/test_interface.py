@@ -20,7 +20,7 @@ def test_error_on_old_version(monkeypatch):
     mock.__version__ = "0.5.5"
 
     monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
-    with pytest.raises(ImportError):
+    with pytest.raises(ImportError, match="nxsdk"):
         hardware_interface.HardwareInterface.check_nxsdk_version()
 
 

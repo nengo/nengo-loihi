@@ -292,7 +292,7 @@ def test_pes_pre_synapse_type_error(Simulator):
         conn = nengo.Connection(pre, post, learning_rule_type=rule_type)
         nengo.Connection(post, conn.learning_rule)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="pre-synapses for learning"):
         with Simulator(model):
             pass
 
@@ -321,5 +321,6 @@ def test_drop_trace_spikes(Simulator, seed):
         nengo.Connection(b, conn.learning_rule)
 
     with Simulator(net, target="sim") as sim:
-        with pytest.raises(SimulationError):
+        with pytest.raises(SimulationError,
+                           match="Synaptic trace spikes lost"):
             sim.run(1.0)
