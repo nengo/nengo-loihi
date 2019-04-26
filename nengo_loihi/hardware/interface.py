@@ -68,13 +68,6 @@ class HardwareInterface:
         # the nengo_io_h2c channel on one timestep.
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
 
-        nxsdk_dir = os.path.realpath(
-            os.path.join(os.path.dirname(nxsdk.__file__), "..")
-        )
-        self.cwd = os.getcwd()
-        logger.debug("cd to %s", nxsdk_dir)
-        os.chdir(nxsdk_dir)
-
         # probeDict is a class attribute, so might contain things left over
         # from previous simulators
         N2SpikeProbe.probeDict.clear()
@@ -293,12 +286,6 @@ class HardwareInterface:
     def close(self):
         if self.n2board is not None:
             self.n2board.disconnect()
-
-        # TODO: can we chdir back earlier?
-        if self.cwd is not None:
-            logger.debug("cd to %s", self.cwd)
-            os.chdir(self.cwd)
-            self.cwd = None
 
         self.closed = True
 
