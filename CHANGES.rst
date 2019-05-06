@@ -42,6 +42,8 @@ Release history
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
   `#208 <https://github.com/nengo/nengo-loihi/issues/208>`__,
   `#209 <https://github.com/nengo/nengo-loihi/issues/209>`__)
+- Nengo Loihi now requires at least NxSDK version 0.8.0.
+  (`#218 <https://github.com/nengo/nengo-loihi/pull/218>`__)
 
 **Fixed**
 

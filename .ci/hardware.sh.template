@@ -20,7 +20,8 @@
         pip install nengo-dl jupyter
         pip install -e .[tests]
         pip install $NENGO_VERSION --upgrade
-        pip install ~/travis-ci/nxsdk-0.8.0.tar.gz
+        cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
+        pip install nxsdk-$NXSDK_VERSION.tar.gz
         SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 1 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || HW_STATUS=1
         exit \$HW_STATUS
 EOF

@@ -31,8 +31,7 @@ for running Nengo Loihi,
 as well as for running models
 using the NxSDK directly.
 
-Note, you *must* use Python 3.5.2 and NumPy 1.14.3
-when working with NxSDK.
+Note, you *must* use Python 3.5.2 when working with NxSDK.
 The easiest way to satisfy those constraints is to use `Miniconda
 <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_
 to set up an isolated environment
@@ -94,11 +93,10 @@ for running Loihi models.
              you log onto the superhost.
 
 4. Install NumPy and Cython with conda.
-   Note, you *must* use NumPy 1.14.3 when working with NxSDK.
 
    .. code-block:: bash
 
-      conda install numpy=1.14.3 cython
+      conda install numpy cython
 
    The NumPy provided by conda is usually faster
    than those installed by other means.
@@ -108,25 +106,25 @@ for running Loihi models.
    .. note:: The location of NxSDK may have changed.
              Refer to Intel's documentation to be sure.
              The most recent release and NxSDK location
-             are current as of September 2018.
+             are current as of May 2019.
 
    If you are logged into INRC:
 
    .. code-block:: bash
 
-      cp /nfs/ncl/releases/0.7/nxsdk-0.7.tar.gz .
+      cp /nfs/ncl/releases/0.8.1/nxsdk-0.8.1.tar.gz .
 
    If you are setting up a non-INRC superhost:
 
    .. code-block:: bash
 
-      scp <inrc-host>:/nfs/ncl/releases/0.7/nxsdk-0.7.tar.gz .
+      scp <inrc-host>:/nfs/ncl/releases/0.8.1/nxsdk-0.8.1.tar.gz .
 
 6. Install NxSDK.
 
    .. code-block:: bash
 
-      pip install nxsdk-0.7.tar.gz
+      pip install nxsdk-0.8.1.tar.gz
 
 7. Install Nengo Loihi.
 
