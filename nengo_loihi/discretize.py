@@ -1,5 +1,6 @@
 from __future__ import division
 
+import logging
 import warnings
 
 from nengo.exceptions import BuildError
@@ -21,6 +22,8 @@ U_BITS = 23  # number of bits for cx input (u)
 
 LEARN_BITS = 15  # number of bits in learning accumulator (not incl. sign)
 LEARN_FRAC = 7  # extra least-significant bits added to weights for learning
+
+logger = logging.getLogger(__name__)
 
 
 def array_to_int(array, value):
@@ -170,13 +173,21 @@ def scale_pes_errors(error, scale=1.):
     error = np.round(error).astype(np.int32)
     q = error > 127
     if np.any(q):
-        warnings.warn("Max PES error (%0.2e) greater than chip max (%0.2e). "
-                      "Clipping." % (error.max() / scale, 127. / scale))
+        warnings.warn("Received PES error greater than chip max (%0.2e). "
+                      "Consider changing `Model.pes_error_scale`."
+                      % (127 / scale,))
+        logger.debug("PES error %0.2e > %0.2e (chip max)",
+                     np.max(error) / scale,
+                     127 / scale)
         error[q] = 127
     q = error < -127
     if np.any(q):
-        warnings.warn("Min PES error (%0.2e) less than chip min (%0.2e). "
-                      "Clipping." % (error.min() / scale, -127. / scale))
+        warnings.warn("Received PES error less than chip min (%0.2e). "
+                      "Consider changing `Model.pes_error_scale`."
+                      % (-127 / scale,))
+        logger.debug("PES error %0.2e < %0.2e (chip min)",
+                     np.min(error) / scale,
+                     -127 / scale)
         error[q] = -127
     return error
 

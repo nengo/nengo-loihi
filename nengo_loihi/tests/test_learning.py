@@ -162,7 +162,7 @@ def test_pes_error_clip(plt, seed, Simulator):
         error_scale=error_scale,
         period=simtime)
 
-    with pytest.warns(UserWarning, match=r'.*PES error.*Clipping.'):
+    with pytest.warns(UserWarning, match=r'.*PES error.*pes_error_scale.*'):
         with Simulator(model) as loihi_sim:
             loihi_sim.run(simtime)
 
