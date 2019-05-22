@@ -317,18 +317,32 @@ class CompartmentState(IterableState):
         u2[self.noise.target_u] += noise[self.noise.target_u]
         self._overflow(u2, bits=U_BITS, name="u2")
 
-        self.voltage[:] = self._decay_voltage(self.voltage, u2)
-        # We have not been able to create V overflow on the chip, so we do
-        # not include it here. See github.com/nengo/nengo-loihi/issues/130
-        # self.overflow(self.v, bits=V_BIT, name="V")
+        if 0:
+            self.voltage[:] = self._decay_voltage(self.voltage, u2)
+            # We have not been able to create V overflow on the chip, so we do
+            # not include it here. See github.com/nengo/nengo-loihi/issues/130
+            # self.overflow(self.v, bits=V_BIT, name="V")
 
-        np.clip(self.voltage, self.vmin, self.vmax, out=self.voltage)
-        self.voltage[self.ref_count > 0] = 0
-        # TODO^: don't zero voltage in case neuron is saving overshoot
+            np.clip(self.voltage, self.vmin, self.vmax, out=self.voltage)
+            self.voltage[self.ref_count > 0] = 0
+            # TODO^: don't zero voltage in case neuron is saving overshoot
 
-        self.spiked[:] = (self.voltage > self.vth)
-        self.voltage[self.spiked] = 0
-        self.ref_count[self.spiked] = self.ref[self.spiked]
+            self.spiked[:] = (self.voltage > self.vth)
+            self.voltage[self.spiked] = 0
+            self.ref_count[self.spiked] = self.ref[self.spiked]
+        else:
+            v = self._decay_voltage(self.voltage, u2)
+            self.voltage[self.ref_count <= 0] = v[self.ref_count <= 0]
+            # We have not been able to create V overflow on the chip, so we do
+            # not include it here. See github.com/nengo/nengo-loihi/issues/130
+            # self.overflow(self.v, bits=V_BIT, name="V")
+
+            np.clip(self.voltage, self.vmin, self.vmax, out=self.voltage)
+
+            self.spiked[:] = (self.voltage > self.vth) & (self.ref_count <= 0)
+            self.voltage[self.spiked] -= self.vth[self.spiked]
+            self.ref_count[self.spiked] = self.ref[self.spiked]
+
         # decrement ref_count
         np.clip(self.ref_count - 1, 0, None, out=self.ref_count)
 

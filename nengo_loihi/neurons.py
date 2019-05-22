@@ -43,7 +43,8 @@ def loihi_lif_rates(neuron_type, x, gain, bias, dt):
     j = neuron_type.current(x, gain, bias) - 1
     out = np.zeros_like(j)
     period = tau_ref + tau_rc * np.log1p(1. / j[j > 0])
-    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    # out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    out[j > 0] = neuron_type.amplitude / period
     return out
 
 
@@ -52,7 +53,8 @@ def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt):
 
     out = np.zeros_like(j)
     period = 1. / j[j > 0]
-    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    # out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    out[j > 0] = neuron_type.amplitude / period
     return out
 
 

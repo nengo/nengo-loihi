@@ -29,7 +29,7 @@ def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     x = np.linspace(-0.1, 1, n)
 
     encoders = np.ones((n, 1))
-    max_rates = 400 * np.ones(n)
+    max_rates = 300 * np.ones(n)
     intercepts = 0 * np.ones(n)
     gain, bias = neuron_type.gain_bias(max_rates, intercepts)
     j = x * gain + bias
