@@ -102,6 +102,7 @@ docs_conf_py:
   intersphinx_mapping:
     scipy: https://docs.scipy.org/doc/scipy/reference
   nengo_logo: nengo-loihi-full-light.svg
+  analytics_id: UA-41658423-2
 
 travis_yml:
   python: 3.5.2
@@ -142,6 +143,8 @@ ci_scripts:
     pip_install:
       - coverage
   - template: static
+    codespell_ignore_words:
+        - alha
   - template: deploy
 
 codecov_yml: {}

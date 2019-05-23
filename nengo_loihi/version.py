@@ -39,7 +39,7 @@ version = "{v}{dev}".format(v=info2string(version_info),
 minimum_nengo_version_info = (2, 7, 0)
 minimum_nengo_version = info2string(minimum_nengo_version_info)
 
-# newest nengo version we are compatible with (set to lastest released nengo
+# newest nengo version we are compatible with (set to latest released nengo
 # version when releasing this repository)
 latest_nengo_version_info = (3, 0, 0)
 latest_nengo_version = info2string(latest_nengo_version_info)

@@ -16,7 +16,7 @@ def test_validate_block():
     # too many input axons
     block = LoihiBlock(410)
     block.add_synapse(Synapse(5000))
-    with pytest.raises(BuildError, match="[Ii]nput axon"):
+    with pytest.raises(BuildError, match="Input axons"):
         validate_block(block)
 
     # too many output axons
@@ -26,7 +26,7 @@ def test_validate_block():
     axon.target = synapse
     block.add_synapse(synapse)
     block.add_axon(axon)
-    with pytest.raises(BuildError, match="[Oo]utput axon"):
+    with pytest.raises(BuildError, match="Output axons"):
         validate_block(block)
 
     # too many synapse bits
@@ -37,5 +37,5 @@ def test_validate_block():
     axon.target = synapse
     block.add_synapse(synapse)
     block.add_axon(axon)
-    with pytest.raises(BuildError, match="[Ss]ynapse bits"):
+    with pytest.raises(BuildError, match="synapse bits"):
         validate_block(block)

@@ -369,10 +369,10 @@ def build_solver(model, solver, conn, rng, sampled_transform):
 
 @Builder.register(NoSolver)
 def build_no_solver(model, solver, conn, rng, sampled_transform):
+    args = (model, solver, conn, rng)
     if nengo_transforms is None:
-        return _build_no_solver(model, solver, conn, rng, sampled_transform)
-    else:
-        return _build_no_solver(model, solver, conn, rng)
+        args += (sampled_transform,)
+    return _build_no_solver(*args)
 
 
 def build_chip_connection(model, conn):  # noqa: C901
