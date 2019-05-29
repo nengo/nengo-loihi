@@ -104,7 +104,10 @@ setup_cfg:
       - --ref-simulator nengo_loihi.Simulator
       - --neurons nengo.LIF,nengo.SpikingRectifiedLinear
     filterwarnings:
-      - ignore:Seed will be ignored when running on Loihi
+      - ignore:Combining two lowpass synapses
+      - ignore:divide by zero
+      - ignore:invalid value encountered in
+      - ignore:Non-finite values detected in `max_rates`
     nengo_test_unsupported:
       # no ensembles on chip
       test_circularconv.py:*:
