@@ -745,3 +745,34 @@ def test_imageslice_api():
 
     with pytest.raises(ValidationError, match="must be 2-D ChannelShape"):
         conv.ImageSlice(nengo_transforms.ChannelShape((5, 6, 7, 8)))
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_split_transform(rng):
+    n = 8
+    shape0 = nengo_transforms.ChannelShape((1, 1, n))
+    slice0 = conv.ImageSlice(shape0, channel_slice=slice(1, None, 2))
+    shape1 = nengo_transforms.ChannelShape((1, 1, n))
+    slice1 = conv.ImageSlice(shape1, channel_slice=slice(0, None, 3))
+
+    shape8 = nengo_transforms.ChannelShape((4, 1, 2))
+    slice8 = conv.ImageSlice(shape8, row_slice=slice(1, 3))
+    assert np.prod(shape8.shape) == n
+
+    transform = rng.uniform(-1, 1, size=(n, n))
+    assert np.array_equal(conv.split_transform(transform), transform)
+    assert np.array_equal(
+        conv.split_transform(transform, in_slice=slice0),
+        transform[:, slice0.channel_slice])
+    assert np.array_equal(
+        conv.split_transform(transform, out_slice=slice1),
+        transform[slice1.channel_slice, :])
+    assert np.array_equal(
+        conv.split_transform(transform, in_slice=slice0, out_slice=slice1),
+        transform[slice1.channel_slice, slice0.channel_slice])
+
+    with pytest.raises(AssertionError):
+        conv.split_transform(transform, in_slice=slice8)
+    with pytest.raises(AssertionError):
+        conv.split_transform(transform, out_slice=slice8)

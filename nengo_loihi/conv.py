@@ -74,10 +74,10 @@ def split_transform(transform, in_slice=None, out_slice=None):
     else:
         if in_slice is not None:
             assert in_slice.channel_slice_only()
-            a_slice = in_slice.flatten().channel_slice
+            a_slice = in_slice.channel_slice
         if out_slice is not None:
             assert out_slice.channel_slice_only()
-            b_slice = out_slice.flatten().channel_slice
+            b_slice = out_slice.channel_slice
 
         return transform[b_slice, a_slice]
 
