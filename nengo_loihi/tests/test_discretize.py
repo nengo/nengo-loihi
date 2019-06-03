@@ -17,8 +17,15 @@ from nengo_loihi.discretize import (
 
 
 @pytest.mark.parametrize("b", (8, 16, 17, 23))
-def test_overflow_signed(b):
-    x = np.arange(-2**(b+2), 2**(b+2), dtype=np.int32)
+def test_overflow_signed(b, rng):
+    x = rng.uniform(
+        -2 ** (b + 2), 2 ** (b + 2), size=2 ** (b + 1)).astype(np.int32)
+    x = np.concatenate(
+        (x, 2 ** np.arange(0, b + 2), -2 ** np.arange(0, b + 2), [0]))
+
+    # if you want to be extra careful you could run this test with all possible
+    # values, i.e.
+    # x = np.arange(-2 ** (b + 2), 2 ** (b + 2), dtype=np.int32)
 
     # compute check values
     b2 = 2**b
