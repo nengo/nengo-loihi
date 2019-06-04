@@ -88,14 +88,19 @@ def test_probedict_interface(Simulator):
     assert len(objs) == 0, "Objects did not appear in probedict: %s" % objs
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize(
     "dt, pre_on_chip", [(2e-4, True), (3e-4, False), (4e-4, True), (2e-3, True)]
 )
 def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
-    function = lambda x: x ** 2
-    probe_synapse = nengo.Alpha(0.01)
+    function = lambda x: -x
     simtime = 0.2
+
+    probe_synapse = nengo.Alpha(0.01)
+    conn_synapse = nengo.Lowpass(0.005)
+    stim_synapse = probe_synapse
+    # stim synapse accounts for delays in connections/probes, so we can compare
+    if pre_on_chip:
+        stim_synapse = stim_synapse.combine(conn_synapse)
 
     ens_params = dict(
         intercepts=nengo.dists.Uniform(-0.9, 0.9),
@@ -106,7 +111,7 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         nengo_loihi.add_params(model)
 
         stim = nengo.Node(lambda t: -(np.sin(2 * np.pi * t / simtime)))
-        stim_p = nengo.Probe(stim, synapse=probe_synapse)
+        stim_p = nengo.Probe(stim, synapse=stim_synapse)
 
         pre = nengo.Ensemble(100, 1, **ens_params)
         model.config[pre].on_chip = pre_on_chip
@@ -115,16 +120,25 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         post = nengo.Ensemble(101, 1, **ens_params)
         post_p = nengo.Probe(post, synapse=probe_synapse)
 
-        nengo.Connection(stim, pre)
+        nengo.Connection(stim, pre, synapse=None)
         nengo.Connection(
-            pre, post, function=function, solver=nengo.solvers.LstsqL2(weights=True)
+            pre,
+            post,
+            function=function,
+            synapse=conn_synapse,
+            solver=nengo.solvers.LstsqL2(weights=True),
         )
 
     with Simulator(model, dt=dt) as sim:
+        assert sim.model.decode_tau == conn_synapse.tau
         sim.run(simtime)
 
     x = sim.data[stim_p]
     y = function(x)
+    if pre_on_chip:
+        y = conn_synapse.filt(y, dt=dt)
+    else:
+        y = conn_synapse.combine(conn_synapse).filt(y, dt=dt)
     plt.plot(sim.trange(), x, "k--")
     plt.plot(sim.trange(), y, "k--")
     plt.plot(sim.trange(), sim.data[pre_p])
