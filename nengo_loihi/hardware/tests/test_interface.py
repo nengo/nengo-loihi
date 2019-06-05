@@ -27,7 +27,7 @@ def test_error_on_old_version(monkeypatch):
 
 def test_no_warn_on_current_version(monkeypatch):
     mock = MockNxsdk()
-    mock.__version__ = "0.8.0"
+    mock.__version__ = "0.8.5"
 
     monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
     monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
@@ -108,12 +108,12 @@ def test_interface_connection_errors(Simulator):
             sim.step()
 
     # test failed connection error
-    def start_driver(*args, **kwargs):
+    def start(*args, **kwargs):
         raise Exception("Mock failure to connect")
 
     with Simulator(net) as sim:
         interface = sim.sims['loihi']
-        d_set(interface.nxsdk_board, b'c3RhcnREcml2ZXI=', val=start_driver)
+        d_set(interface.nxsdk_board, b'c3RhcnQ=', val=start)
 
         with pytest.raises(SimulationError, match="[Cc]ould not connect"):
             interface.connect(attempts=1)

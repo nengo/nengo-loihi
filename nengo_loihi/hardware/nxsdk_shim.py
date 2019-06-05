@@ -4,7 +4,6 @@ import shutil
 import sys
 import tempfile
 
-
 from nengo_loihi.nxsdk_obfuscation import d_get, d_import, d_set
 
 try:
@@ -19,7 +18,6 @@ try:
         pass
 
     snip_maker = d_import(b'bnhzZGsuZ3JhcGguZ3JhcGg=')
-    driver = d_import(b'bnhzZGsuZHJpdmVyLmh3ZHJpdmVyLmRyaXZlcg==')
 
     class SnipMaker(d_get(snip_maker, b"R3JhcGg=")):
         """Patch of the snip process manager that is multiprocess safe."""
@@ -63,20 +61,6 @@ try:
 
     d_set(snip_maker, b"R3JhcGg=", val=SnipMaker)
 
-    class PatchedDriver(d_get(driver, b"TjJEcml2ZXI=")):
-        """Patched version of the driver that is multiprocess safe."""
-
-        def startDriver(self, *args, **kwargs):
-            super().startDriver(*args, **kwargs)
-
-            # NxSDK tries to make a temporary directory for compiledir, but
-            # this does it in a more secure way.
-            # Note: we use mkdtemp rather than TemporaryDirectory because
-            # NxSDK is already taking care of cleaning up the directory.
-            self.compileDir = tempfile.mkdtemp()
-
-    d_set(driver, b"TjJEcml2ZXI=", val=PatchedDriver)
-
 except ImportError:
     HAS_NXSDK = False
     nxsdk_dir = None
@@ -99,7 +83,7 @@ if HAS_NXSDK:
         b'bnhzZGsuZ3JhcGgubnhib2FyZA==',
         b'TjJCb2FyZA==')
     SpikeGen = d_import(
-        b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbg==',
+        b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu',
         b'QmFzaWNTcGlrZUdlbmVyYXRvcg==')
     SpikeProbe = d_import(
         b'bnhzZGsuZ3JhcGgubnhwcm9iZXM=',

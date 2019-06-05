@@ -88,8 +88,8 @@ class HardwareInterface:
 
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
-        minimum = LooseVersion("0.8.0")
-        max_tested = LooseVersion("0.8.1")
+        minimum = LooseVersion("0.8.5")
+        max_tested = LooseVersion("0.8.5")
         if version < minimum:
             raise ImportError("nengo-loihi requires nxsdk>=%s, found %s"
                               % (minimum, version))
@@ -268,7 +268,7 @@ class HardwareInterface:
 
     def is_connected(self):
         return self.nxsdk_board is not None and d_func(
-            self.nxsdk_board, b'bnhEcml2ZXI=', b'aGFzU3RhcnRlZA==')
+            self.nxsdk_board, b'ZXhlY3V0b3I=', b'aGFzU3RhcnRlZA==')
 
     def connect(self, attempts=10):
         if self.nxsdk_board is None:
@@ -280,7 +280,7 @@ class HardwareInterface:
         logger.info("Connecting to Loihi, max attempts: %d", attempts)
         for i in range(attempts):
             try:
-                d_func(self.nxsdk_board, b'c3RhcnREcml2ZXI=')
+                d_func(self.nxsdk_board, b'c3RhcnQ=')
                 if self.is_connected():
                     break
             except Exception as e:
