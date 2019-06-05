@@ -65,6 +65,9 @@ Release history
 - We no longer disable the Nengo decoder cache for all models.
   (`#202 <https://github.com/nengo/nengo-loihi/pull/202>`__,
   `#207 <https://github.com/nengo/nengo-loihi/issues/207>`__)
+- Transforms to on-chip neurons are now applied on-chip,
+  which avoids scaling issues and large off-chip transforms.
+  (`#126 <https://github.com/nengo/nengo-loihi/pull/126>`__)
 
 0.6.0 (February 22, 2019)
 =========================

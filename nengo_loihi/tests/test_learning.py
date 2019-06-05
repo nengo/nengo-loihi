@@ -114,7 +114,7 @@ def test_pes_overflow(plt, seed, Simulator):
 
     loihi_model = Model()
     # set learning_wgt_exp low to create overflow in weight values
-    loihi_model.pes_wgt_exp = -1
+    loihi_model.pes_wgt_exp = -2
 
     with Simulator(model, model=loihi_model) as loihi_sim:
         loihi_sim.run(simtime)
@@ -143,7 +143,7 @@ def test_pes_overflow(plt, seed, Simulator):
         assert errors_j[i] < 0.1, ("Learning output for dim %d did not match "
                                    "any scaled version of the target output"
                                    % j)
-        assert scale[i] > 0.4, "Learning output for dim %d is too small" % j
+        assert scale[i] > 0.25, "Learning output for dim %d is too small" % j
         assert scale[i] < 0.7, ("Learning output for dim %d is too large "
                                 "(weights or traces not clipping as expected)"
                                 % j)

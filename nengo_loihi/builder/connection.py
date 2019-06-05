@@ -120,7 +120,6 @@ def build_host_neurons_to_chip(model, conn):
 
 def build_host_to_chip(model, conn):
     rng = np.random.RandomState(model.seeds[conn])
-    dim = conn.size_out
     host = model.host_model(base_obj(conn.pre))
 
     if nengo_transforms is not None:
@@ -133,37 +132,6 @@ def build_host_to_chip(model, conn):
                 "nengo-loihi does not yet support %r transforms "
                 "on host to chip connections"
                 % (type(conn.transform).__name__,))
-
-    logger.debug("Creating ChipReceiveNode for %s", conn)
-    receive = ChipReceiveNode(
-        dim * 2,
-        size_out=dim,
-        label=None if conn.label is None else "%s_node" % conn.label,
-        add_to_container=False,
-    )
-    model.builder.build(model, receive)
-
-    receive2post = Connection(
-        receive,
-        conn.post,
-        synapse=model.decode_tau,
-        label=None if conn.label is None else "%s_chip" % conn.label,
-        add_to_container=False,
-    )
-    _inherit_seed(model, receive2post, model, conn)
-    build_chip_connection(model, receive2post)
-
-    logger.debug("Creating DecodeNeuron ensemble for %s", conn)
-    ens = model.node_neurons.get_ensemble(dim)
-    ens.label = None if conn.label is None else "%s_ens" % conn.label
-    _inherit_seed(host, ens, model, conn)
-    host.build(ens)
-
-    if nengo_transforms is not None and isinstance(
-            conn.transform, nengo_transforms.Convolution):
-        raise BuildError(
-            "Conv2D transforms not supported for off-chip to "
-            "on-chip connections where `pre` is not a Neurons object.")
 
     # Scale the input spikes based on the radius of the target ensemble
     weights = sample_transform(conn, rng=rng)
@@ -178,6 +146,44 @@ def build_host_to_chip(model, conn):
         transform = copy.copy(conn.transform)
         type(transform).init.data[transform] = weights
 
+    if isinstance(conn.post_obj, Neurons):
+        # we don't have encoders, and the transform could have large output,
+        # so do it on the chip
+        host_transform = 1.
+        chip_transform = transform
+        dim = conn.size_mid
+    else:
+        # we have encoders on the chip, so do the transform off-chip
+        host_transform = transform
+        chip_transform = 1.
+        dim = conn.size_out
+
+    logger.debug("Creating ChipReceiveNode for %s", conn)
+    receive = ChipReceiveNode(
+        dim * 2,
+        size_out=dim,
+        label=None if conn.label is None else "%s_node" % conn.label,
+        add_to_container=False,
+    )
+    model.builder.build(model, receive)
+
+    receive2post = Connection(
+        receive,
+        conn.post,
+        transform=chip_transform,
+        synapse=model.decode_tau,
+        label=None if conn.label is None else "%s_chip" % conn.label,
+        add_to_container=False,
+    )
+    _inherit_seed(model, receive2post, model, conn)
+    build_chip_connection(model, receive2post)
+
+    logger.debug("Creating DecodeNeuron ensemble for %s", conn)
+    ens = model.node_neurons.get_ensemble(dim)
+    ens.label = None if conn.label is None else "%s_ens" % conn.label
+    _inherit_seed(host, ens, model, conn)
+    host.build(ens)
+
     pre2ens = Connection(
         conn.pre,
         ens,
@@ -186,7 +192,7 @@ def build_host_to_chip(model, conn):
         eval_points=conn.eval_points,
         scale_eval_points=conn.scale_eval_points,
         synapse=conn.synapse,
-        transform=transform,
+        transform=host_transform,
         label=None if conn.label is None else "%s_enc" % conn.label,
         add_to_container=False,
     )
