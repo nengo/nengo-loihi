@@ -315,12 +315,10 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
         build_synapse(nxsdk_core, core, block, synapse, compartment_idxs)
 
     logger.debug("- Building %d axons", len(block.axons))
-    all_axons = []  # (compartment, atom, type, tchip_id, tcore_id, taxon_id)
+    pop_id_map = {}
     for axon in block.axons:
-        all_axons.extend(collect_axons(nxsdk_core, core, block, axon,
-                                       compartment_idxs))
-
-    build_axons(nxsdk_core, core, block, all_axons)
+        build_axons(nxsdk_core, core, block, axon, compartment_idxs,
+                    pop_id_map)
 
     logger.debug("- Building %d probes", len(block.probes))
     for probe in block.probes:
@@ -379,12 +377,13 @@ def build_synapse(  # noqa C901
             assert weights.shape == indices.shape
             assert np.all(weights <= 255) and np.all(weights >= -256), str(
                 weights)
-            n_populations, n_compartments = weights.shape
+
+            n_atoms, n_compartments = weights.shape
 
             synapse_map[weight_idx] = (
-                total_synapse_ptr, n_populations, n_compartments)
+                total_synapse_ptr, n_atoms, n_compartments)
 
-            for p in range(n_populations):
+            for p in range(n_atoms):
                 for q in range(n_compartments):
                     compartment_idx = compartment_idxs[indices[p, q]]
                     d_func(
@@ -398,8 +397,8 @@ def build_synapse(  # noqa C901
                     target_compartments.add(compartment_idx)
                     total_synapse_ptr += 1
 
-        synapse_ptr, n_populations, n_compartments = synapse_map[weight_idx]
-        assert n_populations <= 2**atom_bits
+        synapse_ptr, n_atoms, n_compartments = synapse_map[weight_idx]
+        assert n_atoms <= 2**atom_bits
 
         if base is None:
             # this is a dummy axon with no weights, so set n_compartments to 0
@@ -415,13 +414,13 @@ def build_synapse(  # noqa C901
         d_set(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
               b'c3luYXBzZUxlbg==', val=n_compartments)
         if synapse.pop_type == 0:  # discrete
-            assert n_populations == 1
+            assert n_atoms == 1
             d_func(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
                    b'ZGlzY3JldGVNYXBFbnRyeQ==', b'Y29uZmlndXJl',
                    kwargs={b'Y3hCYXNl': base})
         elif synapse.pop_type == 16:  # pop16
             d_set(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
-                  b'cG9wU2l6ZQ==', val=n_populations)
+                  b'cG9wU2l6ZQ==', val=n_atoms)
             assert base % 4 == 0
             d_func(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
                    b'cG9wdWxhdGlvbjE2TWFwRW50cnk=', b'Y29uZmlndXJl',
@@ -430,7 +429,7 @@ def build_synapse(  # noqa C901
                            })
         elif synapse.pop_type == 32:  # pop32
             d_set(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
-                  b'cG9wU2l6ZQ==', val=n_populations)
+                  b'cG9wU2l6ZQ==', val=n_atoms)
             d_func(d_get(nxsdk_core, b'c3luYXBzZU1hcA==')[axon_id],
                    b'cG9wdWxhdGlvbjMyTWFwRW50cnk=', b'Y29uZmlndXJl',
                    kwargs={b'Y3hCYXNl': base})
@@ -461,7 +460,7 @@ def build_synapse(  # noqa C901
                            })
 
 
-def collect_axons(nxsdk_core, core, block, axon, compartment_ids):
+def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     synapse = axon.target
     tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapse(synapse)
     nxsdk_board = d_get(nxsdk_core, b'cGFyZW50', b'cGFyZW50')
@@ -473,48 +472,15 @@ def collect_axons(nxsdk_core, core, block, axon, compartment_ids):
     compartment_idxs = np.arange(len(compartment_ids))
     spikes = axon.map_spikes(compartment_idxs)
 
-    all_axons = []  # (compartment, atom, type, tchip_id, tcore_id, taxon_id)
     for compartment_id, spike in zip(compartment_ids, spikes):
         taxon_idx = int(spike.axon_id)
         taxon_id = int(tsyn_idxs[taxon_idx])
         atom = int(spike.atom)
-        n_populations = synapse.axon_populations(taxon_idx)
-        all_axons.append((compartment_id, atom, synapse.pop_type,
-                          tchip_id, tcore_id, taxon_id))
+        n_atoms = synapse.axon_populations(taxon_idx)
+
         if synapse.pop_type == 0:  # discrete
             assert atom == 0
-            assert n_populations == 1
-        elif synapse.pop_type == 16 or synapse.pop_type == 32:
-            n_blocks = len(core.blocks)
-            assert (n_blocks == 0
-                    or (n_blocks == 1 and block is core.blocks[0]))
-            assert len(block.probes) == 0
-            tchip_id_source = d_get(
-                d_get(nxsdk_board, b'bjJDaGlwcw==')[core.chip.index], b'aWQ=')
-            if tchip_id != tchip_id_source:
-                raise BuildError("pop16 and pop32 weights are not "
-                                 "supported across multiple chips "
-                                 "(%d -> %d); this is likely raised due "
-                                 "to convolutional weights being used "
-                                 "with a multi-chip allocator" % (
-                                     tchip_id_source, tchip_id))
-        else:
-            raise BuildError("Axon: unrecognized pop_type: %s" % (
-                synapse.pop_type,))
-
-    return all_axons
-
-
-def build_axons(nxsdk_core, core, block, all_axons):  # noqa C901
-    if len(all_axons) == 0:
-        return
-
-    pop_type0 = all_axons[0][2]
-    if pop_type0 == 0:
-        for (compartment_id, atom, pop_type, tchip_id, tcore_id,
-             taxon_id) in all_axons:
-            assert pop_type == 0, "All axons must be discrete, or none"
-            assert atom == 0
+            assert n_atoms == 1
             d_func(nxsdk_core, b'Y3JlYXRlRGlzY3JldGVBeG9u',
                    kwargs={b'c3JjQ3hJZA==': compartment_id,
                            b'ZHN0Q2hpcElk': tchip_id,
@@ -522,62 +488,33 @@ def build_axons(nxsdk_core, core, block, all_axons):  # noqa C901
                            b'ZHN0U3luTWFwSWQ=': taxon_id,
                            })
 
-        return
-    else:
-        assert all(axon[2] != 0 for axon in all_axons), (
-            "All axons must be discrete, or none")
+        elif synapse.pop_type in (16, 32):
+            n_blocks = len(core.blocks)
+            assert (n_blocks == 0
+                    or (n_blocks == 1 and block is core.blocks[0]))
+            assert len(block.probes) == 0
 
-    axons_by_compartment = groupby(all_axons, key=lambda x: x[0])
+            # pop_id is a unique index for the population. Must be the same for
+            # all axons going to the same target synmap (with different atoms
+            # of course), but otherwise different for all axons.
+            pop_key = (tchip_id, tcore_id, taxon_id)
+            pop_id = pop_id_map.setdefault(pop_key, len(pop_id_map))
 
-    axon_id = 0
-    axon_map = {}
-    for compartment_id, axons in axons_by_compartment:
-        assert len(axons) > 0
-
-        # axon -> (compartment, atom, type, tchip_id, tcore_id, taxon_id)
-        assert all(axon[0] == compartment_id for axon in axons)
-        atom = axons[0][1]
-        assert all(axon[1] == atom for axon in axons), (
-            "compartment atom must be the same for all axons")
-
-        axons = sorted(axons, key=lambda a: a[2:])
-        key = tuple(axon[2:] for axon in axons)
-        if key not in axon_map:
-            axon_id0 = axon_id
-            axon_len = 0
-
-            for axon in axons:
-                pop_type, tchip_id, tcore_id, taxon_id = axon[2:]
-                # note: pop_type==0 should have been handled in code above
-                assert pop_type in (16, 32)
-                if pop_type == 16:  # pop16
-                    d_func(d_get(nxsdk_core, b'YXhvbkNmZw==')[axon_id],
-                           b'cG9wMTY=', b'Y29uZmlndXJl',
-                           kwargs={b'Y29yZUlk': tcore_id,
-                                   b'YXhvbklk': taxon_id,
-                                   })
-                    axon_id += 1
-                    axon_len += 1
-                elif pop_type == 32:  # pop32
-                    d_func(d_get(nxsdk_core, b'YXhvbkNmZw==')[axon_id],
-                           b'cG9wMzJfMA==', b'Y29uZmlndXJl',
-                           kwargs={b'Y29yZUlk': tcore_id,
-                                   b'YXhvbklk': taxon_id,
-                                   })
-                    d_get(d_get(nxsdk_core, b'YXhvbkNmZw==')[axon_id + 1],
-                          b'cG9wMzJfMQ==', b'Y29uZmlndXJl')()
-                    axon_id += 2
-                    axon_len += 2
-
-            axon_map[key] = (axon_id0, axon_len)
-
-        axon_ptr, axon_len = axon_map[key]
-        d_func(d_get(nxsdk_core, b'YXhvbk1hcA==')[compartment_id],
-               b'Y29uZmlndXJl',
-               kwargs={b'cHRy': axon_ptr,
-                       b'bGVu': axon_len,
-                       b'YXRvbQ==': atom,
-                       })
+            kwargs = {
+                b'cG9wSWQ=': pop_id,
+                b'c3JjQ3hJZA==': compartment_id,
+                b'c3JjUmVsQ3hJZA==': atom,
+                b'ZHN0Q2hpcElk': tchip_id,
+                b'ZHN0Q29yZUlk': tcore_id,
+                b'ZHN0U3luTWFwSWQ=': taxon_id,
+            }
+            if synapse.pop_type == 16:
+                d_func(nxsdk_core, b'Y3JlYXRlUG9wMTZBeG9u', kwargs=kwargs)
+            else:
+                d_func(nxsdk_core, b'Y3JlYXRlUG9wMzJBeG9u', kwargs=kwargs)
+        else:
+            raise BuildError("Axon: unrecognized pop_type: %s" % (
+                synapse.pop_type,))
 
 
 def build_probe(nxsdk_core, core, block, probe, compartment_idxs):

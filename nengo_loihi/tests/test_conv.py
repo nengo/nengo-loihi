@@ -185,7 +185,12 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 @pytest.mark.skipif(nengo_transforms is None,
                     reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
-def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
+@pytest.mark.parametrize('hw_opts', [
+    dict(),
+    dict(allocator=RoundRobin(n_chips=2)),
+])
+def test_conv2d_weights(channels_last, hw_opts,
+                        request, plt, seed, rng, allclose):
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
         y = x.reshape(-1, x.shape[-1])
@@ -201,6 +206,10 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     if channels_last:
         plt.saveas = None
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
+
+    target = request.config.getoption("--target")
+    if target != 'loihi' and len(hw_opts) > 0:
+        pytest.skip("Hardware options only available on hardware")
 
     pop_type = 32
 
@@ -296,9 +305,9 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     discretize_model(model)
 
     n_steps = int(pres_time / dt)
-    target = request.config.getoption("--target")
     if target == 'loihi':
-        with HardwareInterface(model, use_snips=False, seed=seed) as sim:
+        with HardwareInterface(model, use_snips=False, seed=seed,
+                               **hw_opts) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
     else:
@@ -606,9 +615,8 @@ def test_conv_split(Simulator, rng, plt, allclose):
     with nengo.Simulator(net, optimize=False) as sim_nengo:
         sim_nengo.run(simtime)
 
-    with Simulator(net, seed=seed) as sim_loihi:
-        if "loihi" in sim_loihi.sims:
-            sim_loihi.sims["loihi"].snip_max_spikes_per_step = 100
+    hw_opts = dict(snip_max_spikes_per_step=100)
+    with Simulator(net, seed=seed, hardware_options=hw_opts) as sim_loihi:
         sim_loihi.run(simtime)
 
     nengo_out = []
@@ -666,38 +674,6 @@ def test_conv_gain(Simulator):
 
     with pytest.raises(ValidationError, match="must have the same gain"):
         with Simulator(net):
-            pass
-
-
-@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
-                    reason="RoundRobin allocator is Loihi-only")
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
-def test_conv_round_robin_unsupported(Simulator, seed):
-    k = 10
-    d = 5
-    with nengo.Network(seed=seed) as model:
-        u = nengo.Node(output=np.linspace(-1, 1, k))
-
-        a = nengo.Ensemble(n_neurons=k**2, dimensions=k)
-
-        x = nengo.Ensemble(n_neurons=d, dimensions=d,
-                           gain=np.ones(d), bias=np.ones(d))
-
-        nengo.Connection(u, a)
-
-        conv = nengo.Convolution(
-            n_filters=d, input_shape=(k, k, 1),
-            strides=(1, 1), kernel_size=(k, k))
-        assert conv.size_in == k**2
-        assert conv.size_out == d
-
-        nengo.Connection(a.neurons, x.neurons, transform=conv)
-
-    with pytest.raises(BuildError, match="multi-chip allocator"):
-        with Simulator(model,
-                       hardware_options={'allocator': RoundRobin(n_chips=8)},
-                       precompute=True):
             pass
 
 
