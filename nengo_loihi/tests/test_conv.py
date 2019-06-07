@@ -671,6 +671,8 @@ def test_conv_gain(Simulator):
 
 @pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
                     reason="RoundRobin allocator is Loihi-only")
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
 def test_conv_round_robin_unsupported(Simulator, seed):
     k = 10
     d = 5
