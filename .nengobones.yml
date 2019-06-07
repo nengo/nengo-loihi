@@ -409,6 +409,10 @@ setup_cfg:
       test_solvers.py:test_non_compositional_solver_transform_error:
         1D convolution not supported
 
+      # sparse transforms not supported
+      test_transforms.py:test_sparse[*:
+        sparse transforms not supported
+
 
 docs_conf_py:
   intersphinx_mapping:

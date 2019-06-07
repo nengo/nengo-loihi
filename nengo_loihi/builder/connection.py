@@ -123,6 +123,17 @@ def build_host_to_chip(model, conn):
     dim = conn.size_out
     host = model.host_model(base_obj(conn.pre))
 
+    if nengo_transforms is not None:
+        if isinstance(conn.transform, nengo_transforms.Convolution):
+            raise BuildError(
+                "Conv2D transforms not supported for off-chip to "
+                "on-chip connections where `pre` is not a Neurons object.")
+        elif not isinstance(conn.transform, nengo_transforms.Dense):
+            raise BuildError(
+                "nengo-loihi does not yet support %r transforms "
+                "on host to chip connections"
+                % (type(conn.transform).__name__,))
+
     logger.debug("Creating ChipReceiveNode for %s", conn)
     receive = ChipReceiveNode(
         dim * 2,
@@ -253,6 +264,13 @@ def build_chip_to_host(model, conn):
 
 
 def build_host_to_learning_rule(model, conn):
+    if (nengo_transforms is not None
+            and not isinstance(conn.transform, nengo_transforms.Dense)):
+        raise BuildError(
+            "nengo-loihi does not yet support %r transforms "
+            "on host to chip learning rule connections"
+            % (type(conn.transform).__name__,))
+
     dim = conn.size_out
     host = model.host_model(base_obj(conn.pre))
 
@@ -397,9 +415,10 @@ def build_chip_connection(model, conn):  # noqa: C901
         if isinstance(conn.transform, nengo_transforms.Convolution):
             return build_conv2d_connection(model, conn)
         elif not isinstance(conn.transform, nengo_transforms.Dense):
-            raise NotImplementedError(
-                "nengo-loihi does not yet support %s transforms"
-                % conn.transform)
+            raise BuildError(
+                "nengo-loihi does not yet support %r transforms "
+                "on chip to chip connections"
+                % (type(conn.transform).__name__,))
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])

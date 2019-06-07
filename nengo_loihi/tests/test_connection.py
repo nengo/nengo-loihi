@@ -4,6 +4,7 @@ from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 
+from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.neurons import nengo_rates
 
@@ -599,3 +600,53 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
 
     assert allclose(sim.data[p_pre], sim2.data[p_pre], atol=0.1)
     assert allclose(sim.data[p_post], sim2.data[p_post], atol=0.1)
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_sparse_host_to_chip_error(Simulator):
+    with nengo.Network() as net:
+        stim = nengo.Node(np.ones(4))
+        ens = nengo.Ensemble(100, 2)
+        nengo.Connection(stim, ens, transform=nengo_transforms.Sparse(
+            shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1])
+        )
+
+    with pytest.raises(BuildError, match="on host to chip connections"):
+        with Simulator(net):
+            pass
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_sparse_host_to_learning_rule_error(Simulator):
+    with nengo.Network() as net:
+        err = nengo.Node(np.ones(4))
+        pre = nengo.Ensemble(100, 2)
+        post = nengo.Ensemble(100, 2)
+        conn = nengo.Connection(pre, post, learning_rule_type=nengo.PES())
+        nengo.Connection(
+            err,
+            conn.learning_rule,
+            transform=nengo_transforms.Sparse(
+                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1],
+            )
+        )
+
+    with pytest.raises(BuildError, match="on host to chip learning rule"):
+        with Simulator(net):
+            pass
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_sparse_chip_to_chip_error(Simulator):
+    with nengo.Network() as net:
+        pre = nengo.Ensemble(100, 4)
+        post = nengo.Ensemble(100, 2)
+        nengo.Connection(pre, post, transform=nengo_transforms.Sparse(
+            shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]))
+
+    with pytest.raises(BuildError, match="on chip to chip"):
+        with Simulator(net):
+            pass
