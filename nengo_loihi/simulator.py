@@ -20,6 +20,7 @@ import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
+from nengo_loihi.nxsdk_obfuscation import d_func
 from nengo_loihi.splitter import Split
 
 logger = logging.getLogger(__name__)
@@ -528,8 +529,10 @@ class Simulator:
                     h2c.write(h2c.numElements, [0] * h2c.numElements)
                     c2h.read(c2h.numElements)
                 self.sims["loihi"].wait_for_completion()
-                self.sims["loihi"].nxsdk_board.nxDriver.stopExecution()
-                self.sims["loihi"].nxsdk_board.nxDriver.stopDriver()
+                d_func(self.sims["loihi"].nxsdk_board, b'bnhEcml2ZXI=',
+                       b'c3RvcEV4ZWN1dGlvbg==')
+                d_func(self.sims["loihi"].nxsdk_board, b'bnhEcml2ZXI=',
+                       b'c3RvcERyaXZlcg==')
             raise
 
         self._n_steps += steps

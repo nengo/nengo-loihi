@@ -4,6 +4,9 @@ import shutil
 import sys
 import tempfile
 
+
+from nengo_loihi.nxsdk_obfuscation import d_get, d_import, d_set
+
 try:
     import nxsdk
     nxsdk_dir = os.path.realpath(
@@ -15,17 +18,17 @@ try:
     def assert_nxsdk():
         pass
 
-    from nxsdk.graph import graph
-    from nxsdk.driver.hwdriver import driver
+    snip_maker = d_import(b'bnhzZGsuZ3JhcGguZ3JhcGg=')
+    driver = d_import(b'bnhzZGsuZHJpdmVyLmh3ZHJpdmVyLmRyaXZlcg==')
 
-    class PatchedGraph(graph.Graph):
-        """Patched version of NxSDK Graph that is multiprocess safe."""
+    class SnipMaker(d_get(snip_maker, b"R3JhcGg=")):
+        """Patch of the snip process manager that is multiprocess safe."""
 
         def __init__(self, *args, **kwargs):
-            super(PatchedGraph, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
 
             # We need to store references to the temporary directories so
-            # that they don't get cleaned up until the graph is closed
+            # that they don't get cleaned up
             self.nengo_tmp_dirs = []
 
         def createProcess(self, name, cFilePath, includeDir, *args, **kwargs):
@@ -45,13 +48,13 @@ try:
             include_path = os.path.join(tmp.name, name, "include")
             shutil.copytree(includeDir, include_path)
 
-            return super(PatchedGraph, self).createProcess(
+            return super().createProcess(
                 name, tmp_path, include_path, *args, **kwargs)
 
-    graph.Graph = PatchedGraph
+    d_set(snip_maker, b"R3JhcGg=", val=SnipMaker)
 
-    class PatchedDriver(driver.N2Driver):
-        """Patched version of NxSDK N2Driver that is multiprocess safe."""
+    class PatchedDriver(d_get(driver, b"TjJEcml2ZXI=")):
+        """Patched version of the driver that is multiprocess safe."""
 
         def startDriver(self, *args, **kwargs):
             super().startDriver(*args, **kwargs)
@@ -62,7 +65,7 @@ try:
             # NxSDK is already taking care of cleaning up the directory.
             self.compileDir = tempfile.mkdtemp()
 
-    driver.N2Driver = PatchedDriver
+    d_set(driver, b"TjJEcml2ZXI=", val=PatchedDriver)
 
 except ImportError:
     HAS_NXSDK = False
@@ -77,12 +80,20 @@ except ImportError:
 
 
 if HAS_NXSDK:
-    import nxsdk.compiler.microcodegen.interface as micro_gen
-    from nxsdk.compiler.tracecfggen.tracecfggen import (
-        TraceCfgGen as TraceConfigGenerator)
-    from nxsdk.graph.nxboard import N2Board as NxsdkBoard
-    from nxsdk.graph.nxinputgen import BasicSpikeGenerator as SpikeGen
-    from nxsdk.graph.nxprobes import N2SpikeProbe as SpikeProbe
+    micro_gen = d_import(
+        b'bnhzZGsuY29tcGlsZXIubWljcm9jb2RlZ2VuLmludGVyZmFjZQ==')
+    TraceConfigGenerator = d_import(
+        b'bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=',
+        b'VHJhY2VDZmdHZW4=')
+    NxsdkBoard = d_import(
+        b'bnhzZGsuZ3JhcGgubnhib2FyZA==',
+        b'TjJCb2FyZA==')
+    SpikeGen = d_import(
+        b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbg==',
+        b'QmFzaWNTcGlrZUdlbmVyYXRvcg==')
+    SpikeProbe = d_import(
+        b'bnhzZGsuZ3JhcGgubnhwcm9iZXM=',
+        b'TjJTcGlrZVByb2Jl')
 else:
     micro_gen = None
     TraceConfigGenerator = None

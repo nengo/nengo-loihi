@@ -8,6 +8,7 @@ from nengo_loihi.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
 from nengo_loihi.hardware.allocators import OneToOne
 from nengo_loihi.hardware.builder import build_board
+from nengo_loihi.nxsdk_obfuscation import d_set
 
 
 class MockNxsdk:
@@ -112,7 +113,7 @@ def test_interface_connection_errors(Simulator):
 
     with Simulator(net) as sim:
         interface = sim.sims['loihi']
-        interface.nxsdk_board.startDriver = start_driver
+        d_set(interface.nxsdk_board, b'c3RhcnREcml2ZXI=', val=start_driver)
 
         with pytest.raises(SimulationError, match="[Cc]ould not connect"):
             interface.connect(attempts=1)

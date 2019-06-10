@@ -13,6 +13,7 @@ from nengo_loihi.hardware.nxsdk_objects import (
     TraceConfig,
     VthConfig,
 )
+from nengo_loihi.nxsdk_obfuscation import d
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class OneToOne(Allocator):
     """Assigns each block and input to distinct cores on the same chip."""
 
     def block_to_chip(self, block, chip):
-        if block.compartment.n_compartments > 1024:
+        if block.compartment.n_compartments > d(b'MTAyNA==', int):
             raise ValidationError("Segment does not fit on one chip",
                                   "n_neurons")
 

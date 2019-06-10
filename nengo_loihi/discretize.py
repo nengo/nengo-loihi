@@ -8,20 +8,24 @@ from nengo.utils.compat import is_iterable
 import numpy as np
 
 from nengo_loihi.block import SynapseConfig
+from nengo_loihi.nxsdk_obfuscation import d
 
-VTH_MAN_MAX = 2**17 - 1
-VTH_EXP = 6
+VTH_MAN_MAX = d(b'MTMxMDcx', int)
+VTH_EXP = d(b'Ng==', int)
 VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
 
-BIAS_MAN_MAX = 2**12 - 1
-BIAS_EXP_MAX = 2**3 - 1
+BIAS_MAN_MAX = d(b'NDA5NQ==', int)
+BIAS_EXP_MAX = d(b'Nw==', int)
 BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 
-Q_BITS = 21  # number of bits for synapse accumulator
-U_BITS = 23  # number of bits for cx input (u)
-
-LEARN_BITS = 15  # number of bits in learning accumulator (not incl. sign)
-LEARN_FRAC = 7  # extra least-significant bits added to weights for learning
+# number of bits for synapse accumulator
+Q_BITS = d(b'MjE=', int)
+# number of bits for compartment input (u)
+U_BITS = d(b'MjM=', int)
+# number of bits in learning accumulator (not incl. sign)
+LEARN_BITS = d(b'MTU=', int)
+# extra least-significant bits added to weights for learning
+LEARN_FRAC = d(b'Nw==', int)
 
 logger = logging.getLogger(__name__)
 
@@ -112,11 +116,11 @@ def bias_to_manexp(bias):
 def tracing_mag_int_frac(mag):
     """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    mag_frac = int(128 * (mag - mag_int))
+    mag_frac = int(d(b'MTI4', int) * (mag - mag_int))
     return mag_int, mag_frac
 
 
-def decay_int(x, decay, bits=12, offset=0, out=None):
+def decay_int(x, decay, bits=None, offset=0, out=None):
     """Decay integer values using a decay constant.
 
     The decayed value is given by::
@@ -125,6 +129,8 @@ def decay_int(x, decay, bits=12, offset=0, out=None):
     """
     if out is None:
         out = np.zeros_like(x)
+    if bits is None:
+        bits = d(b'MTI=', int)
     r = (2**bits - offset - np.asarray(decay)).astype(np.int64)
     np.right_shift(np.abs(x) * r, bits, out=out)
     return np.sign(x) * out
@@ -171,24 +177,25 @@ def scale_pes_errors(error, scale=1.):
     """Scale PES errors based on a scaling factor, round and clip."""
     error = scale * error
     error = np.round(error).astype(np.int32)
-    q = error > 127
+    max_err = d(b'MTI3', int)
+    q = error > max_err
     if np.any(q):
         warnings.warn("Received PES error greater than chip max (%0.2e). "
                       "Consider changing `Model.pes_error_scale`."
-                      % (127 / scale,))
+                      % (max_err / scale,))
         logger.debug("PES error %0.2e > %0.2e (chip max)",
                      np.max(error) / scale,
-                     127 / scale)
-        error[q] = 127
-    q = error < -127
+                     max_err / scale)
+        error[q] = max_err
+    q = error < -max_err
     if np.any(q):
         warnings.warn("Received PES error less than chip min (%0.2e). "
                       "Consider changing `Model.pes_error_scale`."
-                      % (-127 / scale,))
+                      % (-max_err / scale,))
         logger.debug("PES error %0.2e < %0.2e (chip min)",
                      np.min(error) / scale,
-                     -127 / scale)
-        error[q] = -127
+                     -max_err / scale)
+        error[q] = -max_err
     return error
 
 
@@ -252,16 +259,18 @@ def discretize_compartment(comp, w_max):
 
     # --- discretize decay_u and decay_v
     # subtract 1 from decay_u here because it gets added back by the chip
-    decay_u = comp.decay_u * (2**12 - 1) - 1
-    array_to_int(comp.decay_u, np.clip(decay_u, 0, 2**12 - 1))
-    array_to_int(comp.decay_v, comp.decay_v * (2**12 - 1))
+    decay_u = comp.decay_u * d(b'NDA5NQ==', int) - 1
+    array_to_int(comp.decay_u, np.clip(decay_u, 0, d(b'NDA5NQ==', int)))
+    array_to_int(comp.decay_v, comp.decay_v * d(b'NDA5NQ==', int))
 
     # Compute factors for current and voltage decay. These factors
     # counteract the fact that for longer decays, the current (or voltage)
     # created by a single spike has a larger integral.
-    u_infactor = (1. / decay_magnitude(comp.decay_u, x0=2**21, offset=1)
+    u_infactor = (1. / decay_magnitude(comp.decay_u,
+                                       x0=d(b'MjA5NzE1Mg==', int), offset=1)
                   if comp.scale_u else np.ones(comp.decay_u.shape))
-    v_infactor = (1. / decay_magnitude(comp.decay_v, x0=2**21)
+    v_infactor = (1. / decay_magnitude(comp.decay_v,
+                                       x0=d(b'MjA5NzE1Mg==', int))
                   if comp.scale_v else np.ones(comp.decay_v.shape))
     comp.scale_u = False
     comp.scale_v = False
@@ -280,10 +289,10 @@ def discretize_compartment(comp, w_max):
     w_exp = 0
 
     if w_max > 1e-8:
-        w_scale = (255. / w_max)
+        w_scale = (d(b'MjU1', float) / w_max)
         s_scale = 1. / (u_infactor * v_infactor)
 
-        for w_exp in range(w_exp_max, -8, -1):
+        for w_exp in range(w_exp_max, d(b'LTg=', int), d(b'LTE=', int)):
             v_scale = s_scale * w_scale * SynapseConfig.get_scale(w_exp)
             b_scale = v_scale * v_infactor
             vth = np.round(comp.vth * v_scale)
@@ -326,13 +335,13 @@ def discretize_compartment(comp, w_max):
     assert (v_scale[0] == v_scale).all()
     enable_noise = np.any(comp.enable_noise)
     noise_exp = np.round(np.log2(10.**comp.noise_exp * v_scale[0]))
-    if enable_noise and noise_exp < 1:
+    if enable_noise and noise_exp < d(b'MQ==', int):
         warnings.warn("Noise amplitude falls below lower limit")
         enable_noise = False
-    if enable_noise and noise_exp > 23:
+    if enable_noise and noise_exp > d(b'MjM=', int):
         warnings.warn(
             "Noise amplitude exceeds upper limit (%d > 23)" % (noise_exp,))
-    comp.noise_exp = int(np.clip(noise_exp, 1, 23))
+    comp.noise_exp = int(np.clip(noise_exp, d(b'MQ==', int), d(b'MjM=', int)))
     comp.noise_offset = int(np.round(2*comp.noise_offset))
 
     # --- vmin and vmax
@@ -377,9 +386,9 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
     elif w_max_i > 1e-16:
         dw_exp = int(np.floor(np.log2(w_max / w_max_i)))
         assert dw_exp >= 0
-        w_exp2 = max(w_exp - dw_exp, -6)
+        w_exp2 = max(w_exp - dw_exp, d(b'LTY=', int))
     else:
-        w_exp2 = -6
+        w_exp2 = d(b'LTY=', int)
         dw_exp = w_exp - w_exp2
     synapse.format(weight_exp=w_exp2)
     for w, idxs in zip(synapse.weights, synapse.indices):
@@ -416,16 +425,16 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
         synapse.learning_rate = lr_int * 2 ** lr_exp
         synapse._lr_int = lr_int
         synapse._lr_exp = lr_exp
-        assert lr_exp >= -7
+        assert lr_exp >= d(b'LTc=', int)
 
         # discretize tracing mag into integer and fractional components
         mag_int, mag_frac = tracing_mag_int_frac(synapse.tracing_mag)
-        if mag_int > 127:
+        if mag_int > d(b'MTI3', int):
             warnings.warn("Trace increment exceeds upper limit "
                           "(learning rate may be too large)")
-            mag_int = 127
-            mag_frac = 127
-        synapse.tracing_mag = mag_int + mag_frac / 128.
+            mag_int = d(b'MTI3', int)
+            mag_frac = d(b'MTI3', int)
+        synapse.tracing_mag = mag_int + mag_frac / d(b'MTI4', float)
 
 
 def discretize_weights(
@@ -449,7 +458,7 @@ def discretize_weights(
         the valid range for weights on the chip (-256 to 255).
     """
     s = synapse_cfg.shift_bits
-    m = 2**(8 - s) - 1
+    m = 2**(d(b'OA==', int) - s) - 1
 
     w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
@@ -463,13 +472,14 @@ def discretize_weights(
             w = (np.round(w * 2.**s2) / 2**s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
-        np.left_shift(w, 6, out=w)
+        np.left_shift(w, d(b'Ng==', int), out=w)
     else:
-        shift(w, 6 + s2, out=w)
+        shift(w, d(b'Ng==', int) + s2, out=w)
 
     if check_result:
         ws = w // synapse_cfg.scale
-        assert np.all(ws <= 255) and np.all(ws >= -256)
+        assert (np.all(ws <= d(b'MjU1', int))
+                and np.all(ws >= d(b'LTI1Ng==', int)))
 
     return w
 

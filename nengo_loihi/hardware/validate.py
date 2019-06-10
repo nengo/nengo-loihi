@@ -1,6 +1,7 @@
 import numpy as np
 
 from nengo_loihi.discretize import VTH_MAN_MAX
+from nengo_loihi.nxsdk_obfuscation import d
 from nengo_loihi.validate import validate_synapse_cfg
 
 
@@ -15,10 +16,11 @@ def validate_chip(chip):
 
 
 def validate_core(core):
-    assert len(core.compartment_cfgs) <= 32  # TODO: check this number
-    assert len(core.vth_cfgs) <= 16  # TODO: check this number
-    assert len(core.synapse_cfgs) <= 16  # TODO: check this number
-    assert len(core.stdp_pre_cfgs) <= 3
+    # TODO: check these numbers are correct
+    assert len(core.compartment_cfgs) <= d(b'MzI=', int)
+    assert len(core.vth_cfgs) <= d(b'MTY=', int)
+    assert len(core.synapse_cfgs) <= d(b'MTY=', int)
+    assert len(core.stdp_pre_cfgs) <= d(b'Mw==', int)
 
     for cfg in core.compartment_cfgs:
         validate_compartment_cfg(cfg)

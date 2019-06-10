@@ -49,6 +49,8 @@ Release history
 - The default intercept range set by ``nengo_loihi.set_defaults()`` is now
   (-1, 0.5), instead of (-0.5, 0.5).
   (`#126 <https://github.com/nengo/nengo-loihi/pull/126>`__)
+- Obfuscated non-public information related to Intel's NxSDK.
+  (`#228 <https://github.com/nengo/nengo-loihi/pull/228>`__)
 
 **Fixed**
 

@@ -17,6 +17,7 @@ from nengo_loihi.block import LoihiBlock, Probe
 from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
+from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
 from nengo_loihi.hardware.nxsdk_shim import (
     assert_nxsdk,
     nxsdk,
@@ -69,9 +70,8 @@ class HardwareInterface:
         # the nengo_io_h2c channel on one timestep.
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
 
-        # probeDict is a class attribute, so might contain things left over
-        # from previous simulators
-        SpikeProbe.probeDict.clear()
+        # clear cached content from SpikeProbe class attribute
+        d_func(SpikeProbe, b'cHJvYmVEaWN0', b'Y2xlYXI=')
 
         self.build(model, allocator=allocator, seed=seed)
 
@@ -133,7 +133,8 @@ class HardwareInterface:
 
         # NOTE: we need to call connect() after snips are created
         self.connect()
-        self.nxsdk_board.run(steps, aSync=not blocking)
+        d_get(self.nxsdk_board, b'cnVu')(
+            steps, **{d(b'YVN5bmM='): not blocking})
 
     def _chip2host_monitor(self, probes_receivers):
         increment = None
@@ -141,7 +142,8 @@ class HardwareInterface:
             assert not probe.use_snip
             nxsdk_probe = self.board.probe_map[probe]
             x = np.column_stack([
-                p.timeSeries.data[self._chip2host_sent_steps:]
+                d_get(p, b'dGltZVNlcmllcw==',
+                      b'ZGF0YQ==')[self._chip2host_sent_steps:]
                 for p in nxsdk_probe])
             assert x.ndim == 2
 
@@ -179,7 +181,7 @@ class HardwareInterface:
                 # Loihi uses the voltage value to indicate where we
                 # are in the refractory period. We want to find neurons
                 # starting their refractory period.
-                x = (x == refract_delays * 128)
+                x = (x == refract_delays * d(b'MTI4', int))
 
             if probe.weights is not None:
                 x = np.dot(x, probe.weights)
@@ -204,9 +206,12 @@ class HardwareInterface:
         for spike in loihi_spikes:
             assert spike.axon.axon_type == 0, "Spikegen cannot send pop spikes"
             assert spike.axon.atom == 0, "Spikegen does not support atom"
-            self.nxsdk_board.global_spike_generator.addSpike(
-                time=spike.time, chipId=spike.axon.chip_id,
-                coreId=spike.axon.core_id, axonId=spike.axon.axon_id)
+            d_func(self.nxsdk_board.global_spike_generator, b'YWRkU3Bpa2U=',
+                   kwargs={b'dGltZQ==': spike.time,
+                           b'Y2hpcElk': spike.axon.chip_id,
+                           b'Y29yZUlk': spike.axon.core_id,
+                           b'YXhvbklk': spike.axon.axon_id,
+                           })
 
     def _host2chip_snips(self, loihi_spikes, loihi_errors):
         max_spikes = self.snip_max_spikes_per_step
@@ -259,11 +264,11 @@ class HardwareInterface:
             return self._host2chip_spikegen(loihi_spikes)
 
     def wait_for_completion(self):
-        self.nxsdk_board.finishRun()
+        d_func(self.nxsdk_board, b'ZmluaXNoUnVu')
 
     def is_connected(self):
-        return (self.nxsdk_board is not None
-                and self.nxsdk_board.nxDriver.hasStarted())
+        return self.nxsdk_board is not None and d_func(
+            self.nxsdk_board, b'bnhEcml2ZXI=', b'aGFzU3RhcnRlZA==')
 
     def connect(self, attempts=10):
         if self.nxsdk_board is None:
@@ -275,7 +280,7 @@ class HardwareInterface:
         logger.info("Connecting to Loihi, max attempts: %d", attempts)
         for i in range(attempts):
             try:
-                self.nxsdk_board.startDriver()
+                d_func(self.nxsdk_board, b'c3RhcnREcml2ZXI=')
                 if self.is_connected():
                     break
             except Exception as e:
@@ -287,7 +292,7 @@ class HardwareInterface:
 
     def close(self):
         if self.nxsdk_board is not None:
-            self.nxsdk_board.disconnect()
+            d_func(self.nxsdk_board, b'ZGlzY29ubmVjdA==')
 
         self.closed = True
 
@@ -321,7 +326,8 @@ class HardwareInterface:
             data = self._snip_probe_data[probe]
         else:
             nxsdk_probe = self.board.probe_map[probe]
-            data = np.column_stack([p.timeSeries.data for p in nxsdk_probe])
+            data = np.column_stack([d_get(p, b'dGltZVNlcmllcw==', b'ZGF0YQ==')
+                                    for p in nxsdk_probe])
             data = (data if probe.weights is None
                     else np.dot(data, probe.weights))
         return self._filter_probe(probe, data)
@@ -337,7 +343,6 @@ class HardwareInterface:
             loader=jinja2.FileSystemLoader(snips_dir),
             keep_trailing_newline=True
         )
-        template = env.get_template("nengo_io.c.template")
 
         # --- generate custom code
         # Determine which cores have learning
@@ -373,7 +378,32 @@ class HardwareInterface:
                              info['key']))
                         n_outputs += 1
 
+        # obfuscated strings used in templates
+        obfs = dict(
+            core_class=d(b'TmV1cm9uQ29yZQ=='),
+            id_class=d(b'Q29yZUlk'),
+            get_channel=d(b'Z2V0Q2hhbm5lbElE'),
+            int_type=d(b'aW50MzJfdA=='),
+            spike_size=d(b'Mg=='),
+            error_info_size=d(b'Mg=='),
+            step=d(b'dGltZV9zdGVw'),
+            read=d(b'cmVhZENoYW5uZWw='),
+            write=d(b'd3JpdGVDaGFubmVs'),
+            spike_shift=d(b'MTY='),
+            spike_mask=d(b'MHgwMDAwRkZGRg=='),
+            axon_type_0=d(b'MA=='),
+            do_axon_type_0=d(b'bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=='),
+            axon_type_1=d(b'MzI='),
+            do_axon_type_1=d(b'bnhfc2VuZF9wb3AzMl9zcGlrZQ=='),
+            data=d(b'dXNlckRhdGE='),
+            state=d(b'Y3hfc3RhdGU='),
+            neuron=d(b'TkVVUk9OX1BUUg=='),
+            pos_pes_cfg=d(b'bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDEKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAwCiAgICAgICAgICAgICAgICAgICAgfTs='),  # pylint: disable=line-too-long
+            neg_pes_cfg=d(b'bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDAKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAxCiAgICAgICAgICAgICAgICAgICAgfTs='),  # pylint: disable=line-too-long
+        )
+
         # --- write c file using template
+        template = env.get_template("nengo_io.c.template")
         self.tmp_snip_dir = tempfile.TemporaryDirectory()
         c_path = os.path.join(self.tmp_snip_dir.name, "nengo_io.c")
         logger.debug(
@@ -385,43 +415,52 @@ class HardwareInterface:
             max_error_len=max_error_len,
             cores=cores,
             probes=probes,
+            obfs=obfs,
         )
         with open(c_path, 'w') as f:
             f.write(code)
 
+        template = env.get_template("nengo_learn.c.template")
+        code = template.render(
+            obfs=obfs,
+        )
+        with open(os.path.join(snips_dir, "nengo_learn.c"), "w") as f:
+            f.write(code)
+
         # --- create SNIP process and channels
         logger.debug("Creating nengo_io snip process")
-        nengo_io = self.nxsdk_board.createProcess(
-            name="nengo_io",
-            cFilePath=c_path,
-            includeDir=snips_dir,
-            funcName="nengo_io",
-            guardName="guard_io",
-            phase="mgmt",
-        )
+        nengo_io = d_func(self.nxsdk_board, b'Y3JlYXRlUHJvY2Vzcw==',
+                          kwargs={b'bmFtZQ==': "nengo_io",
+                                  b'Y0ZpbGVQYXRo': c_path,
+                                  b'aW5jbHVkZURpcg==': snips_dir,
+                                  b'ZnVuY05hbWU=': "nengo_io",
+                                  b'Z3VhcmROYW1l': "guard_io",
+                                  b'cGhhc2U=': d(b'bWdtdA=='),
+                                  })
         logger.debug("Creating nengo_learn snip process")
         c_path = os.path.join(self.tmp_snip_dir.name, "nengo_learn.c")
         shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
-        self.nxsdk_board.createProcess(
-            name="nengo_learn",
-            cFilePath=c_path,
-            includeDir=snips_dir,
-            funcName="nengo_learn",
-            guardName="guard_learn",
-            phase="preLearnMgmt",
-        )
+        d_func(self.nxsdk_board, b'Y3JlYXRlUHJvY2Vzcw==',
+               kwargs={b'bmFtZQ==': "nengo_learn",
+                       b'Y0ZpbGVQYXRo': os.path.join(snips_dir,
+                                                     "nengo_learn.c"),
+                       b'aW5jbHVkZURpcg==': snips_dir,
+                       b'ZnVuY05hbWU=': "nengo_learn",
+                       b'Z3VhcmROYW1l': "guard_learn",
+                       b'cGhhc2U=': d(b'cHJlTGVhcm5NZ210'),
+                       })
 
         size = (1  # first int stores number of spikes
                 + self.snip_max_spikes_per_step*SpikePacker.size()
                 + total_error_len)
         logger.debug("Creating nengo_io_h2c channel (%d)" % size)
-        self.nengo_io_h2c = self.nxsdk_board.createChannel(
+        self.nengo_io_h2c = d_get(self.nxsdk_board, b'Y3JlYXRlQ2hhbm5lbA==')(
             b'nengo_io_h2c', "int", size)
         logger.debug("Creating nengo_io_c2h channel (%d)" % n_outputs)
-        self.nengo_io_c2h = self.nxsdk_board.createChannel(
+        self.nengo_io_c2h = d_get(self.nxsdk_board, b'Y3JlYXRlQ2hhbm5lbA==')(
             b'nengo_io_c2h', "int", n_outputs)
-        self.nengo_io_h2c.connect(None, nengo_io)
-        self.nengo_io_c2h.connect(nengo_io, None)
+        d_get(self.nengo_io_h2c, b'Y29ubmVjdA==')(None, nengo_io)
+        d_get(self.nengo_io_c2h, b'Y29ubmVjdA==')(nengo_io, None)
         self.nengo_io_h2c_errors = n_errors
         self.nengo_io_c2h_count = n_outputs
         self.nengo_io_snip_range = snip_range

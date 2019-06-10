@@ -5,11 +5,12 @@ import collections
 import numpy as np
 
 from nengo_loihi.block import Config
+from nengo_loihi.nxsdk_obfuscation import d, d_get
 
 
-MAX_COMPARTMENT_CFGS = 32
-MAX_VTH_CFGS = 8
-MAX_SYNAPSE_CFGS = 16
+MAX_COMPARTMENT_CFGS = d(b'MzI=', int)
+MAX_VTH_CFGS = d(b'OA==', int)
+MAX_SYNAPSE_CFGS = d(b'OA==', int)
 
 
 class Board:
@@ -231,6 +232,7 @@ class LoihiSpikeInput:
         __slots__ = ['axon_type', 'chip_id', 'core_id', 'axon_id', 'atom']
 
         def __init__(self, axon_type, chip_id, core_id, axon_id, atom=0):
+            # TODO: obfuscate axon_type, or atom?
             assert axon_type in (0, 16, 32)
             self.axon_type = axon_type
             self.chip_id = chip_id
@@ -289,8 +291,8 @@ class LoihiSpikeInput:
             axon_type = axon.pop_type
             assert axon_type in (0, 32), "Only discrete and pop32 supported"
             tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(axon.target)
-            tchip = nxsdk_board.n2Chips[tchip_idx]
-            tcore = tchip.n2Cores[tcore_idx]
+            tchip = d_get(nxsdk_board, b'bjJDaGlwcw==')[tchip_idx]
+            tcore = d_get(tchip, b'bjJDb3Jlcw==')[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
                 if spike is not None:
@@ -326,9 +328,9 @@ class LoihiSpikeInput:
 
 
 class CompartmentConfig(Config):
-    DECAY_U_MAX = 2**12 - 1
-    DECAY_V_MAX = 2**12 - 1
-    REFRACT_DELAY_MAX = 2**6 - 1
+    DECAY_U_MAX = d(b'NDA5NQ==', int)
+    DECAY_V_MAX = d(b'NDA5NQ==', int)
+    REFRACT_DELAY_MAX = d(b'NjM=', int)
 
     params = ('decay_u', 'decay_v', 'refract_delay', 'enable_noise')
 
@@ -347,7 +349,7 @@ class VthConfig(Config):
     ----------
     vth : int
         The mantissa of the voltage threshold for a compartment. To get the
-        actual voltage threshold, this is multiplied by VTH_EXP (64).
+        actual voltage threshold, this is multiplied by VTH_EXP.
     """
     params = ('vth',)
 

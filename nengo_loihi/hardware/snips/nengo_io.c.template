@@ -6,8 +6,8 @@
 #define N_OUTPUTS {{ n_outputs }}
 #define N_ERRORS {{ n_errors }}
 #define MAX_ERROR_LEN {{ max_error_len }}
-#define SPIKE_SIZE 2
-#define ERROR_INFO_SIZE 2
+#define SPIKE_SIZE {{ obfs.spike_size }}
+#define ERROR_INFO_SIZE {{ obfs.error_info_size }}
 
 int guard_io(runState *s) {
     return 1;
@@ -15,53 +15,53 @@ int guard_io(runState *s) {
 
 void nengo_io(runState *s) {
 {% for core in cores %}
-    NeuronCore *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
+    {{ obfs.core_class }} *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
 {% endfor %}
-    CoreId core_id;
-    int in_channel = getChannelID("nengo_io_h2c");
-    int out_channel = getChannelID("nengo_io_c2h");
+    {{ obfs.id_class }} core_id;
+    int in_channel = {{ obfs.get_channel }}("nengo_io_h2c");
+    int out_channel = {{ obfs.get_channel }}("nengo_io_c2h");
 
-    int32_t axon_type;
-    int32_t axon_id;
-    int32_t atom;
-    int32_t count[1];
-    int32_t spike[SPIKE_SIZE];
-    int32_t error_info[ERROR_INFO_SIZE];
-    int32_t error_data[MAX_ERROR_LEN];
-    int32_t error_index;
-    int32_t output[N_OUTPUTS];
+    {{ obfs.int_type }} axon_type;
+    {{ obfs.int_type }} axon_id;
+    {{ obfs.int_type }} atom;
+    {{ obfs.int_type }} count[1];
+    {{ obfs.int_type }} spike[SPIKE_SIZE];
+    {{ obfs.int_type }} error_info[ERROR_INFO_SIZE];
+    {{ obfs.int_type }} error_data[MAX_ERROR_LEN];
+    {{ obfs.int_type }} error_index;
+    {{ obfs.int_type }} output[N_OUTPUTS];
 
     if (in_channel == -1 || out_channel == -1) {
         printf("Got an invalid channel ID\n");
         return;
     }
 
-    if (s->time_step % 100 == 0) {
-        printf("time %d\n", s->time_step);
+    if (s->{{ obfs.step }} % 100 == 0) {
+        printf("time %d\n", s->{{ obfs.step }});
     }
 
-    readChannel(in_channel, count, 1);
+    {{ obfs.read }}(in_channel, count, 1);
     if (DEBUG) {
         printf("count %d\n", count[0]);
     }
 
     for (int i=0; i < count[0]; i++) {
-        readChannel(in_channel, spike, SPIKE_SIZE);
+        {{ obfs.read }}(in_channel, spike, SPIKE_SIZE);
         if (DEBUG) {
             printf("send spike %d.%d\n", spike[0], spike[1]);
         }
-        core_id = (CoreId) { .id=(spike[0] >> 16) };
-        axon_id = spike[0] & 0x0000FFFF;
-        axon_type = spike[1] >> 16;
-        atom = spike[1] & 0x0000FFFF;
+        core_id = ({{ obfs.id_class }}) { .id=(spike[0] >> {{ obfs.spike_shift }}) };
+        axon_id = spike[0] & {{ obfs.spike_mask }};
+        axon_type = spike[1] >> {{ obfs.spike_shift }};
+        atom = spike[1] & {{ obfs.spike_mask }};
         if (DEBUG) {
             printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
                    core_id.id, axon_id, axon_type, atom);
         }
-        if (axon_type == 0) {
-            nx_send_discrete_spike(s->time_step, core_id, axon_id);
-        } else if (axon_type == 32) {
-            nx_send_pop32_spike(s->time_step, core_id, axon_id, atom, 0, 0, 0);
+        if (axon_type == {{ obfs.axon_type_0 }}) {
+            {{ obfs.do_axon_type_0 }}(s->{{ obfs.step }}, core_id, axon_id);
+        } else if (axon_type == {{ obfs.axon_type_1 }}) {
+            {{ obfs.do_axon_type_1 }}(s->{{ obfs.step }}, core_id, axon_id, atom, 0, 0, 0);
         } else {
             printf("Got invalid axon_type: %d\n", axon_type);
             return;
@@ -69,27 +69,27 @@ void nengo_io(runState *s) {
     }
 
     // Communicate with learning snip
-    s->userData[0] = N_ERRORS;
+    s->{{ obfs.data }}[0] = N_ERRORS;
     error_index = 1;
     for (int i=0; i < N_ERRORS; i++) {
-        readChannel(in_channel, error_info, ERROR_INFO_SIZE);
-        readChannel(in_channel, error_data, error_info[1]);
-        s->userData[error_index] = error_info[0];
-        s->userData[error_index + 1] = error_info[1];
+        {{ obfs.read }}(in_channel, error_info, ERROR_INFO_SIZE);
+        {{ obfs.read }}(in_channel, error_data, error_info[1]);
+        s->{{ obfs.data }}[error_index] = error_info[0];
+        s->{{ obfs.data }}[error_index + 1] = error_info[1];
         for (int j=0; j < error_info[1]; j++) {
-            s->userData[error_index + ERROR_INFO_SIZE + j] = error_data[j];
+            s->{{ obfs.data }}[error_index + ERROR_INFO_SIZE + j] = error_data[j];
         }
         error_index += ERROR_INFO_SIZE + error_info[1];
     }
 
-    output[0] = s->time_step;
+    output[0] = s->{{ obfs.step }};
 {% for n_out, core, compartment, key in probes %}
 {% if key == 'u' %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ compartment }}].U;
+    output[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].U;
 {% elif key in ('v', 'spike') %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ compartment }}].V;
+    output[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].V;
 {% endif %}
 {% endfor %}
 
-    writeChannel(out_channel, output, N_OUTPUTS);
+    {{ obfs.write }}(out_channel, output, N_OUTPUTS);
 }

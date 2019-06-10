@@ -1,0 +1,54 @@
+#include <stdlib.h>
+#include <string.h>
+#include "nengo_learn.h"
+
+int guard_learn(runState *s) {
+    return 1;
+}
+
+// Handles passing learning information to the correct learning rules
+// to implement PES learning on Loihi.
+//
+// The required data is passed to this snip from the standard nengo_io
+// snip. The data format is as follows:
+//
+//  0 :  n_errors
+//    the number of learning signals. This is the same as the number
+//    of Connections in the original Nengo model that terminate on
+//    a conn.learning_rule.
+//
+//    This indicates how many copies of the following block there will be.
+//  1 : core
+//    The core id for the weights of the first learning connection
+//  2 :  n_vals
+//    The number of error signal dimensions.
+//  3..3+n_vals : error_sig
+//    The error signal, which has been multiplied by 100, rounded to an int,
+//    and clipped to the [-100, 100] range.
+
+void nengo_learn(runState *s) {
+    int offset = 1;
+    int error;
+    {{ obfs.int_type }} n_errors = s->{{ obfs.data }} [0];
+    {{ obfs.int_type }} compartment_idx;
+    {{ obfs.int_type }} core;
+    {{ obfs.int_type }} n_vals;
+    {{ obfs.core_class }} *neuron;
+
+    for (int error_index=0; error_index < n_errors; error_index++) {
+        core = s->{{ obfs.data }} [offset];
+        n_vals = s->{{ obfs.data }} [offset+1];
+        for (int i=0; i < n_vals; i++) {
+            error = (signed char) s->{{ obfs.data }} [offset+2+i];
+            neuron = {{ obfs.neuron }}(({{ obfs.id_class }}) {.id=core});
+            compartment_idx = i;
+
+            if (error > 0) {
+                {{ obfs.pos_pes_cfg }}
+            } else {
+                {{ obfs.neg_pes_cfg }}
+            }
+        }
+        offset += 2 + n_vals;
+    }
+}
