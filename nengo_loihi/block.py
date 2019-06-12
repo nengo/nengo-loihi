@@ -354,9 +354,20 @@ class Axon:
         return [self.Spike(axon_id, atom=atom) if axon_id >= 0 else None
                 for axon_id, atom in zip(axon_ids, atoms)]
 
-    def set_axon_map(self, compartment_map, compartment_atoms=None):
-        self.compartment_map = compartment_map
-        self.compartment_atoms = compartment_atoms
+    def set_compartment_axon_map(self, target_axons, atoms=None):
+        """Set mapping from compartments to axons in target.
+
+        Parameters
+        ----------
+        target_axons : array_like (``n_compartments``,)
+            Indices indicating which target axon each compartment maps to.
+            If < 0, the corresponding compartment will not be used with these
+            axons.
+        atoms : array_like (``n_compartments``,)
+            Atoms to use for each compartment. Use only if ``pop_type != 0``.
+        """
+        self.compartment_map = target_axons
+        self.compartment_atoms = atoms
 
 
 class SynapseConfig(Config):

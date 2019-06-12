@@ -89,8 +89,10 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
-@pytest.mark.parametrize("factor", [0.11, 0.26, 1.01])
-def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
+@pytest.mark.parametrize("factor, do_pre_slice", [
+    (0.11, False), (0.26, True), (1.01, False)])
+def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
+                          seed, allclose, plt):
     # note: we use these weird factor values so that voltages don't line up
     # exactly with the firing threshold.  since loihi neurons fire when
     # voltage > threshold (rather than >=), if the voltages line up
@@ -98,16 +100,24 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
     dt = 5e-4
     simtime = 0.2
 
+    na = 10
+    if do_pre_slice:
+        nb = int(np.ceil(na / 2.))
+        pre_slice = slice(None, None, 2)
+    else:
+        nb = na
+        pre_slice = slice(None)
+
     with nengo.Network(seed=seed) as net:
-        n = 10
+
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
-        a = nengo.Ensemble(n, 1)
+        a = nengo.Ensemble(na, 1)
         nengo.Connection(stim, a)
 
-        b = nengo.Ensemble(n, 1, neuron_type=nengo.SpikingRectifiedLinear(),
-                           gain=np.ones(n), bias=np.zeros(n))
-        nengo.Connection(a.neurons, b.neurons, synapse=None,
-                         transform=np.eye(n) * factor)
+        b = nengo.Ensemble(nb, 1, neuron_type=nengo.SpikingRectifiedLinear(),
+                           gain=np.ones(nb), bias=np.zeros(nb))
+        nengo.Connection(a.neurons[pre_slice], b.neurons, synapse=None,
+                         transform=np.eye(nb) * factor)
 
         p_a = nengo.Probe(a.neurons)
         p_b = nengo.Probe(b.neurons)
@@ -115,7 +125,7 @@ def test_neuron_to_neuron(Simulator, factor, seed, allclose, plt):
     with Simulator(net, dt=dt) as sim:
         sim.run(simtime)
 
-    y_ref = np.floor(np.sum(sim.data[p_a] > 0, axis=0) * factor)
+    y_ref = np.floor(np.sum(sim.data[p_a][:, pre_slice] > 0, axis=0) * factor)
     y_sim = np.sum(sim.data[p_b] > 0, axis=0)
     plt.plot(y_ref, c='k')
     plt.plot(y_sim)

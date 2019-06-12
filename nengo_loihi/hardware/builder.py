@@ -295,7 +295,7 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
 
     for i, bias in enumerate(block.compartment.bias):
         bman, bexp = bias_to_manexp(bias)
-        icx = core.compartment_cfg_idxs[block][i]
+        icomp = core.compartment_cfg_idxs[block][i]
         ivth = core.vth_cfg_idxs[block][i]
 
         ii = compartment_idxs[i]
@@ -303,7 +303,7 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
             b'Ymlhcw==': bman,
             b'Ymlhc0V4cA==': bexp,
             b'dnRoUHJvZmlsZQ==': ivth,
-            b'Y3hQcm9maWxl': icx,
+            b'Y3hQcm9maWxl': icomp,
         })
 
         phasex = d(b'cGhhc2UlZA==') % (ii % 4,)
@@ -473,6 +473,9 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     spikes = axon.map_spikes(compartment_idxs)
 
     for compartment_id, spike in zip(compartment_ids, spikes):
+        if spike is None:
+            continue  # this compartment does not route through these axons
+
         taxon_idx = int(spike.axon_id)
         taxon_id = int(tsyn_idxs[taxon_idx])
         atom = int(spike.atom)

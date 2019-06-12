@@ -22,7 +22,11 @@ Release history
 0.9.0 (unreleased)
 ==================
 
+**Added**
 
+- It is now possible to slice the ``pre`` neurons in a neuron->neuron
+  connection.
+  (`#226 <https://github.com/nengo/nengo-loihi/pull/226>`__)
 
 0.8.0 (June 23, 2019)
 =====================

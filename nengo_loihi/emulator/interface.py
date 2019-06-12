@@ -488,13 +488,15 @@ class SynapseState(IterableState):
                 compartment_idxs = spike_input.spike_idxs(t - 1)
                 for axon in spike_input.axons:
                     spikes = axon.map_spikes(compartment_idxs)
-                    self.spikes_in[axon.target].extend(spikes)
+                    self.spikes_in[axon.target].extend(
+                        s for s in spikes if s is not None)
 
         # --- axons pass spikes to synapses
         for axon, a_idx in all_axons.items():
             compartment_idxs = spiked[a_idx].nonzero()[0]
             spikes = axon.map_spikes(compartment_idxs)
-            self.spikes_in[axon.target].extend(spikes)
+            self.spikes_in[axon.target].extend(
+                s for s in spikes if s is not None)
 
     def update_input(self, input):
         for synapse, s_slice in self.items():

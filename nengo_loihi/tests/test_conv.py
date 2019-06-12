@@ -103,8 +103,8 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     # we always compute the pixel/channel idxs with channels_last=True
     # (not sure why?), and then set it to the correct value afterwards
     inp_shape = nengo_transforms.ChannelShape((ni, nj, nk), channels_last=True)
-    inp_ax.set_axon_map(conv.pixel_idxs(inp_shape),
-                        conv.channel_idxs(inp_shape))
+    inp_ax.set_compartment_axon_map(target_axons=conv.pixel_idxs(inp_shape),
+                                    atoms=conv.channel_idxs(inp_shape))
     inp_shape.shape = (ni, nj, nk) if channels_last else (nk, ni, nj)
     inp_shape.channels_last = channels_last
 
@@ -274,8 +274,8 @@ def test_conv2d_weights(channels_last, hw_opts,
     inp.compartment.bias[:] = inp_biases.ravel()
 
     inp_ax = Axon(np.prod(inp_shape.spatial_shape), label='inp_ax')
-    inp_ax.set_axon_map(conv.pixel_idxs(inp_shape),
-                        conv.channel_idxs(inp_shape))
+    inp_ax.set_compartment_axon_map(target_axons=conv.pixel_idxs(inp_shape),
+                                    atoms=conv.channel_idxs(inp_shape))
     inp.add_axon(inp_ax)
 
     model.add_block(inp)
@@ -661,6 +661,72 @@ def test_conv_split(Simulator, rng, plt, allclose):
     tile(loihi_out, vmin=0, vmax=out_max, cols=8, ax=ax)
 
     assert allclose(loihi_out, nengo_out, atol=0.05*out_max, rtol=0.15)
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
+def test_conv_preslice(Simulator, plt):
+    from nengo._vendor.npconv2d.conv2d import conv2d
+
+    kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
+    kernel /= kernel.max()
+
+    image = np.array([[1, 2, 1, 2, 0],
+                      [2, 3, 2, 1, 1],
+                      [1, 2, 1, 2, 3],
+                      [2, 3, 2, 1, 1],
+                      [1, 2, 1, 2, 0]], dtype=float)
+    image /= image.max()
+
+    image2 = np.column_stack([c * x for c in image.T for x in (1, -1)])
+
+    input_gain = 149.
+
+    neuron_type = nengo.SpikingRectifiedLinear()
+
+    y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_gain, 0)
+    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1),
+                   kernel.reshape(3, 3, 1, 1),
+                   pad='VALID')
+    y_ref = LoihiSpikingRectifiedLinear().rates(
+        y_ref.ravel(), 1., 0.).reshape(3, 3)
+
+    with nengo.Network() as net:
+        u = nengo.Node(image2.ravel())
+        a = nengo.Ensemble(50, 1,
+                           neuron_type=neuron_type,
+                           gain=nengo.dists.Choice([input_gain]),
+                           bias=nengo.dists.Choice([0]))
+
+        transform = nengo_transforms.Convolution(
+            n_filters=1,
+            input_shape=(5, 5, 1),
+            init=kernel.reshape(3, 3, 1, 1))
+
+        b = nengo.Ensemble(transform.output_shape.size, 1,
+                           neuron_type=neuron_type,
+                           gain=nengo.dists.Choice([1]),
+                           bias=nengo.dists.Choice([0]))
+
+        nengo.Connection(u, a.neurons, synapse=None)
+        nengo.Connection(a.neurons[::2], b.neurons, transform=transform)
+        bp = nengo.Probe(b.neurons, synapse=nengo.Alpha(0.02))
+
+    hw_opts = dict(snip_max_spikes_per_step=100)
+    with Simulator(net, hardware_options=hw_opts) as sim:
+        sim.run(0.3)
+
+    y_ref = y_ref / input_gain
+    y = sim.data[bp][-1].reshape(3, -1) / input_gain
+
+    plt.subplot(121)
+    plt.imshow(y_ref)
+    plt.colorbar()
+    plt.subplot(122)
+    plt.imshow(y)
+    plt.colorbar()
+
+    assert np.allclose(y, y_ref, atol=0.02, rtol=0.1)
 
 
 @pytest.mark.skipif(nengo_transforms is None,
