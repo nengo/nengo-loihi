@@ -438,6 +438,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     eval_points = None
     solver_info = None
     neuron_type = None
+    pre_slice = conn.pre_slice
     post_slice = conn.post_slice
 
     # sample transform (if using a distribution)
@@ -467,6 +468,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, decoders, solver_info = model.build(
             conn.solver, conn, rng, transform)
+        pre_slice = slice(None)  # taken care of in decoders
 
         if conn.solver.weights and not conn.solver.compositional:
             weights = decoders
@@ -490,11 +492,10 @@ def build_chip_connection(model, conn):  # noqa: C901
 
             # post slice already applied to encoders (either here or in
             # `build_decoders`), so don't apply later
-            post_slice = None
+            post_slice = slice(None)
         else:
             needs_decode_neurons = True
     elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)):
-        assert conn.pre_slice == slice(None)
         weights = expand_to_2d(transform, conn.pre.size_out, conn.post.size_in)
         weights = weights / model.dt
         neuron_type = (conn.pre_obj.neuron_type
@@ -566,8 +567,13 @@ def build_chip_connection(model, conn):  # noqa: C901
         decoder_block.compartment.configure_filter(tau_s, dt=model.dt)
         post_tau = model.decode_tau
 
+        target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
+        target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
+        pre_slice = slice(None)
+
         dec_ax0 = Axon(n, label="decoders")
         dec_ax0.target = dec_syn
+        dec_ax0.set_compartment_axon_map(target_axons)
         pre_obj.add_axon(dec_ax0)
         model.objs[conn]['decode_axon'] = dec_ax0
 
@@ -633,8 +639,12 @@ def build_chip_connection(model, conn):  # noqa: C901
             post_obj.add_synapse(syn)
             model.objs[conn]['weights'] = syn
 
+        target_axons = -np.ones(mid_obj.n_neurons, dtype=int)
+        target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
+
         ax = Axon(mid_obj.n_neurons, label="neuron_weights")
         ax.target = syn
+        ax.set_compartment_axon_map(target_axons)
         mid_obj.add_axon(ax)
 
         post_obj.compartment.configure_filter(post_tau, dt=model.dt)
@@ -643,6 +653,8 @@ def build_chip_connection(model, conn):  # noqa: C901
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
         assert isinstance(post_obj, LoihiBlock)
+        assert pre_slice == slice(None), "Not implemented"
+        assert post_slice == slice(None)
         assert weights.ndim == 2
         n2, n1 = weights.shape
         assert post_obj.n_neurons == n2
@@ -664,6 +676,9 @@ def build_chip_connection(model, conn):  # noqa: C901
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
+        assert isinstance(post_obj, LoihiBlock)
+        assert pre_slice == slice(None), "Not implemented"
+        assert post_slice == slice(None)
         assert target_encoders is not None
         if target_encoders not in post_obj.named_synapses:
             build_decode_neuron_encoders(
@@ -671,7 +686,7 @@ def build_chip_connection(model, conn):  # noqa: C901
 
         mid_ax = Axon(mid_obj.n_neurons, label="encoders")
         mid_ax.target = post_obj.named_synapses[target_encoders]
-        mid_ax.set_axon_map(mid_axon_inds)
+        mid_ax.set_compartment_axon_map(mid_axon_inds)
         mid_obj.add_axon(mid_ax)
         model.objs[conn]['mid_axon'] = mid_ax
 
@@ -716,8 +731,6 @@ def build_conv2d_connection(model, conn):
 
     # --- pre
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
-    assert conn.pre_slice == slice(None)
-
     assert isinstance(conn.transform, nengo_transforms.Convolution)
 
     weights = conn.transform.sample(rng=rng)
@@ -740,7 +753,8 @@ def build_conv2d_connection(model, conn):
 
     gain = model.params[conn.post_obj.ensemble].gain
     if not np.all(gain == gain[0]):
-        # TODO: support this?
+        # Cannot fold gains into weights, result would not be convolutional.
+        # Therefore, Loihi does not support this if we want to share weights.
         raise ValidationError(
             "All neurons targeted by a Convolution connection must "
             "have the same gain", "gain", obj=conn.post_obj.ensemble)
@@ -759,10 +773,14 @@ def build_conv2d_connection(model, conn):
     post_obj.add_synapse(synapse)
     model.objs[conn]['weights'] = synapse
 
+    target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
+    target_axons[conn.pre_slice] = pixel_idxs(input_shape)
+    atoms = np.zeros(pre_obj.n_neurons, dtype=int)
+    atoms[conn.pre_slice] = channel_idxs(input_shape)
+
     ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")
     ax.target = synapse
-    ax.compartment_map = pixel_idxs(input_shape)
-    ax.compartment_atoms = channel_idxs(input_shape)
+    ax.set_compartment_axon_map(target_axons, atoms=atoms)
     pre_obj.add_axon(ax)
 
     post_obj.compartment.configure_filter(tau_s, dt=model.dt)

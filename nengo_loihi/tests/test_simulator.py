@@ -579,9 +579,9 @@ def test_population_input(request, allclose):
     spikes = [(input, ti, inds) for ti, inds in spike_times_inds]
 
     input_axon = Axon(n_axons)
-    axon_map = np.zeros(n_inputs, dtype=int)
+    target_axons = np.zeros(n_inputs, dtype=int)
     atoms = np.arange(n_inputs)
-    input_axon.set_axon_map(axon_map, atoms)
+    input_axon.set_compartment_axon_map(target_axons, atoms=atoms)
     input.add_axon(input_axon)
 
     block = LoihiBlock(n_compartments)
