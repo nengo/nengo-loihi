@@ -4,6 +4,8 @@ import collections
 from distutils.version import LooseVersion
 import logging
 import os
+import shutil
+import tempfile
 import time
 import warnings
 
@@ -372,7 +374,8 @@ class HardwareInterface:
                         n_outputs += 1
 
         # --- write c file using template
-        c_path = os.path.join(snips_dir, "nengo_io.c")
+        self.tmp_snip_dir = tempfile.TemporaryDirectory()
+        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_io.c")
         logger.debug(
             "Creating %s with %d outputs, %d error, %d cores, %d probes",
             c_path, n_outputs, n_errors, len(cores), len(probes))
@@ -397,9 +400,11 @@ class HardwareInterface:
             phase="mgmt",
         )
         logger.debug("Creating nengo_learn snip process")
+        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_learn.c")
+        shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
         self.n2board.createProcess(
             name="nengo_learn",
-            cFilePath=os.path.join(snips_dir, "nengo_learn.c"),
+            cFilePath=c_path,
             includeDir=snips_dir,
             funcName="nengo_learn",
             guardName="guard_learn",
