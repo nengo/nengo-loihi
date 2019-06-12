@@ -189,3 +189,15 @@ Allocators
 .. autoclass:: nengo_loihi.hardware.allocators.Greedy
 
 .. autoclass:: nengo_loihi.hardware.allocators.RoundRobin
+
+DVS
+===
+
+.. autosummary::
+
+   nengo_loihi.dvs.DVSFileChipProcess
+   nengo_loihi.dvs.DVSEvents
+
+.. autoclass:: nengo_loihi.dvs.DVSFileChipProcess
+
+.. autoclass:: nengo_loihi.dvs.DVSEvents

@@ -56,13 +56,11 @@ for rapid model development and easier debugging,
 and a Loihi **hardware backend**
 for running models on a Loihi board.
 
-NengoLoihi requires the Nengo_
+NengoLoihi requires the `Nengo <https://www.nengo.ai/nengo/>`_
 Python package to define large-scale neural models.
-Please refer to the `Nengo documentation <Nengo>`_
+Please refer to the `Nengo documentation <https://www.nengo.ai/nengo/>`_
 for example models and instructions
 for building your own models.
-
-.. _Nengo: https://www.nengo.ai/nengo/
 
 Nengo and NengoLoihi's emulator backend
 are pure Python packages that use
