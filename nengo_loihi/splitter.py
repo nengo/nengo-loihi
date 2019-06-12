@@ -4,13 +4,15 @@ from nengo import Direct, Ensemble, Node, Probe
 from nengo.exceptions import BuildError
 from nengo.connection import LearningRule
 
+from nengo_loihi.builder.inputs import ChipReceiveNode
 from nengo_loihi.passthrough import base_obj, is_passthrough, PassthroughSplit
 
 
 class Split:
     """Creates a set of directives to guide the builder."""
 
-    def __init__(self, network, precompute=False, remove_passthrough=True):
+    def __init__(self, network,  # noqa: C901
+                 precompute=False, remove_passthrough=True):
         self.network = network
 
         # subset of network: only nodes and ensembles;
@@ -22,7 +24,10 @@ class Split:
         self._chip_objects = set()
 
         # Step 1. Place nodes on host
-        self._seen_objects.update(network.all_nodes)
+        for node in network.all_nodes:
+            if isinstance(node, ChipReceiveNode):
+                self._chip_objects.add(node)
+            self._seen_objects.add(node)
 
         # Step 2. Place all possible ensembles on chip
         # Note: assumes add_params already called by the simulator
