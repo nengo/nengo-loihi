@@ -48,6 +48,7 @@ jobs:
       apt:
         packages:
           - pandoc
+          - ffmpeg
   - stage: deploy
     if: branch =~ ^release-candidate-* OR tag =~ ^v[0-9]*
     env: SCRIPT="deploy"

@@ -69,6 +69,9 @@ Release history
   or ``RectifiedLinear`` as the base type (these are equivalent to ``LIF`` and
   ``SpikingRectifiedLinear``, respectively).
   (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
+- Added ``nengo_loihi.DVSFileChipNode``, for getting input from a pre-recorded DVS file
+  and sending it to the Loihi board.
+  (`#306 <https://github.com/nengo/nengo-loihi/pull/306>`__)
 
 **Changed**
 

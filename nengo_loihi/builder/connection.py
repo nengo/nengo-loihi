@@ -31,7 +31,7 @@ from nengo_loihi.builder.sparse_matrix import (
 )
 from nengo_loihi.compat import is_transform_type, sample_transform
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
-from nengo_loihi.inputs import LoihiInput
+from nengo_loihi.inputs import ChipProcess, LoihiInput
 from nengo_loihi.neurons import loihi_rates
 from nengo_loihi.passthrough import base_obj
 from nengo_loihi.probe import LoihiProbe
@@ -450,8 +450,11 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
     needs_decode_neurons = False
     target_encoders = None
-    if isinstance(conn.pre_obj, Node) and not isinstance(
-        conn.pre_obj, ChipReceiveNeurons
+    is_chip_process = isinstance(conn.pre_obj, Node) and isinstance(
+        conn.pre_obj.output, ChipProcess
+    )
+    if isinstance(conn.pre_obj, Node) and not (
+        isinstance(conn.pre_obj, ChipReceiveNeurons) or is_chip_process
     ):
         assert conn.pre_slice == slice(None)
 
@@ -499,11 +502,13 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             post_slice = slice(None)
         else:
             needs_decode_neurons = True
-    elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)):
+    elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)) or is_chip_process:
         weights = expand_matrix(transform, shape=(conn.post.size_in, conn.pre.size_out))
         weights = scale_matrix(weights, 1.0 / model.dt)
         neuron_type = (
-            conn.pre_obj.neuron_type
+            None
+            if is_chip_process
+            else conn.pre_obj.neuron_type
             if isinstance(conn.pre_obj, ChipReceiveNeurons)
             else conn.pre_obj.ensemble.neuron_type
         )
