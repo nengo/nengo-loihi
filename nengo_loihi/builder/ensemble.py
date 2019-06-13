@@ -124,7 +124,7 @@ def build_neurons(model, neurontype, neurons, block):
         "switch to a supported neuron type like LIF or "
         "SpikingRectifiedLinear, or explicitly mark ensembles using this "
         "neuron type as off-chip with\n"
-        "  net.config[ensembles].on_chip = False")
+        "  net.config[ensembles].on_chip = False" % type(neurontype).__name__)
 
 
 @Builder.register(nengo.LIF)
