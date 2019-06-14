@@ -292,9 +292,9 @@ class HardwareInterface:
 
     def _filter_probe(self, probe, data):
         dt = self.model.dt
+        shape = data[0].shape
         i = self._probe_filter_pos.get(probe, 0)
         if i == 0:
-            shape = data[0].shape
             synapse = probe.synapse
             rng = None
             step = (synapse.make_step(shape, shape, dt, rng, dtype=np.float32)
@@ -307,7 +307,7 @@ class HardwareInterface:
             self._probe_filter_pos[probe] = i + len(data)
             return data
         else:
-            filt_data = np.zeros_like(data)
+            filt_data = np.zeros((len(data),) + shape, dtype=np.float32)
             for k, x in enumerate(data):
                 filt_data[k] = step((i + k) * dt, x)
 
@@ -317,15 +317,11 @@ class HardwareInterface:
     def get_probe_output(self, probe):
         assert isinstance(probe, Probe)
         if probe.use_snip:
-            data = self._snip_probe_data[probe]
-            if probe.synapse is not None:
-                data = np.asarray(data, dtype=np.float32)
-                return probe.synapse.filt(data, dt=self.model.dt, y0=0)
-            else:
-                return data
-        n2probe = self.board.probe_map[probe]
-        x = np.column_stack([p.timeSeries.data for p in n2probe])
-        x = x if probe.weights is None else np.dot(x, probe.weights)
+            x = self._snip_probe_data[probe]
+        else:
+            n2probe = self.board.probe_map[probe]
+            x = np.column_stack([p.timeSeries.data for p in n2probe])
+            x = x if probe.weights is None else np.dot(x, probe.weights)
         return self._filter_probe(probe, x)
 
     def create_io_snip(self):
