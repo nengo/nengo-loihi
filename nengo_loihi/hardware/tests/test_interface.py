@@ -9,7 +9,7 @@ from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
-from nengo_loihi.hardware.allocators import OneToOne
+from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_shim import NxsdkBoard
 from nengo_loihi.nxsdk_obfuscation import d
@@ -66,7 +66,7 @@ def test_builder_poptype_errors():
 
     discretize_model(model)
 
-    allocator = OneToOne()  # one core per ensemble
+    allocator = Greedy(n_chips=1)  # one core per ensemble
     board = allocator(model)
 
     with pytest.raises(ValueError, match="[Ss]ynapse.*[Uu]nrec.*pop.*type"):

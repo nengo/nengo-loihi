@@ -15,7 +15,7 @@ import numpy as np
 
 from nengo_loihi.builder.discretize import scale_pes_errors
 from nengo_loihi.compat import make_process_step
-from nengo_loihi.hardware.allocators import OneToOne
+from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
@@ -48,7 +48,7 @@ class HardwareInterface:
     snip_max_spikes_per_step : int
         The maximum number of spikes that can be sent to each chip in one
         timestep if ``.use_snips`` is True.
-    allocator : Allocator, optional (Default: ``OneToOne()``)
+    allocator : Allocator, optional (Default: ``Greedy(n_chips=2)``)
         Callable object that allocates the board's devices to given models.
         Defaults to one block and one input per core on a single chip.
     """
@@ -63,7 +63,7 @@ class HardwareInterface:
         use_snips=True,
         seed=None,
         snip_max_spikes_per_step=50,
-        allocator=OneToOne(),
+        allocator=None,
     ):
         self.closed = False
 
@@ -80,6 +80,7 @@ class HardwareInterface:
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
         # --- allocate
+        allocator = Greedy(n_chips=2) if allocator is None else allocator
         self.board = allocator(self.model)
 
         # --- validate

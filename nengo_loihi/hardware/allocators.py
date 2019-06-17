@@ -88,15 +88,16 @@ def core_stdp_pre_cfgs(core):
 class Allocator:
     """Responsible for allocating the board's devices to models."""
 
-    def __call__(self, model):
-        """Returns a Board object corresponding to the given model."""
-        raise NotImplementedError()
+    def block_to_new_core(self, block, chip):
+        """Assign a block to a new core on the chip.
 
-
-class OneToOne(Allocator):
-    """Assigns each block and input to distinct cores on the same chip."""
-
-    def block_to_chip(self, block, chip):
+        Parameters
+        ----------
+        block : LoihiBlock
+            The block to allocate.
+        chip : Chip
+            The chip from which to obtain a new core.
+        """
         if block.compartment.n_compartments > d(b"MTAyNA==", int):
             raise ValidationError("Segment does not fit on one core", "n_neurons")
 
@@ -122,25 +123,82 @@ class OneToOne(Allocator):
         core.stdp_cfg_idx = None  # hardware.builder will set
 
     def input_to_board(self, input, board):
+        """Assign an input to a board.
+
+        Parameters
+        ----------
+        input : LoihiInput
+            The input to allocate.
+        board : Board
+            The board on which to place the input.
+        """
         board.add_input(input)
 
     def __call__(self, model):
-        board = Board()
-        chip = board.new_chip()
+        """Returns a Board object corresponding to the given model."""
+        raise NotImplementedError()
 
+
+class Greedy(Allocator):
+    """Assigns each block to distinct cores on as few chips as possible.
+
+    Parameters
+    ----------
+    n_chips : int
+        Number of chips available on the board.
+    cores_per_chip : int, optional (Default: 128)
+        Number of cores to use on each chip.
+    """
+
+    def __init__(self, n_chips, cores_per_chip=128):
+        if cores_per_chip > 128:
+            raise ValueError("Chips cannot have more than 128 cores")
+
+        self.n_chips = n_chips
+        self.cores_per_chip = cores_per_chip
+
+    def __call__(self, model):
+        board = Board()
+        board.new_chip()
+
+        def get_chip(i):
+            chip = board.chips[-1]
+            assert len(chip.cores) <= self.cores_per_chip
+            if len(chip.cores) == self.cores_per_chip:
+                assert len(board.chips) < self.n_chips, (
+                    "The network needs more chips than allowed by the allocator (%d)"
+                    % self.n_chips,
+                )
+                chip = board.new_chip()
+
+            return chip
+
+        i = 0
         for input in model.inputs:
             self.input_to_board(input, board)
+            i += 1
 
         for block in model.blocks:
-            self.block_to_chip(block, chip)
+            self.block_to_new_core(block, get_chip(i))
+            i += 1
 
         board.probes.extend(model.probes)
+
+        logger.info("Greedy allocation across %d chips", board.n_chips)
 
         return board
 
 
-class RoundRobin(OneToOne):
-    """Assigns each block and input to the next chip in round-robin order."""
+class RoundRobin(Allocator):
+    """Assigns each block to distinct cores on as many chips as possible.
+
+    Each chip is used in round-robin order.
+
+    Parameters
+    ----------
+    n_chips : int
+        Number of chips available on the board.
+    """
 
     def __init__(self, n_chips):
         self.n_chips = n_chips
@@ -161,7 +219,7 @@ class RoundRobin(OneToOne):
 
         i = 0
         for block in model.blocks:
-            self.block_to_chip(block, get_chip(i))
+            self.block_to_new_core(block, get_chip(i))
             i += 1
 
         board.probes.extend(model.probes)

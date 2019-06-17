@@ -7,9 +7,13 @@ import pytest
 from nengo_loihi.block import LoihiBlock, Synapse, Axon
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
-from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, OneToOne, RoundRobin
+from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, Greedy, RoundRobin
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput
+
+
+def ceil_div(a, b):
+    return -((-a) // b)
 
 
 def test_core_stdp_pre_cfgs():
@@ -37,12 +41,12 @@ def test_core_stdp_pre_cfgs():
     assert ret_idxs == profile_idxs
 
 
-def test_one_to_one_allocator_big_block_error():
+def test_big_block_error():
     model = Model()
     model.add_block(LoihiBlock(1050))
 
     with pytest.raises(ValidationError, match="Segment does not fit"):
-        OneToOne()(model)
+        Greedy(n_chips=1)(model)
 
 
 def _basic_model(n_blocks=2):
@@ -79,9 +83,9 @@ def _basic_model(n_blocks=2):
     return model
 
 
-@pytest.mark.parametrize("allocator", [OneToOne(), RoundRobin(n_chips=1)])
-def test_one_to_one_allocator(allocator):
-    # RoundRobin(n_chips=1) is equivalent to OneToOne()
+@pytest.mark.parametrize("allocator", [Greedy(n_chips=1), RoundRobin(n_chips=1)])
+def test_basic(allocator):
+    # RoundRobin(n_chips=1) is equivalent to Greedy(n_chips=1)
     n_blocks = 3
     model = _basic_model(n_blocks=n_blocks)
     board = allocator(model)
@@ -149,6 +153,16 @@ def test_round_robin_allocator_over():
         assert len(chip.cores[0].blocks) == 1
 
 
+def test_greedy_chip_allocator_cfg_check():
+    model = _basic_model(n_blocks=400)
+
+    with pytest.raises(AssertionError, match="The network needs more chips"):
+        Greedy(n_chips=2)(model)
+
+    with pytest.raises(ValueError, match="Chips cannot have more than 128 cores"):
+        Greedy(n_chips=4, cores_per_chip=130)(model)
+
+
 @pytest.mark.slow
 @pytest.mark.target_loihi
 def test_deterministic_network_allocation(Simulator, seed):
@@ -172,11 +186,16 @@ def test_deterministic_network_allocation(Simulator, seed):
     with nengo.Simulator(model) as sim_ref:
         sim_ref.run(sim_t)
 
+    # one block each for ensemble, connection, probe, minus no final connection
+    n_blocks = n_ensembles * 3 - 1
+    greedy4 = ceil_div(n_blocks, 4)
+    greedy5 = ceil_div(n_blocks, 5)
     allocation = [
-        (1, OneToOne()),
         (1, RoundRobin(n_chips=1)),
         (3, RoundRobin(n_chips=3)),
         (8, RoundRobin(n_chips=8)),
+        (greedy4, Greedy(n_chips=6, cores_per_chip=4)),
+        (greedy5, Greedy(n_chips=8, cores_per_chip=5)),
     ]
 
     sim_prev = None
@@ -186,6 +205,7 @@ def test_deterministic_network_allocation(Simulator, seed):
         ) as sim_loihi:
             sim_loihi.run(sim_t)
 
+        assert len(sim_loihi.model.blocks) == n_blocks
         assert n_chips_used == sim_loihi.sims["loihi"].board.n_chips
         for p_i in p:
             assert rms(sim_loihi.data[p_i] - sim_ref.data[p_i]) < 0.05

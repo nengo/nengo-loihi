@@ -40,6 +40,9 @@ Release history
   See `nengo_loihi.add_params
   <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
   for details. (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- Added the ``Greedy`` allocator, which uses all cores on one chip before
+  proceeding to the next chip. ``Greedy`` is now the default allocator.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 **Changed**
 
@@ -69,6 +72,12 @@ Release history
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 - It is now possible to use multi-chip allocators with all models,
   including those that cannot be precomputed.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+
+**Removed**
+
+- Removed the ``OneToOne`` allocator, which only worked for one chip.
+  The ``Greedy`` allocator is identical for models that fit on one chip.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 **Fixed**
