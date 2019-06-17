@@ -71,9 +71,17 @@ def build_chip(nxsdk_chip, chip, seed=None):
 def build_input(nxsdk_chip, chip, input):
     if isinstance(input, SpikeInput):
         build_spike_input(nxsdk_chip, chip, input)
+    elif isinstance(input, DVSInput):
+        build_dvs_input(nxsdk_chip, chip, input)
     else:
-        raise NotImplementedError("Input type %s not implemented"
+        raise NotImplementedError("Input type %r not implemented"
                                   % type(input).__name__)
+
+
+def build_dvs_input(nxsdk_chip, chip, dvs_input):
+    # DVS input uses first 85 cores
+    assert dvs_input.file_node is not None, "Live DVS not yet implemented"
+    assert False, "File DVS should not get here"
 
 
 def build_spike_input(nxsdk_chip, chip, spike_input):

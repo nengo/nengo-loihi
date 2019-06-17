@@ -39,11 +39,25 @@ class SpikeInput(LoihiInput):
 class DVSInput(LoihiInput):
     """Live input from a spiking DVS camera."""
 
-    def __init__(self, height=180, width=240, polarity=2, label=None):
+    N_CORES = -(-240*180*2 // 1024)  # ceil of DVS inputs/compartments per core
+
+    def __init__(self, pool=(1, 1), channels_last=True, label=None):
         super(DVSInput, self).__init__(label=label)
-        self.height = height
-        self.width = width
-        self.polarity = polarity
+        self.dvs_height = 180
+        self.dvs_width = 240
+        self.dvs_polarity = 2
+
+        self.channels_last = channels_last
+        self.pool = pool
+
+        self.height = int(np.ceil(self.dvs_height / self.pool[0]))
+        self.width = int(np.ceil(self.dvs_width / self.pool[1]))
+        self.polarity = self.dvs_polarity
+        self.size = self.height * self.width * self.polarity
+        self.n_neurons = self.size  # builder assumes inputs have this
+
+        # file-specific inputs
+        self.file_node = None  # DVSFileChipNode handling the input
 
 
 class DVSFileChipNode(ChipReceiveNeurons):
@@ -67,10 +81,12 @@ class DVSFileChipNode(ChipReceiveNeurons):
     channels_last : bool, optional
         Whether to make the channels the least-significant index (True) or the
         most-significant index (False).
+    use_cores : bool, optional
+        Whether to use Loihi cores to map the input, simulating the live DVS.
     """
 
     def __init__(self, filename, format=None, t_start=0, rel_time=None,
-                 pool=(1, 1), channels_last=True, label=None):
+                 pool=(1, 1), channels_last=True, use_cores=False, label=None):
         self.filename = filename
         assert os.path.exists(self.filename)
         self.format = format
@@ -89,17 +105,25 @@ class DVSFileChipNode(ChipReceiveNeurons):
         d = self.height * self.width * self.polarity
         super(DVSFileChipNode, self).__init__(d, d, label=label)
 
+        self.use_cores = use_cores
+
         # for nengo node reading (`update` function)
         self._events_t = None
         self._events_idx = None
         self.dt = 0.001
 
-    def read_events(self):
+    def read_events(self, pool_xy=None, stride_xyp=None):
         reader = get_dvs_reader(self.filename, format=self.format)
         events = reader.read_events(rel_time=self.rel_time)
 
-        pool_y, pool_x = self.pool
-        if self.channels_last:
+        if pool_xy is not None:
+            pool_x, pool_y = pool_xy
+        else:
+            pool_y, pool_x = self.pool
+
+        if stride_xyp is not None:
+            stride_x, stride_y, stride_p = stride_xyp
+        elif self.channels_last:
             stride_x = self.polarity
             stride_y = self.polarity*self.width
             stride_p = 1

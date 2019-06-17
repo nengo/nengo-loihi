@@ -26,8 +26,8 @@ with nengo.Network() as net:
                       + np.arange(p)[None, None, :]).ravel()
             transform0 = nengo.Convolution(
                 n_filters=1,
-                input_shape=(hh, ww, 2),
-                channels_last=True,
+                input_shape=(2, hh, ww),
+                channels_last=False,
                 kernel_size=(5, 5),
                 strides=(5, 5),
                 padding="valid",
@@ -62,7 +62,10 @@ for i in range(1000, 2000, 100):
         sim.data[p][i].reshape(out_shape.spatial_shape)
         for p in pi] for pi in probes])
 
+    print(image[::2, ::2])
+
     plt.imshow(image, vmin=-0.05, vmax=0.05)
     plt.title("Step %d" % (i))
+    plt.savefig("dvs-file-step-%d.png" % i)
 
 # plt.show()
