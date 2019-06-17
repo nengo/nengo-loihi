@@ -7,7 +7,12 @@ import pytest
 from nengo_loihi.block import LoihiBlock, Synapse, Axon
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
-from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, OneToOne, RoundRobin
+from nengo_loihi.hardware.allocators import (
+    core_stdp_pre_cfgs,
+    GreedyChip,
+    OneToOne,
+    RoundRobin,
+)
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput
 
@@ -94,7 +99,9 @@ def _basic_model():
     return model
 
 
-@pytest.mark.parametrize("allocator", [OneToOne(), RoundRobin(n_chips=1)])
+@pytest.mark.parametrize(
+    "allocator", [OneToOne(), RoundRobin(n_chips=1), GreedyChip(n_chips=1)]
+)
 def test_one_to_one_allocator(allocator):
     # RoundRobin(n_chips=1) is equivalent to OneToOne()
     model = _basic_model()
@@ -216,11 +223,15 @@ def test_deterministic_network_allocation(Simulator, seed):
     with nengo.Simulator(model) as sim_ref:
         sim_ref.run(sim_t)
 
+    greedy3 = ceil_div(n_ensembles, 3)
+    greedy4 = ceil_div(n_ensembles, 4)
     allocation = [
         (1, OneToOne()),
         (1, RoundRobin(n_chips=1)),
         (3, RoundRobin(n_chips=3)),
         (8, RoundRobin(n_chips=8)),
+        (greedy3, GreedyChip(n_chips=5, cores_per_chip=3)),
+        (greedy4, GreedyChip(n_chips=8, cores_per_chip=4)),
     ]
 
     sim_prev = None
