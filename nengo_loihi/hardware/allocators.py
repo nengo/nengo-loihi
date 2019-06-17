@@ -172,3 +172,35 @@ class RoundRobin(OneToOne):
         logger.info("Round-robin allocation across %d chips", board.n_chips)
 
         return board
+
+
+class GreedyChip(OneToOne):
+    def __init__(self, n_chips):
+        self.n_chips = n_chips
+        self.cores_per_chip = 128
+
+    def __call__(self, model):
+        board = Board()
+        board.new_chip()
+
+        def get_chip(i):
+            chip = board.chips[-1]
+            assert len(chip.cores) <= self.cores_per_chip
+            if len(chip.cores) == self.cores_per_chip:
+                assert len(board.chips) < self.n_chips
+                chip = board.new_chip()
+
+            return chip
+
+        i = 0
+        for input in model.inputs:
+            self.input_to_chip(input, get_chip(i))
+            i += 1
+
+        for block in model.blocks:
+            self.block_to_chip(block, get_chip(i))
+            i += 1
+
+        logger.info("Greedy allocation across %d chips", board.n_chips)
+
+        return board
