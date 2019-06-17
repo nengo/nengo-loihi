@@ -75,13 +75,19 @@ def generate_sinusoidal_spikes(
 
 
 @pytest.mark.parametrize(
-    "pool, channels_last",
+    "pool, channels_last, use_cores",
     [
-        ((6, 10), True),
-        ((9, 12), False),
+        ((6, 10), True, False),
+        ((9, 12), False, False),
+        ((6, 10), True, True),
     ],
 )
-def test_dvs_file_chip_node(pool, channels_last, Simulator, request, tmpdir, rng, plt):
+def test_dvs_file_chip_node(
+    pool, channels_last, use_cores, Simulator, request, tmpdir, rng, plt
+):
+    if use_cores and request.config.getoption("--target") != "loihi":
+        pytest.skip("use-cores not possible in emulator")
+
     t_length = 1
 
     dvs_events = generate_sinusoidal_spikes(
@@ -107,6 +113,7 @@ def test_dvs_file_chip_node(pool, channels_last, Simulator, request, tmpdir, rng
             file_path=datafile,
             pool=pool,
             channels_last=channels_last,
+            use_cores=use_cores,
         )
         assert u.height == height and u.width == width
         h = u.height

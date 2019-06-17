@@ -1,3 +1,4 @@
+import numpy as np
 from nengo.utils.numpy import is_integer
 
 
@@ -28,3 +29,28 @@ class SpikeInput(LoihiInput):
 
     def spike_idxs(self, ti):
         return self.spikes.get(ti, [])
+
+
+class DVSInput(LoihiInput):
+    """Live input from a spiking DVS camera."""
+
+    dvs_height = 180
+    dvs_width = 240
+    dvs_polarity = 2
+    N_CORES = -(-240 * 180 * 2 // 1024)  # ceil of DVS inputs/compartments per core
+
+    def __init__(self, pool=(1, 1), channels_last=True, label=None):
+        super(DVSInput, self).__init__(label=label)
+        self.dvs_size = self.dvs_height * self.dvs_width * self.dvs_polarity
+
+        self.channels_last = channels_last
+        self.pool = pool
+
+        self.height = int(np.ceil(self.dvs_height / self.pool[0]))
+        self.width = int(np.ceil(self.dvs_width / self.pool[1]))
+        self.polarity = self.dvs_polarity
+        self.size = self.height * self.width * self.polarity
+        self.n_neurons = self.size  # builder assumes inputs have this
+
+        # file-specific inputs
+        self.file_node = None  # DVSFileChipNode handling the input

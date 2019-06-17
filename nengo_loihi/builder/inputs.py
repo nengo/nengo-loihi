@@ -114,6 +114,8 @@ class DVSFileChipNode(ChipReceiveNeurons):
     channels_last : bool, optional
         Whether to make the channels (i.e. the polarity) the least-significant
         index (True) or the most-significant index (False).
+    use_cores : bool, optional
+        Whether to use Loihi cores to map the input, simulating the live DVS.
     """
 
     def __init__(
@@ -124,6 +126,7 @@ class DVSFileChipNode(ChipReceiveNeurons):
         rel_time=None,
         pool=(1, 1),
         channels_last=True,
+        use_cores=False,
         label=None,
     ):
         self.file_path = file_path
@@ -137,6 +140,7 @@ class DVSFileChipNode(ChipReceiveNeurons):
         self.dvs_polarity = 2
         self.channels_last = channels_last
         self.pool = pool
+        self.use_cores = use_cores
 
         self.height = int(np.ceil(self.dvs_height / self.pool[0]))
         self.width = int(np.ceil(self.dvs_width / self.pool[1]))
@@ -148,15 +152,17 @@ class DVSFileChipNode(ChipReceiveNeurons):
 
         super().__init__(self.size, label=label, output=output)
 
-    def _read_events(self):
+    def _read_events(self, pool_yx=None, stride_yxp=None):
         """Helper function to read events from the target file."""
 
         dvs_events = DVSEvents()
         dvs_events.read_file(self.file_path, kind=self.format, rel_time=self.rel_time)
         events = dvs_events.events
 
-        pool_y, pool_x = self.pool
-        if self.channels_last:
+        pool_y, pool_x = pool_yx if pool_yx is not None else self.pool
+        if stride_yxp is not None:
+            stride_y, stride_x, stride_p = stride_yxp
+        elif self.channels_last:
             stride_x = self.polarity
             stride_y = self.polarity * self.width
             stride_p = 1

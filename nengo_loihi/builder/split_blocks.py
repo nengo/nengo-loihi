@@ -17,7 +17,7 @@ from nengo_loihi.block import (
     Synapse,
 )
 from nengo_loihi.config import BlockShape
-from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.inputs import DVSInput, SpikeInput
 
 logger = logging.getLogger(__name__)
 
@@ -240,6 +240,9 @@ def split_block_axons(old_block, block_map, synapse_map):
 
 
 def split_input_axons(input, block_map, synapse_map):
+    if isinstance(input, DVSInput):
+        return  # do not split DVSInput, since we set up the target cores manually
+
     assert isinstance(input, SpikeInput), "Need SpikeInput to know its size"
     input_comp_inds = list(range(input.n_neurons))
 

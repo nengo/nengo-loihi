@@ -16,7 +16,7 @@ from nengo_loihi.hardware.nxsdk_shim import (
     TraceConfigGenerator,
     micro_gen,
 )
-from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.inputs import DVSInput, SpikeInput
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get, d_set
 
 logger = logging.getLogger(__name__)
@@ -76,10 +76,18 @@ def build_chip(nxsdk_chip, chip, seed=None):
 def build_input(nxsdk_board, board, input):
     if isinstance(input, SpikeInput):
         build_spike_input(nxsdk_board, board, input)
+    elif isinstance(input, DVSInput):
+        build_dvs_input(nxsdk_board, board, input)
     else:
         raise NotImplementedError(
             "Input type %s not implemented" % type(input).__name__
         )
+
+
+def build_dvs_input(nxsdk_board, board, dvs_input):
+    # DVS input uses first 85 cores
+    assert dvs_input.file_node is not None, "Live DVS not yet implemented"
+    assert False, "File DVS should not get here"
 
 
 def build_spike_input(nxsdk_board, board, spike_input):
