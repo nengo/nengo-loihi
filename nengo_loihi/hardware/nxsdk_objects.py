@@ -22,6 +22,8 @@ class Board:
 
         self.synapse_index = {}
 
+        self.inputs = []
+
         self.probes = []
         self.probe_map = {}
 
@@ -41,6 +43,9 @@ class Board:
         assert chip not in self.chips
         self.chip_idxs[chip] = len(self.chips)
         self.chips.append(chip)
+
+    def add_input(self, input):
+        self.inputs.append(input)
 
     def new_chip(self):
         chip = Chip(board=self)
@@ -114,7 +119,6 @@ class Core:
     def __init__(self, chip):
         self.chip = chip
         self.blocks = []
-        self.inputs = []
 
         self.compartment_cfgs = []
         self.vth_cfgs = []
@@ -157,14 +161,6 @@ class Core:
             i0 = i1
             a0 = a1
 
-    def iterate_inputs(self):
-        i0 = 0
-        for inp in self.inputs:
-            i1 = i0 + inp.n_neurons
-            compartment_idxs = list(range(i0, i1))
-            yield inp, compartment_idxs
-            i0 = i1
-
     def iterate_synapses(self):
         for block in self.blocks:
             for synapse in block.synapses:
@@ -172,9 +168,6 @@ class Core:
 
     def add_block(self, block):
         self.blocks.append(block)
-
-    def add_input(self, input):
-        self.inputs.append(input)
 
     def add_compartment_cfg(self, compartment_cfg):
         self.compartment_cfgs.append(compartment_cfg)
