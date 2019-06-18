@@ -126,9 +126,7 @@ class OneToOne(Allocator):
         core.stdp_cfg_idx = None  # hardware.builder will set
 
     def input_to_chip(self, input, chip):
-        # TODO: how to allocate inputs?
-        core = chip.new_core()
-        core.add_input(input)
+        chip.add_input(input)
 
     def __call__(self, model):
         board = Board()
@@ -156,17 +154,17 @@ class RoundRobin(OneToOne):
         # as needed because nxsdk==0.8.0 hits
         # an assertion if any chips contain 0 cores
         def get_chip(i):
-            if i < self.n_chips:
+            if len(board.chips) <= i < self.n_chips:
                 board.new_chip()
             return board.chips[i % self.n_chips]
+
+        # TODO: inputs should go on chips based on what they're inputting to
+        for input in model.inputs:
+            self.input_to_chip(input, get_chip(0))
 
         i = 0
         for block in model.blocks:
             self.block_to_chip(block, get_chip(i))
-            i += 1
-
-        for input in model.inputs:
-            self.input_to_chip(input, get_chip(i))
             i += 1
 
         logger.info("Round-robin allocation across %d chips", board.n_chips)
@@ -192,11 +190,11 @@ class GreedyChip(OneToOne):
 
             return chip
 
-        i = 0
+        # TODO: inputs should go on chips based on what they're inputting to
         for input in model.inputs:
-            self.input_to_chip(input, get_chip(i))
-            i += 1
+            self.input_to_chip(input, get_chip(0))
 
+        i = 0
         for block in model.blocks:
             self.block_to_chip(block, get_chip(i))
             i += 1

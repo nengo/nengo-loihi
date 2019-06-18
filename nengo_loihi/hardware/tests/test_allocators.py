@@ -64,24 +64,24 @@ def test_one_to_one_allocator_big_block_error():
         OneToOne()(model)
 
 
-def _basic_model():
+def _basic_model(n_blocks=2):
     model = Model()
 
-    block0 = LoihiBlock(1)
-    block0.compartment.configure_lif()
-    model.add_block(block0)
+    blocks = []
+    for _ in range(n_blocks):
+        block = LoihiBlock(1)
+        block.compartment.configure_lif()
+        model.add_block(block)
+        blocks.append(block)
 
-    block1 = LoihiBlock(1)
-    block1.compartment.configure_lif()
-    model.add_block(block1)
+    for i in range(n_blocks - 1):
+        axon = Axon(1)
+        blocks[i].add_axon(axon)
 
-    axon1 = Axon(1)
-    block0.add_axon(axon1)
-
-    synapse1 = Synapse(1)
-    synapse1.set_full_weights([[1]])
-    axon1.target = synapse1
-    block1.add_synapse(synapse1)
+        synapse = Synapse(1)
+        synapse.set_full_weights([[1]])
+        axon.target = synapse
+        blocks[i+1].add_synapse(synapse)
 
     axon0 = Axon(1)
     input = LoihiInput()
@@ -91,7 +91,7 @@ def _basic_model():
     synapse0 = Synapse(1)
     synapse0.set_full_weights([[1]])
     axon0.target = synapse0
-    block0.add_synapse(synapse0)
+    blocks[0].add_synapse(synapse0)
 
     discretize_model(model)
 
@@ -101,101 +101,72 @@ def _basic_model():
 @pytest.mark.parametrize("allocator", [OneToOne(), RoundRobin(n_chips=1)])
 def test_one_to_one_allocator(allocator):
     # RoundRobin(n_chips=1) is equivalent to OneToOne()
-    model = _basic_model()
+    n_blocks = 3
+    model = _basic_model(n_blocks=n_blocks)
     board = allocator(model)
 
     assert board.n_chips == 1
-    assert board.n_cores_per_chip == [3]
-    assert board.n_synapses_per_core == [[1, 1, 0]]
+    assert board.n_cores_per_chip == [n_blocks]
+    assert board.n_synapses_per_core == [[1] * n_blocks]
 
     chip = board.chips[0]
     assert chip.board is board
-    assert chip.n_cores == 3
+    assert chip.n_cores == n_blocks
+    assert len(chip.inputs) == 1
 
-    assert chip.cores[0].chip is chip
-    assert len(chip.cores[0].synapses) == 1
-    assert len(chip.cores[0].blocks) == 1
-    assert len(chip.cores[0].inputs) == 0
-
-    assert chip.cores[1].chip is chip
-    assert len(chip.cores[1].synapses) == 1
-    assert len(chip.cores[1].blocks) == 1
-    assert len(chip.cores[1].inputs) == 0
-
-    assert chip.cores[2].chip is chip
-    assert len(chip.cores[2].synapses) == 0
-    assert len(chip.cores[2].blocks) == 0
-    assert len(chip.cores[2].inputs) == 1
+    for i in range(n_blocks):
+        assert chip.cores[i].chip is chip
+        assert len(chip.cores[i].synapses) == 1
+        assert len(chip.cores[i].blocks) == 1
 
 
 def test_round_robin_allocator_under():
-    model = _basic_model()
+    model = _basic_model(n_blocks=3)
 
     board = RoundRobin(n_chips=2)(model)
 
     assert board.n_chips == 2
     assert board.n_cores_per_chip == [2, 1]
-    assert board.n_synapses_per_core == [[1, 0], [1]]
+    assert board.n_synapses_per_core == [[1, 1], [1]]
 
-    chip0 = board.chips[0]
-    assert chip0.board is board
-    assert chip0.n_cores == 2
+    chip = board.chips[0]
+    assert chip.board is board
+    assert chip.n_cores == 2
+    assert len(chip.inputs) == 1
 
-    assert chip0.cores[0].chip is chip0
-    assert len(chip0.cores[0].synapses) == 1
-    assert len(chip0.cores[0].blocks) == 1
-    assert len(chip0.cores[0].inputs) == 0
+    for i in range(2):
+        assert chip.cores[i].chip is chip
+        assert len(chip.cores[i].synapses) == 1
+        assert len(chip.cores[i].blocks) == 1
 
-    assert chip0.cores[1].chip is chip0
-    assert len(chip0.cores[1].synapses) == 0
-    assert len(chip0.cores[1].blocks) == 0
-    assert len(chip0.cores[1].inputs) == 1
+    chip = board.chips[1]
+    assert chip.board is board
+    assert chip.n_cores == 1
+    assert len(chip.inputs) == 0
 
-    chip1 = board.chips[1]
-    assert chip1.board is board
-    assert chip1.n_cores == 1
-
-    assert chip1.cores[0].chip is chip1
-    assert len(chip1.cores[0].synapses) == 1
-    assert len(chip1.cores[0].blocks) == 1
-    assert len(chip1.cores[0].inputs) == 0
+    assert chip.cores[0].chip is chip
+    assert len(chip.cores[0].synapses) == 1
+    assert len(chip.cores[0].blocks) == 1
 
 
 def test_round_robin_allocator_over():
-    model = _basic_model()
+    model = _basic_model(n_blocks=3)
 
     board = RoundRobin(n_chips=4)(model)
 
     assert board.n_chips == 3
     assert board.n_cores_per_chip == [1, 1, 1]
-    assert board.n_synapses_per_core == [[1], [1], [0]]
+    assert board.n_synapses_per_core == [[1], [1], [1]]
 
-    chip0 = board.chips[0]
-    assert chip0.board is board
-    assert chip0.n_cores == 1
+    for i in range(3):
+        chip = board.chips[i]
+        assert chip.board is board
+        assert chip.n_cores == 1
+        assert len(chip.inputs) == (1 if i == 0 else 0)
 
-    assert chip0.cores[0].chip is chip0
-    assert len(chip0.cores[0].synapses) == 1
-    assert len(chip0.cores[0].blocks) == 1
-    assert len(chip0.cores[0].inputs) == 0
-
-    chip1 = board.chips[1]
-    assert chip1.board is board
-    assert chip1.n_cores == 1
-
-    assert chip1.cores[0].chip is chip1
-    assert len(chip1.cores[0].synapses) == 1
-    assert len(chip1.cores[0].blocks) == 1
-    assert len(chip1.cores[0].inputs) == 0
-
-    chip2 = board.chips[2]
-    assert chip2.board is board
-    assert chip2.n_cores == 1
-
-    assert chip2.cores[0].chip is chip2
-    assert len(chip2.cores[0].synapses) == 0
-    assert len(chip2.cores[0].blocks) == 0
-    assert len(chip2.cores[0].inputs) == 1
+        assert chip.cores[0].chip is chip
+        assert len(chip.cores[0].synapses) == 1
+        assert len(chip.cores[0].blocks) == 1
 
 
 @pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',

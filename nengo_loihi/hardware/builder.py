@@ -54,12 +54,50 @@ def build_board(board, seed=None):
 
 def build_chip(nxsdk_chip, chip, seed=None):
     assert len(chip.cores) == len(d_get(nxsdk_chip, b'bjJDb3Jlcw=='))
+
+    # build inputs
+    for input in chip.inputs:
+        build_input(nxsdk_chip, chip, input)
+
+    # build cores
     rng = np.random.RandomState(seed)
     for core, nxsdk_core in zip(
             chip.cores, d_get(nxsdk_chip, b'bjJDb3Jlcw==')):
         logger.debug("Building core %s", core)
         seed = rng.randint(npext.maxint)
         build_core(nxsdk_core, core, seed=seed)
+
+
+def build_input(nxsdk_chip, chip, input):
+    if isinstance(input, SpikeInput):
+        build_spike_input(nxsdk_chip, chip, input)
+    else:
+        raise NotImplementedError("Input type %s not implemented"
+                                  % type(input).__name__)
+
+
+def build_spike_input(nxsdk_chip, chip, spike_input):
+    assert isinstance(spike_input, SpikeInput)
+    assert len(spike_input.axons) > 0
+    nxsdk_board = d_get(nxsdk_chip, b'cGFyZW50')
+
+    loihi_input = LoihiSpikeInput()
+    loihi_input.set_axons(chip.board, n2board, spike_input)
+    assert spike_input not in n2board.spike_inputs
+    n2board.spike_inputs[spike_input] = loihi_input
+
+    # add any pre-existing spikes to spikegen
+    for t in spike_input.spike_times():
+        spikes = spike_input.spike_idxs(t)
+        for spike in loihi_input.spikes_to_loihi(t, spikes):
+            assert spike.axon.atom == 0, (
+                "Cannot send population spikes through spike generator")
+            d_func(nxsdk_board.global_spike_generator, b'YWRkU3Bpa2U=',
+                   kwargs={b'dGltZQ==': spike.time,
+                           b'Y2hpcElk': spike.axon.chip_id,
+                           b'Y29yZUlk': spike.axon.core_id,
+                           b'YXhvbklk': spike.axon.axon_id,
+                           })
 
 
 def build_core(nxsdk_core, core, seed=None):  # noqa: C901
@@ -273,9 +311,6 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
             build_block(nxsdk_core, core, block, compartment_idxs, ax_range)
             n_compartments = max(max(compartment_idxs) + 1, n_compartments)
 
-    for inp, compartment_idxs in core.iterate_inputs():
-        build_input(nxsdk_core, core, inp, compartment_idxs)
-
     logger.debug("- Configuring n_updates=%d", n_compartments // 4 + 1)
     d_func(nxsdk_core, b'bnVtVXBkYXRlcw==', b'Y29uZmlndXJl',
            kwargs={b'bnVtVXBkYXRlcw==': n_compartments // 4 + 1,
@@ -323,30 +358,6 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
     logger.debug("- Building %d probes", len(block.probes))
     for probe in block.probes:
         build_probe(nxsdk_core, core, block, probe, compartment_idxs)
-
-
-def build_input(nxsdk_core, core, spike_input, compartment_idxs):
-    assert len(spike_input.axons) > 0
-    nxsdk_board = d_get(nxsdk_core, b'cGFyZW50', b'cGFyZW50')
-
-    assert isinstance(spike_input, SpikeInput)
-    loihi_input = LoihiSpikeInput()
-    loihi_input.set_axons(core.board, nxsdk_board, spike_input)
-    assert spike_input not in nxsdk_board.spike_inputs
-    nxsdk_board.spike_inputs[spike_input] = loihi_input
-
-    # add any pre-existing spikes to spikegen
-    for t in spike_input.spike_times():
-        spikes = spike_input.spike_idxs(t)
-        for spike in loihi_input.spikes_to_loihi(t, spikes):
-            assert spike.axon.atom == 0, (
-                "Cannot send population spikes through spike generator")
-            d_func(nxsdk_board.global_spike_generator, b'YWRkU3Bpa2U=',
-                   kwargs={b'dGltZQ==': spike.time,
-                           b'Y2hpcElk': spike.axon.chip_id,
-                           b'Y29yZUlk': spike.axon.core_id,
-                           b'YXhvbklk': spike.axon.axon_id,
-                           })
 
 
 def build_synapse(  # noqa C901

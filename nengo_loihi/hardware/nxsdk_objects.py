@@ -69,6 +69,7 @@ class Chip:
 
         self.cores = []
         self.core_idxs = {}
+        self.inputs = []
 
     @property
     def index(self):
@@ -84,6 +85,9 @@ class Chip:
         self.core_idxs[core] = len(self.cores)
         self.cores.append(core)
 
+    def add_input(self, input):
+        self.inputs.append(input)
+
     def new_core(self):
         core = Core(chip=self)
         self._add_core(core)
@@ -97,7 +101,6 @@ class Core:
     def __init__(self, chip):
         self.chip = chip
         self.blocks = []
-        self.inputs = []
 
         self.compartment_cfgs = []
         self.vth_cfgs = []
@@ -135,14 +138,6 @@ class Core:
             i0 = i1
             a0 = a1
 
-    def iterate_inputs(self):
-        i0 = 0
-        for inp in self.inputs:
-            i1 = i0 + inp.n_neurons
-            compartment_idxs = list(range(i0, i1))
-            yield inp, compartment_idxs
-            i0 = i1
-
     def iterate_synapses(self):
         for block in self.blocks:
             for synapse in block.synapses:
@@ -150,9 +145,6 @@ class Core:
 
     def add_block(self, block):
         self.blocks.append(block)
-
-    def add_input(self, input):
-        self.inputs.append(input)
 
     def add_compartment_cfg(self, compartment_cfg):
         self.compartment_cfgs.append(compartment_cfg)
