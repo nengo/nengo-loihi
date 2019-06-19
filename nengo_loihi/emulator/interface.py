@@ -16,6 +16,7 @@ from nengo_loihi.builder.discretize import (
     shift,
 )
 from nengo_loihi.compat import make_process_step
+from nengo_loihi.inputs import DVSInput
 from nengo_loihi.probe import LoihiProbe
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,9 @@ class EmulatorInterface:
 
         self.block_info = BlockInfo(model.blocks)
         self.inputs = list(model.inputs)
+        if any(isinstance(input, DVSInput) for input in self.inputs):
+            raise ValueError("Emulator does not support live DVS inputs")
+
         logger.debug("EmulatorInterface dtype: %s", self.block_info.dtype)
 
         self.compartment = CompartmentState(self.block_info, strict=self.strict)

@@ -131,13 +131,18 @@ if HAS_NXSDK:  # noqa: C901
     SpikeGen = d_import(
         b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu", b"QmFzaWNTcGlrZUdlbmVyYXRvcg=="
     )
+    DVSSpikeGen = d_import(
+        b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5kdnNpbnB1dGdlbg==", b"RFZTU3Bpa2VHZW5lcmF0b3I="
+    )
     SpikeProbe = d_import(b"bnhzZGsuZ3JhcGgubnhwcm9iZXM=", b"TjJTcGlrZVByb2Jl")
     SnipPhase = d_import(b"bnhzZGsuZ3JhcGgucHJvY2Vzc2VzLnBoYXNlX2VudW1z", b"UGhhc2U=")
+
 else:
     SnipMaker = None
     micro_gen = None
     TraceConfigGenerator = None
     NxsdkBoard = None
     SpikeGen = None
+    DVSSpikeGen = None
     SpikeProbe = None
     SnipPhase = None

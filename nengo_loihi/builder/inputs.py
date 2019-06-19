@@ -93,6 +93,23 @@ class PESModulatoryTarget:
         self.error_target = target
 
 
+class DVSChipNode(ChipReceiveNeurons):
+    """Node for live DVS input with a camera connected directly to the Loihi"""
+
+    def __init__(self, pool=(1, 1), channels_last=True, label=None):
+        self.dvs_height = 180
+        self.dvs_width = 240
+        self.dvs_polarity = 2
+        self.channels_last = channels_last
+        self.pool = pool
+
+        self.height = int(np.ceil(self.dvs_height / self.pool[0]))
+        self.width = int(np.ceil(self.dvs_width / self.pool[1]))
+        self.polarity = self.dvs_polarity
+        self.size = self.height * self.width * self.polarity
+        super(DVSChipNode, self).__init__(self.size, label=label)
+
+
 class DVSFileChipNode(ChipReceiveNeurons):
     """Node for DVS input to Loihi chip from a pre-recorded file
 

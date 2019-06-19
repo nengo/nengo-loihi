@@ -14,6 +14,7 @@ from nengo.exceptions import SimulationError
 
 from nengo_loihi.builder.discretize import scale_pes_errors
 from nengo_loihi.compat import make_process_step
+from nengo_loihi.dvs import save_dvs_board
 from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
@@ -99,6 +100,15 @@ class HardwareInterface:
             self.board, use_snips=self.use_snips, seed=self.seed
         )
 
+        self.dvs_neurocore_path = os.path.join(
+            os.path.dirname(__file__), "dvs_neurocores.dat"
+        )
+        if self.nxsdk_board.dvs_spike_generator is not None and not os.path.exists(
+            self.dvs_neurocore_path
+        ):
+            print("Generating DVS neurocore map")
+            save_dvs_board(self.dvs_neurocore_path)
+
         # --- create snips or non-snip infrastructure
         self.snips, self.no_snips = None, None
         if self.use_snips:
@@ -183,6 +193,14 @@ class HardwareInterface:
                 "Board connection error%s"
                 % (": %s" % last_exception if last_exception is not None else "")
             )
+
+        if self.nxsdk_board.dvs_spike_generator is not None:
+            # load neurocore map for first 85 cores responsible for DVS
+            print("Loading DVS neurocore map")
+            assert os.path.exists(
+                self.dvs_neurocore_path
+            ), "Neurocore map file should have been created in `build`"
+            self.nxsdk_board.loadNeuroCores(self.dvs_neurocore_path)
 
     def get_probe_output(self, probe):
         assert isinstance(probe, LoihiProbe)
