@@ -202,6 +202,18 @@ class OneToOne(Allocator):
 
                 # --- allocate block on core
                 allocate_core(core)
+        else:
+            chip.add_input(dvs_input)
+
+            # Add empty blocks to reserve them for DVS. The parameters will be
+            # loaded by the HardwareInterface using loadNeuroCores.
+            n_pins = 180*240*2
+            for i, core in enumerate(cores):
+                core.build_axons_only = True
+
+                n_neurons = min(n_pins - i*1024, 1024)
+                block = LoihiBlock(n_neurons)
+                core.add_block(block)
 
         # --- set up axons from compartments to desired targets
         # cx_map maps logical (pooled, proper channel position) axons to

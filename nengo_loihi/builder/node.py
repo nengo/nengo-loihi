@@ -4,7 +4,12 @@ import numpy as np
 from nengo_loihi.builder.builder import Builder
 from nengo_loihi.builder.inputs import ChipReceiveNode
 from nengo_loihi.dvs import get_dvs_reader
-from nengo_loihi.inputs import DVSInput, SpikeInput, DVSFileChipNode
+from nengo_loihi.inputs import (
+    DVSChipNode,
+    DVSFileChipNode,
+    DVSInput,
+    SpikeInput,
+)
 
 
 @Builder.register(ChipReceiveNode)
@@ -13,6 +18,19 @@ def build_chip_receive_node(model, node):
     model.add_input(spike_input)
     model.objs[node]['out'] = spike_input
     node.spike_input = spike_input
+
+
+@Builder.register(DVSChipNode)
+def build_dvs_chip_node(model, node):
+    dvs_input = DVSInput(
+        pool=node.pool,
+        channels_last=node.channels_last,
+    )
+    assert node.dvs_height == dvs_input.dvs_height
+    assert node.dvs_width == dvs_input.dvs_width
+    assert node.dvs_polarity == dvs_input.dvs_polarity
+    model.add_input(dvs_input)
+    model.objs[node]['out'] = dvs_input
 
 
 @Builder.register(DVSFileChipNode)

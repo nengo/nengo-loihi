@@ -167,3 +167,45 @@ def get_dvs_reader(filename, format=None):
         return EventsReader(filename)
     else:
         raise ValueError("Unrecognized format %r" % format)
+
+
+def save_dvs_board(statepath):
+    import nxsdk.api.n2a as nx
+    from scipy.sparse import identity
+    from nxsdk.compiler.nxsdkcompiler.n2_compiler import N2Compiler
+
+    net = nx.NxNet()
+
+    dvsSpikeGen = net.createDVSSpikeGenProcess(
+        xPixel=240, yPixel=180, polarity=2)
+
+    cp = nx.CompartmentPrototype(
+        vThMant=100,
+        enableHomeostasis=1,
+        compartmentCurrentDecay=4095,
+        compartmentVoltageDecay=4095,
+        activityTimeConstant=0,
+        activityImpulse=1,
+        minActivity=20,
+        maxActivity=80,
+        homeostasisGain=0,
+        tEpoch=1,
+    )
+
+    cg1 = net.createCompartmentGroup(size=dvsSpikeGen.numPorts, prototype=cp)
+
+    connproto = nx.ConnectionPrototype(
+        weight=255,
+        signMode=nx.SYNAPSE_SIGN_MODE.EXCITATORY)
+
+    cMask = identity(dvsSpikeGen.numPorts)
+    dvsSpikeGen.connect(cg1, prototype=connproto, connectionMask=cMask)
+
+    compiler = N2Compiler()
+    board = compiler.compile(net)
+
+    board.start()
+
+    board.dumpNeuroCores(str(statepath))
+    print("Saved to %s" % str(statepath))
+    board.disconnect()

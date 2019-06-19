@@ -85,6 +85,9 @@ if HAS_NXSDK:
     SpikeGen = d_import(
         b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu',
         b'QmFzaWNTcGlrZUdlbmVyYXRvcg==')
+    DVSSpikeGen = d_import(
+        b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5kdnNpbnB1dGdlbg==',
+        b'RFZTU3Bpa2VHZW5lcmF0b3I=')
     SpikeProbe = d_import(
         b'bnhzZGsuZ3JhcGgubnhwcm9iZXM=',
         b'TjJTcGlrZVByb2Jl')
@@ -93,4 +96,5 @@ else:
     TraceConfigGenerator = None
     NxsdkBoard = None
     SpikeGen = None
+    DVSSpikeGen = None
     SpikeProbe = None

@@ -14,6 +14,7 @@ from nengo.exceptions import SimulationError
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Probe
+from nengo_loihi.dvs import save_dvs_board
 from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
@@ -126,6 +127,13 @@ class HardwareInterface:
 
         # --- build
         self.nxsdk_board = build_board(self.board, seed=seed)
+
+        self.dvs_neurocore_path = os.path.join(
+            os.path.dirname(__file__), 'dvs_neurocores.dat')
+        if (self.nxsdk_board.dvs_spike_generator is not None
+                and not os.path.exists(self.dvs_neurocore_path)):
+            print("Generating DVS neurocore map")
+            save_dvs_board(self.dvs_neurocore_path)
 
     def run_steps(self, steps, blocking=True):
         if self.use_snips and self.nengo_io_h2c is None:
@@ -289,6 +297,13 @@ class HardwareInterface:
                 logger.info("Retrying, attempt %d", i + 1)
         else:
             raise SimulationError("Could not connect to the board")
+
+        if self.nxsdk_board.dvs_spike_generator is not None:
+            # load neurocore map for first 85 cores responsible for DVS
+            print("Loading DVS neurocore map")
+            assert os.path.exists(self.dvs_neurocore_path), (
+                "Neurocore map file should have been created in `build`")
+            self.nxsdk_board.loadNeuroCores(self.dvs_neurocore_path)
 
     def close(self):
         if self.nxsdk_board is not None:

@@ -113,6 +113,9 @@ class Core:
 
         self.learning_coreid = None
 
+        # hacky parameters to control building
+        self.build_axons_only = False
+
     @property
     def board(self):
         return self.chip.board
