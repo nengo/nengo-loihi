@@ -20,7 +20,7 @@ from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_shim import (
     assert_nxsdk,
     nxsdk,
-    N2SpikeProbe,
+    SpikeProbe,
 )
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.validate import validate_model
@@ -57,7 +57,7 @@ class HardwareInterface:
         self.use_snips = use_snips
         self.check_nxsdk_version()
 
-        self.n2board = None
+        self.nxsdk_board = None
         self.nengo_io_h2c = None  # IO snip host-to-chip channel
         self.nengo_io_c2h = None  # IO snip chip-to-host channel
         self._probe_filters = {}
@@ -71,7 +71,7 @@ class HardwareInterface:
 
         # probeDict is a class attribute, so might contain things left over
         # from previous simulators
-        N2SpikeProbe.probeDict.clear()
+        SpikeProbe.probeDict.clear()
 
         self.build(model, allocator=allocator, seed=seed)
 
@@ -125,7 +125,7 @@ class HardwareInterface:
         validate_board(self.board)
 
         # --- build
-        self.n2board = build_board(self.board, seed=seed)
+        self.nxsdk_board = build_board(self.board, seed=seed)
 
     def run_steps(self, steps, blocking=True):
         if self.use_snips and self.nengo_io_h2c is None:
@@ -133,16 +133,16 @@ class HardwareInterface:
 
         # NOTE: we need to call connect() after snips are created
         self.connect()
-        self.n2board.run(steps, aSync=not blocking)
+        self.nxsdk_board.run(steps, aSync=not blocking)
 
     def _chip2host_monitor(self, probes_receivers):
         increment = None
         for probe, receiver in probes_receivers.items():
             assert not probe.use_snip
-            n2probe = self.board.probe_map[probe]
+            nxsdk_probe = self.board.probe_map[probe]
             x = np.column_stack([
                 p.timeSeries.data[self._chip2host_sent_steps:]
-                for p in n2probe])
+                for p in nxsdk_probe])
             assert x.ndim == 2
 
             if len(x) > 0:
@@ -174,7 +174,7 @@ class HardwareInterface:
             assert x.ndim == 1
             if probe.key == 'spiked':
                 assert isinstance(probe.target, LoihiBlock)
-                refract_delays = probe.target.compartment.refractDelay
+                refract_delays = probe.target.compartment.refract_delay
 
                 # Loihi uses the voltage value to indicate where we
                 # are in the refractory period. We want to find neurons
@@ -204,7 +204,7 @@ class HardwareInterface:
         for spike in loihi_spikes:
             assert spike.axon.axon_type == 0, "Spikegen cannot send pop spikes"
             assert spike.axon.atom == 0, "Spikegen does not support atom"
-            self.n2board.global_spike_generator.addSpike(
+            self.nxsdk_board.global_spike_generator.addSpike(
                 time=spike.time, chipId=spike.axon.chip_id,
                 coreId=spike.axon.core_id, axonId=spike.axon.axon_id)
 
@@ -232,7 +232,7 @@ class HardwareInterface:
     def host2chip(self, spikes, errors):
         loihi_spikes = []
         for spike_input, t, s in spikes:
-            spike_input = self.n2board.spike_inputs[spike_input]
+            spike_input = self.nxsdk_board.spike_inputs[spike_input]
             loihi_spikes.extend(spike_input.spikes_to_loihi(t, s))
 
         loihi_errors = []
@@ -259,13 +259,14 @@ class HardwareInterface:
             return self._host2chip_spikegen(loihi_spikes)
 
     def wait_for_completion(self):
-        self.n2board.finishRun()
+        self.nxsdk_board.finishRun()
 
     def is_connected(self):
-        return self.n2board is not None and self.n2board.nxDriver.hasStarted()
+        return (self.nxsdk_board is not None
+                and self.nxsdk_board.nxDriver.hasStarted())
 
     def connect(self, attempts=10):
-        if self.n2board is None:
+        if self.nxsdk_board is None:
             raise SimulationError("Must build model before running")
 
         if self.is_connected():
@@ -274,7 +275,7 @@ class HardwareInterface:
         logger.info("Connecting to Loihi, max attempts: %d", attempts)
         for i in range(attempts):
             try:
-                self.n2board.startDriver()
+                self.nxsdk_board.startDriver()
                 if self.is_connected():
                     break
             except Exception as e:
@@ -285,8 +286,8 @@ class HardwareInterface:
             raise SimulationError("Could not connect to the board")
 
     def close(self):
-        if self.n2board is not None:
-            self.n2board.disconnect()
+        if self.nxsdk_board is not None:
+            self.nxsdk_board.disconnect()
 
         self.closed = True
 
@@ -317,12 +318,13 @@ class HardwareInterface:
     def get_probe_output(self, probe):
         assert isinstance(probe, Probe)
         if probe.use_snip:
-            x = self._snip_probe_data[probe]
+            data = self._snip_probe_data[probe]
         else:
-            n2probe = self.board.probe_map[probe]
-            x = np.column_stack([p.timeSeries.data for p in n2probe])
-            x = x if probe.weights is None else np.dot(x, probe.weights)
-        return self._filter_probe(probe, x)
+            nxsdk_probe = self.board.probe_map[probe]
+            data = np.column_stack([p.timeSeries.data for p in nxsdk_probe])
+            data = (data if probe.weights is None
+                    else np.dot(data, probe.weights))
+        return self._filter_probe(probe, data)
 
     def create_io_snip(self):
         # snips must be created before connecting
@@ -361,12 +363,14 @@ class HardwareInterface:
                     assert info['key'] in ('u', 'v', 'spike')
                     # For spike probes, we record V and determine if the neuron
                     # spiked in Simulator.
-                    cores.add(info["coreid"])
-                    snip_range[probe] = slice(n_outputs - 1,
-                                              n_outputs + len(info["cxs"]) - 1)
-                    for cx in info["cxs"]:
+                    cores.add(info["core_id"])
+                    snip_range[probe] = slice(
+                        n_outputs - 1,
+                        n_outputs + len(info["compartment_idxs"]) - 1)
+                    for compartment in info["compartment_idxs"]:
                         probes.append(
-                            (n_outputs, info["coreid"], cx, info['key']))
+                            (n_outputs, info["core_id"], compartment,
+                             info['key']))
                         n_outputs += 1
 
         # --- write c file using template
@@ -387,7 +391,7 @@ class HardwareInterface:
 
         # --- create SNIP process and channels
         logger.debug("Creating nengo_io snip process")
-        nengo_io = self.n2board.createProcess(
+        nengo_io = self.nxsdk_board.createProcess(
             name="nengo_io",
             cFilePath=c_path,
             includeDir=snips_dir,
@@ -398,7 +402,7 @@ class HardwareInterface:
         logger.debug("Creating nengo_learn snip process")
         c_path = os.path.join(self.tmp_snip_dir.name, "nengo_learn.c")
         shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
-        self.n2board.createProcess(
+        self.nxsdk_board.createProcess(
             name="nengo_learn",
             cFilePath=c_path,
             includeDir=snips_dir,
@@ -411,10 +415,10 @@ class HardwareInterface:
                 + self.snip_max_spikes_per_step*SpikePacker.size()
                 + total_error_len)
         logger.debug("Creating nengo_io_h2c channel (%d)" % size)
-        self.nengo_io_h2c = self.n2board.createChannel(
+        self.nengo_io_h2c = self.nxsdk_board.createChannel(
             b'nengo_io_h2c', "int", size)
         logger.debug("Creating nengo_io_c2h channel (%d)" % n_outputs)
-        self.nengo_io_c2h = self.n2board.createChannel(
+        self.nengo_io_c2h = self.nxsdk_board.createChannel(
             b'nengo_io_c2h', "int", n_outputs)
         self.nengo_io_h2c.connect(None, nengo_io)
         self.nengo_io_c2h.connect(nengo_io, None)

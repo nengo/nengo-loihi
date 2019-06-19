@@ -528,8 +528,8 @@ class Simulator:
                     h2c.write(h2c.numElements, [0] * h2c.numElements)
                     c2h.read(c2h.numElements)
                 self.sims["loihi"].wait_for_completion()
-                self.sims["loihi"].n2board.nxDriver.stopExecution()
-                self.sims["loihi"].n2board.nxDriver.stopDriver()
+                self.sims["loihi"].nxsdk_board.nxDriver.stopExecution()
+                self.sims["loihi"].nxsdk_board.nxDriver.stopDriver()
             raise
 
         self._n_steps += steps

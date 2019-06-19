@@ -101,18 +101,18 @@ def test_interface_connection_errors(Simulator):
 
     # test unbuilt model error
     with Simulator(net) as sim:
-        sim.sims['loihi'].n2board = None
+        sim.sims['loihi'].nxsdk_board = None
 
         with pytest.raises(SimulationError, match="build.*before running"):
             sim.step()
 
     # test failed connection error
-    def startDriver(*args, **kwargs):
+    def start_driver(*args, **kwargs):
         raise Exception("Mock failure to connect")
 
     with Simulator(net) as sim:
         interface = sim.sims['loihi']
-        interface.n2board.startDriver = startDriver
+        interface.nxsdk_board.startDriver = start_driver
 
         with pytest.raises(SimulationError, match="[Cc]ould not connect"):
             interface.connect(attempts=1)

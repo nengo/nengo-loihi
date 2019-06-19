@@ -83,11 +83,11 @@ void nengo_io(runState *s) {
     }
 
     output[0] = s->time_step;
-{% for n_out, core, cx, key in probes %}
+{% for n_out, core, compartment, key in probes %}
 {% if key == 'u' %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].U;
+    output[{{ n_out }}] = core{{ core }}->cx_state[{{ compartment }}].U;
 {% elif key in ('v', 'spike') %}
-    output[{{ n_out }}] = core{{ core }}->cx_state[{{ cx }}].V;
+    output[{{ n_out }}] = core{{ core }}->cx_state[{{ compartment }}].V;
 {% endif %}
 {% endfor %}
 

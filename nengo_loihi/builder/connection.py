@@ -429,10 +429,10 @@ def build_chip_connection(model, conn):  # noqa: C901
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
 
-    pre_cx = model.objs[conn.pre_obj]['out']
-    post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, (LoihiBlock, LoihiInput))
-    assert isinstance(post_cx, (LoihiBlock, Probe))
+    pre_obj = model.objs[conn.pre_obj]['out']
+    post_obj = model.objs[conn.post_obj]['in']
+    assert isinstance(pre_obj, (LoihiBlock, LoihiInput))
+    assert isinstance(post_obj, (LoihiBlock, Probe))
 
     weights = None
     eval_points = None
@@ -510,7 +510,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     if neuron_type is not None and hasattr(neuron_type, 'amplitude'):
         weights = weights * neuron_type.amplitude
 
-    mid_cx = pre_cx
+    mid_obj = pre_obj
     mid_axon_inds = None
     post_tau = tau_s
     if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
@@ -518,9 +518,9 @@ def build_chip_connection(model, conn):  # noqa: C901
         assert weights.ndim == 2
         d, n = weights.shape
 
-        if isinstance(post_cx, Probe):
+        if isinstance(post_obj, Probe):
             # use non-spiking decode neurons for voltage probing
-            assert post_cx.target is None
+            assert post_obj.target is None
             assert post_slice == slice(None)
 
             # use the same scaling as the ensemble does, to get good
@@ -529,18 +529,18 @@ def build_chip_connection(model, conn):  # noqa: C901
             weights = weights / conn.pre_obj.radius
 
             gain = 1
-            dec_cx = LoihiBlock(2 * d, label='%s' % conn)
-            dec_cx.compartment.configure_nonspiking(
+            decoder_block = LoihiBlock(2 * d, label='%s' % conn)
+            decoder_block.compartment.configure_nonspiking(
                 dt=model.dt, vth=model.vth_nonspiking)
-            dec_cx.compartment.bias[:] = 0
-            model.add_block(dec_cx)
-            model.objs[conn]['decoded'] = dec_cx
+            decoder_block.compartment.bias[:] = 0
+            model.add_block(decoder_block)
+            model.objs[conn]['decoded'] = decoder_block
 
             dec_syn = Synapse(n, label="probe_decoders")
             weights2 = gain * np.vstack([weights, -weights]).T
 
             dec_syn.set_full_weights(weights2)
-            dec_cx.add_synapse(dec_syn)
+            decoder_block.add_synapse(dec_syn)
             model.objs[conn]['decoders'] = dec_syn
         else:
             # use spiking decode neurons for on-chip connection
@@ -555,20 +555,20 @@ def build_chip_connection(model, conn):  # noqa: C901
                 post_inds, post_d)
 
             target_encoders = 'decode_neuron_encoders'
-            dec_cx, dec_syn = model.decode_neurons.get_block(
+            decoder_block, dec_syn = model.decode_neurons.get_block(
                 weights, block_label="%s" % conn, syn_label="decoders")
 
-            model.add_block(dec_cx)
-            model.objs[conn]['decoded'] = dec_cx
+            model.add_block(decoder_block)
+            model.objs[conn]['decoded'] = decoder_block
             model.objs[conn]['decoders'] = dec_syn
 
         # use tau_s for filter into decode neurons, decode_tau for filter out
-        dec_cx.compartment.configure_filter(tau_s, dt=model.dt)
+        decoder_block.compartment.configure_filter(tau_s, dt=model.dt)
         post_tau = model.decode_tau
 
         dec_ax0 = Axon(n, label="decoders")
         dec_ax0.target = dec_syn
-        pre_cx.add_axon(dec_ax0)
+        pre_obj.add_axon(dec_ax0)
         model.objs[conn]['decode_axon'] = dec_ax0
 
         if conn.learning_rule_type is not None:
@@ -610,72 +610,72 @@ def build_chip_connection(model, conn):  # noqa: C901
             else:
                 raise NotImplementedError()
 
-        mid_cx = dec_cx
+        mid_obj = decoder_block
 
-    if isinstance(post_cx, Probe):
-        assert post_cx.target is None
+    if isinstance(post_obj, Probe):
+        assert post_obj.target is None
         assert post_slice == slice(None)
-        post_cx.target = mid_cx
-        mid_cx.add_probe(post_cx)
+        post_obj.target = mid_obj
+        mid_obj.add_probe(post_obj)
     elif isinstance(conn.post_obj, Neurons):
-        assert isinstance(post_cx, LoihiBlock)
+        assert isinstance(post_obj, LoihiBlock)
         assert post_slice == slice(None)
         if weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
         else:
             assert weights.ndim == 2
             n2, n1 = weights.shape
-            assert post_cx.n_neurons == n2
+            assert post_obj.n_neurons == n2
 
             syn = Synapse(n1, label="neuron_weights")
             gain = model.params[conn.post_obj.ensemble].gain
             syn.set_full_weights(weights.T * gain)
-            post_cx.add_synapse(syn)
+            post_obj.add_synapse(syn)
             model.objs[conn]['weights'] = syn
 
-        ax = Axon(mid_cx.n_neurons, label="neuron_weights")
+        ax = Axon(mid_obj.n_neurons, label="neuron_weights")
         ax.target = syn
-        mid_cx.add_axon(ax)
+        mid_obj.add_axon(ax)
 
-        post_cx.compartment.configure_filter(post_tau, dt=model.dt)
+        post_obj.compartment.configure_filter(post_tau, dt=model.dt)
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
-        assert isinstance(post_cx, LoihiBlock)
+        assert isinstance(post_obj, LoihiBlock)
         assert weights.ndim == 2
         n2, n1 = weights.shape
-        assert post_cx.n_neurons == n2
+        assert post_obj.n_neurons == n2
 
         # loihi encoders don't include radius, so handle scaling here
         weights = weights / conn.post_obj.radius
 
         syn = Synapse(n1, label="%s::decoder_weights" % conn)
         syn.set_full_weights(weights.T)
-        post_cx.add_synapse(syn)
+        post_obj.add_synapse(syn)
         model.objs[conn]['weights'] = syn
 
         ax = Axon(n1, label="decoder_weights")
         ax.target = syn
-        mid_cx.add_axon(ax)
+        mid_obj.add_axon(ax)
 
-        post_cx.compartment.configure_filter(post_tau, dt=model.dt)
+        post_obj.compartment.configure_filter(post_tau, dt=model.dt)
 
         if conn.learning_rule_type is not None:
             raise NotImplementedError()
     elif isinstance(conn.post_obj, Ensemble):
         assert target_encoders is not None
-        if target_encoders not in post_cx.named_synapses:
+        if target_encoders not in post_obj.named_synapses:
             build_decode_neuron_encoders(
                 model, conn.post_obj, kind=target_encoders)
 
-        mid_ax = Axon(mid_cx.n_neurons, label="encoders")
-        mid_ax.target = post_cx.named_synapses[target_encoders]
+        mid_ax = Axon(mid_obj.n_neurons, label="encoders")
+        mid_ax.target = post_obj.named_synapses[target_encoders]
         mid_ax.set_axon_map(mid_axon_inds)
-        mid_cx.add_axon(mid_ax)
+        mid_obj.add_axon(mid_ax)
         model.objs[conn]['mid_axon'] = mid_ax
 
-        post_cx.compartment.configure_filter(post_tau, dt=model.dt)
+        post_obj.compartment.configure_filter(post_tau, dt=model.dt)
     else:
         # This includes Node, since nodes can't be targets on-chip
         raise NotImplementedError()
@@ -703,10 +703,10 @@ def build_conv2d_connection(model, conn):
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
 
-    pre_cx = model.objs[conn.pre_obj]['out']
-    post_cx = model.objs[conn.post_obj]['in']
-    assert isinstance(pre_cx, (LoihiInput, LoihiBlock))
-    assert isinstance(post_cx, LoihiBlock)
+    pre_obj = model.objs[conn.pre_obj]['out']
+    post_obj = model.objs[conn.post_obj]['in']
+    assert isinstance(pre_obj, (LoihiInput, LoihiBlock))
+    assert isinstance(post_obj, LoihiBlock)
 
     tau_s = 0.0
     if isinstance(conn.synapse, nengo.synapses.Lowpass):
@@ -749,23 +749,23 @@ def build_conv2d_connection(model, conn):
     pop_type = 32  # TODO: pick this
     new_transform = copy.copy(conn.transform)
     type(new_transform).init.data[new_transform] = weights
-    weights, indices, axon_to_weight_map, cx_bases = conv2d_loihi_weights(
+    weights, indices, axon_to_weight_map, offsets = conv2d_loihi_weights(
         new_transform)
 
     synapse = Synapse(np.prod(input_shape.spatial_shape),
                       label="conv2d_weights")
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
-    post_cx.add_synapse(synapse)
+        weights, indices, axon_to_weight_map, offsets, pop_type=pop_type)
+    post_obj.add_synapse(synapse)
     model.objs[conn]['weights'] = synapse
 
     ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")
     ax.target = synapse
-    ax.cx_to_axon_map = pixel_idxs(input_shape)
-    ax.cx_atoms = channel_idxs(input_shape)
-    pre_cx.add_axon(ax)
+    ax.compartment_map = pixel_idxs(input_shape)
+    ax.compartment_atoms = channel_idxs(input_shape)
+    pre_obj.add_axon(ax)
 
-    post_cx.compartment.configure_filter(tau_s, dt=model.dt)
+    post_obj.compartment.configure_filter(tau_s, dt=model.dt)
 
     model.params[conn] = BuiltConnection(
         eval_points=None,

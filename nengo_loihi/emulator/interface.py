@@ -250,17 +250,17 @@ class CompartmentState(IterableState):
 
         # Fill in arrays with parameters from CompartmentSegments
         for compartment, sl in self.items():
-            self.decay_u[sl] = compartment.decayU
-            self.decay_v[sl] = compartment.decayV
-            if compartment.scaleU:
-                self.scale_u[sl] = compartment.decayU
-            if compartment.scaleV:
-                self.scale_v[sl] = compartment.decayV
+            self.decay_u[sl] = compartment.decay_u
+            self.decay_v[sl] = compartment.decay_v
+            if compartment.scale_u:
+                self.scale_u[sl] = compartment.decay_u
+            if compartment.scale_v:
+                self.scale_v[sl] = compartment.decay_v
             self.vth[sl] = compartment.vth
             self.vmin[sl] = compartment.vmin
             self.vmax[sl] = compartment.vmax
             self.bias[sl] = compartment.bias
-            self.ref[sl] = compartment.refractDelay
+            self.ref[sl] = compartment.refract_delay
 
         assert not np.any(np.isnan(self.decay_u))
         assert not np.any(np.isnan(self.decay_v))
@@ -348,10 +348,10 @@ class NoiseState(IterableState):
 
         # Fill in arrays with parameters from Compartment
         for compartment, sl in self.items():
-            self.enabled[sl] = compartment.enableNoise
-            self.exp[sl] = compartment.noiseExp0
-            self.mant_offset[sl] = compartment.noiseMantOffset0
-            self.target_u[sl] = compartment.noiseAtDendOrVm
+            self.enabled[sl] = compartment.enable_noise
+            self.exp[sl] = compartment.noise_exp
+            self.mant_offset[sl] = compartment.noise_offset
+            self.target_u[sl] = compartment.noise_at_membrane
 
         if self.dtype == np.int32:
             # TODO: if we could do this mult with shifts, it'd be faster, but
@@ -447,9 +447,9 @@ class SynapseState(IterableState):
                                         name="synapse trace")
 
             def weight_update(synapse, delta_ws, rng=None):
-                synapse_fmt = synapse.synapse_fmt
-                wgt_exp = synapse_fmt.realWgtExp
-                shift_bits = synapse_fmt.shift_bits
+                synapse_cfg = synapse.synapse_cfg
+                wgt_exp = synapse_cfg.real_weight_exp
+                shift_bits = synapse_cfg.shift_bits
                 overflow = learn_overflow_bits(n_factors=2)
                 for w, delta_w in zip(synapse.weights, delta_ws):
                     product = shift(
@@ -485,15 +485,15 @@ class SynapseState(IterableState):
         # --- inputs pass spikes to synapses
         if t >= 2:  # input spikes take one time-step to arrive
             for spike_input in spike_inputs:
-                cx_idxs = spike_input.spike_idxs(t - 1)
+                compartment_idxs = spike_input.spike_idxs(t - 1)
                 for axon in spike_input.axons:
-                    spikes = axon.map_cx_spikes(cx_idxs)
+                    spikes = axon.map_spikes(compartment_idxs)
                     self.spikes_in[axon.target].extend(spikes)
 
         # --- axons pass spikes to synapses
         for axon, a_idx in all_axons.items():
-            cx_idxs = spiked[a_idx].nonzero()[0]
-            spikes = axon.map_cx_spikes(cx_idxs)
+            compartment_idxs = spiked[a_idx].nonzero()[0]
+            spikes = axon.map_spikes(compartment_idxs)
             self.spikes_in[axon.target].extend(spikes)
 
     def update_input(self, input):
@@ -501,13 +501,13 @@ class SynapseState(IterableState):
             qb = input[:, s_slice]
 
             for spike in self.spikes_in[synapse]:
-                cx_base = synapse.axon_cx_base(spike.axon_id)
-                if cx_base is None:
+                base = synapse.axon_compartment_base(spike.axon_id)
+                if base is None:
                     continue
 
                 weights, indices = synapse.axon_weights_indices(
                     spike.axon_id, atom=spike.atom)
-                qb[0, cx_base + indices] += weights
+                qb[0, base + indices] += weights
 
     def update_pes_errors(self, errors):
         # TODO: these are sent every timestep, but learning only happens every

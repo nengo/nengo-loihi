@@ -49,7 +49,7 @@ def test_strings():
 
 @pytest.mark.xfail(pytest.config.getvalue("--target") == "loihi",
                    reason="Existing bug with negative cx_base on Loihi")
-def test_negative_cxbase(request, seed):
+def test_negative_base(request, seed):
     n_axons = 3
 
     model = Model()
@@ -69,9 +69,9 @@ def test_negative_cxbase(request, seed):
     weights = [0.1, 0.1, 0.1]
     indices = [0, 1, 2]
     axon_to_weight_map = list(range(n_axons))
-    cx_bases = [0, 1, -1]
+    bases = [0, 1, -1]
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases, pop_type=32)
+        weights, indices, axon_to_weight_map, bases, pop_type=32)
     axon.target = synapse
     block.add_synapse(synapse)
 
@@ -92,7 +92,7 @@ def test_negative_cxbase(request, seed):
 
     # Compartments 0 and 2 should change from axons 0 and 1.
     # Axon 2 should have no effect, and not change compartment 1 (the sum of
-    # its cx_base and index), or other compartments (e.g. 2 if cx_base ignored)
+    # its base and index), or other compartments (e.g. 2 if base ignored)
     assert np.allclose(y[1, 1], 0), "Third axon not ignored"
     assert np.allclose(y[1, 0], y[1, 2]), "Third axon targeting another"
     assert not np.allclose(y[1], y[0]), "Voltage not changing"

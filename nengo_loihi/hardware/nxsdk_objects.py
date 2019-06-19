@@ -4,12 +4,12 @@ import collections
 
 import numpy as np
 
-from nengo_loihi.block import Profile
+from nengo_loihi.block import Config
 
 
-CX_PROFILES_MAX = 32
-VTH_PROFILES_MAX = 8
-SYNAPSE_FMTS_MAX = 16
+MAX_COMPARTMENT_CFGS = 32
+MAX_VTH_CFGS = 8
+MAX_SYNAPSE_CFGS = 16
 
 
 class Board:
@@ -49,9 +49,9 @@ class Board:
     def chip_index(self, chip):
         return self.chip_idxs[chip]
 
-    def map_probe(self, probe, n2probe):
+    def map_probe(self, probe, nxsdk_probe):
         assert probe not in self.probe_map
-        self.probe_map[probe] = n2probe
+        self.probe_map[probe] = nxsdk_probe
 
     def index_synapse(self, synapse, chip, core, idxs):
         chip_idx = self.chip_index(chip)
@@ -98,12 +98,12 @@ class Core:
         self.blocks = []
         self.inputs = []
 
-        self.cxProfiles = []
-        self.vthProfiles = []
-        self.synapseFmts = [None]  # keep index 0 unused
-        self.stdpPreCfgs = []
+        self.compartment_cfgs = []
+        self.vth_cfgs = []
+        self.synapse_cfgs = [None]  # keep index 0 unused
+        self.stdp_pre_cfgs = []
 
-        self.synapse_fmt_idxs = {}  # one synfmt per Synapse, for now
+        self.synapse_cfg_idxs = {}  # one synfmt per Synapse, for now
         self.synapse_axons = collections.OrderedDict()
         self.synapse_entries = collections.OrderedDict()
 
@@ -128,9 +128,9 @@ class Core:
         for block in self.blocks:
             i1 = i0 + block.compartment.n_compartments
             a1 = a0 + sum(ax.n_axons for ax in block.axons)
-            cx_idxs = list(range(i0, i1))
+            compartment_idxs = list(range(i0, i1))
             ax_range = (a0, a1)
-            yield block, cx_idxs, ax_range
+            yield block, compartment_idxs, ax_range
             i0 = i1
             a0 = a1
 
@@ -138,8 +138,8 @@ class Core:
         i0 = 0
         for inp in self.inputs:
             i1 = i0 + inp.n_neurons
-            cx_idxs = list(range(i0, i1))
-            yield inp, cx_idxs
+            compartment_idxs = list(range(i0, i1))
+            yield inp, compartment_idxs
             i0 = i1
 
     def iterate_synapses(self):
@@ -153,21 +153,21 @@ class Core:
     def add_input(self, input):
         self.inputs.append(input)
 
-    def add_cx_profile(self, cx_profile):
-        self.cxProfiles.append(cx_profile)
-        return len(self.cxProfiles) - 1  # index
+    def add_compartment_cfg(self, compartment_cfg):
+        self.compartment_cfgs.append(compartment_cfg)
+        return len(self.compartment_cfgs) - 1  # index
 
-    def add_vth_profile(self, vth_profile):
-        self.vthProfiles.append(vth_profile)
-        return len(self.vthProfiles) - 1  # index
+    def add_vth_cfg(self, vth_cfg):
+        self.vth_cfgs.append(vth_cfg)
+        return len(self.vth_cfgs) - 1  # index
 
     def add_stdp_pre_cfg(self, stdp_pre_cfg):
-        self.stdpPreCfgs.append(stdp_pre_cfg)
-        return len(self.stdpPreCfgs) - 1  # index
+        self.stdp_pre_cfgs.append(stdp_pre_cfg)
+        return len(self.stdp_pre_cfgs) - 1  # index
 
     def add_synapse(self, synapse):
-        synapse_fmt_idx = self.get_synapse_fmt_idx(synapse.synapse_fmt)
-        self.synapse_fmt_idxs[synapse] = synapse_fmt_idx
+        synapse_cfg_idx = self.get_synapse_cfg_idx(synapse.synapse_cfg)
+        self.synapse_cfg_idxs[synapse] = synapse_cfg_idx
 
         a0 = 0
         if len(self.synapse_axons) > 0:
@@ -185,15 +185,15 @@ class Core:
         s1 = s0 + synapse.size()
         self.synapse_entries[synapse] = (s0, s1)
 
-    def get_synapse_fmt(self, synapse):
-        return self.synapseFmts[self.synapse_fmt_idxs[synapse]]
+    def get_synapse_cfg(self, synapse):
+        return self.synapse_cfgs[self.synapse_cfg_idxs[synapse]]
 
-    def get_synapse_fmt_idx(self, synapse_fmt):
+    def get_synapse_cfg_idx(self, synapse_cfg):
         try:
-            return self.synapseFmts.index(synapse_fmt)
+            return self.synapse_cfgs.index(synapse_cfg)
         except ValueError:
-            self.synapseFmts.append(synapse_fmt)
-            return len(self.synapseFmts) - 1  # index
+            self.synapse_cfgs.append(synapse_cfg)
+            return len(self.synapse_cfgs) - 1  # index
 
 
 class LoihiSpikeInput:
@@ -267,17 +267,17 @@ class LoihiSpikeInput:
                 type(self).__name__, self.time, self.axon._slots_str())
 
     def __init__(self):
-        self.axon_map = {}  # maps cx_spike_input idx to axon in self.axons
+        self.axon_map = {}  # maps spike_input idx to axon in self.axons
         self.sent_count = 0
 
-    def set_axons(self, board, n2board, spike_input):
+    def set_axons(self, board, nxsdk_board, spike_input):
         """Initialize the axon map for this object.
 
         Parameters
         ----------
         board : Board
             The nengo_loihi object representing the Loihi board.
-        n2board : nxsdk.N2Board
+        nxsdk_board : NxsdkBoard
             The nxsdk object representing the Loihi board.
         spike_input : SpikeInput
             The SpikeInput containing information about which axons are
@@ -289,9 +289,9 @@ class LoihiSpikeInput:
             axon_type = axon.pop_type
             assert axon_type in (0, 32), "Only discrete and pop32 supported"
             tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(axon.target)
-            tchip = n2board.n2Chips[tchip_idx]
+            tchip = nxsdk_board.n2Chips[tchip_idx]
             tcore = tchip.n2Cores[tcore_idx]
-            spikes = axon.map_cx_spikes(input_idxs)
+            spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
                 if spike is not None:
                     taxon_idx = int(spike.axon_id)
@@ -325,23 +325,23 @@ class LoihiSpikeInput:
                 yield self.LoihiSpike(time=t, axon=axon)
 
 
-class CxProfile(Profile):
+class CompartmentConfig(Config):
     DECAY_U_MAX = 2**12 - 1
     DECAY_V_MAX = 2**12 - 1
     REFRACT_DELAY_MAX = 2**6 - 1
 
-    params = ('decayU', 'decayV', 'refractDelay', 'enableNoise')
+    params = ('decay_u', 'decay_v', 'refract_delay', 'enable_noise')
 
-    def __init__(self, decayV, decayU, refractDelay, enableNoise):
-        super(CxProfile, self).__init__()
-        self.decayV = decayV
-        self.decayU = decayU
-        self.refractDelay = refractDelay
-        self.enableNoise = enableNoise
+    def __init__(self, decay_v, decay_u, refract_delay, enable_noise):
+        super(CompartmentConfig, self).__init__()
+        self.decay_v = decay_v
+        self.decay_u = decay_u
+        self.refract_delay = refract_delay
+        self.enable_noise = enable_noise
 
 
-class VthProfile(Profile):
-    """Represents the VthProfile of a compartment (Cx).
+class VthConfig(Config):
+    """Represents the Vth config information of a compartment.
 
     Attributes
     ----------
@@ -352,15 +352,15 @@ class VthProfile(Profile):
     params = ('vth',)
 
     def __init__(self, vth):
-        super(VthProfile, self).__init__()
+        super(VthConfig, self).__init__()
         self.vth = vth
 
 
-class TraceCfg(Profile):
-    params = ('tau', 'spikeLevelInt', 'spikeLevelFrac')
+class TraceConfig(Config):
+    params = ('tau', 'spike_int', 'spike_frac')
 
-    def __init__(self, tau=0, spikeLevelInt=0, spikeLevelFrac=0):
-        super(TraceCfg, self).__init__()
+    def __init__(self, tau=0, spike_int=0, spike_frac=0):
+        super(TraceConfig, self).__init__()
         self.tau = tau
-        self.spikeLevelInt = spikeLevelInt
-        self.spikeLevelFrac = spikeLevelFrac
+        self.spike_int = spike_int
+        self.spike_frac = spike_frac

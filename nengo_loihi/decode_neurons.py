@@ -236,9 +236,9 @@ class NoisyDecodeNeurons(OnOffDecodeNeurons):
             weights, block_label=block_label, syn_label=syn_label)
 
         if self.noise_exp > -30:
-            block.compartment.enableNoise[:] = 1
-            block.compartment.noiseExp0 = self.noise_exp
-            block.compartment.noiseAtDendOrVm = 1
+            block.compartment.enable_noise[:] = 1
+            block.compartment.noise_exp = self.noise_exp
+            block.compartment.noise_at_membrane = 1
 
         return block, syn
 

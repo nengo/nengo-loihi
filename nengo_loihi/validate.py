@@ -57,33 +57,33 @@ def validate_compartment(comp):
 
 def validate_axon(axon):
     if isinstance(axon.target, Synapse):
-        if axon.cx_atoms is not None:
-            cx_idxs = np.arange(len(axon.cx_atoms))
-            axon_ids = axon.map_cx_axon(cx_idxs)
-            for atom, axon_id in zip(axon.cx_atoms, axon_ids):
+        if axon.compartment_atoms is not None:
+            idxs = np.arange(len(axon.compartment_atoms))
+            axon_ids = axon.map_axon(idxs)
+            for atom, axon_id in zip(axon.compartment_atoms, axon_ids):
                 n_populations = axon.target.axon_populations(axon_id)
                 assert 0 <= atom < n_populations
 
 
 def validate_synapse(synapse):
-    validate_synapse_fmt(synapse.synapse_fmt)
-    if synapse.axon_cx_bases is not None:
-        assert all(-1 <= b < 256 for b in synapse.axon_cx_bases), (
-            "CxBase must be >= 0 and < 256 (or -1 indicating unused)")
+    validate_synapse_cfg(synapse.synapse_cfg)
+    if synapse.axon_compartment_bases is not None:
+        assert all(-1 <= b < 256 for b in synapse.axon_compartment_bases), (
+            "compartment base must be >= 0 and < 256 or -1, indicating unused")
     if synapse.pop_type == 16:
-        if synapse.axon_cx_bases is not None:
-            assert all(b % 4 == 0 for b in synapse.axon_cx_bases)
+        if synapse.axon_compartment_bases is not None:
+            assert all(b % 4 == 0 for b in synapse.axon_compartment_bases)
 
 
-def validate_synapse_fmt(synapse_fmt):
-    assert -7 <= synapse_fmt.wgtExp <= 7
-    assert 0 <= synapse_fmt.tagBits < 4
-    assert 0 <= synapse_fmt.dlyBits < 8
-    assert 1 <= synapse_fmt.wgtBits < 8
-    assert 0 <= synapse_fmt.cIdxOffset < 16
-    assert 0 <= synapse_fmt.cIdxMult < 16
-    assert 0 <= synapse_fmt.idxBits < 8
-    assert 1 <= synapse_fmt.fanoutType < 4
+def validate_synapse_cfg(synapse_cfg):
+    assert -7 <= synapse_cfg.weight_exp <= 7
+    assert 0 <= synapse_cfg.tag_bits < 4
+    assert 0 <= synapse_cfg.delay_bits < 8
+    assert 1 <= synapse_cfg.weight_bits < 8
+    assert 0 <= synapse_cfg.idx_offset < 16
+    assert 0 <= synapse_cfg.idx_mult < 16
+    assert 0 <= synapse_cfg.idx_bits < 8
+    assert 1 <= synapse_cfg.fanout_type < 4
 
 
 def validate_probe(probe):

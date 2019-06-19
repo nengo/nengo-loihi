@@ -367,7 +367,7 @@ setup_cfg:
       test_ensemble.py:test_eval_points_heuristic[2108-1]:
         max number of compartments exceeded
       test_neurons.py:test_lif[*:
-        idxBits out of range
+        idx_bits out of range
       test_basalganglia.py:test_basal_ganglia:
         output_axons exceeded max
       test_cortical.py:test_connect:

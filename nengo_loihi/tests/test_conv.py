@@ -123,10 +123,10 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     conv2d_transform = nengo_transforms.Convolution(
         nf, inp_shape, strides=(sti, stj), channels_last=channels_last,
         init=filters, kernel_size=(1, 3))
-    weights, indices, axon_to_weight_map, cx_bases = conv.conv2d_loihi_weights(
+    weights, indices, axon_to_weight_map, bases = conv.conv2d_loihi_weights(
         conv2d_transform)
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
+        weights, indices, axon_to_weight_map, bases, pop_type=pop_type)
     neurons.add_synapse(synapse)
 
     out_probe = Probe(target=neurons, key='spiked')
@@ -279,10 +279,10 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     neurons.compartment.bias[:] = neuron_bias
 
     synapse = Synapse(np.prod(inp_shape.spatial_shape), label='synapse')
-    weights, indices, axon_to_weight_map, cx_bases = conv.conv2d_loihi_weights(
+    weights, indices, axon_to_weight_map, bases = conv.conv2d_loihi_weights(
         conv2d_transform)
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases, pop_type=pop_type)
+        weights, indices, axon_to_weight_map, bases, pop_type=pop_type)
 
     neurons.add_synapse(synapse)
 

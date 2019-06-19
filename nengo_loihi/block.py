@@ -63,7 +63,7 @@ class LoihiBlock:
         self.probes.append(probe)
 
 
-class Profile:
+class Config:
     def __eq__(self, obj):
         return isinstance(obj, type(self)) and all(
             self.__dict__[key] == obj.__dict__[key] for key in self.params)
@@ -89,33 +89,33 @@ class Compartment:
     ----------
     bias : (n,) ndarray
         Compartment biases.
-    enableNoise : (n,) ndarray
+    enable_noise : (n,) ndarray
         Whether to enable noise for each compartment.
-    decayU : (n,) ndarray
+    decay_u : (n,) ndarray
         Input (synapse) decay constant for each compartment.
-    decayV : (n,) ndarray
+    decay_v : (n,) ndarray
         Voltage decay constant for each compartment.
     label : string
         A label for the block (for debugging purposes).
     n_compartments : int
         The number of compartments in the block.
-    noiseAtDenOrVm : {0, 1}
+    noise_at_membrane : {0, 1}
         Inject noise into current (0) or voltage (1).
-    noiseExp0 : float or int
+    noise_exp : float or int
         Exponent for noise generation. Floating point values are base 10
         in units of current or voltage. Integer values are in base 2.
-    noiseMantOffset0 : float or int
+    noise_offset : float or int
         Offset for noise generation.
-    refractDelay : (n,) ndarray
+    refract_delay : (n,) ndarray
         Compartment refractory delays, in time steps.
-    scaleU : bool
-        Scale input (U) by decayU so that the integral of U is
+    scale_u : bool
+        Scale input (U) by decay_u so that the integral of U is
         the same before and after filtering.
-    scaleV : bool
-        Scale voltage (V) by decayV so that the integral of V is
+    scale_v : bool
+        Scale voltage (V) by decay_v so that the integral of V is
         the same before and after filtering.
     tau_s : float or None
-        Time constant used to set decayU. None if decayU has not been set.
+        Time constant used to set decay_u. None if decay_u has not been set.
     vmax : float or int (range [2**9 - 1, 2**23 - 1])
         Maximum voltage for all compartments, in the same units as ``vth``.
     vmin : float or int (range [-2**23 + 1, 0])
@@ -131,25 +131,25 @@ class Compartment:
         self.label = label
 
         # parameters specific to compartments/block
-        self.decayU = np.ones(n_compartments, dtype=np.float32)
+        self.decay_u = np.ones(n_compartments, dtype=np.float32)
         # ^ default to no filter
-        self.decayV = np.zeros(n_compartments, dtype=np.float32)
+        self.decay_v = np.zeros(n_compartments, dtype=np.float32)
         # ^ default to integration
         self.tau_s = None
-        self.scaleU = True
-        self.scaleV = False
+        self.scale_u = True
+        self.scale_v = False
 
-        self.refractDelay = np.zeros(n_compartments, dtype=np.int32)
+        self.refract_delay = np.zeros(n_compartments, dtype=np.int32)
         self.vth = np.zeros(n_compartments, dtype=np.float32)
         self.bias = np.zeros(n_compartments, dtype=np.float32)
-        self.enableNoise = np.zeros(n_compartments, dtype=bool)
+        self.enable_noise = np.zeros(n_compartments, dtype=bool)
 
         # parameters common to core
         self.vmin = 0
         self.vmax = np.inf
-        self.noiseMantOffset0 = 0
-        self.noiseExp0 = 0
-        self.noiseAtDendOrVm = 0
+        self.noise_offset = 0
+        self.noise_exp = 0
+        self.noise_at_membrane = 0
 
     def __str__(self):
         return "%s(%s)" % (
@@ -190,10 +190,10 @@ class Compartment:
         self.tau_s = tau_s
 
     def _configure_filter(self, tau_s, dt):
-        decayU = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
-        self.decayU[:] = decayU
-        self.scaleU = decayU > self.DECAY_SCALE_TH
-        if not self.scaleU:
+        decay_u = 1 if tau_s == 0 else -np.expm1(-dt/np.asarray(tau_s))
+        self.decay_u[:] = decay_u
+        self.scale_u = decay_u > self.DECAY_SCALE_TH
+        if not self.scale_u:
             raise BuildError(
                 "Current (U) scaling is required. Perhaps a synapse time "
                 "constant is too large in your model.")
@@ -216,13 +216,13 @@ class Compartment:
             The minimum voltage for the neurons.
         """
 
-        self.decayV[:] = -np.expm1(-dt/np.asarray(tau_rc))
-        self.refractDelay[:] = np.round(tau_ref / dt) + 1
+        self.decay_v[:] = -np.expm1(-dt / np.asarray(tau_rc))
+        self.refract_delay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = min_voltage
         self.vmax = np.inf
-        self.scaleV = np.all(self.decayV > self.DECAY_SCALE_TH)
-        if not self.scaleV:
+        self.scale_v = np.all(self.decay_v > self.DECAY_SCALE_TH)
+        if not self.scale_v:
             raise BuildError(
                 "Voltage (V) scaling is required with LIF neurons. Perhaps "
                 "the neuron tau_rc time constant is too large.")
@@ -240,12 +240,12 @@ class Compartment:
             Simulator time step length (in seconds).
         """
 
-        self.decayV[:] = 1.
-        self.refractDelay[:] = 1
+        self.decay_v[:] = 1.
+        self.refract_delay[:] = 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleV = False
+        self.scale_v = False
 
     def configure_relu(self, tau_ref=0.0, vth=1, dt=0.001):
         """Configure these compartments as individual Rectified Linear neurons.
@@ -263,12 +263,12 @@ class Compartment:
             Simulator time step length (in seconds).
         """
 
-        self.decayV[:] = 0.
-        self.refractDelay[:] = np.round(tau_ref / dt) + 1
+        self.decay_v[:] = 0.
+        self.refract_delay[:] = np.round(tau_ref / dt) + 1
         self.vth[:] = vth
         self.vmin = 0
         self.vmax = np.inf
-        self.scaleV = False
+        self.scale_v = False
 
 
 class Axon:
@@ -276,9 +276,9 @@ class Axon:
 
     Attributes
     ----------
-    cx_atoms : list of length ``block.n_neurons``
+    compartment_atoms : list of length ``block.n_neurons``
         Atom (weight index) associated with each block compartment.
-    cx_to_axon_map : list of length ``block.n_neurons``
+    compartment_map : list of length ``block.n_neurons``
         Index of the axon in ``target`` targeted by each block compartment.
     n_axons : int
         The number of outgoing axons.
@@ -316,8 +316,8 @@ class Axon:
         self.label = label
 
         self.target = None
-        self.cx_to_axon_map = None
-        self.cx_atoms = None
+        self.compartment_map = None
+        self.compartment_atoms = None
 
     def __str__(self):
         return "%s(%s)" % (
@@ -329,117 +329,120 @@ class Axon:
 
     @property
     def slots_per_axon(self):
-        """The number of axonCfg slots occupied by each axon."""
+        """The number of axon_cfg slots occupied by each axon."""
         return 2 if self.pop_type == 32 else 1
 
     def axon_slots(self):
-        """The total number of axonCfg slots used by all axons."""
+        """The total number of axon_cfg slots used by all axons."""
         return self.slots_per_axon * self.n_axons
 
-    def map_cx_axon(self, cx_idxs):
-        return (self.cx_to_axon_map[cx_idxs]
-                if self.cx_to_axon_map is not None else cx_idxs)
+    def map_axon(self, compartment_idxs):
+        return (self.compartment_map[compartment_idxs]
+                if self.compartment_map is not None else compartment_idxs)
 
-    def map_cx_atoms(self, cx_idxs):
-        return (self.cx_atoms[cx_idxs] if self.cx_atoms is not None else
-                [0 for _ in cx_idxs])
+    def map_atoms(self, compartment_idxs):
+        return (self.compartment_atoms[compartment_idxs]
+                if self.compartment_atoms is not None else
+                [0 for _ in compartment_idxs])
 
-    def map_cx_spikes(self, cx_idxs):
-        axon_ids = self.map_cx_axon(cx_idxs)
-        atoms = self.map_cx_atoms(cx_idxs)
+    def map_spikes(self, compartment_idxs):
+        axon_ids = self.map_axon(compartment_idxs)
+        atoms = self.map_atoms(compartment_idxs)
         return [self.Spike(axon_id, atom=atom) if axon_id >= 0 else None
                 for axon_id, atom in zip(axon_ids, atoms)]
 
-    def set_axon_map(self, cx_to_axon_map, cx_atoms=None):
-        self.cx_to_axon_map = cx_to_axon_map
-        self.cx_atoms = cx_atoms
+    def set_axon_map(self, compartment_map, compartment_atoms=None):
+        self.compartment_map = compartment_map
+        self.compartment_atoms = compartment_atoms
 
 
-class SynapseFmt(Profile):
+class SynapseConfig(Config):
     INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
     WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
 
-    params = ('wgtLimitMant', 'wgtLimitExp', 'wgtExp', 'discMaxWgt',
-              'learningCfg', 'tagBits', 'dlyBits', 'wgtBits',
-              'reuseSynData', 'numSynapses', 'cIdxOffset', 'cIdxMult',
-              'skipBits', 'idxBits', 'synType', 'fanoutType',
-              'compression', 'stdpProfile', 'ignoreDly')
+    params = ('weight_limit_mant', 'weight_limit_exp', 'weight_exp',
+              'disc_max_weight', 'learning_cfg', 'tag_bits', 'delay_bits',
+              'weight_bits', 'reuse_synapse_data', 'n_synapses', 'idx_offset',
+              'idx_mult', 'skip_bits', 'idx_bits', 'synapse_type',
+              'fanout_type', 'compression', 'stdp_cfg', 'ignore_delay')
 
-    def __init__(self, wgtLimitMant=0, wgtLimitExp=0, wgtExp=0, discMaxWgt=0,
-                 learningCfg=0, tagBits=0, dlyBits=0, wgtBits=0,
-                 reuseSynData=0, numSynapses=0, cIdxOffset=0, cIdxMult=0,
-                 skipBits=0, idxBits=0, synType=0, fanoutType=0,
-                 compression=0, stdpProfile=0, ignoreDly=0):
-        self.wgtLimitMant = wgtLimitMant
-        self.wgtLimitExp = wgtLimitExp
-        self.wgtExp = wgtExp
-        self.discMaxWgt = discMaxWgt
-        self.learningCfg = learningCfg
-        self.tagBits = tagBits
-        self.dlyBits = dlyBits
-        self.wgtBits = wgtBits
-        self.reuseSynData = reuseSynData
-        self.numSynapses = numSynapses
-        self.cIdxOffset = cIdxOffset
-        self.cIdxMult = cIdxMult
-        self.skipBits = skipBits
-        self.idxBits = idxBits
-        self.synType = synType
-        self.fanoutType = fanoutType
+    def __init__(self, weight_limit_mant=0, weight_limit_exp=0, weight_exp=0,
+                 disc_max_weight=0, learning_cfg=0, tag_bits=0, delay_bits=0,
+                 weight_bits=0, reuse_synapse_data=0, n_synapses=0,
+                 idx_offset=0, idx_mult=0, skip_bits=0, idx_bits=0,
+                 synapse_type=0, fanout_type=0, compression=0, stdp_cfg=0,
+                 ignore_delay=0):
+        self.weight_limit_mant = weight_limit_mant
+        self.weight_limit_exp = weight_limit_exp
+        self.weight_exp = weight_exp
+        self.disc_max_weight = disc_max_weight
+        self.learning_cfg = learning_cfg
+        self.tag_bits = tag_bits
+        self.delay_bits = delay_bits
+        self.weight_bits = weight_bits
+        self.reuse_synapse_data = reuse_synapse_data
+        self.n_synapses = n_synapses
+        self.idx_offset = idx_offset
+        self.idx_mult = idx_mult
+        self.skip_bits = skip_bits
+        self.idx_bits = idx_bits
+        self.synapse_type = synapse_type
+        self.fanout_type = fanout_type
         self.compression = compression
-        self.stdpProfile = stdpProfile
-        self.ignoreDly = ignoreDly
+        self.stdp_cfg = stdp_cfg
+        self.ignore_delay = ignore_delay
 
     @classmethod
-    def get_realWgtExp(cls, wgtExp):
-        return 6 + wgtExp
+    def get_real_weight_exp(cls, weight_exp):
+        return 6 + weight_exp
 
     @classmethod
-    def get_scale(cls, wgtExp):
-        return 2**cls.get_realWgtExp(wgtExp)
+    def get_scale(cls, weight_exp):
+        return 2**cls.get_real_weight_exp(weight_exp)
 
     @property
-    def isMixed(self):
-        return self.fanoutType == 1
+    def is_mixed(self):
+        return self.fanout_type == 1
 
     @property
-    def realIdxBits(self):
-        return self.INDEX_BITS_MAP[self.idxBits]
+    def real_idx_bits(self):
+        return self.INDEX_BITS_MAP[self.idx_bits]
 
     @property
-    def realWgtBits(self):
-        return self.WEIGHT_BITS_MAP[self.wgtBits]
+    def real_weight_bits(self):
+        return self.WEIGHT_BITS_MAP[self.weight_bits]
 
     @property
-    def realWgtExp(self):
-        return self.get_realWgtExp(self.wgtExp)
+    def real_weight_exp(self):
+        return self.get_real_weight_exp(self.weight_exp)
 
     @property
     def scale(self):
-        return self.get_scale(self.wgtExp)
+        return self.get_scale(self.weight_exp)
 
     @property
     def shift_bits(self):
         """Number of bits the -256..255 weight is right-shifted by."""
-        return 8 - self.realWgtBits + self.isMixed
+        return 8 - self.real_weight_bits + self.is_mixed
 
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
-        bits_per_weight = self.realWgtBits + self.dlyBits + self.tagBits
+        bits_per_weight = (
+            self.real_weight_bits + self.delay_bits + self.tag_bits)
         if self.compression == 0:
-            bits_per_weight += self.realIdxBits
+            bits_per_weight += self.real_idx_bits
         elif self.compression == 3:
             pass
         else:
             raise NotImplementedError("Compression %s" % (self.compression,))
 
-        SYNAPSE_FMT_IDX_BITS = 4
-        N_SYNAPSES_BITS = 6
+        synapse_idx_bits = 4
+        n_synapses_bits = 6
         bits = 0
-        synapses_per_block = self.numSynapses + 1
+        synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
-            bits_i = n*bits_per_weight + SYNAPSE_FMT_IDX_BITS + N_SYNAPSES_BITS
+            bits_i = n*bits_per_weight + synapse_idx_bits + n_synapses_bits
             bits_i = -64 * (-bits_i // 64)
             # ^ round up to nearest 64 (size of one int64 memory unit)
             bits += bits_i
@@ -457,8 +460,8 @@ class Synapse:
 
     Attributes
     ----------
-    axon_cx_bases : list or None
-        List providing ax cx_base (compartment offset) for each input axon.
+    axon_compartment_bases : list or None
+        List providing base (compartment offset) for each input axon.
     axon_to_weight_map : dict or None
         Map from input axon index to weight index, to allow weights to be
         re-used by axons. If None, the weight index for an input axon is the
@@ -476,7 +479,7 @@ class Synapse:
     pop_type : int (0, 16, 32)
         Whether these synapses are discrete (0), pop16, or pop32. This
         determines the type of axons these synapses can connect to.
-    synapse_fmt : SynapseFmt
+    synapse_cfg : SynapseConfig
         The synapse format object for these synapses.
     tracing_mag : float
         Magnitude by which the learning trace is increased for each spike.
@@ -489,10 +492,10 @@ class Synapse:
     def __init__(self, n_axons, label=None):
         self.n_axons = n_axons
         self.label = label
-        self.synapse_fmt = None
+        self.synapse_cfg = None
         self.weights = None
         self.indices = None
-        self.axon_cx_bases = None
+        self.axon_compartment_bases = None
         self.axon_to_weight_map = None
 
         self.learning = False
@@ -521,13 +524,13 @@ class Synapse:
         else:
             return 12
 
-    def axon_cx_base(self, axon_idx):
-        if self.axon_cx_bases is None:
+    def axon_compartment_base(self, axon_idx):
+        if self.axon_compartment_bases is None:
             return 0
-        cx_base = self.axon_cx_bases[axon_idx]
+        base = self.axon_compartment_bases[axon_idx]
 
         # negative indicates unused axon
-        return cx_base if cx_base >= 0 else None
+        return base if base >= 0 else None
 
     def axon_populations(self, axon_idx):
         weight_idx = self.axon_weight_idx(axon_idx)
@@ -544,21 +547,21 @@ class Synapse:
         return w[atom, :], i[atom, :]
 
     def bits(self):
-        return sum(self.synapse_fmt.bits_per_axon(w.size)
+        return sum(self.synapse_cfg.bits_per_axon(w.size)
                    for w in self.weights)
 
     def format(self, **kwargs):
-        if self.synapse_fmt is None:
-            self.synapse_fmt = SynapseFmt()
-        self.synapse_fmt.set(**kwargs)
+        if self.synapse_cfg is None:
+            self.synapse_cfg = SynapseConfig()
+        self.synapse_cfg.set(**kwargs)
 
     def idx_bits(self):
-        idxBits = int(np.ceil(np.log2(self.max_ind() + 1)))
-        assert idxBits <= SynapseFmt.INDEX_BITS_MAP[-1], (
-            "idxBits out of range, ensemble too large?")
-        idxBits = next(i for i, v in enumerate(SynapseFmt.INDEX_BITS_MAP)
-                       if v >= idxBits)
-        return idxBits
+        bits = int(np.ceil(np.log2(self.max_ind() + 1)))
+        assert bits <= SynapseConfig.INDEX_BITS_MAP[-1], (
+            "bits out of range, ensemble too large?")
+        bits = next(i for i, v in enumerate(SynapseConfig.INDEX_BITS_MAP)
+                    if v >= bits)
+        return bits
 
     def idxs_per_synapse(self):
         return 2 if self.learning else 1
@@ -597,9 +600,14 @@ class Synapse:
         assert len(self.weights) == self.n_axons, (
             "Full weights must have different weights for each axon")
 
-        idxBits = self.idx_bits()
-        self.format(compression=3, idxBits=idxBits, fanoutType=1,
-                    numSynapses=63, wgtBits=7)
+        bits = self.idx_bits()
+        self.format(
+            compression=3,
+            idx_bits=bits,
+            fanout_type=1,
+            n_synapses=63,
+            weight_bits=7,
+        )
 
     def set_learning(
             self, learning_rate=1., tracing_tau=2, tracing_mag=1.0, wgt_exp=4):
@@ -608,8 +616,8 @@ class Synapse:
         self.learning = True
         self.tracing_tau = int(tracing_tau)
         self.tracing_mag = tracing_mag
-        self.format(learningCfg=1, stdpProfile=0)
-        # ^ stdpProfile hard-coded for now (see hardware.builder)
+        # stdp_cfg hard-coded for now (see hardware.builder)
+        self.format(learning_cfg=1, stdp_cfg=0)
 
         self.train_epoch = 2
         self.learn_epoch_k = 1
@@ -619,24 +627,26 @@ class Synapse:
         self.learning_wgt_exp = wgt_exp
 
     def set_population_weights(
-            self,
-            weights,
-            indices,
-            axon_to_weight_map,
-            cx_bases,
-            pop_type=None
+        self,
+        weights,
+        indices,
+        axon_to_weight_map,
+        compartment_bases,
+        pop_type=None
     ):
         self._set_weights_indices(weights, indices)
         self.axon_to_weight_map = axon_to_weight_map
-        self.axon_cx_bases = cx_bases
+        self.axon_compartment_bases = compartment_bases
         self.pop_type = 16 if pop_type is None else pop_type
 
-        idxBits = self.idx_bits()
-        self.format(compression=0,
-                    idxBits=idxBits,
-                    fanoutType=1,
-                    numSynapses=63,
-                    wgtBits=7)
+        idx_bits = self.idx_bits()
+        self.format(
+            compression=0,
+            idx_bits=idx_bits,
+            fanout_type=1,
+            n_synapses=63,
+            weight_bits=7,
+        )
 
     def size(self):
         return sum(w.size for w in self.weights)

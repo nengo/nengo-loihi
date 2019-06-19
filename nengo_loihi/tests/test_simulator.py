@@ -500,26 +500,26 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     offset = 0
 
     target = request.config.getoption("--target")
-    n_cx = 1000
+    n_compartments = 1000
 
     model = Model()
-    block = LoihiBlock(n_cx)
+    block = LoihiBlock(n_compartments)
     block.compartment.configure_relu()
 
     block.compartment.vmin = -1
 
-    block.compartment.enableNoise[:] = 1
-    block.compartment.noiseExp0 = exp
-    block.compartment.noiseMantOffset0 = offset
-    block.compartment.noiseAtDendOrVm = 1
+    block.compartment.enable_noise[:] = 1
+    block.compartment.noise_exp = exp
+    block.compartment.noise_offset = offset
+    block.compartment.noise_at_membrane = 1
 
     probe = Probe(target=block, key='voltage')
     block.add_probe(probe)
     model.add_block(block)
 
     discretize_model(model)
-    exp2 = block.compartment.noiseExp0
-    offset2 = block.compartment.noiseMantOffset0
+    exp2 = block.compartment.noise_exp
+    offset2 = block.compartment.noise_offset
 
     n_steps = 100
     if target == 'loihi':
@@ -536,7 +536,7 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     std = 2.**exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
     rmean = t * bias
     rstd = np.sqrt(t) * std
-    rerr = rstd / np.sqrt(n_cx)
+    rerr = rstd / np.sqrt(n_compartments)
     ymean = y.mean(axis=1)
     ystd = y.std(axis=1)
     diffs = np.diff(np.vstack([np.zeros_like(y[0]), y]), axis=0)
@@ -565,7 +565,7 @@ def test_population_input(request, allclose):
 
     n_inputs = 3
     n_axons = 1
-    n_cx = 2
+    n_compartments = 2
 
     steps = 6
     spike_times_inds = [(1, [0]),
@@ -584,7 +584,7 @@ def test_population_input(request, allclose):
     input_axon.set_axon_map(axon_map, atoms)
     input.add_axon(input_axon)
 
-    block = LoihiBlock(n_cx)
+    block = LoihiBlock(n_compartments)
     block.compartment.configure_lif(tau_rc=0., tau_ref=0., dt=dt)
     block.compartment.configure_filter(0, dt=dt)
     model.add_block(block)
@@ -593,9 +593,9 @@ def test_population_input(request, allclose):
     weights = 0.1 * np.array([[[1, 2], [2, 3], [4, 5]]], dtype=float)
     indices = np.array([[[0, 1], [0, 1], [0, 1]]], dtype=int)
     axon_to_weight_map = np.zeros(n_axons, dtype=int)
-    cx_bases = np.zeros(n_axons, dtype=int)
+    bases = np.zeros(n_axons, dtype=int)
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, cx_bases, pop_type=32)
+        weights, indices, axon_to_weight_map, bases, pop_type=32)
     block.add_synapse(synapse)
     input_axon.target = synapse
 

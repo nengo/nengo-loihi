@@ -135,13 +135,13 @@ def conv2d_loihi_weights(transform):
 
     weights = []
     indices = []
-    cx_bases = np.zeros(input_rows * input_cols, dtype=int)
+    offsets = np.zeros(input_rows * input_cols, dtype=int)
     axon_to_weight_map = np.zeros(input_rows * input_cols, dtype=int)
     weights_map = {}
     for i, j in itertools.product(range(input_rows), range(input_cols)):
         ij = i * input_cols + j
 
-        # unstrided cx indices that this input axon would map to
+        # unstrided compartment indices that this input axon would map to
         # if strides == 1 and mode == 'full'
         ri0, ri1 = i + 1 - transform.kernel_size[0], i + 1
         rj0, rj1 = j + 1 - transform.kernel_size[1], j + 1
@@ -153,8 +153,8 @@ def conv2d_loihi_weights(transform):
         wmask_j = (rj >= 0) & (rj < rj_max) & (rj % transform.strides[1] == 0)
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
-            # this axon is not needed, so indicate this in cx_bases and skip
-            cx_bases[ij] = -1
+            # this axon is not needed, so indicate this in offsets and skip
+            offsets[ij] = -1
             continue
 
         weight_key = (tuple(wmask_i), tuple(wmask_j))
@@ -205,12 +205,12 @@ def conv2d_loihi_weights(transform):
         yi0 = ri[wmask_i][0] // transform.strides[0]
         yj0 = rj[wmask_j][0] // transform.strides[1]
         if transform.channels_last:
-            cx_bases[ij] = (yi0 * output_cols + yj0) * transform.n_filters
+            offsets[ij] = (yi0 * output_cols + yj0) * transform.n_filters
         else:
-            cx_bases[ij] = yi0 * output_cols + yj0
+            offsets[ij] = yi0 * output_cols + yj0
 
         inds = indices[axon_to_weight_map[ij]]
-        assert (cx_bases[ij] + inds
+        assert (offsets[ij] + inds
                 < output_rows * output_cols * transform.n_filters).all()
 
-    return weights, indices, axon_to_weight_map, cx_bases
+    return weights, indices, axon_to_weight_map, offsets

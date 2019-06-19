@@ -68,6 +68,7 @@ except ImportError:
     HAS_NXSDK = False
     nxsdk_dir = None
     nxsdk_version = None
+    nxsdk = None
 
     exception = sys.exc_info()[1]
 
@@ -76,16 +77,15 @@ except ImportError:
 
 
 if HAS_NXSDK:
-    import nxsdk.compiler.microcodegen.interface as microcodegen_uci
-    from nxsdk.compiler.tracecfggen.tracecfggen import TraceCfgGen
-    from nxsdk.graph.nxboard import N2Board
-    from nxsdk.graph.nxinputgen import BasicSpikeGenerator
-    from nxsdk.graph.nxprobes import N2SpikeProbe
+    import nxsdk.compiler.microcodegen.interface as micro_gen
+    from nxsdk.compiler.tracecfggen.tracecfggen import (
+        TraceCfgGen as TraceConfigGenerator)
+    from nxsdk.graph.nxboard import N2Board as NxsdkBoard
+    from nxsdk.graph.nxinputgen import BasicSpikeGenerator as SpikeGen
+    from nxsdk.graph.nxprobes import N2SpikeProbe as SpikeProbe
 else:
-    BasicSpikeGenerator = None
-    microcodegen_uci = None
-    N2Board = None
-    N2SpikeProbe = None
-    TraceCfgGen = None
-    nxsdk = None
-    nxsdk_dir = None
+    micro_gen = None
+    TraceConfigGenerator = None
+    NxsdkBoard = None
+    SpikeGen = None
+    SpikeProbe = None

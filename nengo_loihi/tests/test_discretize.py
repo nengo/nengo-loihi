@@ -4,7 +4,7 @@ from nengo.utils.numpy import rms
 import numpy as np
 import pytest
 
-from nengo_loihi.block import LoihiBlock, SynapseFmt
+from nengo_loihi.block import LoihiBlock, SynapseConfig
 from nengo_loihi.builder import Model
 from nengo_loihi.decode_neurons import NoisyDecodeNeurons
 from nengo_loihi.discretize import (
@@ -110,7 +110,7 @@ def test_decay_magnitude(offset, plt, logger):
 def test_lossy_shift(lossy_shift, rng):
     wgt_bits = 6
     w = rng.uniform(-100, 100, size=(10, 10))
-    fmt = SynapseFmt(wgtBits=wgt_bits, wgtExp=0, fanoutType=0)
+    fmt = SynapseConfig(weight_bits=wgt_bits, weight_exp=0, fanout_type=0)
 
     w2 = discretize_weights(fmt, w, lossy_shift=lossy_shift)
 
