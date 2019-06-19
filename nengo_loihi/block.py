@@ -115,12 +115,14 @@ class Compartment:
     ----------
     bias : (n,) ndarray
         Compartment biases.
-    enable_noise : (n,) ndarray
-        Whether to enable noise for each compartment.
+    bap_action : (n,) ndarray
+        An integer representing the type of action to take on a spike.
     decay_u : (n,) ndarray
         Input (synapse) decay constant for each compartment.
     decay_v : (n,) ndarray
         Voltage decay constant for each compartment.
+    enableNoise : (n,) ndarray
+        Whether to enable noise for each compartment.
     label : string
         A label for the block (for debugging purposes).
     n_compartments : int
@@ -170,6 +172,7 @@ class Compartment:
         self.vth = np.zeros(n_compartments, dtype=np.float32)
         self.bias = np.zeros(n_compartments, dtype=np.float32)
         self.enable_noise = np.zeros(n_compartments, dtype=bool)
+        self.bap_action = np.ones(n_compartments, dtype=np.uint8)
 
         # parameters common to core
         self.vmin = 0

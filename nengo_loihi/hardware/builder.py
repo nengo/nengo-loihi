@@ -117,7 +117,7 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
                 b"ZGVjYXlV": cfg.decay_u,
                 b"cmVmcmFjdERlbGF5": cfg.refract_delay,
                 b"ZW5hYmxlTm9pc2U=": cfg.enable_noise,
-                b"YmFwQWN0aW9u": 1,
+                b"YmFwQWN0aW9u": cfg.bap_action,
             },
         )
 

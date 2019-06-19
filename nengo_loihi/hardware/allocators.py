@@ -42,6 +42,7 @@ def core_compartment_cfgs(core):
                     decay_v=block.compartment.decay_v[i],
                     refract_delay=block.compartment.refract_delay[i],
                     enable_noise=block.compartment.enable_noise[i],
+                    bap_action=block.compartment.bap_action[i],
                 )
             )
 
