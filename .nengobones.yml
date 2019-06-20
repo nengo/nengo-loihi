@@ -54,6 +54,7 @@ setup_py:
     - pytest-xdist>=1.26.0,<1.28.0
     - matplotlib>=2.0
     - scipy
+    - tensorflow<1.14
   classifiers:
     - "Development Status :: 3 - Alpha"
     - "Framework :: Nengo"

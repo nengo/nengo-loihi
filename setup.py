@@ -56,6 +56,7 @@ tests_req = [
     "pytest-xdist>=1.26.0,<1.28.0",
     "matplotlib>=2.0",
     "scipy",
+    "tensorflow<1.14",
 ]
 
 setup(
