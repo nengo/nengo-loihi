@@ -43,10 +43,20 @@ try:
             tmp_path = os.path.join(
                 tmp.name, name, os.path.basename(cFilePath))
             shutil.copyfile(cFilePath, tmp_path)
+            with open(cFilePath) as f0, open(tmp_path) as f1:
+                src = f0.read()
+                dst = f1.read()
+                if src != dst:
+                    print("=== SOURCE: %s" % (cFilePath,))
+                    print(src)
+                    print("\n=== DEST: %s" % (tmp_path,))
+                    print(dst)
+                    raise ValueError("Snip file not copied correctly")
 
             # Also copy all the include files
             include_path = os.path.join(tmp.name, name, "include")
             shutil.copytree(includeDir, include_path)
+            assert os.path.isdir(include_path), "Copy failed %s" % include_path
 
             return super().createProcess(
                 name, tmp_path, include_path, *args, **kwargs)
