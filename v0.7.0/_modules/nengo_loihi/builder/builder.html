@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>nengo_loihi.builder.builder &#8212; Nengo Loihi 0.7.0 docs</title>
+    <link rel="stylesheet" href="../../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../../../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../../../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../../../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../../../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../../../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../../../_static/js/custom.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"processClass": "math|output_area", "ignoreClass": "document", "inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}})</script>
+    <link rel="shortcut icon" href="../../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../../_static/custom.css">
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="_modules/nengo_loihi/builder/builder">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../../../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+<form id="form-search" class="form-search" action="../../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="body wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.7.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../../../_modules/nengo_loihi/builder/builder.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.7.0</div>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <h1>Source code for nengo_loihi.builder.builder</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">nengo</span> <span class="k">import</span> <span class="n">Ensemble</span><span class="p">,</span> <span class="n">Network</span><span class="p">,</span> <span class="n">Node</span><span class="p">,</span> <span class="n">Probe</span>
+<span class="kn">from</span> <span class="nn">nengo.builder</span> <span class="k">import</span> <span class="n">Model</span> <span class="k">as</span> <span class="n">NengoModel</span>
+<span class="kn">from</span> <span class="nn">nengo.builder.builder</span> <span class="k">import</span> <span class="n">Builder</span> <span class="k">as</span> <span class="n">NengoBuilder</span>
+<span class="kn">from</span> <span class="nn">nengo.builder.network</span> <span class="k">import</span> <span class="n">build_network</span>
+<span class="kn">from</span> <span class="nn">nengo.cache</span> <span class="k">import</span> <span class="n">NoDecoderCache</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.block</span> <span class="k">import</span> <span class="n">LoihiBlock</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.decode_neurons</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Preset10DecodeNeurons</span><span class="p">,</span>
+    <span class="n">OnOffDecodeNeurons</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.inputs</span> <span class="k">import</span> <span class="n">LoihiInput</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Model"><a class="viewcode-back" href="../../../api.html#nengo_loihi.builder.Model">[docs]</a><span class="k">class</span> <span class="nc">Model</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The data structure for the emulator/hardware simulator.</span>
+
+<span class="sd">    Defines methods for adding inputs and blocks. Also handles build</span>
+<span class="sd">    functions, and information associated with building the Nengo model.</span>
+
+<span class="sd">    Some of the Model attributes can be modified before the build process</span>
+<span class="sd">    to change how certain build functions work. Those attributes are listed</span>
+<span class="sd">    first in the attributes section below. To change them, create an instance</span>
+<span class="sd">    of `.Model` and pass it in to `.Simulator` along with your network::</span>
+
+<span class="sd">        model = nengo_loihi.builder.Model(dt=0.001)</span>
+<span class="sd">        model.pes_error_scale = 50.</span>
+
+<span class="sd">        with nengo_loihi.Simulator(network, model=model) as sim:</span>
+<span class="sd">            sim.run(1.0)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dt : float, optional (Default: 0.001)</span>
+<span class="sd">        The length of a simulator timestep, in seconds.</span>
+<span class="sd">    label : str, optional (Default: None)</span>
+<span class="sd">        A name or description to differentiate models.</span>
+<span class="sd">    builder : Builder, optional (Default: None)</span>
+<span class="sd">        A `.Builder` instance to keep track of build functions.</span>
+<span class="sd">        If None, the default builder will be used.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    Build parameters</span>
+
+<span class="sd">    decode_neurons : DecodeNeurons</span>
+<span class="sd">        Type of neurons used to facilitate decoded (NEF-style) connections.</span>
+<span class="sd">    decode_tau : float</span>
+<span class="sd">        Time constant of lowpass synaptic filter used with decode neurons.</span>
+<span class="sd">    intercept_limit : float</span>
+<span class="sd">        Limit for clipping intercepts, to avoid neurons with high gains.</span>
+<span class="sd">    node_neurons : DecodeNeurons</span>
+<span class="sd">        Type of neurons used to convert real-valued node outputs to spikes</span>
+<span class="sd">        for the chip.</span>
+<span class="sd">    pes_error_scale : float</span>
+<span class="sd">        Scaling for PES errors, before rounding and clipping to -127..127.</span>
+<span class="sd">    pes_wgt_exp : int</span>
+<span class="sd">        Learning weight exponent (base 2) for PES learning connections. This</span>
+<span class="sd">        controls the maximum weight magnitude (where a larger exponent means</span>
+<span class="sd">        larger potential weights, but lower weight resolution).</span>
+<span class="sd">    vth_nonspiking : float</span>
+<span class="sd">        Voltage threshold for non-spiking neurons (i.e. voltage decoders).</span>
+
+<span class="sd">    Internal attributes</span>
+
+<span class="sd">    blocks : list of LoihiBlock</span>
+<span class="sd">        List of Loihi blocks simulated by this model.</span>
+<span class="sd">    builder : Builder</span>
+<span class="sd">        The build functions used by this model.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        The length of a simulator timestep, in seconds.</span>
+<span class="sd">    chip2host_params : dict</span>
+<span class="sd">        Mapping from Nengo objects to any additional parameters associated</span>
+<span class="sd">        with those objects for use during the build process.</span>
+<span class="sd">    inputs : list of LoihiInput</span>
+<span class="sd">        List of inputs to this model.</span>
+<span class="sd">    label : str or None</span>
+<span class="sd">        A name or description to differentiate models.</span>
+<span class="sd">    objs : dict</span>
+<span class="sd">        Dictionary mapping from Nengo objects to Nengo Loihi objects.</span>
+<span class="sd">    params : dict</span>
+<span class="sd">        Mapping from objects to namedtuples containing parameters generated</span>
+<span class="sd">        in the build process.</span>
+<span class="sd">    probes : list</span>
+<span class="sd">        List of all probes. Probes must be added to this list in the build</span>
+<span class="sd">        process, as this list is used by Simulator.</span>
+<span class="sd">    seeded : dict</span>
+<span class="sd">        All objects are assigned a seed, whether the user defined the seed</span>
+<span class="sd">        or it was automatically generated. &#39;seeded&#39; keeps track of whether</span>
+<span class="sd">        the seed is user-defined. We consider the seed to be user-defined</span>
+<span class="sd">        if it was set directly on the object, or if a seed was set on the</span>
+<span class="sd">        network in which the object resides, or if a seed was set on any</span>
+<span class="sd">        ancestor network of the network in which the object resides.</span>
+<span class="sd">    seeds : dict</span>
+<span class="sd">        Mapping from objects to the integer seed assigned to that object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">builder</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span> <span class="k">if</span> <span class="n">builder</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">builder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_callback</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_cache</span> <span class="o">=</span> <span class="n">NoDecoderCache</span><span class="p">()</span>
+
+        <span class="c1"># TODO: these models may not look/behave exactly the same as</span>
+        <span class="c1"># standard nengo models, because they don&#39;t have a toplevel network</span>
+        <span class="c1"># built into them or configs set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host_pre</span> <span class="o">=</span> <span class="n">NengoModel</span><span class="p">(</span>
+            <span class="n">dt</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">),</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:host_pre, dt=</span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">dt</span><span class="p">),</span>
+            <span class="n">decoder_cache</span><span class="o">=</span><span class="n">NoDecoderCache</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">NengoModel</span><span class="p">(</span>
+            <span class="n">dt</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">),</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:host, dt=</span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">dt</span><span class="p">),</span>
+            <span class="n">decoder_cache</span><span class="o">=</span><span class="n">NoDecoderCache</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Objects created by the model for simulation on Loihi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="c1"># Will be filled in by the simulator __init__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Will be filled in by the network builder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">toplevel</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Resources used by the build process</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objs</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Holds data generated when building objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probe_conns</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seeded</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># --- other (typically standard) parameters</span>
+        <span class="c1"># Filter on decode neurons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decode_tau</span> <span class="o">=</span> <span class="mf">0.005</span>
+        <span class="c1"># ^TODO: how to choose this filter? Even though the input is spikes,</span>
+        <span class="c1"># it may not be absolutely necessary since tau_rc provides a filter,</span>
+        <span class="c1"># and maybe we don&#39;t want double filtering if connection has a filter</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decode_neurons</span> <span class="o">=</span> <span class="n">Preset10DecodeNeurons</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_neurons</span> <span class="o">=</span> <span class="n">OnOffDecodeNeurons</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="c1"># voltage threshold for non-spiking neurons (i.e. voltage decoders)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth_nonspiking</span> <span class="o">=</span> <span class="mi">10</span>
+
+        <span class="c1"># limit for clipping intercepts, to avoid neurons with high gains</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intercept_limit</span> <span class="o">=</span> <span class="mf">0.95</span>
+
+        <span class="c1"># scaling for PES errors, before rounding and clipping to -127..127</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pes_error_scale</span> <span class="o">=</span> <span class="mf">100.</span>
+
+        <span class="c1"># learning weight exponent for PES (controls the maximum weight</span>
+        <span class="c1"># magnitude/weight resolution)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pes_wgt_exp</span> <span class="o">=</span> <span class="mi">4</span>
+
+        <span class="c1"># Used to track interactions between host models</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chip2host_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chip2host_receivers</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host2chip_senders</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">needs_sender</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t pickle nengo_loihi.builder.Model&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t pickle nengo_loihi.builder.Model&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">LoihiInput</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">input</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="nb">input</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">LoihiBlock</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">block</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">[</span><span class="n">block</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Don&#39;t build the objects marked as &quot;to_remove&quot; by PassthroughSplit</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="o">.</span><span class="n">passthrough</span><span class="o">.</span><span class="n">to_remove</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">Node</span><span class="p">,</span> <span class="n">Ensemble</span><span class="p">,</span> <span class="n">Probe</span><span class="p">)):</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="o">.</span><span class="n">on_chip</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Note: callbacks for the host_model will not be invoked</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_model</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+            <span class="c1"># done for compatibility with nengo&lt;=2.8.0</span>
+            <span class="c1"># otherwise we could just copy over the initial</span>
+            <span class="c1"># seeding to all other models</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">seeds</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seeds</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">seeded</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">seeded</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span>
+
+        <span class="n">built</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_callback</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">built</span>
+
+    <span class="k">def</span> <span class="nf">has_built</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+<div class="viewcode-block" id="Model.host_model"><a class="viewcode-back" href="../../../api.html#nengo_loihi.builder.Model.host_model">[docs]</a>    <span class="k">def</span> <span class="nf">host_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the Model corresponding to where obj should be built.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="o">.</span><span class="n">is_precomputable</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_pre</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">host</span></div></div>
+
+
+<div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../api.html#nengo_loihi.builder.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">NengoBuilder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fills in the Loihi Model object based on the Nengo Network.</span>
+
+<span class="sd">    We cannot use the Nengo builder as is because we make normal Nengo</span>
+<span class="sd">    networks for host-to-chip and chip-to-host communication. To keep</span>
+<span class="sd">    Nengo and Nengo Loihi builders separate, we make a blank subclass,</span>
+<span class="sd">    which effectively copies the class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">builders</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<span class="n">Builder</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Network</span><span class="p">)(</span><span class="n">build_network</span><span class="p">)</span>
+</pre></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row search">
+<form id="form-search" class="form-search" action="../../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

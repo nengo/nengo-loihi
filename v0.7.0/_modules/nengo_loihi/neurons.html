@@ -1,0 +1,502 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>nengo_loihi.neurons &#8212; Nengo Loihi 0.7.0 docs</title>
+    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../../_static/js/custom.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"processClass": "math|output_area", "ignoreClass": "document", "inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}})</script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="_modules/nengo_loihi/neurons">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="body wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.7.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../../_modules/nengo_loihi/neurons.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.7.0</div>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <h1>Source code for nengo_loihi.neurons</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">nengo.neurons</span> <span class="k">import</span> <span class="n">LIF</span><span class="p">,</span> <span class="n">SpikingRectifiedLinear</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.compat</span> <span class="k">import</span> <span class="n">HAS_TF</span><span class="p">,</span> <span class="n">tf</span>
+
+
+<span class="k">def</span> <span class="nf">discretize_tau_rc</span><span class="p">(</span><span class="n">tau_rc</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Discretize tau_rc as per discretize_compartment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tau_rc : float</span>
+<span class="sd">        The neuron membrane time constant.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        The simulator time step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">tf</span> <span class="k">if</span> <span class="n">HAS_TF</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tau_rc</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span>
+
+    <span class="n">decay_rc</span> <span class="o">=</span> <span class="o">-</span><span class="n">lib</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span> <span class="o">/</span> <span class="n">tau_rc</span><span class="p">)</span>
+    <span class="n">decay_rc</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">decay_rc</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">dt</span> <span class="o">/</span> <span class="n">lib</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="o">-</span><span class="n">decay_rc</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">discretize_tau_ref</span><span class="p">(</span><span class="n">tau_ref</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Discretize tau_ref as per Compartment.configure_lif.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tau_rc : float</span>
+<span class="sd">        The neuron membrane time constant.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        The simulator time step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">tf</span> <span class="k">if</span> <span class="n">HAS_TF</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tau_ref</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span>
+
+    <span class="k">return</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">lib</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tau_ref</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">loihi_lif_rates</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="n">tau_ref</span> <span class="o">=</span> <span class="n">discretize_tau_ref</span><span class="p">(</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">tau_ref</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="n">tau_rc</span> <span class="o">=</span> <span class="n">discretize_tau_rc</span><span class="p">(</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">tau_rc</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+
+    <span class="n">j</span> <span class="o">=</span> <span class="n">neuron_type</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="n">tau_ref</span> <span class="o">+</span> <span class="n">tau_rc</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">j</span><span class="p">[</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">period</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">loihi_spikingrectifiedlinear_rates</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">neuron_type</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">j</span><span class="p">[</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">period</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span> <span class="nf">_broadcast_rates_inputs</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">gain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gain</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">gain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span>
+
+
+<span class="k">def</span> <span class="nf">loihi_rates</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span> <span class="o">=</span> <span class="n">_broadcast_rates_inputs</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">)</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">loihi_rate_functions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loihi_rate_functions</span><span class="p">[</span><span class="bp">cls</span><span class="p">](</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">neuron_type</span><span class="o">.</span><span class="n">rates</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">nengo_rates</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Call NeuronType.rates with Nengo 3.0 broadcasting rules&quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span> <span class="o">=</span> <span class="n">_broadcast_rates_inputs</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">neuron_type</span><span class="o">.</span><span class="n">rates</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">)</span>
+
+
+<span class="n">loihi_rate_functions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">LIF</span><span class="p">:</span> <span class="n">loihi_lif_rates</span><span class="p">,</span>
+    <span class="n">SpikingRectifiedLinear</span><span class="p">:</span> <span class="n">loihi_spikingrectifiedlinear_rates</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="LoihiLIF"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiLIF">[docs]</a><span class="k">class</span> <span class="nc">LoihiLIF</span><span class="p">(</span><span class="n">LIF</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulate LIF neurons as done by Loihi.</span>
+
+<span class="sd">    On Loihi, the inter-spike interval has to be an integer. This causes</span>
+<span class="sd">    aliasing the firing rates where a wide variety of inputs can produce the</span>
+<span class="sd">    same output firing rate. This class reproduces this effect, as well as</span>
+<span class="sd">    the discretization of some of the neuron parameters. It can be used in</span>
+<span class="sd">    e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nengo_dl_noise : NeuronOutputNoise</span>
+<span class="sd">        Noise added to the rate-neuron output when training with this neuron</span>
+<span class="sd">        type in ``nengo_dl``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">tau_rc</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
+            <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
+            <span class="n">min_voltage</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">amplitude</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">nengo_dl_noise</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LoihiLIF</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">tau_rc</span><span class="o">=</span><span class="n">tau_rc</span><span class="p">,</span>
+            <span class="n">tau_ref</span><span class="o">=</span><span class="n">tau_ref</span><span class="p">,</span>
+            <span class="n">min_voltage</span><span class="o">=</span><span class="n">min_voltage</span><span class="p">,</span>
+            <span class="n">amplitude</span><span class="o">=</span><span class="n">amplitude</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nengo_dl_noise</span> <span class="o">=</span> <span class="n">nengo_dl_noise</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_argreprs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LoihiLIF</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_argreprs</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nengo_dl_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;nengo_dl_noise=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">nengo_dl_noise</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">args</span>
+
+<div class="viewcode-block" id="LoihiLIF.rates"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiLIF.rates">[docs]</a>    <span class="k">def</span> <span class="nf">rates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">loihi_lif_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LoihiLIF.step_math"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiLIF.step_math">[docs]</a>    <span class="k">def</span> <span class="nf">step_math</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">spiked</span><span class="p">,</span> <span class="n">voltage</span><span class="p">,</span> <span class="n">refractory_time</span><span class="p">):</span>
+        <span class="n">tau_ref</span> <span class="o">=</span> <span class="n">discretize_tau_ref</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_ref</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+
+        <span class="n">refractory_time</span> <span class="o">-=</span> <span class="n">dt</span>
+        <span class="n">delta_t</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt</span> <span class="o">-</span> <span class="n">refractory_time</span><span class="p">)</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">voltage</span> <span class="o">-=</span> <span class="p">(</span><span class="n">J</span> <span class="o">-</span> <span class="n">voltage</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">delta_t</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_rc</span><span class="p">)</span>
+
+        <span class="n">spiked_mask</span> <span class="o">=</span> <span class="n">voltage</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="n">spiked</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">spiked_mask</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+
+        <span class="n">voltage</span><span class="p">[</span><span class="n">voltage</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_voltage</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_voltage</span>
+        <span class="n">voltage</span><span class="p">[</span><span class="n">spiked_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">refractory_time</span><span class="p">[</span><span class="n">spiked_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">tau_ref</span> <span class="o">+</span> <span class="n">dt</span></div></div>
+
+
+<div class="viewcode-block" id="LoihiSpikingRectifiedLinear"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear">[docs]</a><span class="k">class</span> <span class="nc">LoihiSpikingRectifiedLinear</span><span class="p">(</span><span class="n">SpikingRectifiedLinear</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulate spiking rectified linear neurons as done by Loihi.</span>
+
+<span class="sd">    On Loihi, the inter-spike interval has to be an integer. This causes</span>
+<span class="sd">    aliasing in the firing rates such that a wide variety of inputs produce the</span>
+<span class="sd">    same output firing rate. This class reproduces this effect. It can be used</span>
+<span class="sd">    in e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LoihiSpikingRectifiedLinear.rates"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.rates">[docs]</a>    <span class="k">def</span> <span class="nf">rates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">loihi_spikingrectifiedlinear_rates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LoihiSpikingRectifiedLinear.step_math"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.step_math">[docs]</a>    <span class="k">def</span> <span class="nf">step_math</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">spiked</span><span class="p">,</span> <span class="n">voltage</span><span class="p">):</span>
+        <span class="n">voltage</span> <span class="o">+=</span> <span class="n">J</span> <span class="o">*</span> <span class="n">dt</span>
+
+        <span class="n">spiked_mask</span> <span class="o">=</span> <span class="n">voltage</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="n">spiked</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">spiked_mask</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">amplitude</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>
+
+        <span class="n">voltage</span><span class="p">[</span><span class="n">voltage</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">voltage</span><span class="p">[</span><span class="n">spiked_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+
+
+<div class="viewcode-block" id="NeuronOutputNoise"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.NeuronOutputNoise">[docs]</a><span class="k">class</span> <span class="nc">NeuronOutputNoise</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Noise added to the output of a rate neuron.</span>
+
+<span class="sd">    Often used when training deep networks with rate neurons for final</span>
+<span class="sd">    implementation in spiking neurons to simulate the variability</span>
+<span class="sd">    caused by spiking.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="LowpassRCNoise"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.LowpassRCNoise">[docs]</a><span class="k">class</span> <span class="nc">LowpassRCNoise</span><span class="p">(</span><span class="n">NeuronOutputNoise</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Noise model combining Lowpass synapse and neuron membrane filters.</span>
+
+<span class="sd">    Samples &quot;noise&quot; (i.e. variability) from a regular spike train filtered</span>
+<span class="sd">    by the following transfer function, where :math:`\\tau_{rc}` is the</span>
+<span class="sd">    membrane time constant and :math:`\\tau_s` is the synapse time constant:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        H(s) = [(\\tau_s s + 1) (\\tau_{rc} s + 1)]^{-1}</span>
+
+<span class="sd">    See [1]_ for background and derivations.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tau_s : float</span>
+<span class="sd">        Time constant for Lowpass synaptic filter.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] E. Hunsberger (2018) &quot;Spiking Deep Neural Networks: Engineered and</span>
+<span class="sd">       Biological Approaches to Object Recognition.&quot; PhD thesis. pp. 106--113.</span>
+<span class="sd">       (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="o">=</span> <span class="n">tau_s</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(tau_s=</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AlphaRCNoise"><a class="viewcode-back" href="../../api.html#nengo_loihi.neurons.AlphaRCNoise">[docs]</a><span class="k">class</span> <span class="nc">AlphaRCNoise</span><span class="p">(</span><span class="n">NeuronOutputNoise</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Noise model combining Alpha synapse and neuron membrane filters.</span>
+
+<span class="sd">    Samples &quot;noise&quot; (i.e. variability) from a regular spike train filtered</span>
+<span class="sd">    by the following transfer function, where :math:`\\tau_{rc}` is the</span>
+<span class="sd">    membrane time constant and :math:`\\tau_s` is the synapse time constant:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        H(s) = [(\\tau_s s + 1)^2 (\\tau_{rc} s + 1)]^{-1}</span>
+
+<span class="sd">    See [1]_ for background and derivations.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tau_s : float</span>
+<span class="sd">        Time constant for Alpha synaptic filter.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] E. Hunsberger (2018) &quot;Spiking Deep Neural Networks: Engineered and</span>
+<span class="sd">       Biological Approaches to Object Recognition.&quot; PhD thesis. pp. 106--113.</span>
+<span class="sd">       (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="o">=</span> <span class="n">tau_s</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(tau_s=</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">)</span></div>
+</pre></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row search">
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>

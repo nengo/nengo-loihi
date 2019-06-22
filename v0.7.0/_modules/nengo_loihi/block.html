@@ -1,0 +1,952 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>nengo_loihi.block &#8212; Nengo Loihi 0.7.0 docs</title>
+    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../../_static/js/custom.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"processClass": "math|output_area", "ignoreClass": "document", "inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}})</script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="_modules/nengo_loihi/block">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="body wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.7.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../../_modules/nengo_loihi/block.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.7.0</div>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <h1>Source code for nengo_loihi.block</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">from</span> <span class="nn">nengo.exceptions</span> <span class="k">import</span> <span class="n">BuildError</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.nxsdk_obfuscation</span> <span class="k">import</span> <span class="n">d</span>
+
+
+<div class="viewcode-block" id="LoihiBlock"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.LoihiBlock">[docs]</a><span class="k">class</span> <span class="nc">LoihiBlock</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class holding Loihi objects that can be placed on the chip.</span>
+
+<span class="sd">    This class can be thought of as a block of the Loihi board, and is how</span>
+<span class="sd">    Nengo Loihi keeps track of how Loihi Neuron cores will be configured.</span>
+<span class="sd">    Generally, the job of the build process is to convert Nengo objects</span>
+<span class="sd">    (ensembles, connections, nodes, and probes) to LoihiBlocks, which</span>
+<span class="sd">    will then be used by the `.EmulatorInterface` or `.HardwareInterface`.</span>
+
+<span class="sd">    Initially, parameters in a LoihiBlock are floating point values.</span>
+<span class="sd">    The `.discretize_block` function converts them to integer values inplace</span>
+<span class="sd">    for use on Loihi.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    axons : list of Axon</span>
+<span class="sd">        Axon objects outputting from the compartments in the block.</span>
+<span class="sd">    compartment : Compartment</span>
+<span class="sd">        Compartment object representing all compartments in the block.</span>
+<span class="sd">    n_neurons : int</span>
+<span class="sd">        The number of neurons in the block.</span>
+<span class="sd">    named_synapses : dict {str: Synape}</span>
+<span class="sd">        Mapping from a name to a Synapse object.</span>
+<span class="sd">    label : string</span>
+<span class="sd">        A label for the block (for debugging purposes).</span>
+<span class="sd">    probes : list of Probe</span>
+<span class="sd">        Probes recording information from objects in the block.</span>
+<span class="sd">    synapses : list of Synapse</span>
+<span class="sd">        Synapse objects projecting to compartments in the block.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_neurons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_neurons</span> <span class="o">=</span> <span class="n">n_neurons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment</span> <span class="o">=</span> <span class="n">Compartment</span><span class="p">(</span><span class="n">n_compartments</span><span class="o">=</span><span class="n">n_neurons</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_synapse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">synapse</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">synapse</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">named_synapses</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">synapse</span>
+
+    <span class="k">def</span> <span class="nf">add_axon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axon</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_probe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">probe</span><span class="o">.</span><span class="n">target</span> <span class="ow">is</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Compartment"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment">[docs]</a><span class="k">class</span> <span class="nc">Compartment</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Stores information for configuring Loihi compartments.</span>
+
+<span class="sd">    The information stored here will be associated with some block,</span>
+<span class="sd">    and all compartments will share certain information.</span>
+<span class="sd">    While compartments are usually thought of neurons, we use compartments</span>
+<span class="sd">    to implement Nengo ensembles, nodes, and connection through special</span>
+<span class="sd">    decode neurons.</span>
+
+<span class="sd">    Before `.discretize_compartment` has been called, most attributes in</span>
+<span class="sd">    this class are floating-point values. Calling `.discretize_compartment`</span>
+<span class="sd">    converts them to integer values inplace for use on Loihi.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    bias : (n,) ndarray</span>
+<span class="sd">        Compartment biases.</span>
+<span class="sd">    enable_noise : (n,) ndarray</span>
+<span class="sd">        Whether to enable noise for each compartment.</span>
+<span class="sd">    decay_u : (n,) ndarray</span>
+<span class="sd">        Input (synapse) decay constant for each compartment.</span>
+<span class="sd">    decay_v : (n,) ndarray</span>
+<span class="sd">        Voltage decay constant for each compartment.</span>
+<span class="sd">    label : string</span>
+<span class="sd">        A label for the block (for debugging purposes).</span>
+<span class="sd">    n_compartments : int</span>
+<span class="sd">        The number of compartments in the block.</span>
+<span class="sd">    noise_at_membrane : {0, 1}</span>
+<span class="sd">        Inject noise into current (0) or voltage (1).</span>
+<span class="sd">    noise_exp : float or int</span>
+<span class="sd">        Exponent for noise generation. Floating point values are base 10</span>
+<span class="sd">        in units of current or voltage. Integer values are in base 2.</span>
+<span class="sd">    noise_offset : float or int</span>
+<span class="sd">        Offset for noise generation.</span>
+<span class="sd">    refract_delay : (n,) ndarray</span>
+<span class="sd">        Compartment refractory delays, in time steps.</span>
+<span class="sd">    scale_u : bool</span>
+<span class="sd">        Scale input (U) by decay_u so that the integral of U is</span>
+<span class="sd">        the same before and after filtering.</span>
+<span class="sd">    scale_v : bool</span>
+<span class="sd">        Scale voltage (V) by decay_v so that the integral of V is</span>
+<span class="sd">        the same before and after filtering.</span>
+<span class="sd">    tau_s : float or None</span>
+<span class="sd">        Time constant used to set decay_u. None if decay_u has not been set.</span>
+<span class="sd">    vmax : float or int (range [2**9 - 1, 2**23 - 1])</span>
+<span class="sd">        Maximum voltage for all compartments, in the same units as ``vth``.</span>
+<span class="sd">    vmin : float or int (range [-2**23 + 1, 0])</span>
+<span class="sd">        Minimum voltage for all compartments, in the same units as ``vth``.</span>
+<span class="sd">    vth : (n,) ndarray</span>
+<span class="sd">        Compartment voltage thresholds.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># threshold at which U/V scaling is allowed</span>
+    <span class="n">DECAY_SCALE_TH</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NDA5Ng==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>  <span class="c1"># half of decay scaling unit</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_compartments</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_compartments</span> <span class="o">=</span> <span class="n">n_compartments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+
+        <span class="c1"># parameters specific to compartments/block</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="c1"># ^ default to no filter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="c1"># ^ default to integration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refract_delay</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_compartments</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="c1"># parameters common to core</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_exp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_at_membrane</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Compartment.configure_default_filter"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment.configure_default_filter">[docs]</a>    <span class="k">def</span> <span class="nf">configure_default_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the default Lowpass synaptic input filter for compartments.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_s : float</span>
+<span class="sd">            `nengo.Lowpass` synapse time constant for filtering.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># don&#39;t overwrite a non-default filter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_configure_filter</span><span class="p">(</span><span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Compartment.configure_filter"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment.configure_filter">[docs]</a>    <span class="k">def</span> <span class="nf">configure_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set Lowpass synaptic input filter for compartments.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_s : float</span>
+<span class="sd">            `nengo.Lowpass` synapse time constant for filtering.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tau_s</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;tau_s is already set to </span><span class="si">%g</span><span class="s2">, which is larger than &quot;</span>
+                          <span class="s2">&quot;</span><span class="si">%g</span><span class="s2">. Using </span><span class="si">%g</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">))</span>
+            <span class="k">return</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tau_s</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;tau_s is currently </span><span class="si">%g</span><span class="s2">, which is smaller than </span><span class="si">%g</span><span class="s2">. Overwriting &quot;</span>
+                <span class="s2">&quot;tau_s with </span><span class="si">%g</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configure_filter</span><span class="p">(</span><span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_s</span> <span class="o">=</span> <span class="n">tau_s</span></div>
+
+    <span class="k">def</span> <span class="nf">_configure_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_s</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="n">decay_u</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">tau_s</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_s</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_u</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">decay_u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span> <span class="o">=</span> <span class="n">decay_u</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">DECAY_SCALE_TH</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_u</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                <span class="s2">&quot;Current (U) scaling is required. Perhaps a synapse time &quot;</span>
+                <span class="s2">&quot;constant is too large in your model.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Compartment.configure_lif"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment.configure_lif">[docs]</a>    <span class="k">def</span> <span class="nf">configure_lif</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_rc</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+                      <span class="n">min_voltage</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Configure these compartments as individual LIF neurons.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_rc : float</span>
+<span class="sd">            Membrane time constant (in seconds) of the neurons.</span>
+<span class="sd">        tau_ref : float</span>
+<span class="sd">            Refractory period (in seconds) of the neurons.</span>
+<span class="sd">        vth : float</span>
+<span class="sd">            Voltage firing threshold of the neurons.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step length (in seconds).</span>
+<span class="sd">        min_voltage : float</span>
+<span class="sd">            The minimum voltage for the neurons.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">expm1</span><span class="p">(</span><span class="o">-</span><span class="n">dt</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau_rc</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refract_delay</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tau_ref</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="n">min_voltage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">DECAY_SCALE_TH</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BuildError</span><span class="p">(</span>
+                <span class="s2">&quot;Voltage (V) scaling is required with LIF neurons. Perhaps &quot;</span>
+                <span class="s2">&quot;the neuron tau_rc time constant is too large.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Compartment.configure_nonspiking"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment.configure_nonspiking">[docs]</a>    <span class="k">def</span> <span class="nf">configure_nonspiking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Configure these compartments as individual non-spiking neurons.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_ref : float</span>
+<span class="sd">            Refractory period (in seconds) of the neurons.</span>
+<span class="sd">        vth : float</span>
+<span class="sd">            Voltage firing threshold of the neurons.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step length (in seconds).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refract_delay</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Compartment.configure_relu"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Compartment.configure_relu">[docs]</a>    <span class="k">def</span> <span class="nf">configure_relu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau_ref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Configure these compartments as individual Rectified Linear neurons.</span>
+
+<span class="sd">        These are also known as non-leaky integrate-and-fire neurons. The</span>
+<span class="sd">        voltage is the integral of the input current.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tau_ref : float</span>
+<span class="sd">            Refractory period (in seconds) of the neurons.</span>
+<span class="sd">        vth : float</span>
+<span class="sd">            Voltage firing threshold of the neurons.</span>
+<span class="sd">        dt : float</span>
+<span class="sd">            Simulator time step length (in seconds).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_v</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refract_delay</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tau_ref</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vth</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">vth</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_v</span> <span class="o">=</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="Axon"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Axon">[docs]</a><span class="k">class</span> <span class="nc">Axon</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A group of axons targeting a specific Synapse object.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    compartment_atoms : list of length ``block.n_neurons``</span>
+<span class="sd">        Atom (weight index) associated with each block compartment.</span>
+<span class="sd">    compartment_map : list of length ``block.n_neurons``</span>
+<span class="sd">        Index of the axon in ``target`` targeted by each block compartment.</span>
+<span class="sd">    n_axons : int</span>
+<span class="sd">        The number of outgoing axons.</span>
+<span class="sd">    target : Synapse</span>
+<span class="sd">        Target synapses for these axons.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Axon.Spike"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Axon.Spike">[docs]</a>    <span class="k">class</span> <span class="nc">Spike</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;A spike targeting a particular axon within a Synapse object.</span>
+
+<span class="sd">        The Synapse target is implicit, given by the Axon object that</span>
+<span class="sd">        creates this Spike.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        axon_id : int</span>
+<span class="sd">            The index of the axon within the targeted Synapse object.</span>
+<span class="sd">        atom : int, optional (Default: 0)</span>
+<span class="sd">            An index into the target Synapse weights. This allows spikes</span>
+<span class="sd">            targeting a particular axon to use different weights.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;axon_id&#39;</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon_id</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axon_id</span> <span class="o">=</span> <span class="n">axon_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom</span> <span class="o">=</span> <span class="n">atom</span>
+
+        <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(axon_id=</span><span class="si">%d</span><span class="s2">, atom=</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_axons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">=</span> <span class="n">n_axons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment_map</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment_atoms</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pop_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">pop_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">slots_per_axon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of axon_cfg slots occupied by each axon.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pop_type</span> <span class="o">==</span> <span class="mi">32</span> <span class="k">else</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="Axon.axon_slots"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Axon.axon_slots">[docs]</a>    <span class="k">def</span> <span class="nf">axon_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The total number of axon_cfg slots used by all axons.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">slots_per_axon</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span></div>
+
+    <span class="k">def</span> <span class="nf">map_axon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compartment_idxs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compartment_map</span><span class="p">[</span><span class="n">compartment_idxs</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compartment_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">compartment_idxs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">map_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compartment_idxs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compartment_atoms</span><span class="p">[</span><span class="n">compartment_idxs</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compartment_atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span>
+                <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">compartment_idxs</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">map_spikes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compartment_idxs</span><span class="p">):</span>
+        <span class="n">axon_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_axon</span><span class="p">(</span><span class="n">compartment_idxs</span><span class="p">)</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">map_atoms</span><span class="p">(</span><span class="n">compartment_idxs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Spike</span><span class="p">(</span><span class="n">axon_id</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">atom</span><span class="p">)</span> <span class="k">if</span> <span class="n">axon_id</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">axon_id</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axon_ids</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">set_axon_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compartment_map</span><span class="p">,</span> <span class="n">compartment_atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment_map</span> <span class="o">=</span> <span class="n">compartment_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compartment_atoms</span> <span class="o">=</span> <span class="n">compartment_atoms</span></div>
+
+
+<span class="k">class</span> <span class="nc">SynapseConfig</span><span class="p">(</span><span class="n">Config</span><span class="p">):</span>
+    <span class="n">INDEX_BITS_MAP</span> <span class="o">=</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;WzAsIDYsIDcsIDgsIDksIDEwLCAxMSwgMTJd&#39;</span><span class="p">,</span> <span class="s2">&quot;list_int&quot;</span><span class="p">)</span>
+    <span class="n">WEIGHT_BITS_MAP</span> <span class="o">=</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;WzAsIDEsIDIsIDMsIDQsIDUsIDYsIDhd&#39;</span><span class="p">,</span> <span class="s2">&quot;list_int&quot;</span><span class="p">)</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;weight_limit_mant&#39;</span><span class="p">,</span> <span class="s1">&#39;weight_limit_exp&#39;</span><span class="p">,</span> <span class="s1">&#39;weight_exp&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;disc_max_weight&#39;</span><span class="p">,</span> <span class="s1">&#39;learning_cfg&#39;</span><span class="p">,</span> <span class="s1">&#39;tag_bits&#39;</span><span class="p">,</span> <span class="s1">&#39;delay_bits&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;weight_bits&#39;</span><span class="p">,</span> <span class="s1">&#39;reuse_synapse_data&#39;</span><span class="p">,</span> <span class="s1">&#39;n_synapses&#39;</span><span class="p">,</span> <span class="s1">&#39;idx_offset&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;idx_mult&#39;</span><span class="p">,</span> <span class="s1">&#39;skip_bits&#39;</span><span class="p">,</span> <span class="s1">&#39;idx_bits&#39;</span><span class="p">,</span> <span class="s1">&#39;synapse_type&#39;</span><span class="p">,</span>
+              <span class="s1">&#39;fanout_type&#39;</span><span class="p">,</span> <span class="s1">&#39;compression&#39;</span><span class="p">,</span> <span class="s1">&#39;stdp_cfg&#39;</span><span class="p">,</span> <span class="s1">&#39;ignore_delay&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight_limit_mant</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weight_limit_exp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weight_exp</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">disc_max_weight</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">learning_cfg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">tag_bits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">delay_bits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">weight_bits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reuse_synapse_data</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_synapses</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">idx_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_mult</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">skip_bits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx_bits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">synapse_type</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fanout_type</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stdp_cfg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">ignore_delay</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_limit_mant</span> <span class="o">=</span> <span class="n">weight_limit_mant</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_limit_exp</span> <span class="o">=</span> <span class="n">weight_limit_exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_exp</span> <span class="o">=</span> <span class="n">weight_exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disc_max_weight</span> <span class="o">=</span> <span class="n">disc_max_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_cfg</span> <span class="o">=</span> <span class="n">learning_cfg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag_bits</span> <span class="o">=</span> <span class="n">tag_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delay_bits</span> <span class="o">=</span> <span class="n">delay_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight_bits</span> <span class="o">=</span> <span class="n">weight_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reuse_synapse_data</span> <span class="o">=</span> <span class="n">reuse_synapse_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_synapses</span> <span class="o">=</span> <span class="n">n_synapses</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_offset</span> <span class="o">=</span> <span class="n">idx_offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_mult</span> <span class="o">=</span> <span class="n">idx_mult</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_bits</span> <span class="o">=</span> <span class="n">skip_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_bits</span> <span class="o">=</span> <span class="n">idx_bits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse_type</span> <span class="o">=</span> <span class="n">synapse_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fanout_type</span> <span class="o">=</span> <span class="n">fanout_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression</span> <span class="o">=</span> <span class="n">compression</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdp_cfg</span> <span class="o">=</span> <span class="n">stdp_cfg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_delay</span> <span class="o">=</span> <span class="n">ignore_delay</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_real_weight_exp</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">weight_exp</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Ng==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">+</span> <span class="n">weight_exp</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_scale</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">weight_exp</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="bp">cls</span><span class="o">.</span><span class="n">get_real_weight_exp</span><span class="p">(</span><span class="n">weight_exp</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_mixed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fanout_type</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">real_idx_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_bits</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">real_weight_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">WEIGHT_BITS_MAP</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_bits</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">real_weight_exp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_real_weight_exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_exp</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_scale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_exp</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shift_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Number of bits the weight is right-shifted by.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;OA==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_weight_bits</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_mixed</span>
+
+    <span class="k">def</span> <span class="nf">bits_per_axon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_weights</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;For an axon with n weights, compute the weight memory bits used&quot;&quot;&quot;</span>
+        <span class="n">bits_per_weight</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">real_weight_bits</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delay_bits</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag_bits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MA==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">bits_per_weight</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_idx_bits</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">compression</span> <span class="o">==</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Mw==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Compression </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compression</span><span class="p">,))</span>
+
+        <span class="n">synapse_idx_bits</span> <span class="o">=</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NA==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">n_synapses_bits</span> <span class="o">=</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Ng==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">synapses_per_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_synapses</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_weights</span><span class="p">,</span> <span class="n">synapses_per_block</span><span class="p">):</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">n_weights</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span> <span class="n">synapses_per_block</span><span class="p">)</span>
+            <span class="n">bits_i</span> <span class="o">=</span> <span class="n">n</span><span class="o">*</span><span class="n">bits_per_weight</span> <span class="o">+</span> <span class="n">synapse_idx_bits</span> <span class="o">+</span> <span class="n">n_synapses_bits</span>
+            <span class="c1"># round up to nearest memory unit</span>
+            <span class="n">bits_i</span> <span class="o">=</span> <span class="o">-</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NjQ=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">bits_i</span> <span class="o">//</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NjQ=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+            <span class="n">bits</span> <span class="o">+=</span> <span class="n">bits_i</span>
+
+        <span class="k">return</span> <span class="n">bits</span>
+
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Synapse"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Synapse">[docs]</a><span class="k">class</span> <span class="nc">Synapse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A group of Loihi synapses that share some properties.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    axon_compartment_bases : list or None</span>
+<span class="sd">        List providing base (compartment offset) for each input axon.</span>
+<span class="sd">    axon_to_weight_map : dict or None</span>
+<span class="sd">        Map from input axon index to weight index, to allow weights to be</span>
+<span class="sd">        re-used by axons. If None, the weight index for an input axon is the</span>
+<span class="sd">        axon index.</span>
+<span class="sd">    indices : (population, axon, compartment) ndarray</span>
+<span class="sd">        The synapse indices.</span>
+<span class="sd">    learning : bool</span>
+<span class="sd">        Whether synaptic tracing and learning is enabled for these synapses.</span>
+<span class="sd">    learning_rate : float</span>
+<span class="sd">        The learning rate.</span>
+<span class="sd">    learning_wgt_exp : int</span>
+<span class="sd">        The weight exponent used on this connection if learning is enabled.</span>
+<span class="sd">    n_axons : int</span>
+<span class="sd">        Number of input axons to this group of synapses.</span>
+<span class="sd">    pop_type : int (0, 16, 32)</span>
+<span class="sd">        Whether these synapses are discrete (0), pop16, or pop32. This</span>
+<span class="sd">        determines the type of axons these synapses can connect to.</span>
+<span class="sd">    synapse_cfg : SynapseConfig</span>
+<span class="sd">        The synapse format object for these synapses.</span>
+<span class="sd">    tracing_mag : float</span>
+<span class="sd">        Magnitude by which the learning trace is increased for each spike.</span>
+<span class="sd">    tracing_tau : int</span>
+<span class="sd">        Decay time constant for the learning trace, in timesteps (not seconds).</span>
+<span class="sd">    weights : (n_axons,) list of (n_populations, n_compartments) ndarray</span>
+<span class="sd">        The synapse weights. Organized as a list of arrays so each axon</span>
+<span class="sd">        can have a different number of target compartments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_axons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span> <span class="o">=</span> <span class="n">n_axons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse_cfg</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axon_compartment_bases</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axon_to_weight_map</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_wgt_exp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_tau</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_mag</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop_type</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># one of (0, 16, 32) for discrete, pop16, pop32</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">atom_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">max_populations</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">max_populations</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">atom_bits_extra</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">atom_bits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_bits</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">atom_bits</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;OQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s2">&quot;Too many atom bits&quot;</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">atom_bits</span> <span class="o">-</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">axon_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pop_type</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MTA=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_bits_extra</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MTI=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">axon_compartment_base</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon_idx</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_compartment_bases</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_compartment_bases</span><span class="p">[</span><span class="n">axon_idx</span><span class="p">]</span>
+
+        <span class="c1"># negative indicates unused axon</span>
+        <span class="k">return</span> <span class="n">base</span> <span class="k">if</span> <span class="n">base</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">axon_populations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon_idx</span><span class="p">):</span>
+        <span class="n">weight_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_weight_idx</span><span class="p">(</span><span class="n">axon_idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">weight_idx</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">axon_weight_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon_idx</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axon_to_weight_map</span><span class="p">[</span><span class="n">axon_idx</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_to_weight_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">axon_idx</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">axon_weights_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axon_idx</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="n">weight_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axon_weight_idx</span><span class="p">(</span><span class="n">axon_idx</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">weight_idx</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">weight_idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">w</span><span class="p">[</span><span class="n">atom</span><span class="p">,</span> <span class="p">:],</span> <span class="n">i</span><span class="p">[</span><span class="n">atom</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">synapse_cfg</span><span class="o">.</span><span class="n">bits_per_axon</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">synapse_cfg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">synapse_cfg</span> <span class="o">=</span> <span class="n">SynapseConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse_cfg</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">idx_bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_ind</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="n">bits</span> <span class="o">&lt;=</span> <span class="n">SynapseConfig</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span>
+            <span class="s2">&quot;bits out of range, ensemble too large?&quot;</span><span class="p">)</span>
+        <span class="n">bits</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SynapseConfig</span><span class="o">.</span><span class="n">INDEX_BITS_MAP</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="n">bits</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bits</span>
+
+    <span class="k">def</span> <span class="nf">idxs_per_synapse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Mg==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">learning</span> <span class="k">else</span> <span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">max_abs_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+                   <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">max_ind</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_weights_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">indices</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;Weights must be shape (n_axons,) (n_populations, n_compartments)&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;All axon weights must have the same number of populations&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span>
+
+        <span class="k">if</span> <span class="n">indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+                       <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">ndmin</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;Indices must be shape (n_axons,) (n_populations, n_compartments)&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">weights</span><span class="p">)),</span> <span class="p">(</span>
+            <span class="s2">&quot;Indices shapes must match weights shapes&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">indices</span>
+
+    <span class="k">def</span> <span class="nf">set_full_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_weights_indices</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_axons</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Full weights must have different weights for each axon&quot;</span><span class="p">)</span>
+
+        <span class="n">bits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_bits</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">compression</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Mw==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">idx_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">,</span>
+            <span class="n">fanout_type</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">n_synapses</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NjM=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">weight_bits</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Nw==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_learning</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">tracing_tau</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">tracing_mag</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">wgt_exp</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">tracing_tau</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">tracing_tau</span><span class="p">),</span> <span class="s2">&quot;tracing_tau must be integer&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_tau</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tracing_tau</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracing_mag</span> <span class="o">=</span> <span class="n">tracing_mag</span>
+        <span class="c1"># stdp_cfg hard-coded for now (see hardware.builder)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">learning_cfg</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="n">stdp_cfg</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MA==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_epoch</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learn_epoch_k</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learn_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_epoch</span> <span class="o">*</span> <span class="mi">2</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">learn_epoch_k</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">learn_epoch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learning_wgt_exp</span> <span class="o">=</span> <span class="n">wgt_exp</span>
+
+    <span class="k">def</span> <span class="nf">set_population_weights</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">,</span>
+        <span class="n">indices</span><span class="p">,</span>
+        <span class="n">axon_to_weight_map</span><span class="p">,</span>
+        <span class="n">compartment_bases</span><span class="p">,</span>
+        <span class="n">pop_type</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_weights_indices</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axon_to_weight_map</span> <span class="o">=</span> <span class="n">axon_to_weight_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axon_compartment_bases</span> <span class="o">=</span> <span class="n">compartment_bases</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pop_type</span> <span class="o">=</span> <span class="mi">16</span> <span class="k">if</span> <span class="n">pop_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pop_type</span>
+
+        <span class="n">idx_bits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_bits</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">compression</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MA==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">idx_bits</span><span class="o">=</span><span class="n">idx_bits</span><span class="p">,</span>
+            <span class="n">fanout_type</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;MQ==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">n_synapses</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;NjM=&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+            <span class="n">weight_bits</span><span class="o">=</span><span class="n">d</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;Nw==&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Probe"><a class="viewcode-back" href="../../api.html#nengo_loihi.block.Probe">[docs]</a><span class="k">class</span> <span class="nc">Probe</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Record data from compartment states of a LoihiBlock.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : LoihiBlock</span>
+<span class="sd">        The block to record values from. Use ``slice`` to record from a subset</span>
+<span class="sd">        of compartments.</span>
+<span class="sd">    key : string (&#39;current&#39;, &#39;voltage&#39;, &#39;spiked&#39;)</span>
+<span class="sd">        The compartment attribute to probe.</span>
+<span class="sd">    slice : slice or list</span>
+<span class="sd">        Select a subset of the compartments in the block to record from.</span>
+<span class="sd">    synapse : nengo.synapses.Synapse</span>
+<span class="sd">        A synapse to use for filtering the probe.</span>
+<span class="sd">    weights : np.ndarray</span>
+<span class="sd">        A linear transformation to apply to the outputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_slice</span> <span class="o">=</span> <span class="nb">slice</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">slice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slice</span> <span class="o">=</span> <span class="nb">slice</span> <span class="k">if</span> <span class="nb">slice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slice</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">synapse</span> <span class="o">=</span> <span class="n">synapse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_snip</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snip_info</span> <span class="o">=</span> <span class="kc">None</span></div>
+</pre></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row search">
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>
