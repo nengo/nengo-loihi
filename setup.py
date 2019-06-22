@@ -35,7 +35,7 @@ install_req = [
     "nengo>=2.8.0",
 ]
 docs_req = [
-    "abr_control @ git+https://github.com/abr/abr_control",
+    "abr_control",
     "jupyter",
     "matplotlib>=2.0",
     "nbsphinx",
