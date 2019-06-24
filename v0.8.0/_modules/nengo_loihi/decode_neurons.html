@@ -1,0 +1,576 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>nengo_loihi.decode_neurons &#8212; Nengo Loihi 0.8.0 docs</title>
+    <link rel="stylesheet" href="../../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/normalize.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/bootstrap.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/mmenu.all.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/components.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/nengo.css" />
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!--[if lte IE 9]><script src="https://cdnjs.cloudflare.com/ajax/libs/placeholders/3.0.2/placeholders.min.js"></script><![endif]-->
+<script type="text/javascript" src="https://cdn.crate.io/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/js/modernizr.js"></script>
+    <script type="text/javascript" src="../../_static/js/underscore.min.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/js/searchtools.js"></script>
+    <script type="text/javascript" src="../../_static/js/webflow.js"></script>
+    <script type="text/javascript" src="../../_static/js/bootstrap.js"></script>
+    <script type="text/javascript" src="../../_static/js/mmenu.all.min.js"></script>
+    <script type="text/javascript" src="../../_static/js/fontawesome.js"></script>
+    <script type="text/javascript" src="../../_static/js/custom.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "ignoreClass": "document", "processEscapes": true, "processClass": "math|output_area"}})</script>
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link rel="stylesheet" type="text/css" href="../../_static/custom.css">
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head><body>
+<header class="header-nav">
+  <div class="container">
+    <div class="navbar w-nav" data-animation="default" data-collapse="small" data-contain="1" data-duration="400">
+      <a class="brand w-nav-brand" href="https://www.nengo.ai/">
+        <img src="https://www.nengo.ai/design/_images/general-full-light.svg" width="120">
+      </a>
+      <nav class="w-nav-menu main-nav" role="navigation">
+        <div class="dropdownBackground">
+          <span class="arrow"></span>
+        </div>
+        <ul id="menu-top-navigation" class="menu">
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/overview.html">Overview</a>
+            <ul class="sub-menu">
+                <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <table class="sub-menu">
+              <tr>
+                <td class="menu-heading">Core</td>
+                <td class="menu-heading">Backends</td>
+                <td class="menu-heading">Add-ons</td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo">Nengo</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-fpga">Nengo FPGA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-examples">Nengo Examples</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-dl/">Nengo DL</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-loihi">Nengo Loihi</a></td>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-gui">Nengo GUI</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-mpi">Nengo MPI</a></td>
+                <td class="menu-item"><a href="https://arvoelke.github.io/nengolib-docs/">Nengo Lib</a></td>
+              </tr>
+              <tr>
+                <td class="menu-item"><a href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a></td>
+                <td class="menu-item"><a href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a></td>
+                <td class="menu-item"></td>
+              </tr>
+              <tr>
+                <td class="menu-item"></td>
+                <td class="menu-item"><a href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a></td>
+                <td class="menu-item"></td>
+              </tr>
+            </table>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/publications.html">Publications</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/videos.html">Videos</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </nav>
+
+      <div id="mobile-nav" class="mm-menu">
+        <ul class="offcanvas-menu">
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/overview.html">Overview</a></li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/documentation.html">Documentation</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/quickstart.html">Quick Start</a></li>
+              <li class="menu-item"><a href="http://www.nengo.ai/nengo">NengoCore</a></li>
+              <li class="menu-item"><a href="https://github.com/nengo/nengo-gui#nengo-gui">NengoGUI</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/community.html">Community</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://forum.nengo.ai/">Forum</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/summerschool.html">Summer School</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/people.html">People</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item menu-item-has-children">
+            <a href="https://www.nengo.ai/projects.html">Development</a>
+            <ul class="sub-menu">
+              <li class="menu-item"><a href="https://www.nengo.ai/contributing.html">Contributor Guide</a></li>
+              <li class="menu-item"><a href="https://www.nengo.ai/projects.html">Ecosystem</a></li>
+            </ul>
+          </li>
+          <li class="navlink w-nav-link menu-item"><a href="https://www.nengo.ai/README.html">About</a></li>
+          <li class="btn-link w-nav-link menu-item"><a href="https://www.nengo.ai/download.html">Download</a></li>
+        </ul>
+      </div>
+
+      <a href="#mobile-nav" class="fa fa-bars mobile-nav-button"></a>
+    </div>
+  </div>
+</header>
+
+<div class="w-section section border-top">
+  <div class="container">
+    <div class="row" id="_modules/nengo_loihi/decode_neurons">
+      <div class="col-md-4 col-lg-3">
+        <aside class="wrapper-navleft"><div role="complementary" class="bs-docs-sidebar hidden-print" id="nav-affix">
+  <ul class="bs-docs-sidenav bs-sidenav nav" role="complementary">
+    <a href="../../index.html">
+      <img class="logo" src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg" alt="Nengo Loihi" width="200" />
+    </a>
+    <ul class="toctree nav nav-list">
+      <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup/index.html">Hardware setup</a></li>
+</ul>
+
+    </ul>
+  </ul>
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+          
+        </aside>
+      </div>
+      <div class="col-md-8 col-lg-9">
+        <div class="body wrapper-content-right">
+          
+<div class="version-select-container">
+    <div data-delay="0" class="w-dropdown">
+        <div class="w-dropdown-toggle toggle">
+            <div class="toggle-text">v0.8.0</div>
+            <div class="w-icon-dropdown-toggle toggle-icon"></div>
+        </div>
+        <nav class="w-dropdown-list dropdown-list">
+            
+            
+                <a href="../../../_modules/nengo_loihi/decode_neurons.html" class="w-dropdown-link">latest</a>
+            
+
+            
+                
+                <div class="w-dropdown-link">v0.8.0</div>
+                
+            
+                
+                    <a href="../../../v0.7.0/_modules/nengo_loihi/decode_neurons.html" class="w-dropdown-link">v0.7.0</a>
+                
+            
+        </nav>
+    </div>
+</div>
+
+          
+  <h1>Source code for nengo_loihi.decode_neurons</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">nengo</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">nengo_loihi.block</span> <span class="k">import</span> <span class="n">LoihiBlock</span><span class="p">,</span> <span class="n">Synapse</span>
+<span class="kn">from</span> <span class="nn">nengo_loihi.neurons</span> <span class="k">import</span> <span class="n">LoihiSpikingRectifiedLinear</span>
+
+
+<div class="viewcode-block" id="DecodeNeurons"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.DecodeNeurons">[docs]</a><span class="k">class</span> <span class="nc">DecodeNeurons</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Defines parameters for a group of decode neurons.</span>
+
+<span class="sd">    DecodeNeurons are used on the chip to facilitate NEF-style connections,</span>
+<span class="sd">    where activities from a neural ensemble are first transformed into a</span>
+<span class="sd">    decoded value (which is stored in the activities and synapses of the</span>
+<span class="sd">    spiking decode neurons), before being passed on to another ensemble</span>
+<span class="sd">    (via that ensemble&#39;s encoders).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step used by the simulator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(dt=</span><span class="si">%0.3g</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DecodeNeurons.get_block"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_block">[docs]</a>    <span class="k">def</span> <span class="nf">get_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">block_label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">syn_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a LoihiBlock for implementing neurons on the chip.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        weights : (d, n) ndarray</span>
+<span class="sd">            Weights that project the ``n`` inputs to the ``d`` dimensions</span>
+<span class="sd">            represented by these neurons. Typically, the inputs will be neurons</span>
+<span class="sd">            belonging to an Ensemble, and these weights will be decoders.</span>
+<span class="sd">        block_label : string (Default: None)</span>
+<span class="sd">            Optional label for the LoihiBlock.</span>
+<span class="sd">        syn_label : string (Default: None)</span>
+<span class="sd">            Optional label for the Synapse.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        block : LoihiBlock</span>
+<span class="sd">            The neurons on the chip.</span>
+<span class="sd">        syn : Synapse</span>
+<span class="sd">            The synapses connecting into the chip neurons.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DecodeNeurons.get_ensemble"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_ensemble">[docs]</a>    <span class="k">def</span> <span class="nf">get_ensemble</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a Nengo Ensemble for implementing neurons on the host.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dim : int</span>
+<span class="sd">            Number of dimensions to be represented by these neurons.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ens : Ensemble</span>
+<span class="sd">            An Ensemble for implementing these neurons in a Nengo network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DecodeNeurons.get_post_encoders"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_post_encoders">[docs]</a>    <span class="k">def</span> <span class="nf">get_post_encoders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoders</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Encoders for post population that these neurons connect in to.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        encoders : (n, d) ndarray</span>
+<span class="sd">            Regular scaled encoders for the ensemble, which map the ensemble&#39;s</span>
+<span class="sd">            ``d`` input dimensions to its ``n`` neurons.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        decode_neuron_encoders : (?, n) ndarray</span>
+<span class="sd">            Encoders for mapping these neurons to the post-ensemble&#39;s neurons.</span>
+<span class="sd">            The number of rows depends on how ``get_post_inds`` is being used</span>
+<span class="sd">            (i.e. there could be one row per neuron in this block, or there</span>
+<span class="sd">            could be fewer rows with ``get_post_inds`` mapping multiple neurons</span>
+<span class="sd">            to each row).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DecodeNeurons.get_post_inds"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_post_inds">[docs]</a>    <span class="k">def</span> <span class="nf">get_post_inds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inds</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Indices for mapping neurons to post-encoder dimensions.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        inds : list of ints</span>
+<span class="sd">            Indices for mapping decode neuron dimensions to post-ensemble</span>
+<span class="sd">            dimensions. Usually, this will be determined by a slice on the</span>
+<span class="sd">            post ensemble in a connection (which maps the output of the</span>
+<span class="sd">            transform/function to select dimensions on the post ensemble).</span>
+<span class="sd">        d : int</span>
+<span class="sd">            Number of dimensions in the post-ensemble.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="OnOffDecodeNeurons"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons">[docs]</a><span class="k">class</span> <span class="nc">OnOffDecodeNeurons</span><span class="p">(</span><span class="n">DecodeNeurons</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;One or more pairs of on/off neurons per dimension.</span>
+
+<span class="sd">    In this class itself, all the pairs in a dimension are identical. It can</span>
+<span class="sd">    still be advantageous to have more than one pair per dimension, though,</span>
+<span class="sd">    since this can allow all neurons to have lower firing rates and thus</span>
+<span class="sd">    act more linearly (due to period aliasing at high firing rates). Subclasses</span>
+<span class="sd">    may use pairs that are not identical (by adding noise or heterogeneity).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pairs_per_dim : int</span>
+<span class="sd">        Number of repeated neurons per dimension. Currently, all DecodeNeuron</span>
+<span class="sd">        classes use separate on/off neuron pairs for each dimension. This is</span>
+<span class="sd">        the number of such pairs per dimension.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step used by the simulator.</span>
+<span class="sd">    rate : float (Default: None)</span>
+<span class="sd">        Max firing rate of each neuron. By default, this is chosen so that</span>
+<span class="sd">        the sum of all repeated neuron rates is ``1. / dt``, and thus as a</span>
+<span class="sd">        group the neurons average one spike per timestep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs_per_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OnOffDecodeNeurons</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span> <span class="o">=</span> <span class="n">pairs_per_dim</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span> <span class="k">if</span> <span class="n">rate</span> <span class="ow">is</span> <span class="kc">None</span>
+                     <span class="k">else</span> <span class="n">rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neuron_type</span> <span class="o">=</span> <span class="n">LoihiSpikingRectifiedLinear</span><span class="p">()</span>
+
+        <span class="n">gain</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="n">gain</span>  <span class="c1"># intercept of -1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># ^ repeat for on/off neurons</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(pairs_per_dim=</span><span class="si">%d</span><span class="s2">, dt=</span><span class="si">%0.3g</span><span class="s2">, rate=</span><span class="si">%0.3g</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OnOffDecodeNeurons.get_block"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_block">[docs]</a>    <span class="k">def</span> <span class="nf">get_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">block_label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">syn_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+
+        <span class="n">d</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">n_neurons</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">LoihiBlock</span><span class="p">(</span><span class="n">n_neurons</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">block_label</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">configure_relu</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">bias</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+        <span class="n">syn</span> <span class="o">=</span> <span class="n">Synapse</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">syn_label</span><span class="p">)</span>
+        <span class="n">weights2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ga</span><span class="p">,</span> <span class="n">gb</span> <span class="ow">in</span> <span class="n">gain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">weights2</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">ga</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">-</span><span class="n">gb</span><span class="o">*</span><span class="n">weights</span><span class="o">.</span><span class="n">T</span><span class="p">])</span>
+        <span class="n">weights2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">weights2</span><span class="p">)</span>
+        <span class="n">syn</span><span class="o">.</span><span class="n">set_full_weights</span><span class="p">(</span><span class="n">weights2</span><span class="p">)</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">add_synapse</span><span class="p">(</span><span class="n">syn</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">block</span><span class="p">,</span> <span class="n">syn</span></div>
+
+<div class="viewcode-block" id="OnOffDecodeNeurons.get_ensemble"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_ensemble">[docs]</a>    <span class="k">def</span> <span class="nf">get_ensemble</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># To support this, we need to figure out how to deal with the</span>
+            <span class="c1"># `post_inds` that map neurons to axons. Either we can do this</span>
+            <span class="c1"># on the host, in which case we&#39;d have inputs going to the chip</span>
+            <span class="c1"># where we can have multiple spikes per axon per timestep, or we</span>
+            <span class="c1"># need to do it on the chip with one input axon per neuron.</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Input neurons with more than one neuron per dimension&quot;</span><span class="p">)</span>
+
+        <span class="n">n_neurons</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span>
+        <span class="n">encoders</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">dim</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">dim</span><span class="p">)]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">ens</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span>
+            <span class="n">n_neurons</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span>
+            <span class="n">neuron_type</span><span class="o">=</span><span class="n">nengo</span><span class="o">.</span><span class="n">SpikingRectifiedLinear</span><span class="p">(),</span>
+            <span class="n">encoders</span><span class="o">=</span><span class="n">encoders</span><span class="p">,</span>
+            <span class="n">gain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">dim</span><span class="p">),</span>
+            <span class="n">bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">dim</span><span class="p">),</span>
+            <span class="n">add_to_container</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ens</span></div>
+
+<div class="viewcode-block" id="OnOffDecodeNeurons.get_post_encoders"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_encoders">[docs]</a>    <span class="k">def</span> <span class="nf">get_post_encoders</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoders</span><span class="p">):</span>
+        <span class="n">encoders</span> <span class="o">=</span> <span class="n">encoders</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">encoders</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="o">-</span><span class="n">encoders</span><span class="o">.</span><span class="n">T</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="OnOffDecodeNeurons.get_post_inds"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_inds">[docs]</a>    <span class="k">def</span> <span class="nf">get_post_inds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inds</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">inds</span><span class="p">,</span> <span class="n">inds</span> <span class="o">+</span> <span class="n">d</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoisyDecodeNeurons"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.NoisyDecodeNeurons">[docs]</a><span class="k">class</span> <span class="nc">NoisyDecodeNeurons</span><span class="p">(</span><span class="n">OnOffDecodeNeurons</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Uses multiple on/off neuron pairs per dimension, plus noise.</span>
+
+<span class="sd">    The noise allows each on-off neuron pair to do something different. The</span>
+<span class="sd">    population average is a better representation of the encoded value</span>
+<span class="sd">    than can be achieved with a single on/off neuron pair (if the magnitude</span>
+<span class="sd">    of the noise is correctly calibrated).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pairs_per_dim : int</span>
+<span class="sd">        Number of repeated neurons per dimension. Currently, all DecodeNeuron</span>
+<span class="sd">        classes use separate on/off neuron pairs for each dimension. This is</span>
+<span class="sd">        the number of such pairs per dimension.</span>
+<span class="sd">    dt : float</span>
+<span class="sd">        Time step used by the simulator.</span>
+<span class="sd">    rate : float (Default: None)</span>
+<span class="sd">        Max firing rate of each neuron. By default, this is chosen so that</span>
+<span class="sd">        the sum of all repeated neuron rates is ``1. / dt``, and thus as a</span>
+<span class="sd">        group the neurons average one spike per timestep.</span>
+<span class="sd">    noise_exp : float, optional (Default: -2.)</span>
+<span class="sd">        Base-10 exponent for noise added to neuron voltages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pairs_per_dim</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">noise_exp</span><span class="o">=-</span><span class="mf">2.</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoisyDecodeNeurons</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">pairs_per_dim</span><span class="o">=</span><span class="n">pairs_per_dim</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_exp</span> <span class="o">=</span> <span class="n">noise_exp</span>  <span class="c1"># noise exponent for added voltage noise</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(pairs_per_dim=</span><span class="si">%d</span><span class="s2">, dt=</span><span class="si">%0.3g</span><span class="s2">, rate=</span><span class="si">%0.3g</span><span class="s2">, noise_exp=</span><span class="si">%0.3g</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">noise_exp</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="NoisyDecodeNeurons.get_block"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.NoisyDecodeNeurons.get_block">[docs]</a>    <span class="k">def</span> <span class="nf">get_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">block_label</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">syn_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">block</span><span class="p">,</span> <span class="n">syn</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">NoisyDecodeNeurons</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_block</span><span class="p">(</span>
+            <span class="n">weights</span><span class="p">,</span> <span class="n">block_label</span><span class="o">=</span><span class="n">block_label</span><span class="p">,</span> <span class="n">syn_label</span><span class="o">=</span><span class="n">syn_label</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_exp</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">30</span><span class="p">:</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">enable_noise</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">noise_exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_exp</span>
+            <span class="n">block</span><span class="o">.</span><span class="n">compartment</span><span class="o">.</span><span class="n">noise_at_membrane</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">block</span><span class="p">,</span> <span class="n">syn</span></div></div>
+
+
+<div class="viewcode-block" id="Preset5DecodeNeurons"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.Preset5DecodeNeurons">[docs]</a><span class="k">class</span> <span class="nc">Preset5DecodeNeurons</span><span class="p">(</span><span class="n">OnOffDecodeNeurons</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Uses five heterogeneous on/off pairs with pre-set values per dimension.</span>
+
+<span class="sd">    The script for configuring these values can be found at:</span>
+<span class="sd">        nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Preset5DecodeNeurons</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">pairs_per_dim</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span> <span class="o">==</span> <span class="mi">5</span>
+        <span class="n">intercepts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">max_rates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">160</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">gain_bias</span><span class="p">(</span><span class="n">max_rates</span><span class="p">,</span> <span class="n">intercepts</span><span class="p">)</span>
+
+        <span class="n">target_point</span> <span class="o">=</span> <span class="mf">0.85</span>
+        <span class="n">target_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">rates</span><span class="p">(</span><span class="n">target_point</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">1.08</span> <span class="o">*</span> <span class="n">target_point</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="n">target_rate</span><span class="p">)</span>
+        <span class="c1"># ^ TODO: why does this 1.08 factor help? found it empirically in</span>
+        <span class="c1"># test_decode_neurons.test_add_inputs</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># ^ repeat for on/off neurons</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(dt=</span><span class="si">%0.3g</span><span class="s2">, rate=</span><span class="si">%0.3g</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Preset10DecodeNeurons"><a class="viewcode-back" href="../../api.html#nengo_loihi.decode_neurons.Preset10DecodeNeurons">[docs]</a><span class="k">class</span> <span class="nc">Preset10DecodeNeurons</span><span class="p">(</span><span class="n">OnOffDecodeNeurons</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Uses ten heterogeneous on/off pairs with pre-set values per dimension.</span>
+
+<span class="sd">    The script for configuring these values can be found at:</span>
+<span class="sd">        nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Preset10DecodeNeurons</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">pairs_per_dim</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+
+        <span class="c1"># Parameters determined by hyperopt</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span> <span class="o">==</span> <span class="mi">10</span>
+        <span class="n">intercepts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.171</span><span class="p">,</span> <span class="mf">0.484</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">max_rates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">171.186</span><span class="p">,</span> <span class="mf">74.620</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs_per_dim</span><span class="p">)</span>
+        <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">gain_bias</span><span class="p">(</span><span class="n">max_rates</span><span class="p">,</span> <span class="n">intercepts</span><span class="p">)</span>
+
+        <span class="n">target_point</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">target_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">rates</span><span class="p">(</span><span class="n">target_point</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">bias</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">1.05</span> <span class="o">*</span> <span class="n">target_point</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="n">target_rate</span><span class="p">)</span>
+        <span class="c1"># ^ TODO: why does this 1.05 factor help? found it empirically in</span>
+        <span class="c1"># test_decode_neurons.test_add_inputs</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gain</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># ^ repeat for on/off neurons</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">(dt=</span><span class="si">%0.3g</span><span class="s2">, rate=</span><span class="si">%0.3g</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="p">)</span></div>
+</pre></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div><footer class="footer">
+  <div class="w-container">
+    <div class="w-clearfix">
+      <div class="w-row search">
+<form id="form-search" class="form-search" action="../../search.html" method="get">
+  <div class="form-group">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+  </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form></div>
+      <div class="w-row mobileAlign">
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">ABR, Inc.</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/products/">Products</a></li>
+            <li class="footer-listitem-new "><a href="https://appliedbrainresearch.com/services/">Services</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/research/">Research</a></li>
+          </ul>
+        </div>
+        <div class="w-col w-col-2 footer-menu">
+          <p class="menu-Label">About Us</p>
+          <ul class="vertical-menu">
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/">Contact</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#team">Team</a></li>
+            <li class="footer-listitem-new"><a href="https://appliedbrainresearch.com/about-us/#culture">Culture</a></li>
+          </ul>
+        </div>
+        <a class="brand footer-brand" href="https://appliedbrainresearch.com">
+          <img src="https://appliedbrainresearch.com/img/logo-light-notext.svg" width="80">
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+  </body>
+</html>
