@@ -28,8 +28,8 @@ def info2string(info):
 
 
 name = "nengo_loihi"
-version_info = (0, 8, 0)  # (major, minor, patch)
-dev = None
+version_info = (0, 9, 0)  # (major, minor, patch)
+dev = 0
 
 version = "{v}{dev}".format(v=info2string(version_info),
                             dev=('.dev%d' % dev) if dev is not None else '')
@@ -41,5 +41,5 @@ minimum_nengo_version = info2string(minimum_nengo_version_info)
 
 # newest nengo version we are compatible with (set to latest released nengo
 # version when releasing this repository)
-latest_nengo_version_info = (2, 8, 0)
+latest_nengo_version_info = (3, 0, 0)
 latest_nengo_version = info2string(latest_nengo_version_info)
