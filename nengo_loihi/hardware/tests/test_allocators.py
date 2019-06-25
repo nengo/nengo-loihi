@@ -79,7 +79,7 @@ def _basic_model():
     block0.add_axon(axon1)
 
     synapse1 = Synapse(1)
-    synapse1.set_full_weights([1])
+    synapse1.set_full_weights([[1]])
     axon1.target = synapse1
     block1.add_synapse(synapse1)
 
@@ -89,7 +89,7 @@ def _basic_model():
     model.add_input(input)
 
     synapse0 = Synapse(1)
-    synapse0.set_full_weights([1])
+    synapse0.set_full_weights([[1]])
     axon0.target = synapse0
     block0.add_synapse(synapse0)
 

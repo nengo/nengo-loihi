@@ -610,14 +610,22 @@ class Synapse:
         self.indices = indices
 
     def set_full_weights(self, weights):
-        self._set_weights_indices(weights)
+        weights = np.array(weights, copy=False, dtype=np.float32)
+        assert weights.ndim in (1, 2)
+
+        if weights.ndim == 1:
+            indices = np.arange(weights.size)
+        else:
+            indices = None
+
+        self._set_weights_indices(weights, indices=indices)
         assert len(self.weights) == self.n_axons, (
             "Full weights must have different weights for each axon")
 
-        bits = self.idx_bits()
+        self._set_weights_indices(weights, indices=indices)
         self.format(
             compression=d(b'Mw==', int),
-            idx_bits=bits,
+            idx_bits=self.idx_bits(),
             fanout_type=d(b'MQ==', int),
             n_synapses=d(b'NjM=', int),
             weight_bits=d(b'Nw==', int),
