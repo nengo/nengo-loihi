@@ -399,21 +399,27 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
     return _build_no_solver(*args)
 
 
-def expand_to_2d(weights, pre_size, post_size):
+def expand_weights(weights, pre_size, post_size, min_dims=2):
+    """Make weight matrix 1D or 2D, check sizes"""
+    assert min_dims in (1, 2)
+
     if weights.ndim == 0:
         assert pre_size == post_size
-        weights2d = weights * np.eye(pre_size)
+        if min_dims == 1:
+            weights = weights * np.ones(pre_size)
+        elif min_dims == 2:
+            weights = weights * np.eye(pre_size)
     elif weights.ndim == 1:
         assert pre_size == post_size
         assert weights.size == pre_size
-        weights2d = np.diag(weights)
+        if min_dims == 2:
+            weights = np.diag(weights)
     else:
         assert weights.ndim == 2
-        weights2d = weights
+        assert weights.shape[0] == post_size
+        assert weights.shape[1] == pre_size
 
-    assert weights2d.shape[0] == post_size
-    assert weights2d.shape[1] == pre_size
-    return weights2d
+    return weights
 
 
 def build_chip_connection(model, conn):  # noqa: C901
@@ -456,8 +462,10 @@ def build_chip_connection(model, conn):  # noqa: C901
             and not isinstance(conn.pre_obj, ChipReceiveNeurons)):
         assert conn.pre_slice == slice(None)
 
-        transform = expand_to_2d(transform, conn.pre.size_out,
-                                 conn.post.size_in)
+        transform = expand_weights(transform,
+                                   pre_size=conn.pre.size_out,
+                                   post_size=conn.post.size_in,
+                                   min_dims=2)
 
         # input is on-off neuron encoded, so double/flip transform
         weights = np.column_stack([transform, -transform])
@@ -496,7 +504,10 @@ def build_chip_connection(model, conn):  # noqa: C901
         else:
             needs_decode_neurons = True
     elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)):
-        weights = expand_to_2d(transform, conn.pre.size_out, conn.post.size_in)
+        weights = expand_weights(transform,
+                                 pre_size=conn.pre.size_out,
+                                 post_size=conn.post.size_in,
+                                 min_dims=1)
         weights = weights / model.dt
         neuron_type = (conn.pre_obj.neuron_type
                        if isinstance(conn.pre_obj, ChipReceiveNeurons)
@@ -516,6 +527,10 @@ def build_chip_connection(model, conn):  # noqa: C901
     post_tau = tau_s
     if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
         # --- add decode neurons
+        if weights.ndim == 1:
+            # difficult to deal with 1D weights here, so just make them 2D
+            weights = np.diag(weights)
+
         assert weights.ndim == 2
         d, n = weights.shape
 
@@ -628,19 +643,21 @@ def build_chip_connection(model, conn):  # noqa: C901
         assert post_slice == slice(None)
         if weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
-        else:
-            assert weights.ndim == 2
-            n2, n1 = weights.shape
-            assert post_obj.n_neurons == n2
 
-            syn = Synapse(n1, label="neuron_weights")
-            gain = model.params[conn.post_obj.ensemble].gain
-            syn.set_full_weights(weights.T * gain)
-            post_obj.add_synapse(syn)
-            model.objs[conn]['weights'] = syn
+        assert weights.ndim in (1, 2)
+        n2 = weights.shape[0]
+        n1 = weights.shape[1] if weights.ndim > 1 else n2
+        assert post_obj.n_neurons == n2
+
+        syn = Synapse(n1, label="neuron_weights")
+        gain = model.params[conn.post_obj.ensemble].gain
+        syn.set_full_weights(weights.T * gain)
+        post_obj.add_synapse(syn)
+        model.objs[conn]['weights'] = syn
 
         target_axons = -np.ones(mid_obj.n_neurons, dtype=int)
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
+        assert target_axons[pre_slice].size == n1
 
         ax = Axon(mid_obj.n_neurons, label="neuron_weights")
         ax.target = syn

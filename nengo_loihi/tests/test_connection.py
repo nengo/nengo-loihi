@@ -100,7 +100,8 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
     dt = 5e-4
     simtime = 0.2
 
-    na = 10
+    na = 500  # test big to ensure full weight matrices are not being used
+
     if do_pre_slice:
         nb = int(np.ceil(na / 2.))
         pre_slice = slice(None, None, 2)
@@ -117,7 +118,7 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
         b = nengo.Ensemble(nb, 1, neuron_type=nengo.SpikingRectifiedLinear(),
                            gain=np.ones(nb), bias=np.zeros(nb))
         nengo.Connection(a.neurons[pre_slice], b.neurons, synapse=None,
-                         transform=np.eye(nb) * factor)
+                         transform=factor)
 
         p_a = nengo.Probe(a.neurons)
         p_b = nengo.Probe(b.neurons)
