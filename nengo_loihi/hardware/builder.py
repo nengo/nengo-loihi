@@ -495,7 +495,9 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
             n_blocks = len(core.blocks)
             assert (n_blocks == 0
                     or (n_blocks == 1 and block is core.blocks[0]))
-            assert len(block.probes) == 0
+            assert len(block.probes) == 0, (
+                "Probing a block with population axons mixes population and "
+                "discrete axons for compartments, which is not supported.")
 
             # pop_id is a unique index for the population. Must be the same for
             # all axons going to the same target synmap (with different atoms
