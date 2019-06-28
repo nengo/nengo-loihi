@@ -284,7 +284,7 @@ class HardwareInterface:
                 if self.is_connected():
                     break
             except Exception as e:
-                logger.info("Connection error: %s", e)
+                logger.warning("Connection error: %s", e)
                 time.sleep(1)
                 logger.info("Retrying, attempt %d", i + 1)
         else:
