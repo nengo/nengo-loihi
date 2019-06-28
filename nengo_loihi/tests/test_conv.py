@@ -794,6 +794,80 @@ def test_conv_onchip(Simulator, plt):
 
 @pytest.mark.skipif(nengo_transforms is None,
                     reason="Requires new nengo.transforms")
+def test_conv_overlap_input(Simulator, plt):
+    """Tests a fully on-chip conv connection. """
+    from nengo._vendor.npconv2d.conv2d import conv2d
+
+    kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
+    kernel /= kernel.max()
+
+    image = np.array([[1, 2, 1, 2, 0],
+                      [2, 3, 2, 1, 1],
+                      [1, 2, 1, 2, 3],
+                      [2, 3, 2, 1, 1],
+                      [1, 2, 1, 2, 0]], dtype=float)
+    image /= image.max()
+
+    input_scale = 119.
+    bias = input_scale * image.ravel()
+
+    neuron_type = nengo.SpikingRectifiedLinear()
+
+    y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
+    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1),
+                   kernel.reshape(3, 3, 1, 1),
+                   pad='VALID')
+    y_ref = LoihiSpikingRectifiedLinear().rates(
+        y_ref.ravel(), 1., 0.).reshape(3, 3)
+
+    with nengo.Network() as net:
+        a = nengo.Ensemble(bias.size, 1,
+                           neuron_type=neuron_type,
+                           gain=nengo.dists.Choice([0]),
+                           bias=bias)
+
+        transform = nengo_transforms.Convolution(
+            n_filters=1,
+            input_shape=(4, 5, 1),
+            init=kernel.reshape(3, 3, 1, 1))
+
+        b0 = nengo.Ensemble(transform.output_shape.size, 1,
+                            neuron_type=neuron_type,
+                            gain=nengo.dists.Choice([1]),
+                            bias=nengo.dists.Choice([0]))
+        b1 = nengo.Ensemble(transform.output_shape.size, 1,
+                            neuron_type=neuron_type,
+                            gain=nengo.dists.Choice([1]),
+                            bias=nengo.dists.Choice([0]))
+
+        nengo.Connection(a.neurons[:20], b0.neurons, transform=transform)
+        nengo.Connection(a.neurons[5:], b1.neurons, transform=transform)
+        b0p = nengo.Probe(b0.neurons, synapse=nengo.Alpha(0.02))
+        b1p = nengo.Probe(b1.neurons, synapse=nengo.Alpha(0.02))
+
+    with Simulator(net) as sim:
+        sim.run(0.3)
+
+    y_ref = y_ref / input_scale
+    y0 = sim.data[b0p][-1].reshape(2, -1) / input_scale
+    y1 = sim.data[b1p][-1].reshape(2, -1) / input_scale
+
+    plt.subplot(131)
+    plt.imshow(y_ref)
+    plt.colorbar()
+    plt.subplot(132)
+    plt.imshow(b0)
+    plt.colorbar()
+    plt.subplot(133)
+    plt.imshow(b1)
+    plt.colorbar()
+
+    assert np.allclose(y0, y_ref[:2], atol=0.02, rtol=0.1)
+    assert np.allclose(y1, y_ref[1:], atol=0.02, rtol=0.1)
+
+
+@pytest.mark.skipif(nengo_transforms is None,
+                    reason="Requires new nengo.transforms")
 def test_conv_gain(Simulator):
     with nengo.Network() as net:
         a = nengo.Ensemble(16, 1)

@@ -501,9 +501,19 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
 
             # pop_id is a unique index for the population. Must be the same for
             # all axons going to the same target synmap (with different atoms
-            # of course), but otherwise different for all axons.
-            pop_key = (tchip_id, tcore_id, taxon_id)
-            pop_id = pop_id_map.setdefault(pop_key, len(pop_id_map))
+            # of course), but otherwise different for all axons. Also, each
+            # compartment can only have axons belonging to one population.
+            if compartment_id not in pop_id_map:
+                # If there's already an axon going to this synmap, use that
+                # pop_id. Otherwise, make a new pop_id
+                pop_key = (tchip_id, tcore_id, taxon_id)
+                if pop_key not in pop_id_map:
+                    pop_id = (max(pop_id_map.values()) + 1
+                              if len(pop_id_map) > 0
+                              else 0)
+                    pop_id_map[pop_key] = pop_id
+                pop_id_map[compartment_id] = pop_id_map[pop_key]
+            pop_id = pop_id_map[compartment_id]
 
             kwargs = {
                 b'cG9wSWQ=': pop_id,
