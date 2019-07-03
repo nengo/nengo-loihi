@@ -39,6 +39,8 @@ Release history
   (`#226 <https://github.com/nengo/nengo-loihi/pull/226>`__)
 - The ``scipy`` package is now required to run Nengo Loihi.
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
+- Nengo Loihi now requires NxSDK version 0.8.7.
+  (`#234 <https://github.com/nengo/nengo-loihi/pull/234>`__)
 
 0.8.0 (June 23, 2019)
 =====================

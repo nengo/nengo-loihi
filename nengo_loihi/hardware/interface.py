@@ -90,8 +90,8 @@ class HardwareInterface:
 
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
-        minimum = LooseVersion("0.8.5")
-        max_tested = LooseVersion("0.8.5")
+        minimum = LooseVersion("0.8.7")
+        max_tested = LooseVersion("0.8.7")
         if version < minimum:
             raise ImportError(
                 "nengo-loihi requires nxsdk>=%s, found %s" % (minimum, version)

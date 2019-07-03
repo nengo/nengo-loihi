@@ -50,9 +50,9 @@ def build_board(board, seed=None):
 
 
 def build_chip(nxsdk_chip, chip, seed=None):
-    assert len(chip.cores) == len(d_get(nxsdk_chip, b"bjJDb3Jlcw=="))
+    assert len(chip.cores) == len(d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA=="))
     rng = np.random.RandomState(seed)
-    for core, nxsdk_core in zip(chip.cores, d_get(nxsdk_chip, b"bjJDb3Jlcw==")):
+    for core, nxsdk_core in zip(chip.cores, d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA==")):
         logger.debug("Building core %s", core)
         seed = rng.randint(npext.maxint)
         build_core(nxsdk_core, core, seed=seed)
@@ -539,7 +539,7 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     nxsdk_board = d_get(nxsdk_core, b"cGFyZW50", b"cGFyZW50")
     tchip_id = d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"aWQ=")
     tcore_id = d_get(
-        d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"bjJDb3Jlcw==")[
+        d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"bjJDb3Jlc0FzTGlzdA==")[
             tcore_idx
         ],
         b"aWQ=",
