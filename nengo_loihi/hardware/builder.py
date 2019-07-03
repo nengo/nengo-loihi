@@ -15,7 +15,7 @@ from nengo_loihi.hardware.nxsdk_objects import (
     MAX_VTH_CFGS,
 )
 from nengo_loihi.hardware.nxsdk_shim import (
-    DVSSpikeGen,
+    DVS,
     micro_gen,
     NxsdkBoard,
     SpikeGen,
@@ -96,8 +96,9 @@ def build_dvs_input(nxsdk_chip, chip, dvs_input):
     assert nxsdk_board.dvs_spike_generator is None, "One DVS only"
 
     assert nxsdk_board.global_spike_generator is None, "Cannot have both"
-    spikegen = DVSSpikeGen(nxsdk_board, isTestMode=False)
-    nxsdk_board.dvs_spike_generator = spikegen
+    dvs = DVS(dimX=240, dimY=180, dimP=2)
+    dvs.setupSnips(nxsdk_board)
+    nxsdk_board.dvs_spike_generator = dvs
 
 
 def build_spike_input(nxsdk_chip, chip, spike_input):

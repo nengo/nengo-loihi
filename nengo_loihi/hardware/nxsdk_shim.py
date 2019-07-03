@@ -91,6 +91,7 @@ if HAS_NXSDK:
     SpikeProbe = d_import(
         b'bnhzZGsuZ3JhcGgubnhwcm9iZXM=',
         b'TjJTcGlrZVByb2Jl')
+    from nxsdk_modules.dvs.src.dvs import DVS
 else:
     micro_gen = None
     TraceConfigGenerator = None
@@ -98,3 +99,4 @@ else:
     SpikeGen = None
     DVSSpikeGen = None
     SpikeProbe = None
+    DVS = None

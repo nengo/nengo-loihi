@@ -173,11 +173,11 @@ def save_dvs_board(statepath):
     import nxsdk.api.n2a as nx
     from scipy.sparse import identity
     from nxsdk.compiler.nxsdkcompiler.n2_compiler import N2Compiler
+    from nxsdk_modules.dvs.src.dvs import DVS
 
     net = nx.NxNet()
 
-    dvsSpikeGen = net.createDVSSpikeGenProcess(
-        xPixel=240, yPixel=180, polarity=2)
+    dvs = DVS(net=net, dimX=240, dimY=180, dimP=2)
 
     cp = nx.CompartmentPrototype(
         vThMant=100,
@@ -192,14 +192,14 @@ def save_dvs_board(statepath):
         tEpoch=1,
     )
 
-    cg1 = net.createCompartmentGroup(size=dvsSpikeGen.numPorts, prototype=cp)
+    cg1 = net.createCompartmentGroup(size=dvs.numPixels, prototype=cp)
 
     connproto = nx.ConnectionPrototype(
         weight=255,
         signMode=nx.SYNAPSE_SIGN_MODE.EXCITATORY)
 
-    cMask = identity(dvsSpikeGen.numPorts)
-    dvsSpikeGen.connect(cg1, prototype=connproto, connectionMask=cMask)
+    cMask = identity(dvs.numPixels)
+    dvs.outputs.rawDVS.connect(cg1, prototype=connproto, connectionMask=cMask)
 
     compiler = N2Compiler()
     board = compiler.compile(net)
