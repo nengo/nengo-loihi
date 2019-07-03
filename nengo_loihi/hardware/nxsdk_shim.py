@@ -137,6 +137,8 @@ if HAS_NXSDK:  # noqa: C901
     SpikeProbe = d_import(b"bnhzZGsuZ3JhcGgubnhwcm9iZXM=", b"TjJTcGlrZVByb2Jl")
     SnipPhase = d_import(b"bnhzZGsuZ3JhcGgucHJvY2Vzc2VzLnBoYXNlX2VudW1z", b"UGhhc2U=")
 
+    from nxsdk_modules.dvs.src.dvs import DVS
+
 else:
     SnipMaker = None
     micro_gen = None
@@ -146,3 +148,4 @@ else:
     DVSSpikeGen = None
     SpikeProbe = None
     SnipPhase = None
+    DVS = None

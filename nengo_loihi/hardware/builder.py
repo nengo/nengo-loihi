@@ -11,7 +11,7 @@ from nengo_loihi.hardware.nxsdk_objects import (
     LoihiSpikeInput,
 )
 from nengo_loihi.hardware.nxsdk_shim import (
-    DVSSpikeGen,
+    DVS,
     NxsdkBoard,
     SpikeGen,
     TraceConfigGenerator,
@@ -97,8 +97,9 @@ def build_dvs_input(nxsdk_board, board, dvs_input):
     assert dvs_input.file_node is None, "File DVS should not get here"
     assert nxsdk_board.dvs_spike_generator is None, "One DVS only"
     assert nxsdk_board.global_spike_generator is None, "Cannot have both"
-    spikegen = DVSSpikeGen(nxsdk_board, isTestMode=False)
-    nxsdk_board.dvs_spike_generator = spikegen
+    dvs = DVS(dimX=240, dimY=180, dimP=2)
+    dvs.setupSnips(nxsdk_board)
+    nxsdk_board.dvs_spike_generator = dvs
 
 
 def build_spike_input(nxsdk_board, board, spike_input):
