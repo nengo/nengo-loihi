@@ -17,7 +17,7 @@ from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
-from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SpikeProbe
+from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.validate import validate_model
 
@@ -90,8 +90,8 @@ class HardwareInterface:
 
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
-        minimum = LooseVersion("0.8.5")
-        max_tested = LooseVersion("0.8.5")
+        minimum = LooseVersion("0.8.7")
+        max_tested = LooseVersion("0.8.7")
         if version < minimum:
             raise ImportError(
                 "nengo-loihi requires nxsdk>=%s, found %s" % (minimum, version)
@@ -459,14 +459,14 @@ class HardwareInterface:
         logger.debug("Creating nengo_io snip process")
         nengo_io = d_func(
             self.nxsdk_board,
-            b"Y3JlYXRlUHJvY2Vzcw==",
+            b"Y3JlYXRlU25pcA==",
             kwargs={
                 b"bmFtZQ==": "nengo_io",
                 b"Y0ZpbGVQYXRo": c_path,
                 b"aW5jbHVkZURpcg==": snips_dir,
                 b"ZnVuY05hbWU=": "nengo_io",
                 b"Z3VhcmROYW1l": "guard_io",
-                b"cGhhc2U=": d(b"bWdtdA=="),
+                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfTUdNVA=="),
             },
         )
         logger.debug("Creating nengo_learn snip process")
@@ -474,14 +474,14 @@ class HardwareInterface:
         shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
         d_func(
             self.nxsdk_board,
-            b"Y3JlYXRlUHJvY2Vzcw==",
+            b"Y3JlYXRlU25pcA==",
             kwargs={
                 b"bmFtZQ==": "nengo_learn",
                 b"Y0ZpbGVQYXRo": os.path.join(snips_dir, "nengo_learn.c"),
                 b"aW5jbHVkZURpcg==": snips_dir,
                 b"ZnVuY05hbWU=": "nengo_learn",
                 b"Z3VhcmROYW1l": "guard_learn",
-                b"cGhhc2U=": d(b"cHJlTGVhcm5NZ210"),
+                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfUFJFTEVBUk5fTUdNVA=="),
             },
         )
 
