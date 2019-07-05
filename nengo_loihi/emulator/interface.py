@@ -8,6 +8,7 @@ from nengo.exceptions import SimulationError, ValidationError
 from nengo.utils.compat import is_array, is_number
 import numpy as np
 
+from nengo_loihi.block import Probe
 from nengo_loihi.discretize import (
     decay_int,
     LEARN_FRAC,
@@ -18,7 +19,7 @@ from nengo_loihi.discretize import (
     Q_BITS,
     U_BITS,
 )
-from nengo_loihi.block import Probe
+from nengo_loihi.inputs import DVSInput
 from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,9 @@ class EmulatorInterface:
 
         self.block_info = BlockInfo(model.blocks)
         self.inputs = list(model.inputs)
+        if any(isinstance(input, DVSInput) for input in self.inputs):
+            raise ValueError("Emulator does not support live DVS inputs")
+
         logger.debug("EmulatorInterface dtype: %s", self.block_info.dtype)
 
         self.compartment = CompartmentState(
