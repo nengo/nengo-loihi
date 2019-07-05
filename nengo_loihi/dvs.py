@@ -169,7 +169,8 @@ def get_dvs_reader(filename, format=None):
         raise ValueError("Unrecognized format %r" % format)
 
 
-def play_dvs_file(filename, format=None, scale=2, fps=20):  # pragma: no cover
+def play_dvs_file(  # noqa: C901, pragma: no cover
+        filename, format=None, scale=2, fps=20):
     import time
     import sdl2.ext
 
