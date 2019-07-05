@@ -169,6 +169,89 @@ def get_dvs_reader(filename, format=None):
         raise ValueError("Unrecognized format %r" % format)
 
 
+def play_dvs_file(filename, format=None, scale=2, fps=20):  # pragma: no cover
+    import time
+    import sdl2.ext
+
+    reader = get_dvs_reader(filename, format=format)
+    events = reader.read_events()
+    t_end = events[-1]['t'] * 1e-6
+
+    width = 240
+    height = 180
+
+    backgroundColor = sdl2.ext.RGBA(0x808080FF)
+    offColor = sdl2.ext.RGBA(0x000000FF)
+    onColor = sdl2.ext.RGBA(0xFFFFFFFF)
+
+    sdl2.ext.init()
+    window = sdl2.ext.Window("DVS", size=(width * scale, height * scale))
+    window.show()
+    renderer = sdl2.ext.Renderer(window,
+                                 flags=sdl2.render.SDL_RENDERER_SOFTWARE)
+    renderer.logical_size = (width, height)
+    renderer.clear(color=backgroundColor)
+    renderer.present()
+
+    spf = 1. / fps
+
+    running = True
+    playing = True
+    t = 0
+    while running:
+        sdl_events = sdl2.ext.get_events()
+        for event in sdl_events:
+            if event.type == sdl2.SDL_QUIT:
+                running = False
+                break
+            elif event.type == 768 and event.key.keysym.sym == 32:  # space
+                # space bar down: toggle whether we're playing
+                playing = not playing
+            elif event.type == 768 and event.key.keysym.sym == 114:  # 'r'
+                # 'r' key down: restart
+                t = 0
+
+        if running and playing:
+            t1 = t + spf
+
+            real_time = time.time()
+
+            # --- plot
+            pol0 = []
+            pol1 = []
+
+            t0_us = t * 1e6
+            t1_us = t1 * 1e6
+            m = (events[:]['t'] >= t0_us) & (events[:]['t'] < t1_us)
+            events_m = events[m]
+
+            for x, y, p in zip(events_m['x'], events_m['y'], events_m['p']):
+                if p == 0:
+                    pol0.extend((x, y))
+                else:
+                    pol1.extend((x, y))
+
+            renderer.clear(color=backgroundColor)
+            renderer.draw_point(pol0, color=offColor)
+            renderer.draw_point(pol1, color=onColor)
+            renderer.present()
+
+            real_time = time.time() - real_time
+
+            if real_time < spf:
+                time.sleep(spf - real_time)
+
+            t = t1
+            if t > t_end:
+                t = 0
+                time.sleep(spf)
+                renderer.clear(color=offColor)
+                renderer.present()
+                time.sleep(0.5)
+
+    sdl2.ext.quit()
+
+
 def save_dvs_board(statepath):
     import nxsdk.api.n2a as nx
     from scipy.sparse import identity
