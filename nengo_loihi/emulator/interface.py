@@ -119,18 +119,36 @@ class EmulatorInterface:
         self.compartment.update(self.rng)
         self.probes.update(self.t, self.compartment)
 
+        largest = -1
+        best_core = 0
+        best_index = 0 
+        for index, b in enumerate(self.block_info.blocks[-35:]):
+            s = self.block_info.slices[b]
+            v = self.compartment.voltage[s]
+
+            for k in range(36):
+               if v[k] > largest:
+                    largest = v[k]
+                    best_core = index
+                    best_index = k
+
+        i = best_core % 7
+        j = best_core // 7
+        x = i*6+best_index%6
+        y = j*6+best_index//6
+
         if self.t % 100 == 0:
             largest = -1
             best_core = 0
             best_index = 0 
-            image = np.zeros(((6*7),(6*5)))
+            image = np.zeros(((6*5),(6*7)))
             for index, b in enumerate(self.block_info.blocks[-35:]):
                 s = self.block_info.slices[b]
                 v = self.compartment.voltage[s]
 
                 i = index % 7
                 j = index // 7
-                image[i*6:(i+1)*6, j*6:(j+1)*6] = v.reshape((6,6))
+                image[j*6:(j+1)*6, i*6:(i+1)*6] = v.reshape((6,6))
                 for k in range(36):
                    if v[k] > largest:
                         largest = v[k]
