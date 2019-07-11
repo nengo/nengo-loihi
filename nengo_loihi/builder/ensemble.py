@@ -138,6 +138,9 @@ def build_lif(model, lif, neurons, block):
 
 @Builder.register(nengo.SpikingRectifiedLinear)
 def build_relu(model, relu, neurons, block):
-    block.compartment.configure_relu(
-        vth=1./model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
-        dt=model.dt)
+    if '(ch=1, 6, 6)' in block.label:
+        block.compartment.configure_nonspiking(tau_ref=0.0, vth=1000.0, dt=model.dt)
+    else:
+        block.compartment.configure_relu(
+            vth=1./model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
+            dt=model.dt)

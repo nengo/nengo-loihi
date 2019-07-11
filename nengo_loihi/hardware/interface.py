@@ -139,6 +139,8 @@ class HardwareInterface:
         if self.use_snips and self.nengo_io_h2c is None:
             self.create_io_snip()
 
+        self.create_dvs_snip()
+
         # NOTE: we need to call connect() after snips are created
         self.connect()
         d_get(self.nxsdk_board, b'cnVu')(
@@ -346,6 +348,45 @@ class HardwareInterface:
             data = (data if probe.weights is None
                     else np.dot(data, probe.weights))
         return self._filter_probe(probe, data)
+
+    def create_dvs_snip(self):
+        assert not self.is_connected(), "still connected"
+       
+        snips_dir = os.path.join(
+            os.path.dirname(__file__), "snips")
+        env = jinja2.Environment(
+            trim_blocks=True,
+            loader=jinja2.FileSystemLoader(snips_dir),
+            keep_trailing_newline=True
+        )
+
+
+        import nengo
+        cores = []
+        for k, v in self.model.objs.items():
+            if isinstance(k, nengo.Ensemble) and k.label.startswith('(ch=1, 6, 6)'):
+                cores.append((k.label, v['out']))
+        cores = [x[1]._built_core_id for x in sorted(cores)]
+
+        template = env.get_template("nengo_dvs.c.template")
+        self.tmp_snip_dir = tempfile.TemporaryDirectory()
+        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_dvs.c")
+        code = template.render(
+            enumerate=enumerate,
+            cores=cores,
+        )
+        with open(c_path, 'w') as f:
+            f.write(code)
+        print(code)
+
+        nengo_dvs = self.nxsdk_board.createProcess(
+            name='nengo_dvs',
+            cFilePath=c_path,
+            includeDir=snips_dir,
+            funcName='nengo_dvs',
+            guardName='guard_dvs',
+            phase='mgmt',
+        )
 
     def create_io_snip(self):
         # snips must be created before connecting

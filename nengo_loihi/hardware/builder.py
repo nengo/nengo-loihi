@@ -363,6 +363,7 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
     assert block.compartment.scale_v is False
 
     logger.debug("Building %s on core.id=%d", block, nxsdk_core.id)
+    block._built_core_id = nxsdk_core.id
 
     for i, bias in enumerate(block.compartment.bias):
         bman, bexp = bias_to_manexp(bias)

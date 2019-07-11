@@ -119,6 +119,27 @@ class EmulatorInterface:
         self.compartment.update(self.rng)
         self.probes.update(self.t, self.compartment)
 
+        if self.t % 100 == 0:
+            largest = -1
+            best_core = 0
+            best_index = 0 
+            image = np.zeros(((6*7),(6*5)))
+            for index, b in enumerate(self.block_info.blocks[-35:]):
+                s = self.block_info.slices[b]
+                v = self.compartment.voltage[s]
+
+                i = index % 7
+                j = index // 7
+                image[i*6:(i+1)*6, j*6:(j+1)*6] = v.reshape((6,6))
+                for k in range(36):
+                   if v[k] > largest:
+                        largest = v[k]
+                        best_core = index
+                        best_index = k
+                   np.save('heatmap%08d' % self.t, image)
+            print(self.t, largest, best_core, best_index)
+
+
     def get_probe_output(self, probe):
         return self.probes[probe]
 
