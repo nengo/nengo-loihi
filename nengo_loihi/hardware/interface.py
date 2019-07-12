@@ -62,6 +62,7 @@ class HardwareInterface:
         self.nxsdk_board = None
         self.nengo_io_h2c = None  # IO snip host-to-chip channel
         self.nengo_io_c2h = None  # IO snip chip-to-host channel
+        self.nengo_dvs_c2h = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
         self._snip_probe_data = collections.OrderedDict()
@@ -139,7 +140,8 @@ class HardwareInterface:
         if self.use_snips and self.nengo_io_h2c is None:
             self.create_io_snip()
 
-        self.create_dvs_snip()
+        if self.nengo_dvs_c2h is None:
+            self.create_dvs_snip()
 
         # NOTE: we need to call connect() after snips are created
         self.connect()
@@ -387,6 +389,14 @@ class HardwareInterface:
             guardName='guard_dvs',
             phase='mgmt',
         )
+        self.nengo_dvs_c2h = self.nxsdk_board.createChannel(
+            b'nengo_dvs_c2h', 'int', 3000)
+        #self.nengo_dvs_h2c = self.nxsdk_board.createChannel(
+        #    b'nengo_dvs_h2c', 'int', 10)
+        self.nengo_dvs_c2h.connect(nengo_dvs, None)
+        #self.nengo_dvs_h2c.connect(None, nengo_dvs)
+
+
 
     def create_io_snip(self):
         # snips must be created before connecting

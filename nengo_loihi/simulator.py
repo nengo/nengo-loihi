@@ -453,10 +453,32 @@ class Simulator:
                     self._chip2host(emulator)
             self._run_steps = emu_bidirectional_with_host
 
+
+    def dvs_hook(self, pos):
+        pass
+
+    def _dvs_chip2host(self, loihi):
+        x = loihi.nengo_dvs_c2h.read(2)
+        self.dvs_hook(x)
+
     def _make_loihi_run_steps(self):
         host_pre = self.sims.get("host_pre", None)
         loihi = self.sims["loihi"]
         host = self.sims.get("host", None)
+
+        do_DVS = True
+        if do_DVS:
+            def loihi_dvs(steps):
+                loihi.run_steps(steps, blocking=False)
+                for _ in range(steps):
+                    self._dvs_chip2host(loihi)
+                logger.info("Waiting for run_steps to complete...")
+                loihi.wait_for_completion()
+                logger.info("run_steps completed")
+            self._run_steps = loihi_dvs
+            return
+
+
 
         if self.precompute:
             if host_pre is not None and host is not None:
