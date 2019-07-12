@@ -8,6 +8,8 @@ from nengo.exceptions import SimulationError, ValidationError
 from nengo.utils.compat import is_array, is_number
 import numpy as np
 
+from nengo_loihi.block import Probe
+from nengo_loihi.compat import make_process_step
 from nengo_loihi.discretize import (
     decay_int,
     LEARN_FRAC,
@@ -18,7 +20,6 @@ from nengo_loihi.discretize import (
     Q_BITS,
     U_BITS,
 )
-from nengo_loihi.block import Probe
 from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
@@ -590,7 +591,9 @@ class ProbeState:
                 else:
                     assert is_array(probe.weights) and probe.weights.ndim == 2
                     size = probe.weights.shape[1]
-                self.filters[probe] = probe.synapse.make_step(
+
+                self.filters[probe] = make_process_step(
+                    probe.synapse,
                     shape_in=(size,),
                     shape_out=(size,),
                     dt=self.dt,
