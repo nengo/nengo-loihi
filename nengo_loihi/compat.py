@@ -7,7 +7,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-if LooseVersion(nengo.__version__) > LooseVersion('2.8.0'):
+if LooseVersion(nengo.__version__) > LooseVersion('2.8.0'):  # noqa: C901
     from nengo.builder.network import seed_network
     import nengo.transforms as nengo_transforms
 
@@ -19,6 +19,10 @@ if LooseVersion(nengo.__version__) > LooseVersion('2.8.0'):
 
     def sample_transform(conn, rng=np.random):
         return conn.transform.sample(rng=rng)
+
+    def make_process_step(process, shape_in, shape_out, dt, rng, dtype=None):
+        state = process.make_state(shape_in, shape_out, dt, dtype=dtype)
+        return process.make_step(shape_in, shape_out, dt, rng, state)
 
 else:
     nengo_transforms = None
@@ -46,6 +50,10 @@ else:
         # nengo <= 2.8.0 will overwrite any seeds set on the model, so no
         # point doing anything in this function
         pass
+
+    def make_process_step(process, shape_in, shape_out, dt, rng, dtype=None):
+        assert isinstance(process, nengo.synapses.Synapse)
+        return process.make_step(shape_in, shape_out, dt, rng, dtype=dtype)
 
 try:
     import tensorflow as tf
