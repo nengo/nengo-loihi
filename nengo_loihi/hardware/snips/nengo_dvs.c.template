@@ -1,0 +1,53 @@
+#include <stdlib.h>
+#include <string.h>
+#include "nengo_dvs.h"
+
+int guard_dvs(runState *s) {
+    return 1;
+}
+
+void nengo_dvs(runState *s) {
+{% for core in cores %}
+    NeuronCore *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
+{% endfor %}
+
+    int32_t output[2];
+
+    int out_channel = getChannelID("nengo_dvs_c2h");
+    if (out_channel == -1) {
+        printf("Got an invalid channel ID\n");
+        return;
+    }
+
+    if (s->time_step % 100 == 0) {
+        printf("time %d\n", s->time_step);
+    }
+
+
+    int32_t value;
+    int32_t largest = -1;
+    int32_t best_core = 0;
+    int32_t best_index = 0;
+{% for index, core in enumerate(cores) %}
+    for (int32_t i=0; i<36; i++) {
+        value = core{{core}}->cx_state[i].V;
+        if (value > largest) {
+            largest = value;
+            best_core = {{index}};
+            best_index = i;
+        }
+    }
+{% endfor %}
+
+    int32_t i = best_core % 7;
+    int32_t j = best_core / 7;
+    output[0] = (i*6)+best_index % 6;
+    output[1] = (j*6)+best_index / 6;
+    
+    if (s->time_step % 100 == 0) {
+        printf("max %d (%d,%d)\n", largest, best_core, best_index);
+    }
+
+    writeChannel(out_channel, output, 2);
+    
+}
