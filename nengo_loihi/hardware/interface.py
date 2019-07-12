@@ -14,6 +14,7 @@ from nengo.exceptions import SimulationError
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Probe
+from nengo_loihi.compat import make_process_step
 from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
@@ -303,7 +304,8 @@ class HardwareInterface:
         if i == 0:
             synapse = probe.synapse
             rng = None
-            step = (synapse.make_step(shape, shape, dt, rng, dtype=np.float32)
+            step = (make_process_step(synapse, shape, shape, dt, rng,
+                                      dtype=np.float32)
                     if synapse is not None else None)
             self._probe_filters[probe] = step
         else:
