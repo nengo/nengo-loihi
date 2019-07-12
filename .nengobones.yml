@@ -211,6 +211,8 @@ setup_cfg:
         no ensembles onchip
       test_synapses.py:test_linearfilter:
         no ensembles onchip
+      test_synapses.py:test_synapse_subclass:
+        no ensembles onchip
       utils/*test_ensemble.py:test_*_curves_direct_mode*:
         no ensembles onchip
       utils/*test_network.py:test_activate_direct_mode_learning[learning_rule1*:
@@ -393,6 +395,8 @@ setup_cfg:
         model pickling not implemented
       test_copy.py:test_pickle_model:
         model pickling not implemented
+      test_copy.py:test_pickle_sim[*:
+        simulator pickling not implemented
       test_simulator.py:test_signal_init_values:
         nengo.builder.Model instances not handled
 
@@ -421,7 +425,6 @@ setup_cfg:
       # dtype not supported
       test_simulator.py:test_dtype[*:
         dtype option not supported
-
 
 docs_conf_py:
   intersphinx_mapping:
