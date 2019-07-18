@@ -430,6 +430,7 @@ docs_conf_py:
   intersphinx_mapping:
     scipy: https://docs.scipy.org/doc/scipy/reference
   nengo_logo: nengo-loihi-full-light.svg
+  nengo_logo_color: "#127bc1"
   analytics_id: UA-41658423-2
 
 travis_yml:
