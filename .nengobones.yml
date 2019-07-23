@@ -437,6 +437,8 @@ travis_yml:
   python: 3.5.2
   global_vars:
     NENGO_VERSION: nengo
+    NENGO_DL_VERSION: nengo-dl
+
   jobs:
     - stage: basic
       script: emulator
@@ -445,39 +447,43 @@ travis_yml:
       script: emulator
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
     - script: hardware
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
         NXSDK_VERSION: 0.8.5
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
   pypi_user: tbekolay
   deploy_dists:
     - sdist
     - bdist_wheel
 
 ci_scripts:
-  - template: docs
-    pip_install:
-      - git+https://github.com/abr/abr_control.git
-      - $NENGO_VERSION
-      - cython
   - template: test
     output_name: emulator
     pip_install:
-      - nengo-dl
       - $NENGO_VERSION
+      - $NENGO_DL_VERSION
       - jupyter
       - numpy
     coverage: true
     nengo_tests: true
-  - template: hardware
-    pip_install:
-      - coverage
   - template: static
     codespell_ignore_words:
         - alha
+  - template: hardware
+    pip_install:
+      - coverage
+  - template: docs
+    pip_install:
+      - git+https://github.com/abr/abr_control.git
+      - $NENGO_VERSION
+      - $NENGO_DL_VERSION
+      - cython
   - template: deploy
 
 codecov_yml: {}
