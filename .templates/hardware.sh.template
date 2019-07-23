@@ -17,7 +17,7 @@
         cd /tmp/nengo-loihi-$TRAVIS_JOB_NUMBER
         conda create -y -n travis-ci-$TRAVIS_JOB_NUMBER python=3.5.2 scipy
         source activate travis-ci-$TRAVIS_JOB_NUMBER
-        pip install nengo-dl jupyter
+        pip install $NENGO_DL_VERSION jupyter
         pip install -e .[tests]
         pip install $NENGO_VERSION --upgrade
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
