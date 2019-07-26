@@ -5,8 +5,6 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
-from nengo_loihi.builder.connection import expand_weights
-
 
 @pytest.mark.skipif(
     LooseVersion(nengo.__version__) <= LooseVersion("2.8.0"),
@@ -77,23 +75,3 @@ def test_manual_decoders(seed, Simulator, pre_dims, post_dims, learn, use_solver
         assert np.mean(sim.data[pre_probe]) > 100
         # But that post has no activity due to the zero weights
         assert np.all(sim.data[post_probe] == 0)
-
-
-def test_expand_weights():
-    # 0-d input
-    assert np.allclose(expand_weights(np.array(2.0), 3, 3, min_dims=1), np.ones(3) * 2)
-    assert np.allclose(expand_weights(np.array(2.0), 3, 3, min_dims=2), np.eye(3) * 2)
-
-    # 1-d input
-    assert np.allclose(expand_weights(np.arange(3), 3, 3, min_dims=1), np.arange(3))
-    assert np.allclose(
-        expand_weights(np.arange(3), 3, 3, min_dims=2), np.diag(np.arange(3))
-    )
-
-    # 2-d input
-    assert np.allclose(
-        expand_weights(np.ones((2, 3)), 3, 2, min_dims=1), np.ones((2, 3))
-    )
-    assert np.allclose(
-        expand_weights(np.ones((2, 3)), 3, 2, min_dims=2), np.ones((2, 3))
-    )

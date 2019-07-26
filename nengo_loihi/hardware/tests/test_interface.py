@@ -56,7 +56,7 @@ def test_builder_poptype_errors():
     model.add_block(block)
 
     synapse = Synapse(1)
-    synapse.set_full_weights([[1]])
+    synapse.set_weights([[1]])
     synapse.pop_type = 8
     block.add_synapse(synapse)
 
@@ -81,7 +81,7 @@ def test_builder_poptype_errors():
     block0.add_axon(axon)
 
     synapse = Synapse(1)
-    synapse.set_full_weights([[1]])
+    synapse.set_weights([[1]])
     synapse.pop_type = 8
     axon.target = synapse
     block1.add_synapse(synapse)

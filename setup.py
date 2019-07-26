@@ -29,7 +29,7 @@ def read(*filenames, **kwargs):
 root = os.path.dirname(os.path.realpath(__file__))
 version = runpy.run_path(os.path.join(root, "nengo_loihi", "version.py"))["version"]
 
-install_req = ["jinja2", "nengo>=2.8.0"]
+install_req = ["jinja2", "nengo>=2.8.0", "scipy>=1.2.1"]
 docs_req = [
     "abr_control",
     "jupyter",
@@ -50,7 +50,6 @@ tests_req = [
     "pytest-cov>=2.6.0",
     "pytest-xdist>=1.26.0,<1.28.0",
     "matplotlib>=2.0",
-    "scipy",
     "tensorflow<1.14",
 ]
 

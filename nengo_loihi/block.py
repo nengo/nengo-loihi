@@ -3,7 +3,7 @@ import warnings
 from nengo.exceptions import BuildError
 
 import numpy as np
-
+import scipy
 
 from nengo_loihi.nxsdk_obfuscation import d
 
@@ -659,19 +659,24 @@ class Synapse:
         assert len(weights) == len(indices)
         self.indices = indices
 
-    def set_full_weights(self, weights):
-        weights = np.array(weights, copy=False, dtype=np.float32)
-        assert weights.ndim in (1, 2)
+    def set_weights(self, weights):
+        if isinstance(weights, scipy.sparse.spmatrix):
+            csr = weights.tocsr()
+            weights_by_row, idxs_by_row = [], []
+            for i in range(weights.shape[0]):
+                i0, i1 = csr.indptr[i : i + 2]
+                weights_by_row.append(csr.data[i0:i1])
+                idxs_by_row.append(csr.indices[i0:i1])
 
-        if weights.ndim == 1:
-            indices = np.arange(weights.size)
+            weights = weights_by_row
+            indices = idxs_by_row
         else:
+            weights = np.array(weights, copy=False, dtype=np.float32)
+            assert weights.ndim == 2
             indices = None
 
+        assert len(weights) == self.n_axons, "Must have different weights for each axon"
         self._set_weights_indices(weights, indices=indices)
-        assert (
-            len(self.weights) == self.n_axons
-        ), "Full weights must have different weights for each axon"
 
         self.format(
             compression=d(b"Mw==", int),

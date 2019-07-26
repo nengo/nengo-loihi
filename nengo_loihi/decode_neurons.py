@@ -3,6 +3,7 @@ import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Synapse
 from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
+from nengo_loihi.builder.sparse_matrix import scale_matrix, stack_matrices
 
 
 class DecodeNeurons:
@@ -31,7 +32,7 @@ class DecodeNeurons:
 
         Parameters
         ----------
-        weights : (d, n) ndarray
+        weights : (n, d) ndarray
             Weights that project the ``n`` inputs to the ``d`` dimensions
             represented by these neurons. Typically, the inputs will be neurons
             belonging to an Ensemble, and these weights will be decoders.
@@ -150,7 +151,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
         gain = self.gain * self.dt
         bias = self.bias * self.dt
 
-        d, n = weights.shape
+        n, d = weights.shape
         n_neurons = 2 * d * self.pairs_per_dim
         block = LoihiBlock(n_neurons, label=block_label)
         block.compartment.configure_relu(dt=self.dt)
@@ -159,9 +160,9 @@ class OnOffDecodeNeurons(DecodeNeurons):
         syn = Synapse(n, label=syn_label)
         weights2 = []
         for ga, gb in gain.reshape(self.pairs_per_dim, 2):
-            weights2.extend([ga * weights.T, -gb * weights.T])
-        weights2 = np.hstack(weights2)
-        syn.set_full_weights(weights2)
+            weights2.extend([scale_matrix(weights, ga), scale_matrix(weights, -gb)])
+        weights2 = stack_matrices(weights2, order="h")
+        syn.set_weights(weights2)
         block.add_synapse(syn)
 
         return block, syn
@@ -178,7 +179,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
             )
 
         n_neurons = 2 * dim * self.pairs_per_dim
-        encoders = np.vstack([np.eye(dim), -(np.eye(dim))] * self.pairs_per_dim)
+        encoders = np.vstack([np.eye(dim), -np.eye(dim)] * self.pairs_per_dim)
         ens = nengo.Ensemble(
             n_neurons,
             dim,

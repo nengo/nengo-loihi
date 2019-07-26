@@ -32,7 +32,7 @@ def test_validate_block():
     # too many synapse bits
     block = LoihiBlock(600)
     synapse = Synapse(500)
-    synapse.set_full_weights(np.ones((500, 600)))
+    synapse.set_weights(np.ones((500, 600)))
     axon = Axon(500)
     axon.target = synapse
     block.add_synapse(synapse)

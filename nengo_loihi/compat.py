@@ -3,6 +3,7 @@ import logging
 
 import nengo
 import numpy as np
+import scipy
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,14 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
         return transform.init
 
     def sample_transform(conn, rng=np.random):
-        return conn.transform.sample(rng=rng)
+        transform = conn.transform.sample(rng=rng)
+
+        # convert SparseMatrix to scipy.sparse
+        if isinstance(transform, nengo_transforms.SparseMatrix):
+            transform = scipy.sparse.csr_matrix(
+                (transform.data, transform.indices.T), shape=transform.shape
+            )
+        return transform
 
     def make_process_step(process, shape_in, shape_out, dt, rng, dtype=None):
         state = process.make_state(shape_in, shape_out, dt, dtype=dtype)

@@ -17,7 +17,7 @@ def test_core_stdp_pre_cfgs():
 
     def new_syn(tracing_mag=None):
         syn = Synapse(n_axons=1)
-        syn.set_full_weights(np.array([[1]]))
+        syn.set_weights(np.array([[1]]))
         if tracing_mag is not None:
             syn.set_learning(tracing_mag=tracing_mag)
         core.add_synapse(syn)
@@ -75,7 +75,7 @@ def _basic_model():
     block0.add_axon(axon1)
 
     synapse1 = Synapse(1)
-    synapse1.set_full_weights([[1]])
+    synapse1.set_weights([[1]])
     axon1.target = synapse1
     block1.add_synapse(synapse1)
 
@@ -85,7 +85,7 @@ def _basic_model():
     model.add_input(input)
 
     synapse0 = Synapse(1)
-    synapse0.set_full_weights([[1]])
+    synapse0.set_weights([[1]])
     axon0.target = synapse0
     block0.add_synapse(synapse0)
 

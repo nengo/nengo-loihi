@@ -1,5 +1,6 @@
 import copy
 import logging
+import warnings
 
 import nengo
 from nengo import Ensemble, Connection, Node, Probe as NengoProbe
@@ -15,6 +16,7 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
 import numpy as np
+import scipy
 
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder.builder import Builder
@@ -25,11 +27,16 @@ from nengo_loihi.builder.inputs import (
     HostReceiveNode,
     PESModulatoryTarget,
 )
-from nengo_loihi.compat import nengo_transforms, sample_transform, conn_solver
+from nengo_loihi.compat import conn_solver, nengo_transforms, sample_transform
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
 from nengo_loihi.inputs import LoihiInput
 from nengo_loihi.neurons import loihi_rates
 from nengo_loihi.passthrough import base_obj
+from nengo_loihi.builder.sparse_matrix import (
+    expand_matrix,
+    scale_matrix,
+    stack_matrices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -387,7 +394,7 @@ def build_decode_neuron_encoders(model, ens, kind="decode_neuron_encoders"):
         encoders = model.decode_neurons.get_post_encoders(scaled_encoders)
 
     synapse = Synapse(encoders.shape[0], label=kind)
-    synapse.set_full_weights(encoders)
+    synapse.set_weights(encoders)
     block.add_synapse(synapse, name=kind)
 
 
@@ -404,34 +411,13 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
     return _build_no_solver(*args)
 
 
-def expand_weights(weights, pre_size, post_size, min_dims=2):
-    """Make weight matrix 1D or 2D, check sizes"""
-    assert min_dims in (1, 2)
-
-    if weights.ndim == 0:
-        assert pre_size == post_size
-        if min_dims == 1:
-            weights = weights * np.ones(pre_size)
-        elif min_dims == 2:
-            weights = weights * np.eye(pre_size)
-    elif weights.ndim == 1:
-        assert pre_size == post_size
-        assert weights.size == pre_size
-        if min_dims == 2:
-            weights = np.diag(weights)
-    else:
-        assert weights.ndim == 2
-        assert weights.shape[0] == post_size
-        assert weights.shape[1] == pre_size
-
-    return weights
-
-
 def build_chip_connection(model, conn):  # noqa: C901
     if nengo_transforms is not None:
         if isinstance(conn.transform, nengo_transforms.Convolution):
             return build_conv2d_connection(model, conn)
-        elif not isinstance(conn.transform, nengo_transforms.Dense):
+        elif not isinstance(
+            conn.transform, (nengo_transforms.Dense, nengo_transforms.Sparse)
+        ):
             raise BuildError(
                 "nengo-loihi does not yet support %r transforms "
                 "on chip to chip connections" % (type(conn.transform).__name__,)
@@ -452,7 +438,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     pre_slice = conn.pre_slice
     post_slice = conn.post_slice
 
-    # sample transform (if using a distribution)
+    # sample transform (if using a distribution), transform shape (out, in)
     transform = sample_transform(conn, rng=rng)
 
     tau_s = 0.0  # `synapse is None` gets mapped to `tau_s = 0.0`
@@ -468,21 +454,22 @@ def build_chip_connection(model, conn):  # noqa: C901
     ):
         assert conn.pre_slice == slice(None)
 
-        transform = expand_weights(
-            transform,
-            pre_size=conn.pre.size_out,
-            post_size=conn.post.size_in,
-            min_dims=2,
-        )
+        weights = expand_matrix(transform, shape=(conn.post.size_in, conn.pre.size_out))
 
         # input is on-off neuron encoded, so double/flip transform
-        weights = np.column_stack([transform, -transform])
+        weights = stack_matrices([weights, scale_matrix(weights, -1)], order="h")
         target_encoders = "node_encoders"
     elif isinstance(conn.pre_obj, Ensemble) and isinstance(
         conn.pre_obj.neuron_type, nengo.Direct
     ):
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
+        if isinstance(transform, scipy.sparse.spmatrix):
+            warnings.warn(
+                "Converting Sparse transform to Dense to combine with decoders"
+            )
+            transform = transform.toarray()
+
         eval_points, decoders, solver_info = model.build(
             conn.solver, conn, rng, transform
         )
@@ -495,7 +482,7 @@ def build_chip_connection(model, conn):  # noqa: C901
 
         # the decoder solver assumes a spike height of 1/dt; that isn't the
         # case on loihi, so we need to undo that scaling
-        weights = weights / model.dt
+        weights = scale_matrix(weights, 1.0 / model.dt)
 
         neuron_type = conn.pre_obj.neuron_type
 
@@ -504,9 +491,8 @@ def build_chip_connection(model, conn):  # noqa: C901
             assert isinstance(conn.post_obj, Ensemble)
 
             if conn.solver.compositional:
-                encoders = model.params[conn.post_obj].scaled_encoders.T
-                encoders = encoders[post_slice]
-                weights = multiply(encoders.T, weights)
+                encoders = model.params[conn.post_obj].scaled_encoders
+                weights = multiply(encoders[:, post_slice], weights)
 
             # post slice already applied to encoders (either here or in
             # `build_decoders`), so don't apply later
@@ -514,13 +500,8 @@ def build_chip_connection(model, conn):  # noqa: C901
         else:
             needs_decode_neurons = True
     elif isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons)):
-        weights = expand_weights(
-            transform,
-            pre_size=conn.pre.size_out,
-            post_size=conn.post.size_in,
-            min_dims=1,
-        )
-        weights = weights / model.dt
+        weights = expand_matrix(transform, shape=(conn.post.size_in, conn.pre.size_out))
+        weights = scale_matrix(weights, 1.0 / model.dt)
         neuron_type = (
             conn.pre_obj.neuron_type
             if isinstance(conn.pre_obj, ChipReceiveNeurons)
@@ -533,19 +514,18 @@ def build_chip_connection(model, conn):  # noqa: C901
         raise NotImplementedError("Connection from type %r" % (type(conn.pre_obj),))
 
     if neuron_type is not None and hasattr(neuron_type, "amplitude"):
-        weights = weights * neuron_type.amplitude
+        weights = scale_matrix(weights, neuron_type.amplitude)
+
+    # loihi_weights has shape (in, out), to match the shape by block.Synapses
+    loihi_weights = weights.T
 
     mid_obj = pre_obj
     mid_axon_inds = None
     post_tau = tau_s
     if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
         # --- add decode neurons
-        if weights.ndim == 1:
-            # difficult to deal with 1D weights here, so just make them 2D
-            weights = np.diag(weights)
-
         assert weights.ndim == 2
-        d, n = weights.shape
+        n, d = loihi_weights.shape
 
         if isinstance(post_obj, Probe):
             # use non-spiking decode neurons for voltage probing
@@ -555,9 +535,8 @@ def build_chip_connection(model, conn):  # noqa: C901
             # use the same scaling as the ensemble does, to get good
             #  decodes.  Note that this assumes that the decoded value
             #  is in the range -radius to radius, which is usually true.
-            weights = weights / conn.pre_obj.radius
+            gain = 1.0 / conn.pre_obj.radius
 
-            gain = 1
             decoder_block = LoihiBlock(2 * d, label="%s" % conn)
             decoder_block.compartment.configure_nonspiking(
                 dt=model.dt, vth=model.vth_nonspiking
@@ -567,25 +546,28 @@ def build_chip_connection(model, conn):  # noqa: C901
             model.objs[conn]["decoded"] = decoder_block
 
             dec_syn = Synapse(n, label="probe_decoders")
-            weights2 = gain * np.vstack([weights, -weights]).T
+            weights2 = stack_matrices(
+                [scale_matrix(loihi_weights, gain), scale_matrix(loihi_weights, -gain)],
+                order="h",
+            )
 
-            dec_syn.set_full_weights(weights2)
+            dec_syn.set_weights(weights2)
             decoder_block.add_synapse(dec_syn)
             model.objs[conn]["decoders"] = dec_syn
         else:
             # use spiking decode neurons for on-chip connection
             if isinstance(conn.post_obj, Ensemble):
                 # loihi encoders don't include radius, so handle scaling here
-                weights = weights / conn.post_obj.radius
+                loihi_weights = scale_matrix(loihi_weights, 1.0 / conn.post_obj.radius)
 
             post_d = conn.post_obj.size_in
             post_inds = np.arange(post_d, dtype=np.int32)[post_slice]
-            assert weights.shape[0] == len(post_inds) == conn.size_out == d
+            assert loihi_weights.shape[1] == len(post_inds) == conn.size_out
             mid_axon_inds = model.decode_neurons.get_post_inds(post_inds, post_d)
 
             target_encoders = "decode_neuron_encoders"
             decoder_block, dec_syn = model.decode_neurons.get_block(
-                weights, block_label="%s" % conn, syn_label="decoders"
+                loihi_weights, block_label="%s" % conn, syn_label="decoders"
             )
 
             model.add_block(decoder_block)
@@ -596,7 +578,7 @@ def build_chip_connection(model, conn):  # noqa: C901
         decoder_block.compartment.configure_filter(tau_s, dt=model.dt)
         post_tau = model.decode_tau
 
-        target_axons = -(np.ones(pre_obj.n_neurons, dtype=int))
+        target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         pre_slice = slice(None)
 
@@ -605,6 +587,8 @@ def build_chip_connection(model, conn):  # noqa: C901
         dec_ax0.set_compartment_axon_map(target_axons)
         pre_obj.add_axon(dec_ax0)
         model.objs[conn]["decode_axon"] = dec_ax0
+
+        loihi_weights = None  # weights have now been handled
 
         if conn.learning_rule_type is not None:
             rule_type = conn.learning_rule_type
@@ -634,7 +618,7 @@ def build_chip_connection(model, conn):  # noqa: C901
                 # is independent of the pre tau. `dt` factor accounts for
                 # Nengo's `dt` spike scaling. Where is the second `dt` from?
                 # Maybe the fact that post decode neurons have `vth = 1/dt`?
-                tracing_mag = -(np.expm1(-1.0 / tracing_tau)) / model.dt ** 2
+                tracing_mag = -np.expm1(-1.0 / tracing_tau) / model.dt ** 2
 
                 # learning weight exponent controls the maximum weight
                 # magnitude/weight resolution
@@ -659,21 +643,21 @@ def build_chip_connection(model, conn):  # noqa: C901
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_obj, LoihiBlock)
         assert post_slice == slice(None)
-        if weights is None:
+        if loihi_weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
 
-        assert weights.ndim in (1, 2)
-        n2 = weights.shape[0]
-        n1 = weights.shape[1] if weights.ndim > 1 else n2
+        assert loihi_weights.ndim == 2
+        n1, n2 = loihi_weights.shape
         assert post_obj.n_neurons == n2
 
         syn = Synapse(n1, label="neuron_weights")
         gain = model.params[conn.post_obj.ensemble].gain
-        syn.set_full_weights(weights.T * gain)
+        loihi_weights = scale_matrix(loihi_weights, gain)
+        syn.set_weights(loihi_weights)
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
 
-        target_axons = -(np.ones(mid_obj.n_neurons, dtype=int))
+        target_axons = -np.ones(mid_obj.n_neurons, dtype=int)
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         assert target_axons[pre_slice].size == n1
 
@@ -690,15 +674,15 @@ def build_chip_connection(model, conn):  # noqa: C901
         assert isinstance(post_obj, LoihiBlock)
         assert pre_slice == slice(None), "Not implemented"
         assert post_slice == slice(None)
-        assert weights.ndim == 2
-        n2, n1 = weights.shape
+        assert loihi_weights.ndim == 2
+        n1, n2 = loihi_weights.shape
         assert post_obj.n_neurons == n2
 
         # loihi encoders don't include radius, so handle scaling here
-        weights = weights / conn.post_obj.radius
+        loihi_weights = scale_matrix(loihi_weights, 1.0 / conn.post_obj.radius)
 
         syn = Synapse(n1, label="%s::decoder_weights" % conn)
-        syn.set_full_weights(weights.T)
+        syn.set_weights(loihi_weights)
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
 
@@ -732,8 +716,8 @@ def build_chip_connection(model, conn):  # noqa: C901
     model.params[conn] = BuiltConnection(
         eval_points=eval_points,
         solver_info=solver_info,
-        transform=transform,
-        weights=weights,
+        transform=transform,  # sampled transform
+        weights=weights,  # scaled weights (including decoders)
     )
 
 
@@ -811,7 +795,7 @@ def build_conv2d_connection(model, conn):
     post_obj.add_synapse(synapse)
     model.objs[conn]["weights"] = synapse
 
-    target_axons = -(np.ones(pre_obj.n_neurons, dtype=int))
+    target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
     target_axons[conn.pre_slice] = pixel_idxs(input_shape)
     atoms = np.zeros(pre_obj.n_neurons, dtype=int)
     atoms[conn.pre_slice] = channel_idxs(input_shape)

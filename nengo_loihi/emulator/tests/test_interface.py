@@ -59,7 +59,7 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     block.compartment.configure_filter(0.1)
 
     synapse = Synapse(n_axons)
-    synapse.set_full_weights(np.ones((n_axons, 1)))
+    synapse.set_weights(np.ones((n_axons, 1)))
     block.add_synapse(synapse)
 
     axon = Axon(n_axons)

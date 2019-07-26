@@ -3,7 +3,9 @@ from nengo.exceptions import BuildError
 from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
+import scipy
 
+from nengo_loihi.builder import connection
 from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.neurons import nengo_rates
@@ -89,7 +91,8 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
 @pytest.mark.parametrize(
     "factor, do_pre_slice", [(0.11, False), (0.26, True), (1.01, False)]
 )
-def test_neuron_to_neuron(Simulator, factor, do_pre_slice, seed, allclose, plt):
+@pytest.mark.parametrize("sparse", ["dense", "nengo", "scipy"])
+def test_neuron_to_neuron(Simulator, factor, do_pre_slice, sparse, seed, allclose, plt):
     # note: we use these weird factor values so that voltages don't line up
     # exactly with the firing threshold.  since loihi neurons fire when
     # voltage > threshold (rather than >=), if the voltages line up
@@ -106,6 +109,24 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, seed, allclose, plt):
         nb = na
         pre_slice = slice(None)
 
+    if sparse != "dense":
+        if nengo_transforms is None:
+            pytest.skip("Sparse matrices require nengo transforms")
+
+        shape = (nb, nb)
+        data = factor * np.ones(nb)
+        rowi = coli = np.arange(nb)
+        if sparse == "nengo":
+            transform = nengo_transforms.Sparse(
+                shape, indices=np.array((rowi, coli)).T, init=data
+            )
+        elif sparse == "scipy":
+            transform = nengo_transforms.Sparse(
+                shape, init=scipy.sparse.coo_matrix((data, (rowi, coli)), shape=shape)
+            )
+    else:
+        transform = factor
+
     with nengo.Network(seed=seed) as net:
 
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
@@ -120,7 +141,7 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, seed, allclose, plt):
             bias=np.zeros(nb),
         )
         nengo.Connection(
-            a.neurons[pre_slice], b.neurons, synapse=None, transform=factor
+            a.neurons[pre_slice], b.neurons, synapse=None, transform=transform
         )
 
         p_a = nengo.Probe(a.neurons)
@@ -553,7 +574,7 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     plt.plot(sim.trange(), sim.data[p_b])
 
     assert allclose(sim.data[p_a], sim.data[p_stim], atol=0.05, rtol=0.01)
-    assert allclose(sim.data[p_b], -(sim.data[p_a]), atol=0.15, rtol=0.1)
+    assert allclose(sim.data[p_b], -sim.data[p_a], atol=0.15, rtol=0.1)
 
 
 @pytest.mark.parametrize("seed_ens", [True, False])
@@ -634,6 +655,25 @@ def test_sparse_host_to_chip_error(Simulator):
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+def test_chip_to_chip_transform_error(Simulator):
+    class MyTransform(nengo_transforms.Transform):  # pylint: disable=abstract-method
+        """Dummy transform"""
+
+        size_in = 1
+        size_out = 1
+
+    with nengo.Network():
+        ens0 = nengo.Ensemble(10, 1)
+        ens1 = nengo.Ensemble(10, 1)
+        conn = nengo.Connection(ens0, ens1, transform=MyTransform())
+
+    with pytest.raises(BuildError, match="on chip to chip connections"):
+        # note: we bypass the regular build process so that we don't have to write a
+        # fully working transform
+        connection.build_chip_connection(None, conn)
+
+
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_learning_rule_error(Simulator):
     with nengo.Network() as net:
         err = nengo.Node(np.ones(4))
@@ -654,18 +694,28 @@ def test_sparse_host_to_learning_rule_error(Simulator):
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-def test_sparse_chip_to_chip_error(Simulator):
-    with nengo.Network() as net:
-        pre = nengo.Ensemble(100, 4)
-        post = nengo.Ensemble(100, 2)
-        nengo.Connection(
-            pre,
-            post,
-            transform=nengo_transforms.Sparse(
-                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
-            ),
-        )
+def test_sparse_ens_ens(Simulator, seed, plt, allclose):
+    transform = nengo_transforms.Sparse(
+        shape=(2, 3), indices=[[0, 2], [1, 0]], init=[-0.8, 0.6]
+    )
 
-    with pytest.raises(BuildError, match="on chip to chip"):
-        with Simulator(net):
-            pass
+    with nengo.Network(seed=seed) as net:
+        u = nengo.Node(lambda t: [np.sin(2 * np.pi * t), t, -np.sin(2 * np.pi * t)])
+        a = nengo.Ensemble(200, 3)
+        b = nengo.Ensemble(200, 2)
+        nengo.Connection(u, a, synapse=None)
+        nengo.Connection(a, b, transform=transform)
+
+        up = nengo.Probe(u, synapse=nengo.synapses.Alpha(0.01))
+        bp = nengo.Probe(b, synapse=nengo.synapses.Alpha(0.01))
+
+    with pytest.warns(UserWarning, match="Converting Sparse transform"):
+        with Simulator(net) as sim:
+            sim.run(0.4)
+
+    matrix = transform.init.toarray()
+    plt.plot(sim.trange(), sim.data[up].dot(matrix.T), "--")
+    plt.plot(sim.trange(), sim.data[bp])
+
+    assert allclose(sim.data[bp][:, 0], -0.8 * sim.data[up][:, 2], atol=0.2)
+    assert allclose(sim.data[bp][:, 1], 0.6 * sim.data[up][:, 0], atol=0.2)

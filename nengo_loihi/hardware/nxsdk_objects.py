@@ -74,11 +74,6 @@ class Chip:
         self.core_idxs = {}
 
     @property
-    def index(self):
-        """Index of this Chip in the parent Board"""
-        return self.board.chip_index(self)
-
-    @property
     def n_cores(self):
         return len(self.cores)
 
