@@ -11,8 +11,7 @@ that has ``pip``.
 
 .. code-block:: bash
 
-   git clone https://github.com/nengo/nengo-loihi.git
-   pip install -e nengo-loihi
+   pip install nengo-loihi
 
 ``pip`` will do its best to install
 Nengo Loihi's requirements.
@@ -130,8 +129,7 @@ for running Loihi models.
 
    .. code-block:: bash
 
-      git clone https://github.com/nengo/nengo-loihi.git
-      pip install -e nengo-loihi
+      pip install nengo-loihi
 
    ``pip`` will install other requirements like Nengo automatically.
 
@@ -148,3 +146,20 @@ for running Loihi models.
       Type "help", "copyright", "credits" or "license" for more information.
       >>> import nxsdk
       >>> import nengo_loihi
+
+Developer install
+=================
+
+If you plan to make changes to Nengo Loihi,
+you should perform a developer install.
+All of the steps above are the same
+with a developer install,
+except that instead of doing ``pip install nengo-loihi``,
+you should do
+
+.. code-block:: bash
+
+   git clone https://github.com/nengo/nengo-loihi.git
+   pip install -e nengo-loihi
+   cd nengo-loihi
+   pre-commit install

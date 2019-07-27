@@ -487,3 +487,7 @@ ci_scripts:
   - template: deploy
 
 codecov_yml: {}
+
+pre_commit_config_yaml: {}
+
+pyproject_toml: {}
