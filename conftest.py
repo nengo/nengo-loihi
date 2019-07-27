@@ -21,43 +21,50 @@ def pytest_configure(config):
     mpl.use("Agg")
     EmulatorInterface.strict = True
 
-    if config.getoption('seed_offset'):
-        TestConfig.test_seed = config.getoption('seed_offset')[0]
+    if config.getoption("seed_offset"):
+        TestConfig.test_seed = config.getoption("seed_offset")[0]
     nengo_loihi.set_defaults()
 
     # add unsupported attribute to Simulator (for compatibility with nengo<3.0)
     # join all the lines and then split (preserving quoted strings)
-    unsupported = shlex.split(
-        " ".join(config.getini("nengo_test_unsupported")))
+    unsupported = shlex.split(" ".join(config.getini("nengo_test_unsupported")))
     # group pairs (representing testname + reason)
-    unsupported = [
-        unsupported[i:i + 2] for i in range(0, len(unsupported), 2)]
+    unsupported = [unsupported[i : i + 2] for i in range(0, len(unsupported), 2)]
     # wrap square brackets to interpret them literally
     # (see https://docs.python.org/3/library/fnmatch.html)
     for i, (testname, _) in enumerate(unsupported):
-        unsupported[i][0] = "".join("[%s]" % c if c in ('[', ']') else c
-                                    for c in testname)
+        unsupported[i][0] = "".join(
+            "[%s]" % c if c in ("[", "]") else c for c in testname
+        )
 
     nengo_loihi.Simulator.unsupported = unsupported
 
 
 def pytest_addoption(parser):
-    parser.addoption("--target", type=str, default="sim",
-                     help="Platform on which to run tests ('sim' or 'loihi')")
-    parser.addoption("--no-hang", action="store_true", default=False,
-                     help="Skip tests that hang")
+    parser.addoption(
+        "--target",
+        type=str,
+        default="sim",
+        help="Platform on which to run tests ('sim' or 'loihi')",
+    )
+    parser.addoption(
+        "--no-hang", action="store_true", default=False, help="Skip tests that hang"
+    )
 
     if nengo.version.version_info <= (2, 8, 0):
         # add the pytest option from future nengo versions
-        parser.addini("nengo_test_unsupported", type="linelist",
-                      help="List of unsupported unit tests with reason for "
-                           "exclusion")
+        parser.addini(
+            "nengo_test_unsupported",
+            type="linelist",
+            help="List of unsupported unit tests with reason for " "exclusion",
+        )
 
 
 def pytest_report_header(config, startdir):
     target = config.getoption("--target")
     return "Nengo Loihi is using Loihi {}".format(
-        "hardware" if target == "loihi" else "emulator")
+        "hardware" if target == "loihi" else "emulator"
+    )
 
 
 def pytest_terminal_summary(terminalreporter):
@@ -69,16 +76,19 @@ def pytest_terminal_summary(terminalreporter):
                 all_rmses.append(val)
 
     if len(all_rmses) > 0:
-        tr.write_sep(
-            "=", "relative root mean squared error for allclose checks")
-        tr.write_line("mean relative rmse: %.5f +/- %.4f" % (
-            np.mean(all_rmses), np.std(all_rmses)))
+        tr.write_sep("=", "relative root mean squared error for allclose checks")
+        tr.write_line(
+            "mean relative rmse: %.5f +/- %.4f"
+            % (np.mean(all_rmses), np.std(all_rmses))
+        )
 
 
 def pytest_runtest_setup(item):
-    if (getattr(item.obj, "hang", False)
-            and item.config.getvalue("--target") == "loihi"
-            and item.config.getvalue("--no-hang")):
+    if (
+        getattr(item.obj, "hang", False)
+        and item.config.getvalue("--target") == "loihi"
+        and item.config.getvalue("--no-hang")
+    ):
         # pragma: no cover, in case we don't have any tests marked "hang" atm
         pytest.xfail("This test causes Loihi to hang indefinitely")
 
@@ -105,7 +115,7 @@ def function_seed(function, mod=0):
 
     # take start of md5 hash of function file and name, should be unique
     hash_list = os.path.normpath(path).split(os.path.sep) + [c.co_name]
-    hash_string = ensure_bytes('/'.join(hash_list))
+    hash_string = ensure_bytes("/".join(hash_list))
     i = int(hashlib.md5(hash_string).hexdigest()[:15], 16)
     s = (i + mod) % npext.maxint
     int_s = int(s)  # numpy 1.8.0 bug when RandomState on long type inputs
@@ -140,8 +150,7 @@ def allclose(request):
         x = np.asarray(x)
         return npext.rms(x).item() if x.size > 0 else np.nan
 
-    def _allclose(a, b, rtol=1e-5, atol=1e-8, xtol=0,
-                  equal_nan=False, print_fail=5):
+    def _allclose(a, b, rtol=1e-5, atol=1e-8, xtol=0, equal_nan=False, print_fail=5):
         """Check for bounded equality of two arrays (mimics ``np.allclose``).
 
         Parameters
@@ -179,8 +188,7 @@ def allclose(request):
             ab_rms = safe_rms(a) + safe_rms(b)
             rmse_relative = (2 * rmse / ab_rms) if ab_rms > 0 else np.nan
             if not np.any(np.isnan(rmse_relative)):
-                request.node.user_properties.append(
-                    ("rmse_relative", rmse_relative))
+                request.node.user_properties.append(("rmse_relative", rmse_relative))
 
         close = np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
 
@@ -188,9 +196,11 @@ def allclose(request):
         # close, then we condider things close.
         for i in range(1, xtol + 1):
             close[i:] |= np.isclose(
-                a[i:], b[:-i], rtol=rtol, atol=atol, equal_nan=equal_nan)
+                a[i:], b[:-i], rtol=rtol, atol=atol, equal_nan=equal_nan
+            )
             close[:-i] |= np.isclose(
-                a[:-i], b[i:], rtol=rtol, atol=atol, equal_nan=equal_nan)
+                a[:-i], b[i:], rtol=rtol, atol=atol, equal_nan=equal_nan
+            )
 
             # we assume that the beginning and end of the array are close
             # (since we're comparing to entries outside the bounds of
@@ -205,12 +215,12 @@ def allclose(request):
             broadcast_a = a + np.zeros(b.shape, dtype=a.dtype)
             broadcast_b = b + np.zeros(a.shape, dtype=b.dtype)
             for k, ind in enumerate(zip(*(~close).nonzero())):
-                diffs.append("%s: %s %s" % (
-                    ind, broadcast_a[ind], broadcast_b[ind]))
+                diffs.append("%s: %s %s" % (ind, broadcast_a[ind], broadcast_b[ind]))
                 if k > print_fail:
                     break
-            print("allclose first %d failures:\n  %s" % (
-                print_fail, "\n  ".join(diffs)))
+            print(
+                "allclose first %d failures:\n  %s" % (print_fail, "\n  ".join(diffs))
+            )
         return result
 
     return _allclose
@@ -241,9 +251,7 @@ def pytest_collection_modifyitems(session, config, items):
         "nengo/utils/tests/test_network.py::"  # no comma
         "test_activate_direct_mode_learning[learning_rule3-False]",
     ]
-    deselected = [
-        item for item in items if item.nodeid in hanging_nengo_tests
-    ]
+    deselected = [item for item in items if item.nodeid in hanging_nengo_tests]
     config.hook.pytest_deselected(items=deselected)
     for item in deselected:
         # pragma: no cover, because we may not be running Nengo tests on Loihi

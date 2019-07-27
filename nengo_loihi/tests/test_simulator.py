@@ -1,8 +1,7 @@
 import inspect
 
 import nengo
-from nengo.exceptions import (
-    BuildError, ReadonlyError, SimulationError, ValidationError)
+from nengo.exceptions import BuildError, ReadonlyError, SimulationError, ValidationError
 import numpy as np
 import pytest
 
@@ -68,9 +67,9 @@ def test_probedict_fallbacks(precompute, Simulator):
 
 
 def test_probedict_interface(Simulator):
-    with nengo.Network(label='net') as net:
-        u = nengo.Node(1, label='u')
-        a = nengo.Ensemble(9, 1, label='a')
+    with nengo.Network(label="net") as net:
+        u = nengo.Node(1, label="u")
+        a = nengo.Ensemble(9, 1, label="a")
         nengo.Connection(u, a)
 
     with Simulator(net) as sim:
@@ -88,22 +87,22 @@ def test_probedict_interface(Simulator):
 
 @pytest.mark.xfail
 @pytest.mark.parametrize(
-    "dt, pre_on_chip",
-    [(2e-4, True), (3e-4, False), (4e-4, True), (2e-3, True)]
+    "dt, pre_on_chip", [(2e-4, True), (3e-4, False), (4e-4, True), (2e-3, True)]
 )
 def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
-    function = lambda x: x**2
+    function = lambda x: x ** 2
     probe_synapse = nengo.Alpha(0.01)
     simtime = 0.2
 
     ens_params = dict(
         intercepts=nengo.dists.Uniform(-0.9, 0.9),
-        max_rates=nengo.dists.Uniform(100, 120))
+        max_rates=nengo.dists.Uniform(100, 120),
+    )
 
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)
 
-        stim = nengo.Node(lambda t: -np.sin(2 * np.pi * t / simtime))
+        stim = nengo.Node(lambda t: -(np.sin(2 * np.pi * t / simtime)))
         stim_p = nengo.Probe(stim, synapse=probe_synapse)
 
         pre = nengo.Ensemble(100, 1, **ens_params)
@@ -114,16 +113,17 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
         post_p = nengo.Probe(post, synapse=probe_synapse)
 
         nengo.Connection(stim, pre)
-        nengo.Connection(pre, post, function=function,
-                         solver=nengo.solvers.LstsqL2(weights=True))
+        nengo.Connection(
+            pre, post, function=function, solver=nengo.solvers.LstsqL2(weights=True)
+        )
 
     with Simulator(model, dt=dt) as sim:
         sim.run(simtime)
 
     x = sim.data[stim_p]
     y = function(x)
-    plt.plot(sim.trange(), x, 'k--')
-    plt.plot(sim.trange(), y, 'k--')
+    plt.plot(sim.trange(), x, "k--")
+    plt.plot(sim.trange(), y, "k--")
     plt.plot(sim.trange(), sim.data[pre_p])
     plt.plot(sim.trange(), sim.data[post_p])
 
@@ -131,21 +131,21 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
     assert allclose(sim.data[post_p], y, rtol=0.1, atol=0.1)
 
 
-@pytest.mark.parametrize('simtype', ['simreal', None])
+@pytest.mark.parametrize("simtype", ["simreal", None])
 def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
-    if simtype == 'simreal':
-        Simulator = lambda *args: nengo_loihi.Simulator(
-            *args, target='simreal')
+    if simtype == "simreal":
+        Simulator = lambda *args: nengo_loihi.Simulator(*args, target="simreal")
 
     simtime = 0.6
 
     with nengo.Network(seed=seed) as model:
-        u = nengo.Node(lambda t: np.sin(6*t / simtime))
+        u = nengo.Node(lambda t: np.sin(6 * t / simtime))
         a = nengo.Ensemble(50, 1)
         b = nengo.Ensemble(50, 1)
         nengo.Connection(u, a)
-        nengo.Connection(a, b, function=lambda x: x**2,
-                         solver=nengo.solvers.LstsqL2(weights=True))
+        nengo.Connection(
+            a, b, function=lambda x: x ** 2, solver=nengo.solvers.LstsqL2(weights=True)
+        )
 
         ap = nengo.Probe(a, synapse=nengo.synapses.Alpha(0.02))
         bp = nengo.Probe(b, synapse=nengo.synapses.Alpha(0.02))
@@ -260,9 +260,7 @@ def test_all_run_steps(Simulator):
 
 def test_no_precomputable(Simulator):
     with nengo.Network() as net:
-        active_ens = nengo.Ensemble(10, 1,
-                                    gain=np.ones(10) * 10,
-                                    bias=np.ones(10) * 10)
+        active_ens = nengo.Ensemble(10, 1, gain=np.ones(10) * 10, bias=np.ones(10) * 10)
         out = nengo.Node(size_in=10)
         nengo.Connection(active_ens.neurons, out)
         out_p = nengo.Probe(out)
@@ -283,12 +281,9 @@ def test_no_precomputable(Simulator):
 
 def test_all_onchip(Simulator):
     with nengo.Network() as net:
-        active_ens = nengo.Ensemble(10, 1,
-                                    gain=np.ones(10) * 10,
-                                    bias=np.ones(10) * 10)
+        active_ens = nengo.Ensemble(10, 1, gain=np.ones(10) * 10, bias=np.ones(10) * 10)
         out = nengo.Ensemble(10, 1, gain=np.ones(10), bias=np.ones(10))
-        nengo.Connection(active_ens.neurons, out.neurons,
-                         transform=np.eye(10) * 10)
+        nengo.Connection(active_ens.neurons, out.neurons, transform=np.eye(10) * 10)
         out_p = nengo.Probe(out.neurons)
 
     with Simulator(net) as sim:
@@ -303,8 +298,9 @@ def test_all_onchip(Simulator):
     assert np.all(sim.data[out_p][-1] > 100)
 
 
-@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
-                    reason="snips only on Loihi")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi", reason="snips only on Loihi"
+)
 def test_snips_round_robin_unsupported(Simulator):
     with nengo.Network() as model:
         # input is required otherwise precompute will be
@@ -314,8 +310,11 @@ def test_snips_round_robin_unsupported(Simulator):
         nengo.Connection(u, x)
 
     with pytest.raises(SimulationError, match="snips are not supported"):
-        with Simulator(model, precompute=False,
-                       hardware_options={'allocator': RoundRobin(n_chips=8)}):
+        with Simulator(
+            model,
+            precompute=False,
+            hardware_options={"allocator": RoundRobin(n_chips=8)},
+        ):
             pass
 
 
@@ -341,35 +340,44 @@ def test_tau_s_warning(Simulator):
         stim = nengo.Node(0)
         ens = nengo.Ensemble(10, 1)
         nengo.Connection(stim, ens, synapse=0.1)
-        nengo.Connection(ens, ens,
-                         synapse=0.001,
-                         solver=nengo.solvers.LstsqL2(weights=True))
+        nengo.Connection(
+            ens, ens, synapse=0.001, solver=nengo.solvers.LstsqL2(weights=True)
+        )
 
     with pytest.warns(UserWarning) as record:
         with Simulator(net):
             pass
 
-    assert any(rec.message.args[0] == (
-        "tau_s is already set to 0.005, which is larger than 0.001. "
-        "Using 0.005."
-    ) for rec in record)
+    assert any(
+        rec.message.args[0]
+        == (
+            "tau_s is already set to 0.005, which is larger than 0.001. " "Using 0.005."
+        )
+        for rec in record
+    )
 
     with net:
-        nengo.Connection(ens, ens,
-                         synapse=0.1,
-                         solver=nengo.solvers.LstsqL2(weights=True))
+        nengo.Connection(
+            ens, ens, synapse=0.1, solver=nengo.solvers.LstsqL2(weights=True)
+        )
     with pytest.warns(UserWarning) as record:
         with Simulator(net):
             pass
 
-    assert any(rec.message.args[0] == (
-        "tau_s is currently 0.005, which is smaller than 0.1. "
-        "Overwriting tau_s with 0.1.") for rec in record)
+    assert any(
+        rec.message.args[0]
+        == (
+            "tau_s is currently 0.005, which is smaller than 0.1. "
+            "Overwriting tau_s with 0.1."
+        )
+        for rec in record
+    )
 
 
-@pytest.mark.xfail(nengo.version.version_info <= (2, 8, 0),
-                   reason="Nengo core controls seeds")
-@pytest.mark.parametrize('precompute', [False, True])
+@pytest.mark.xfail(
+    nengo.version.version_info <= (2, 8, 0), reason="Nengo core controls seeds"
+)
+@pytest.mark.parametrize("precompute", [False, True])
 def test_seeds(precompute, Simulator, seed):
     with nengo.Network(seed=seed) as net:
         nengo_loihi.add_params(net)
@@ -394,8 +402,8 @@ def test_seeds(precompute, Simulator, seed):
 
     def get_seed(sim, obj):
         return sim.model.seeds.get(
-            obj, sim.model.host.seeds.get(
-                obj, sim.model.host_pre.seeds.get(obj, None)))
+            obj, sim.model.host.seeds.get(obj, sim.model.host_pre.seeds.get(obj, None))
+        )
 
     # --- test that seeds are the same as nengo ref simulator
     ref = nengo.Simulator(net)
@@ -447,10 +455,13 @@ def test_interface(Simulator, allclose):
 
 
 @pytest.mark.hang
-@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
-                    reason="Only Loihi has special shutdown procedure")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi",
+    reason="Only Loihi has special shutdown procedure",
+)
 def test_loihi_simulation_exception(Simulator):
     """Test that Loihi shuts down properly after exception during simulation"""
+
     def node_fn(t):
         if t < 0.002:
             return 0
@@ -464,14 +475,14 @@ def test_loihi_simulation_exception(Simulator):
 
     with Simulator(net, precompute=False) as sim:
         sim.run(0.01)
-        assert not sim.sims['loihi'].nxDriver.conn
+        assert not sim.sims["loihi"].nxDriver.conn
 
 
-@pytest.mark.parametrize('precompute', [True, False])
+@pytest.mark.parametrize("precompute", [True, False])
 def test_double_run(precompute, Simulator, seed, allclose):
     simtime = 0.2
     with nengo.Network(seed=seed) as net:
-        stim = nengo.Node(lambda t: np.sin((2*np.pi/simtime) * t))
+        stim = nengo.Node(lambda t: np.sin((2 * np.pi / simtime) * t))
         ens = nengo.Ensemble(10, 1)
         probe = nengo.Probe(ens)
         nengo.Connection(stim, ens, synapse=None)
@@ -489,7 +500,7 @@ def test_double_run(precompute, Simulator, seed, allclose):
 
 
 # These base-10 exp values translate to noiseExp of [5, 10, 13] on the chip.
-@pytest.mark.parametrize('exp', [-4.5, -3, -2])
+@pytest.mark.parametrize("exp", [-4.5, -3, -2])
 def test_simulator_noise(exp, request, plt, seed, allclose):
     # TODO: test that the mean falls within a number of standard errors
     # of the expected mean, and that non-zero offsets work correctly.
@@ -513,7 +524,7 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     block.compartment.noise_offset = offset
     block.compartment.noise_at_membrane = 1
 
-    probe = Probe(target=block, key='voltage')
+    probe = Probe(target=block, key="voltage")
     block.add_probe(probe)
     model.add_block(block)
 
@@ -522,7 +533,7 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     offset2 = block.compartment.noise_offset
 
     n_steps = 100
-    if target == 'loihi':
+    if target == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
             y = sim.get_probe_output(probe)
@@ -531,9 +542,9 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
             sim.run_steps(n_steps)
             y = sim.get_probe_output(probe)
 
-    t = np.arange(1, n_steps+1)
-    bias = offset2 * 2.**(exp2 - 1)
-    std = 2.**exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
+    t = np.arange(1, n_steps + 1)
+    bias = offset2 * 2.0 ** (exp2 - 1)
+    std = 2.0 ** exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
     rmean = t * bias
     rstd = np.sqrt(t) * std
     rerr = rstd / np.sqrt(n_compartments)
@@ -545,16 +556,16 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     plt.hist(diffs.ravel(), bins=256)
 
     plt.subplot(312)
-    plt.plot(rmean, 'k')
-    plt.plot(rmean + 3*rerr, 'k--')
-    plt.plot(rmean - 3*rerr, 'k--')
+    plt.plot(rmean, "k")
+    plt.plot(rmean + 3 * rerr, "k--")
+    plt.plot(rmean - 3 * rerr, "k--")
     plt.plot(ymean)
-    plt.title('mean')
+    plt.title("mean")
 
     plt.subplot(313)
-    plt.plot(rstd, 'k')
+    plt.plot(rstd, "k")
     plt.plot(ystd)
-    plt.title('std')
+    plt.title("std")
 
     assert allclose(ystd, rstd, rtol=0.1, atol=1)
 
@@ -568,9 +579,7 @@ def test_population_input(request, allclose):
     n_compartments = 2
 
     steps = 6
-    spike_times_inds = [(1, [0]),
-                        (3, [1]),
-                        (5, [2])]
+    spike_times_inds = [(1, [0]), (3, [1]), (5, [2])]
 
     model = Model()
 
@@ -585,7 +594,7 @@ def test_population_input(request, allclose):
     input.add_axon(input_axon)
 
     block = LoihiBlock(n_compartments)
-    block.compartment.configure_lif(tau_rc=0., tau_ref=0., dt=dt)
+    block.compartment.configure_lif(tau_rc=0.0, tau_ref=0.0, dt=dt)
     block.compartment.configure_filter(0, dt=dt)
     model.add_block(block)
 
@@ -595,19 +604,20 @@ def test_population_input(request, allclose):
     axon_to_weight_map = np.zeros(n_axons, dtype=int)
     bases = np.zeros(n_axons, dtype=int)
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, bases, pop_type=32)
+        weights, indices, axon_to_weight_map, bases, pop_type=32
+    )
     block.add_synapse(synapse)
     input_axon.target = synapse
 
-    probe = Probe(target=block, key='voltage')
+    probe = Probe(target=block, key="voltage")
     block.add_probe(probe)
 
     discretize_model(model)
 
-    if target == 'loihi':
+    if target == "loihi":
         with HardwareInterface(model, use_snips=True) as sim:
             sim.run_steps(steps, blocking=False)
-            for ti in range(1, steps+1):
+            for ti in range(1, steps + 1):
                 spikes_i = [spike for spike in spikes if spike[1] == ti]
                 sim.host2chip(spikes=spikes_i, errors=[])
                 sim.chip2host(probes_receivers={})
@@ -655,12 +665,12 @@ def test_precompute(allclose, Simulator, seed, plt):
     plt.plot(sim1.trange(), sim1.data[p_stim])
     plt.plot(sim1.trange(), sim1.data[p_a])
     plt.plot(sim1.trange(), sim1.data[p_out])
-    plt.title('precompute=False')
+    plt.title("precompute=False")
     plt.subplot(2, 1, 2)
     plt.plot(sim2.trange(), sim2.data[p_stim])
     plt.plot(sim2.trange(), sim2.data[p_a])
     plt.plot(sim2.trange(), sim2.data[p_out])
-    plt.title('precompute=True')
+    plt.title("precompute=True")
 
     # check that each is using the right placement
     assert stim in sim1.model.host.params
@@ -701,10 +711,12 @@ def test_precompute(allclose, Simulator, seed, plt):
     assert allclose(sim1.data[p_out], sim2.data[p_out])
 
 
-@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
-                    reason="Loihi only test")
-@pytest.mark.xfail(pytest.config.getoption("--target") == "loihi",
-                   reason="Fails allclose check")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi", reason="Loihi only test"
+)
+@pytest.mark.xfail(
+    pytest.config.getoption("--target") == "loihi", reason="Fails allclose check"
+)
 def test_input_node_precompute(allclose, Simulator, plt):
     simtime = 1.0
     input_fn = lambda t: np.sin(6 * np.pi * t / simtime)
@@ -719,8 +731,8 @@ def test_input_node_precompute(allclose, Simulator, plt):
 
             a = nengo.Ensemble(n, 1)
             ap = nengo.Probe(a, synapse=0.01)
-            aup = nengo.Probe(a.neurons, 'input')
-            avp = nengo.Probe(a.neurons, 'voltage')
+            aup = nengo.Probe(a.neurons, "input")
+            avp = nengo.Probe(a.neurons, "voltage")
 
             nengo.Connection(inp, a)
 
@@ -734,23 +746,25 @@ def test_input_node_precompute(allclose, Simulator, plt):
         u[target] = sim.data[aup][:25]
         u[target] = (
             np.round(u[target] * 1000)
-            if str(u[target].dtype).startswith('float') else
-            u[target])
+            if str(u[target].dtype).startswith("float")
+            else u[target]
+        )
 
         v[target] = sim.data[avp][:25]
         v[target] = (
             np.round(v[target] * 1000)
-            if str(v[target].dtype).startswith('float') else
-            v[target])
+            if str(v[target].dtype).startswith("float")
+            else v[target]
+        )
 
         plt.plot(sim.trange(), x[target], label=target)
 
     t = sim.trange()
     u = input_fn(t)
-    plt.plot(t, u, 'k:', label='input')
-    plt.legend(loc='best')
+    plt.plot(t, u, "k:", label="input")
+    plt.legend(loc="best")
 
-    assert allclose(x['sim'], x['loihi'], atol=0.1, rtol=0.01)
+    assert allclose(x["sim"], x["loihi"], atol=0.1, rtol=0.01)
 
 
 @pytest.mark.parametrize("remove_passthrough", [True, False])

@@ -47,8 +47,10 @@ def test_strings():
     assert str(spike) == "Spike(axon_id=7, atom=2)"
 
 
-@pytest.mark.xfail(pytest.config.getvalue("--target") == "loihi",
-                   reason="Existing bug with negative cx_base on Loihi")
+@pytest.mark.xfail(
+    pytest.config.getvalue("--target") == "loihi",
+    reason="Existing bug with negative cx_base on Loihi",
+)
 def test_negative_base(request, seed):
     n_axons = 3
 
@@ -71,17 +73,18 @@ def test_negative_base(request, seed):
     axon_to_weight_map = list(range(n_axons))
     bases = [0, 1, -1]
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, bases, pop_type=32)
+        weights, indices, axon_to_weight_map, bases, pop_type=32
+    )
     axon.target = synapse
     block.add_synapse(synapse)
 
-    probe = Probe(target=block, key='voltage')
+    probe = Probe(target=block, key="voltage")
     block.add_probe(probe)
 
     discretize_model(model)
 
     n_steps = 2
-    if request.config.getoption("--target") == 'loihi':
+    if request.config.getoption("--target") == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
             y = sim.get_probe_output(probe)

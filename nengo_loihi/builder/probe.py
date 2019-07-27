@@ -20,23 +20,21 @@ def conn_probe(model, nengo_probe):
     # get any extra arguments if this probe was created to send data
     #  to an off-chip Node via the splitter
 
-    conn_label = (None if nengo_probe.label is None
-                  else "%s_conn" % nengo_probe.label)
+    conn_label = None if nengo_probe.label is None else "%s_conn" % nengo_probe.label
     kwargs = model.chip2host_params.get(nengo_probe, None)
     if kwargs is not None:
         # this probe is for sending data to a Node
-        kwargs.setdefault('label', conn_label)
+        kwargs.setdefault("label", conn_label)
 
         # determine the dimensionality
         input_dim = nengo_probe.target.size_out
-        func = kwargs['function']
+        func = kwargs["function"]
         if func is not None:
             if callable(func):
-                input_dim = np.asarray(
-                    func(np.zeros(input_dim, dtype=np.float64))).size
+                input_dim = np.asarray(func(np.zeros(input_dim, dtype=np.float64))).size
             else:
                 input_dim = len(func[0])
-        transform = np.asarray(kwargs['transform'], dtype=np.float64)
+        transform = np.asarray(kwargs["transform"], dtype=np.float64)
         if transform.ndim <= 1:
             output_dim = input_dim
         elif transform.ndim == 2:
@@ -57,7 +55,7 @@ def conn_probe(model, nengo_probe):
             synapse=synapse,
             solver=nengo_probe.solver,
             add_to_container=False,
-            **kwargs
+            **kwargs,
         )
         model.probe_conns[nengo_probe] = conn
     else:
@@ -88,14 +86,15 @@ def conn_probe(model, nengo_probe):
         weights = np.vstack([w, -w])
     else:
         raise NotImplementedError(
-            "Nodes cannot be onchip, connections not yet probeable")
+            "Nodes cannot be onchip, connections not yet probeable"
+        )
 
-    probe = Probe(key='voltage', weights=weights, synapse=nengo_probe.synapse)
-    model.objs[target]['in'] = probe
-    model.objs[target]['out'] = probe
+    probe = Probe(key="voltage", weights=weights, synapse=nengo_probe.synapse)
+    model.objs[target]["in"] = probe
+    model.objs[target]["out"] = probe
 
     # add an extra entry for simulator.run_steps to read data out
-    model.objs[nengo_probe]['out'] = probe
+    model.objs[nengo_probe]["out"] = probe
 
     # Build the connection
     model.build(conn)
@@ -105,39 +104,43 @@ def signal_probe(model, key, probe):
     kwargs = model.chip2host_params.get(probe, None)
     weights = None
     if kwargs is not None:
-        assert kwargs['function'] is None
-        weights = kwargs['transform'].T / model.dt
+        assert kwargs["function"] is None
+        weights = kwargs["transform"].T / model.dt
 
     if isinstance(probe.target, nengo.ensemble.Neurons):
-        if probe.attr == 'output':
+        if probe.attr == "output":
             if weights is None:
                 # spike probes should give values of 1.0/dt on spike events
                 weights = 1.0 / model.dt
 
-            if hasattr(probe.target.ensemble.neuron_type, 'amplitude'):
+            if hasattr(probe.target.ensemble.neuron_type, "amplitude"):
                 weights *= probe.target.ensemble.neuron_type.amplitude
 
     # Signal probes directly probe a target signal
-    target = model.objs[probe.obj]['out']
+    target = model.objs[probe.obj]["out"]
 
     loihi_probe = Probe(
-        target=target, key=key, slice=probe.slice,
-        synapse=probe.synapse, weights=weights)
+        target=target,
+        key=key,
+        slice=probe.slice,
+        synapse=probe.synapse,
+        weights=weights,
+    )
     target.add_probe(loihi_probe)
-    model.objs[probe]['in'] = target
-    model.objs[probe]['out'] = loihi_probe
+    model.objs[probe]["in"] = target
+    model.objs[probe]["out"] = loihi_probe
 
 
 probemap = {
-    Ensemble: {'decoded_output': None,
-               'input': 'input'},
-    Neurons: {'output': 'spiked',
-              'spikes': 'spiked',
-              'voltage': 'voltage',
-              'input': 'current'},
-    Node: {'output': None},
-    Connection: {'output': 'weighted',
-                 'input': 'in'},
+    Ensemble: {"decoded_output": None, "input": "input"},
+    Neurons: {
+        "output": "spiked",
+        "spikes": "spiked",
+        "voltage": "voltage",
+        "input": "current",
+    },
+    Node: {"output": None},
+    Connection: {"output": "weighted", "input": "in"},
     LearningRule: {},  # make LR signals probeable, but no mapping required
 }
 
@@ -152,8 +155,7 @@ def build_probe(model, probe):
         if isinstance(probe.obj, nengotype):
             break
     else:
-        raise BuildError(
-            "Type %r is not probeable" % type(probe.obj).__name__)
+        raise BuildError("Type %r is not probeable" % type(probe.obj).__name__)
 
     key = probeables[probe.attr] if probe.attr in probeables else probe.attr
     if key is None:

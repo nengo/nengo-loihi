@@ -3,7 +3,7 @@ import nengo
 import pytest
 
 
-@pytest.mark.parametrize('precompute', [True, False])
+@pytest.mark.parametrize("precompute", [True, False])
 def test_multiple_stims(allclose, Simulator, seed, precompute):
     with nengo.Network(seed=seed) as model:
         N = 10
@@ -21,5 +21,4 @@ def test_multiple_stims(allclose, Simulator, seed, precompute):
     #  but noise in the spiking DecodeNeurons will
     #  make them different.  If spiking decoders are
     #  implemented, then these should be identical.
-    assert allclose(np.mean(sim.data[p_a]),
-                    np.mean(sim.data[p_b]), atol=0.05)
+    assert allclose(np.mean(sim.data[p_a]), np.mean(sim.data[p_b]), atol=0.05)

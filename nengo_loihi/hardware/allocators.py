@@ -3,10 +3,7 @@ import logging
 from nengo.exceptions import ValidationError
 import numpy as np
 
-from nengo_loihi.discretize import (
-    tracing_mag_int_frac,
-    vth_to_manexp,
-)
+from nengo_loihi.discretize import tracing_mag_int_frac, vth_to_manexp
 from nengo_loihi.hardware.nxsdk_objects import (
     Board,
     CompartmentConfig,
@@ -35,15 +32,18 @@ def compute_cfgs(core, list_cfgs):
 
 def core_compartment_cfgs(core):
     """Compute all compartment_cfgs needed for a core"""
+
     def list_compartment_cfgs(block):
         cfgs = []
         for i in range(block.compartment.n_compartments):
-            cfgs.append(CompartmentConfig(
-                decay_u=block.compartment.decay_u[i],
-                decay_v=block.compartment.decay_v[i],
-                refract_delay=block.compartment.refract_delay[i],
-                enable_noise=block.compartment.enable_noise[i],
-            ))
+            cfgs.append(
+                CompartmentConfig(
+                    decay_u=block.compartment.decay_u[i],
+                    decay_v=block.compartment.decay_v[i],
+                    refract_delay=block.compartment.refract_delay[i],
+                    enable_noise=block.compartment.enable_noise[i],
+                )
+            )
 
         return cfgs
 
@@ -52,13 +52,12 @@ def core_compartment_cfgs(core):
 
 def core_vth_cfgs(core):
     """Compute all vth_cfgs needed for a core"""
+
     def list_vth_cfgs(block):
         cfgs = []
         vth, _ = vth_to_manexp(block.compartment.vth)
         for i in range(block.compartment.n_compartments):
-            cfgs.append(VthConfig(
-                vth=vth[i],
-            ))
+            cfgs.append(VthConfig(vth=vth[i]))
 
         return cfgs
 
@@ -72,9 +71,7 @@ def core_stdp_pre_cfgs(core):
         if synapse.learning:
             mag_int, mag_frac = tracing_mag_int_frac(synapse.tracing_mag)
             tracecfg = TraceConfig(
-                tau=synapse.tracing_tau,
-                spike_int=mag_int,
-                spike_frac=mag_frac,
+                tau=synapse.tracing_tau, spike_int=mag_int, spike_frac=mag_frac
             )
 
             if tracecfg in cfgs:
@@ -100,9 +97,8 @@ class OneToOne(Allocator):
     """Assigns each block and input to distinct cores on the same chip."""
 
     def block_to_chip(self, block, chip):
-        if block.compartment.n_compartments > d(b'MTAyNA==', int):
-            raise ValidationError("Segment does not fit on one chip",
-                                  "n_neurons")
+        if block.compartment.n_compartments > d(b"MTAyNA==", int):
+            raise ValidationError("Segment does not fit on one chip", "n_neurons")
 
         core = chip.new_core()
         core.add_block(block)

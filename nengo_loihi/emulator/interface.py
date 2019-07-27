@@ -43,7 +43,7 @@ class EmulatorInterface:
         validate_model(model)
 
         if seed is None:
-            seed = np.random.randint(2**31 - 1)
+            seed = np.random.randint(2 ** 31 - 1)
         self.seed = seed
         logger.debug("EmulatorInterface seed: %d", seed)
         self.rng = np.random.RandomState(self.seed)
@@ -52,11 +52,10 @@ class EmulatorInterface:
         self.inputs = list(model.inputs)
         logger.debug("EmulatorInterface dtype: %s", self.block_info.dtype)
 
-        self.compartment = CompartmentState(
-            self.block_info, strict=self.strict)
+        self.compartment = CompartmentState(self.block_info, strict=self.strict)
         self.synapses = SynapseState(
             self.block_info,
-            pes_error_scale=getattr(model, 'pes_error_scale', 1.),
+            pes_error_scale=getattr(model, "pes_error_scale", 1.0),
             strict=self.strict,
         )
         self.axons = AxonState(self.block_info)
@@ -113,7 +112,8 @@ class EmulatorInterface:
         self.t += 1
         self.compartment.advance_input()
         self.synapses.inject_current(
-            self.t, self.inputs, self.axons, self.compartment.spiked)
+            self.t, self.inputs, self.axons, self.compartment.spiked
+        )
         self.synapses.update_input(self.compartment.input)
         self.synapses.update_traces(self.t, self.rng)
         self.synapses.update_weights(self.t, self.rng)
@@ -191,12 +191,11 @@ class IterableState:
         self.dtype = block_info.dtype
         self.strict = strict
 
-        blocks_items = list(
-            self._blocks_items(block_info.blocks, block_key))
-        self.block_map = OrderedDict(
-            (item, block) for block, item in blocks_items)
+        blocks_items = list(self._blocks_items(block_info.blocks, block_key))
+        self.block_map = OrderedDict((item, block) for block, item in blocks_items)
         self.slices = OrderedDict(
-            (item, block_info.slices[block]) for block, item in blocks_items)
+            (item, block_info.slices[block]) for block, item in blocks_items
+        )
 
     @staticmethod
     def _blocks_items(blocks, block_key):
@@ -225,12 +224,10 @@ class CompartmentState(IterableState):
     MAX_DELAY = 1  # delay not yet implemented
 
     def __init__(self, block_info, strict=True):
-        super(CompartmentState, self).__init__(
-            block_info, "compartment", strict=strict)
+        super(CompartmentState, self).__init__(block_info, "compartment", strict=strict)
 
         # Initialize NumPy arrays to store compartment-related data
-        self.input = np.zeros(
-            (self.MAX_DELAY, self.n_compartments), dtype=self.dtype)
+        self.input = np.zeros((self.MAX_DELAY, self.n_compartments), dtype=self.dtype)
         self.current = np.zeros(self.n_compartments, dtype=self.dtype)
         self.voltage = np.zeros(self.n_compartments, dtype=self.dtype)
         self.spiked = np.zeros(self.n_compartments, dtype=bool)
@@ -274,8 +271,7 @@ class CompartmentState(IterableState):
         if self.dtype == np.int32:
             assert (self.scale_u == 1).all()
             assert (self.scale_v == 1).all()
-            self._decay_current = (
-                lambda x, u: decay_int(x, self.decay_u, offset=1) + u)
+            self._decay_current = lambda x, u: decay_int(x, self.decay_u, offset=1) + u
             self._decay_voltage = lambda x, u: decay_int(x, self.decay_v) + u
 
             def overflow(x, bits, name=None):
@@ -284,19 +280,24 @@ class CompartmentState(IterableState):
                     self.error("Overflow" + (" in %s" % name if name else ""))
 
         elif self.dtype == np.float32:
+
             def decay_float(x, u, d, s):
-                return (1 - d)*x + s*u
+                return (1 - d) * x + s * u
 
             self._decay_current = lambda x, u: decay_float(
-                x, u, d=self.decay_u, s=self.scale_u)
+                x, u, d=self.decay_u, s=self.scale_u
+            )
             self._decay_voltage = lambda x, u: decay_float(
-                x, u, d=self.decay_v, s=self.scale_v)
+                x, u, d=self.decay_v, s=self.scale_v
+            )
 
             def overflow(x, bits, name=None):
                 pass  # do not do overflow in floating point
+
         else:
-            raise ValidationError("dtype %r not supported" % self.dtype,
-                                  attr='dtype', obj=block_info)
+            raise ValidationError(
+                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+            )
 
         self._overflow = overflow
 
@@ -309,7 +310,7 @@ class CompartmentState(IterableState):
     def update(self, rng):
         noise = self.noise.sample(rng)
         q0 = self.input[0, :]
-        q0[~self.noise.target_u] += noise[~self.noise.target_u]
+        q0[~(self.noise.target_u)] += noise[~(self.noise.target_u)]
         self._overflow(q0, bits=Q_BITS, name="q0")
 
         self.current[:] = self._decay_current(self.current, q0)
@@ -327,7 +328,7 @@ class CompartmentState(IterableState):
         self.voltage[self.ref_count > 0] = 0
         # TODO^: don't zero voltage in case neuron is saving overshoot
 
-        self.spiked[:] = (self.voltage > self.vth)
+        self.spiked[:] = self.voltage > self.vth
         self.voltage[self.spiked] = 0
         self.ref_count[self.spiked] = self.ref[self.spiked]
         # decrement ref_count
@@ -343,8 +344,7 @@ class NoiseState(IterableState):
         super(NoiseState, self).__init__(block_info, "compartment")
         self.enabled = np.full(self.n_compartments, np.nan, dtype=bool)
         self.exp = np.full(self.n_compartments, np.nan, dtype=self.dtype)
-        self.mant_offset = np.full(self.n_compartments, np.nan,
-                                   dtype=self.dtype)
+        self.mant_offset = np.full(self.n_compartments, np.nan, dtype=self.dtype)
         self.target_u = np.full(self.n_compartments, np.nan, dtype=bool)
 
         # Fill in arrays with parameters from Compartment
@@ -357,20 +357,22 @@ class NoiseState(IterableState):
         if self.dtype == np.int32:
             # TODO: if we could do this mult with shifts, it'd be faster, but
             # numpy has no function taking a vector of positive/negative shifts
-            self.mult = np.where(self.enabled, 2.**(self.exp - 7), 0)
+            self.mult = np.where(self.enabled, 2.0 ** (self.exp - 7), 0)
             self.mant_offset *= 64
 
             def uniform(rng, n=self.n_compartments):
                 return rng.randint(-127, 128, size=n, dtype=np.int32)
 
         elif self.dtype == np.float32:
-            self.mult = np.where(self.enabled, 10.**self.exp, 0)
+            self.mult = np.where(self.enabled, 10.0 ** self.exp, 0)
 
             def uniform(rng, n=self.n_compartments):
                 return rng.uniform(-1, 1, size=n).astype(np.float32)
+
         else:
-            raise ValidationError("dtype %r not supported" % self.dtype,
-                                  attr='dtype', obj=block_info)
+            raise ValidationError(
+                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+            )
 
         assert not np.any(np.isnan(self.enabled))
         assert not np.any(np.isnan(self.exp))
@@ -403,12 +405,8 @@ class SynapseState(IterableState):
         synapse traces.
     """
 
-    def __init__(self, block_info,  # noqa: C901
-                 pes_error_scale=1.,
-                 strict=True
-             ):
-        super(SynapseState, self).__init__(
-            block_info, "synapses", strict=strict)
+    def __init__(self, block_info, pes_error_scale=1.0, strict=True):  # noqa: C901
+        super(SynapseState, self).__init__(block_info, "synapses", strict=strict)
 
         self.pes_error_scale = pes_error_scale
 
@@ -424,14 +422,17 @@ class SynapseState(IterableState):
                 self.traces[synapse] = np.zeros(n, dtype=self.dtype)
                 self.trace_spikes[synapse] = set()
                 self.pes_errors[synapse] = np.zeros(
-                    self.block_map[synapse].n_neurons // 2, dtype=self.dtype)
+                    self.block_map[synapse].n_neurons // 2, dtype=self.dtype
+                )
                 # ^ Currently, PES learning only happens on Nodes, where we
                 # have pairs of on/off neurons. Therefore, the number of error
                 # dimensions is half the number of neurons.
 
         if self.dtype == np.int32:
-            def stochastic_round(x, dtype=self.dtype, rng=None,
-                                 clip=None, name="values"):
+
+            def stochastic_round(
+                x, dtype=self.dtype, rng=None, clip=None, name="values"
+            ):
                 x_sign = np.sign(x).astype(dtype)
                 x_frac, x_int = np.modf(np.abs(x))
                 p = rng.rand(*x.shape)
@@ -444,8 +445,7 @@ class SynapseState(IterableState):
                 return x_sign * y
 
             def trace_round(x, rng=None):
-                return stochastic_round(x, rng=rng, clip=127,
-                                        name="synapse trace")
+                return stochastic_round(x, rng=rng, clip=127, name="synapse trace")
 
             def weight_update(synapse, delta_ws, rng=None):
                 synapse_cfg = synapse.synapse_cfg
@@ -455,25 +455,30 @@ class SynapseState(IterableState):
                 for w, delta_w in zip(synapse.weights, delta_ws):
                     product = shift(
                         delta_w * synapse._lr_int,
-                        LEARN_FRAC + synapse._lr_exp - overflow)
+                        LEARN_FRAC + synapse._lr_exp - overflow,
+                    )
                     learn_w = shift(w, LEARN_FRAC - wgt_exp) + product
                     learn_w[:] = stochastic_round(
-                        learn_w * 2**(-LEARN_FRAC - shift_bits),
-                        clip=2**(8 - shift_bits) - 1,
+                        learn_w * 2 ** (-LEARN_FRAC - shift_bits),
+                        clip=2 ** (8 - shift_bits) - 1,
                         rng=rng,
-                        name="learning weights")
+                        name="learning weights",
+                    )
                     w[:] = np.left_shift(learn_w, wgt_exp + shift_bits)
 
         elif self.dtype == np.float32:
+
             def trace_round(x, rng=None):
                 return x  # no rounding
 
             def weight_update(synapse, delta_ws, rng=None):
                 for w, delta_w in zip(synapse.weights, delta_ws):
                     w += synapse.learning_rate * delta_w
+
         else:
-            raise ValidationError("dtype %r not supported" % self.dtype,
-                                  attr='dtype', obj=block_info)
+            raise ValidationError(
+                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+            )
 
         self._trace_round = trace_round
         self._weight_update = weight_update
@@ -490,14 +495,14 @@ class SynapseState(IterableState):
                 for axon in spike_input.axons:
                     spikes = axon.map_spikes(compartment_idxs)
                     self.spikes_in[axon.target].extend(
-                        s for s in spikes if s is not None)
+                        s for s in spikes if s is not None
+                    )
 
         # --- axons pass spikes to synapses
         for axon, a_idx in all_axons.items():
             compartment_idxs = spiked[a_idx].nonzero()[0]
             spikes = axon.map_spikes(compartment_idxs)
-            self.spikes_in[axon.target].extend(
-                s for s in spikes if s is not None)
+            self.spikes_in[axon.target].extend(s for s in spikes if s is not None)
 
     def update_input(self, input):
         for synapse, s_slice in self.items():
@@ -509,7 +514,8 @@ class SynapseState(IterableState):
                     continue
 
                 weights, indices = synapse.axon_weights_indices(
-                    spike.axon_id, atom=spike.atom)
+                    spike.axon_id, atom=spike.atom
+                )
                 qb[0, base + indices] += weights
 
     def update_pes_errors(self, errors):

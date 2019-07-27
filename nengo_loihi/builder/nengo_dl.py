@@ -29,6 +29,7 @@ else:
             class SpikingRectifiedLinearBuilder:
                 pass
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,16 +53,14 @@ class NoiseBuilder:
     def build(cls, ops, signals, config):
         """Create a NoiseBuilder for the provided ops."""
 
-        noise_models = [getattr(op.neurons, 'nengo_dl_noise', None)
-                        for op in ops]
-        model_type = (type(noise_models[0]) if len(noise_models) > 0
-                      else None)
+        noise_models = [getattr(op.neurons, "nengo_dl_noise", None) for op in ops]
+        model_type = type(noise_models[0]) if len(noise_models) > 0 else None
         equal_types = all(type(m) is model_type for m in noise_models)
 
         if not equal_types:
             raise NotImplementedError(
-                "Multiple noise models for the same neuron type is "
-                "not supported")
+                "Multiple noise models for the same neuron type is " "not supported"
+            )
 
         return cls.builders[model_type](ops, signals, config, noise_models)
 
@@ -76,12 +75,15 @@ class NoiseBuilder:
         noise_builder : NoiseBuilder
             The NoiseBuilder subclass that the decorated class builds.
         """
+
         def register_builder(build_cls):
             if noise_builder in cls.builders:
-                warnings.warn("Type '%s' already has a builder. Overwriting."
-                              % noise_builder)
+                warnings.warn(
+                    "Type '%s' already has a builder. Overwriting." % noise_builder
+                )
             cls.builders[noise_builder] = build_cls
             return build_cls
+
         return register_builder
 
     def generate(self, period, tau_rc=None):
@@ -111,14 +113,15 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
     """nengo_dl builder for the LowpassRCNoise model."""
 
     def __init__(self, ops, signals, *args, **kwargs):
-        super(LowpassRCNoiseBuilder, self).__init__(
-            ops, signals, *args, **kwargs)
+        super(LowpassRCNoiseBuilder, self).__init__(ops, signals, *args, **kwargs)
 
         # tau_s is the time constant of the synaptic filter
-        tau_s = np.concatenate([
-            model.tau_s * np.ones((op.J.shape[0], 1),
-                                  dtype=self.np_dtype)
-            for model, op in zip(self.noise_models, ops)])
+        tau_s = np.concatenate(
+            [
+                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                for model, op in zip(self.noise_models, ops)
+            ]
+        )
         self.tau_s = signals.constant(tau_s, dtype=self.dtype)
 
     def generate(self, period, tau_rc=None):
@@ -127,9 +130,9 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         t = u01 * period
         q_rc = tf.exp(-t / tau_rc)
         q_s = tf.exp(-t / self.tau_s)
-        r_rc1 = -tf.expm1(-period / tau_rc)  # 1 - exp(-period/tau_rc)
-        r_s1 = -tf.expm1(-period / self.tau_s)  # 1 - exp(-period/tau_s)
-        return (1./d) * (q_rc/r_rc1 - q_s/r_s1)
+        r_rc1 = -(tf.expm1(-period / tau_rc))  # 1 - exp(-period/tau_rc)
+        r_s1 = -(tf.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
+        return (1.0 / d) * (q_rc / r_rc1 - q_s / r_s1)
 
 
 @NoiseBuilder.register(AlphaRCNoise)
@@ -137,14 +140,15 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
     """nengo_dl builder for the AlphaRCNoise model."""
 
     def __init__(self, ops, signals, *args, **kwargs):
-        super(AlphaRCNoiseBuilder, self).__init__(
-            ops, signals, *args, **kwargs)
+        super(AlphaRCNoiseBuilder, self).__init__(ops, signals, *args, **kwargs)
 
         # tau_s is the time constant of the synaptic filter
-        tau_s = np.concatenate([
-            model.tau_s * np.ones((op.J.shape[0], 1),
-                                  dtype=self.np_dtype)
-            for model, op in zip(self.noise_models, ops)])
+        tau_s = np.concatenate(
+            [
+                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                for model, op in zip(self.noise_models, ops)
+            ]
+        )
         self.tau_s = signals.constant(tau_s, dtype=self.dtype)
 
     def generate(self, period, tau_rc=None):
@@ -153,14 +157,15 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
         t = u01 * period
         q_rc = tf.exp(-t / tau_rc)
         q_s = tf.exp(-t / self.tau_s)
-        r_rc1 = -tf.expm1(-period / tau_rc)  # 1 - exp(-period/tau_rc)
-        r_s1 = -tf.expm1(-period / self.tau_s)  # 1 - exp(-period/tau_s)
+        r_rc1 = -(tf.expm1(-period / tau_rc))  # 1 - exp(-period/tau_rc)
+        r_s1 = -(tf.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
 
-        pt = tf.where(period < 100*self.tau_s, (period - t)*(1 - r_s1),
-                      tf.zeros_like(period))
-        qt = tf.where(t < 100*self.tau_s, q_s*(t + pt), tf.zeros_like(t))
-        rt = qt / (self.tau_s * d * r_s1**2)
-        rn = tau_rc*(q_rc/(d*d*r_rc1) - q_s/(d*d*r_s1)) - rt
+        pt = tf.where(
+            period < 100 * self.tau_s, (period - t) * (1 - r_s1), tf.zeros_like(period)
+        )
+        qt = tf.where(t < 100 * self.tau_s, q_s * (t + pt), tf.zeros_like(t))
+        rt = qt / (self.tau_s * d * r_s1 ** 2)
+        rn = tau_rc * (q_rc / (d * d * r_rc1) - q_s / (d * d * r_s1)) - rt
         return rn
 
 
@@ -172,6 +177,7 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
     spike_noise : NoiseBuilder
         Generator for any output noise associated with these neurons.
     """
+
     def __init__(self, ops, signals, config):
         super(LoihiLIFBuilder, self).__init__(ops, signals, config)
         self.spike_noise = NoiseBuilder.build(ops, signals, config)
@@ -182,18 +188,15 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
         # Since LoihiLIF takes `ceil(period/dt)` the firing rate is
         # always below the LIF rate. Using `tau_ref1` in LIF curve makes
         # it the average of the LoihiLIF curve (rather than upper bound).
-        tau_ref1 = tau_ref + 0.5*dt
+        tau_ref1 = tau_ref + 0.5 * dt
 
         J -= self.one
 
         # --- compute Loihi rates (for forward pass)
-        period = tau_ref + tau_rc*tf.log1p(tf.reciprocal(
-            tf.maximum(J, self.epsilon)))
+        period = tau_ref + tau_rc * tf.log1p(tf.reciprocal(tf.maximum(J, self.epsilon)))
         period = dt * tf.ceil(period / dt)
         loihi_rates = self.spike_noise.generate(period, tau_rc=tau_rc)
-        loihi_rates = tf.where(J > self.zero,
-                               self.amplitude * loihi_rates,
-                               self.zeros)
+        loihi_rates = tf.where(J > self.zero, self.amplitude * loihi_rates, self.zeros)
 
         # --- compute LIF rates (for backward pass)
         if self.config.lif_smoothing:
@@ -207,15 +210,13 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
             # as z->0
             #   z = s*log(1 + e^js) = s*e^js
             #   log(1 + 1/z) = log(1/z) = -log(s*e^js) = -js - log(s)
-            q = tf.where(j_valid,
-                         tf.log1p(tf.reciprocal(z)),
-                         -js - tf.log(self.sigma))
+            q = tf.where(j_valid, tf.log1p(tf.reciprocal(z)), -js - tf.log(self.sigma))
 
-            rates = self.amplitude / (tau_ref1 + tau_rc*q)
+            rates = self.amplitude / (tau_ref1 + tau_rc * q)
         else:
             rates = self.amplitude / (
-                tau_ref1 + tau_rc*tf.log1p(tf.reciprocal(
-                    tf.maximum(J, self.epsilon))))
+                tau_ref1 + tau_rc * tf.log1p(tf.reciprocal(tf.maximum(J, self.epsilon)))
+            )
             rates = tf.where(J > self.zero, rates, self.zeros)
 
         # rates + stop_gradient(loihi_rates - rates) =
@@ -232,18 +233,17 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
         spiked = voltage > self.one
         spikes = tf.cast(spiked, J.dtype) * self.alpha
 
-        refractory = tf.where(spiked,
-                              tau_ref + self.zeros,
-                              refractory - dt)
-        voltage = tf.where(spiked,
-                           self.zeros,
-                           tf.maximum(voltage, self.min_voltage))
+        refractory = tf.where(spiked, tau_ref + self.zeros, refractory - dt)
+        voltage = tf.where(spiked, self.zeros, tf.maximum(voltage, self.min_voltage))
 
         # we use stop_gradient to avoid propagating any nans (those get
         # propagated through the cond even if the spiking version isn't
         # being used at all)
-        return (tf.stop_gradient(spikes), tf.stop_gradient(voltage),
-                tf.stop_gradient(refractory))
+        return (
+            tf.stop_gradient(spikes),
+            tf.stop_gradient(voltage),
+            tf.stop_gradient(refractory),
+        )
 
     def build_step(self, signals):
         J = signals.gather(self.J_data)
@@ -251,18 +251,18 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
         refractory = signals.gather(self.refractory_data)
 
         spike_out, spike_voltage, spike_ref = self._step(
-            J, voltage, refractory, signals.dt)
+            J, voltage, refractory, signals.dt
+        )
 
         if self.config.inference_only:
-            spikes, voltage, refractory = (
-                spike_out, spike_voltage, spike_ref)
+            spikes, voltage, refractory = (spike_out, spike_voltage, spike_ref)
         else:
             rate_out = self._rate_step(J, signals.dt)
 
             spikes, voltage, refractory = tf.cond(
                 signals.training,
                 lambda: (rate_out, voltage, refractory),
-                lambda: (spike_out, spike_voltage, spike_ref)
+                lambda: (spike_out, spike_voltage, spike_ref),
             )
 
         signals.scatter(self.output_data, spikes)
@@ -272,21 +272,24 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
 
 
 class LoihiSpikingRectifiedLinearBuilder(
-        nengo_dl.neuron_builders.SpikingRectifiedLinearBuilder):
+    nengo_dl.neuron_builders.SpikingRectifiedLinearBuilder
+):
     """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type.
     """
 
     def __init__(self, ops, signals, config):
-        super(LoihiSpikingRectifiedLinearBuilder, self).__init__(
-            ops, signals, config)
+        super(LoihiSpikingRectifiedLinearBuilder, self).__init__(ops, signals, config)
 
         self.amplitude = signals.op_constant(
-            [op.neurons for op in ops], [op.J.shape[0] for op in ops],
-            "amplitude", signals.dtype)
+            [op.neurons for op in ops],
+            [op.J.shape[0] for op in ops],
+            "amplitude",
+            signals.dtype,
+        )
 
         self.zeros = tf.zeros(
-            self.J_data.shape + (signals.minibatch_size,),
-            signals.dtype)
+            self.J_data.shape + (signals.minibatch_size,), signals.dtype
+        )
 
         self.epsilon = tf.constant(1e-15, dtype=signals.dtype)
 
@@ -298,7 +301,7 @@ class LoihiSpikingRectifiedLinearBuilder(
         # Since LoihiLIF takes `ceil(period/dt)` the firing rate is
         # always below the LIF rate. Using `tau_ref1` in LIF curve makes
         # it the average of the LoihiLIF curve (rather than upper bound).
-        tau_ref1 = 0.5*dt
+        tau_ref1 = 0.5 * dt
 
         # --- compute Loihi rates (for forward pass)
         period = tf.reciprocal(tf.maximum(J, self.epsilon))
@@ -306,8 +309,7 @@ class LoihiSpikingRectifiedLinearBuilder(
         loihi_rates = tf.where(J > self.zero, loihi_rates, self.zeros)
 
         # --- compute RectifiedLinear rates (for backward pass)
-        rates = self.amplitude / (
-            tau_ref1 + tf.reciprocal(tf.maximum(J, self.epsilon)))
+        rates = self.amplitude / (tau_ref1 + tf.reciprocal(tf.maximum(J, self.epsilon)))
         rates = tf.where(J > self.zero, rates, self.zeros)
 
         # rates + stop_gradient(loihi_rates - rates) =
@@ -339,7 +341,8 @@ class LoihiSpikingRectifiedLinearBuilder(
             out, voltage = tf.cond(
                 signals.training,
                 lambda: (rate_out, voltage),
-                lambda: (spike_out, spike_voltage))
+                lambda: (spike_out, spike_voltage),
+            )
 
         signals.scatter(self.output_data, out)
         signals.scatter(self.voltage_data, voltage)
@@ -355,10 +358,11 @@ class Installer:
         elif not self.installed:
             logger.debug("Installing NengoDL neuron builders")
             nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
-                LoihiLIF] = LoihiLIFBuilder
+                LoihiLIF
+            ] = LoihiLIFBuilder
             nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
-                LoihiSpikingRectifiedLinear] = (
-                    LoihiSpikingRectifiedLinearBuilder)
+                LoihiSpikingRectifiedLinear
+            ] = LoihiSpikingRectifiedLinearBuilder
             self.installed = True
         else:
             logger.debug("NengoDL neuron builders already installed")

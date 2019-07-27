@@ -12,13 +12,16 @@ from nengo_loihi.decode_neurons import (
 )
 
 
-@pytest.mark.parametrize('decode_neurons, tolerance', [
-    (OnOffDecodeNeurons(), 0.35),
-    (NoisyDecodeNeurons(5), 0.12),
-    (NoisyDecodeNeurons(10), 0.10),
-    (Preset5DecodeNeurons(), 0.06),
-    (Preset10DecodeNeurons(), 0.03),
-])
+@pytest.mark.parametrize(
+    "decode_neurons, tolerance",
+    [
+        (OnOffDecodeNeurons(), 0.35),
+        (NoisyDecodeNeurons(5), 0.12),
+        (NoisyDecodeNeurons(10), 0.10),
+        (Preset5DecodeNeurons(), 0.06),
+        (Preset10DecodeNeurons(), 0.03),
+    ],
+)
 def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
     sim_time = 2.0
     pres_time = sim_time / 4
@@ -26,10 +29,12 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
 
     stim_values = [[0.5, 0.5], [0.5, -0.9], [-0.7, -0.3], [-0.3, 1.0]]
     stim_times = np.arange(0, sim_time, pres_time)
-    stim_fn_a = nengo.processes.Piecewise({
-        t: stim_values[i][0] for i, t in enumerate(stim_times)})
-    stim_fn_b = nengo.processes.Piecewise({
-        t: stim_values[i][1] for i, t in enumerate(stim_times)})
+    stim_fn_a = nengo.processes.Piecewise(
+        {t: stim_values[i][0] for i, t in enumerate(stim_times)}
+    )
+    stim_fn_b = nengo.processes.Piecewise(
+        {t: stim_values[i][1] for i, t in enumerate(stim_times)}
+    )
 
     with nengo.Network(seed=seed) as model:
         stim_a = nengo.Node(stim_fn_a)
@@ -46,9 +51,9 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
         nengo.Connection(b, c)
 
         out_synapse = nengo.Alpha(0.03)
-        stim_synapse = out_synapse.combine(
-            nengo.Alpha(0.005)).combine(
-                nengo.Alpha(0.005))
+        stim_synapse = out_synapse.combine(nengo.Alpha(0.005)).combine(
+            nengo.Alpha(0.005)
+        )
         p_stim_a = nengo.Probe(stim_a, synapse=stim_synapse)
         p_stim_b = nengo.Probe(stim_b, synapse=stim_synapse)
         p_c = nengo.Probe(c, synapse=out_synapse)
@@ -77,13 +82,11 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
     assert error < tolerance
 
 
-@pytest.mark.parametrize('decode_neurons, tolerance', [
-    (OnOffDecodeNeurons(), 0.01),
-])
+@pytest.mark.parametrize("decode_neurons, tolerance", [(OnOffDecodeNeurons(), 0.01)])
 def test_node_neurons(decode_neurons, tolerance, Simulator, seed, plt):
     sim_time = 0.2
 
-    stim_fn = lambda t: 0.9*np.sin(2*np.pi*t / sim_time)
+    stim_fn = lambda t: 0.9 * np.sin(2 * np.pi * t / sim_time)
     out_synapse = nengo.Alpha(0.03)
     stim_synapse = out_synapse.combine(nengo.Alpha(0.005))
 
@@ -116,10 +119,12 @@ def test_node_neurons(decode_neurons, tolerance, Simulator, seed, plt):
 def test_decode_neuron_str():
     assert str(DecodeNeurons(dt=0.005)) == "DecodeNeurons(dt=0.005)"
     assert str(OnOffDecodeNeurons(pairs_per_dim=2, dt=0.002, rate=None)) == (
-        "OnOffDecodeNeurons(pairs_per_dim=2, dt=0.002, rate=250)")
+        "OnOffDecodeNeurons(pairs_per_dim=2, dt=0.002, rate=250)"
+    )
     assert str(NoisyDecodeNeurons(1, rate=20)) == (
-        "NoisyDecodeNeurons(pairs_per_dim=1, dt=0.001, rate=20, noise_exp=-2)")
-    assert str(Preset5DecodeNeurons()) == (
-        "Preset5DecodeNeurons(dt=0.001, rate=200)")
+        "NoisyDecodeNeurons(pairs_per_dim=1, dt=0.001, rate=20, noise_exp=-2)"
+    )
+    assert str(Preset5DecodeNeurons()) == ("Preset5DecodeNeurons(dt=0.001, rate=200)")
     assert str(Preset10DecodeNeurons(dt=0.0001, rate=0.5)) == (
-        "Preset10DecodeNeurons(dt=0.0001, rate=0.5)")
+        "Preset10DecodeNeurons(dt=0.0001, rate=0.5)"
+    )

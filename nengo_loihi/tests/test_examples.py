@@ -3,9 +3,11 @@ import warnings
 
 import nengo
 from nengo.utils.stdlib import execfile
+
 try:
     from nengo.utils.ipython import iter_cells, load_notebook
 except ImportError:
+
     def iter_cells(nb, cell_type="code"):
         return (cell for cell in nb.cells if cell.cell_type == cell_type)
 
@@ -13,9 +15,10 @@ except ImportError:
         import io
         from nengo.utils.ipython import nbformat
 
-        with io.open(nb_path, 'r', encoding='utf-8') as f:
+        with io.open(nb_path, "r", encoding="utf-8") as f:
             nb = nbformat.read(f, as_version=4)
         return nb
+
 
 import numpy as np
 import pytest
@@ -31,15 +34,15 @@ _pytest.capture.DontReadFromInput.encoding = "utf-8"
 _pytest.capture.DontReadFromInput.write = lambda: None
 _pytest.capture.DontReadFromInput.flush = lambda: None
 
-examples_dir = os.path.realpath(os.path.join(
-    os.path.dirname(__file__), os.pardir, os.pardir, "docs", "examples"
-))
+examples_dir = os.path.realpath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "docs", "examples")
+)
 
 all_examples = []
 for subdir, _, files in os.walk(examples_dir):
-    if (os.path.sep + '.') in subdir:
+    if (os.path.sep + ".") in subdir:
         continue
-    files = [f for f in files if f.endswith('.ipynb')]
+    files = [f for f in files if f.endswith(".ipynb")]
     examples = [os.path.join(subdir, os.path.splitext(f)[0]) for f in files]
     all_examples.extend(examples)
 
@@ -58,7 +61,7 @@ def execexample(fname):
     return example_ns
 
 
-@pytest.mark.parametrize('nb_file', all_examples)
+@pytest.mark.parametrize("nb_file", all_examples)
 def test_no_outputs(nb_file):
     """Ensure that no cells have output."""
     pytest.importorskip("IPython", minversion="3.0")
@@ -68,14 +71,14 @@ def test_no_outputs(nb_file):
         assert cell.execution_count is None, "Execution count not cleared"
 
 
-@pytest.mark.parametrize('nb_file', all_examples)
+@pytest.mark.parametrize("nb_file", all_examples)
 def test_version_4(nb_file):
     pytest.importorskip("IPython", minversion="3.0")
     nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
     assert nb.nbformat == 4
 
 
-@pytest.mark.parametrize('nb_file', all_examples)
+@pytest.mark.parametrize("nb_file", all_examples)
 def test_minimal_metadata(nb_file):
     pytest.importorskip("IPython", minversion="3.0")
     nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
@@ -108,7 +111,7 @@ def test_ens_ens(allclose, plt):
     plt.plot(t, a)
     plt.plot(t, b)
 
-    assert allclose(a, 0., atol=0.03)
+    assert allclose(a, 0.0, atol=0.03)
     assert allclose(b[t > 0.1], 0.5, atol=0.075)
 
 
@@ -127,8 +130,9 @@ def test_ens_ens_slice(allclose, plt):
     c = output_filter.filtfilt(sim.data[cp])
     plt.plot(t, b)
     plt.plot(t, c)
-    plt.legend(['b%d' % d for d in range(b.shape[1])]
-               + ['c%d' % d for d in range(c.shape[1])])
+    plt.legend(
+        ["b%d" % d for d in range(b.shape[1])] + ["c%d" % d for d in range(c.shape[1])]
+    )
 
     assert allclose(b[t > 0.15, 0], b_vals[0], atol=0.15)
     assert allclose(b[t > 0.15, 1], b_vals[1], atol=0.2)
@@ -151,14 +155,14 @@ def test_node_ens_ens(allclose, plt):
     plt.figure(figsize=(8, 6))
     t = sim.trange()
     plt.subplot(411)
-    plt.plot(t, u[:, 0], 'b', label="u[0]")
-    plt.plot(t, a[:, 0], 'g', label="a[0]")
+    plt.plot(t, u[:, 0], "b", label="u[0]")
+    plt.plot(t, a[:, 0], "g", label="a[0]")
     plt.ylim([-1, 1])
     plt.legend(loc=0)
 
     plt.subplot(412)
-    plt.plot(t, u[:, 1], 'b', label="u[1]")
-    plt.plot(t, a[:, 1], 'g', label="a[1]")
+    plt.plot(t, u[:, 1], "b", label="u[1]")
+    plt.plot(t, a[:, 1], "g", label="a[1]")
     plt.ylim([-1, 1])
     plt.legend(loc=0)
 
@@ -176,4 +180,4 @@ def test_node_ens_ens(allclose, plt):
 
     tmask = t > 0.1  # ignore transients at the beginning
     assert allclose(a[tmask], np.clip(u[tmask], -1, 1), atol=0.1, rtol=0.1)
-    assert allclose(b[tmask], a[tmask]**2, atol=0.15, rtol=0.2)
+    assert allclose(b[tmask], a[tmask] ** 2, atol=0.15, rtol=0.2)

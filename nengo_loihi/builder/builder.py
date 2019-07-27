@@ -8,10 +8,7 @@ from nengo.builder.network import build_network
 from nengo.cache import NoDecoderCache
 
 from nengo_loihi.block import LoihiBlock
-from nengo_loihi.decode_neurons import (
-    Preset10DecodeNeurons,
-    OnOffDecodeNeurons,
-)
+from nengo_loihi.decode_neurons import Preset10DecodeNeurons, OnOffDecodeNeurons
 from nengo_loihi.inputs import LoihiInput
 
 logger = logging.getLogger(__name__)
@@ -100,6 +97,7 @@ class Model:
     seeds : dict
         Mapping from objects to the integer seed assigned to that object.
     """
+
     def __init__(self, dt=0.001, label=None, builder=None):
         self.dt = dt
         self.label = label
@@ -157,7 +155,7 @@ class Model:
         self.intercept_limit = 0.95
 
         # scaling for PES errors, before rounding and clipping to -127..127
-        self.pes_error_scale = 100.
+        self.pes_error_scale = 100.0
 
         # learning weight exponent for PES (controls the maximum weight
         # magnitude/weight resolution)

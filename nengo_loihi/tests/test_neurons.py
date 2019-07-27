@@ -17,13 +17,16 @@ from nengo_loihi.neurons import (
 )
 
 
-@pytest.mark.parametrize('dt', [3e-4, 1e-3])
-@pytest.mark.parametrize('neuron_type', [
-    nengo.LIF(),
-    nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34),
-    nengo.SpikingRectifiedLinear(),
-    nengo.SpikingRectifiedLinear(amplitude=0.23),
-])
+@pytest.mark.parametrize("dt", [3e-4, 1e-3])
+@pytest.mark.parametrize(
+    "neuron_type",
+    [
+        nengo.LIF(),
+        nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34),
+        nengo.SpikingRectifiedLinear(),
+        nengo.SpikingRectifiedLinear(amplitude=0.23),
+    ],
+)
 def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     n = 256
     x = np.linspace(-0.1, 1, n)
@@ -35,23 +38,22 @@ def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     j = x * gain + bias
 
     with nengo.Network() as model:
-        a = nengo.Ensemble(n, 1,
-                           neuron_type=neuron_type,
-                           encoders=encoders,
-                           gain=gain,
-                           bias=j)
+        a = nengo.Ensemble(
+            n, 1, neuron_type=neuron_type, encoders=encoders, gain=gain, bias=j
+        )
         ap = nengo.Probe(a.neurons)
 
     with Simulator(model, dt=dt) as sim:
         sim.run(1.0)
 
     est_rates = sim.data[ap].mean(axis=0)
-    ref_rates = loihi_rates(
-        neuron_type, x[np.newaxis, :], gain, bias, dt=dt).squeeze(axis=0)
+    ref_rates = loihi_rates(neuron_type, x[np.newaxis, :], gain, bias, dt=dt).squeeze(
+        axis=0
+    )
 
     plt.plot(x, ref_rates, "k", label="predicted")
     plt.plot(x, est_rates, "g", label="measured")
-    plt.legend(loc='best')
+    plt.legend(loc="best")
 
     assert ref_rates.shape == est_rates.shape
     assert allclose(est_rates, ref_rates, atol=1, rtol=0, xtol=1)
@@ -69,10 +71,7 @@ def test_loihi_rates_other_type(allclose):
     assert allclose(rates, ref_rates)
 
 
-@pytest.mark.parametrize('neuron_type', [
-    LoihiLIF(),
-    LoihiSpikingRectifiedLinear(),
-])
+@pytest.mark.parametrize("neuron_type", [LoihiLIF(), LoihiSpikingRectifiedLinear()])
 def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
     dt = 0.0007
 
@@ -85,11 +84,9 @@ def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
         bias = np.linspace(0, 30, n)
 
     with nengo.Network() as model:
-        ens = nengo.Ensemble(n, 1,
-                             neuron_type=neuron_type,
-                             encoders=encoders,
-                             gain=gain,
-                             bias=bias)
+        ens = nengo.Ensemble(
+            n, 1, neuron_type=neuron_type, encoders=encoders, gain=gain, bias=bias
+        )
         probe = nengo.Probe(ens.neurons)
 
     t_final = 1.0
@@ -102,26 +99,22 @@ def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
     rates_nengosim = np.sum(nengo_sim.data[probe] > 0, axis=0) / t_final
     rates_loihisim = np.sum(loihi_sim.data[probe] > 0, axis=0) / t_final
 
-    rates_ref = neuron_type.rates(0., gain, bias, dt=dt).squeeze()
-    plt.plot(bias, rates_loihisim, 'r', label='loihi sim')
-    plt.plot(bias, rates_nengosim, 'b-.', label='nengo sim')
-    plt.plot(bias, rates_ref, 'k--', label='ref')
-    plt.legend(loc='best')
+    rates_ref = neuron_type.rates(0.0, gain, bias, dt=dt).squeeze()
+    plt.plot(bias, rates_loihisim, "r", label="loihi sim")
+    plt.plot(bias, rates_nengosim, "b-.", label="nengo sim")
+    plt.plot(bias, rates_ref, "k--", label="ref")
+    plt.legend(loc="best")
 
     assert rates_ref.shape == rates_nengosim.shape == rates_loihisim.shape
-    atol = 1. / t_final  # the fundamental unit for our rates
+    atol = 1.0 / t_final  # the fundamental unit for our rates
     assert allclose(rates_nengosim, rates_ref, atol=atol, rtol=0, xtol=1)
     assert allclose(rates_loihisim, rates_ref, atol=atol, rtol=0, xtol=1)
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.parametrize('neuron_type', [
-    LoihiLIF(),
-    LoihiSpikingRectifiedLinear(),
-])
+@pytest.mark.parametrize("neuron_type", [LoihiLIF(), LoihiSpikingRectifiedLinear()])
 @pytest.mark.parametrize("inference_only", (True, False))
-def test_nengo_dl_neurons(
-        neuron_type, inference_only, Simulator, plt, allclose):
+def test_nengo_dl_neurons(neuron_type, inference_only, Simulator, plt, allclose):
     install_dl_builders()
 
     dt = 0.0007
@@ -137,8 +130,9 @@ def test_nengo_dl_neurons(
     with nengo.Network() as model:
         nengo_dl.configure_settings(inference_only=inference_only)
 
-        a = nengo.Ensemble(n, 1, neuron_type=neuron_type,
-                           encoders=encoders, gain=gain, bias=bias)
+        a = nengo.Ensemble(
+            n, 1, neuron_type=neuron_type, encoders=encoders, gain=gain, bias=bias
+        )
         ap = nengo.Probe(a.neurons)
 
     t_final = 1.0
@@ -153,12 +147,12 @@ def test_nengo_dl_neurons(
 
     zeros = np.zeros((1, gain.size))
     rates_ref = neuron_type.rates(zeros, gain, bias, dt=dt).squeeze(axis=0)
-    plt.plot(bias, rates_loihisim, 'r', label='loihi sim')
-    plt.plot(bias, rates_dlsim, 'b-.', label='dl sim')
-    plt.plot(bias, rates_ref, 'k--', label='rates_ref')
-    plt.legend(loc='best')
+    plt.plot(bias, rates_loihisim, "r", label="loihi sim")
+    plt.plot(bias, rates_dlsim, "b-.", label="dl sim")
+    plt.plot(bias, rates_ref, "k--", label="rates_ref")
+    plt.legend(loc="best")
 
-    atol = 1. / t_final  # the fundamental unit for our rates
+    atol = 1.0 / t_final  # the fundamental unit for our rates
     assert rates_ref.shape == rates_dlsim.shape == rates_loihisim.shape
     assert allclose(rates_dlsim, rates_ref, atol=atol, rtol=0, xtol=1)
     assert allclose(rates_loihisim, rates_ref, atol=atol, rtol=0, xtol=1)
@@ -169,13 +163,17 @@ def test_lif_min_voltage(Simulator, plt, allclose):
     t_final = 0.4
 
     with nengo.Network() as model:
-        u = nengo.Node(lambda t: np.sin(4*np.pi*t / t_final))
-        a = nengo.Ensemble(1, 1, neuron_type=neuron_type,
-                           encoders=np.ones((1, 1)),
-                           max_rates=[100],
-                           intercepts=[0.5])
+        u = nengo.Node(lambda t: np.sin(4 * np.pi * t / t_final))
+        a = nengo.Ensemble(
+            1,
+            1,
+            neuron_type=neuron_type,
+            encoders=np.ones((1, 1)),
+            max_rates=[100],
+            intercepts=[0.5],
+        )
         nengo.Connection(u, a, synapse=None)
-        ap = nengo.Probe(a.neurons, 'voltage')
+        ap = nengo.Probe(a.neurons, "voltage")
 
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(t_final)
@@ -197,7 +195,8 @@ def test_lif_min_voltage(Simulator, plt, allclose):
 
 
 def rate_nengo_dl_net(
-        neuron_type, discretize=True, dt=0.001, nx=256, gain=1., bias=0.):
+    neuron_type, discretize=True, dt=0.001, nx=256, gain=1.0, bias=0.0
+):
     """Create a network for determining rate curves with Nengo DL.
 
     Arguments
@@ -225,88 +224,104 @@ def rate_nengo_dl_net(
         net.x = np.linspace(-1, 30, nx)
 
         net.sigma = 0.02
-        lif_kw['tau_rc'] = neuron_type.tau_rc
-        lif_kw['tau_ref'] = neuron_type.tau_ref
+        lif_kw["tau_rc"] = neuron_type.tau_rc
+        lif_kw["tau_ref"] = neuron_type.tau_ref
 
         if discretize:
-            lif_kw['tau_ref'] = discretize_tau_ref(lif_kw['tau_ref'], dt)
-            lif_kw['tau_rc'] = discretize_tau_rc(lif_kw['tau_rc'], dt)
-        lif_kw['tau_ref'] += 0.5*dt
+            lif_kw["tau_ref"] = discretize_tau_ref(lif_kw["tau_ref"], dt)
+            lif_kw["tau_rc"] = discretize_tau_rc(lif_kw["tau_rc"], dt)
+        lif_kw["tau_ref"] += 0.5 * dt
 
     elif isinstance(neuron_type, LoihiSpikingRectifiedLinear):
         net.x = np.linspace(-1, 999, nx)
 
-        net.tau_ref1 = 0.5*dt
-        net.j = neuron_type.current(
-            net.x[:, np.newaxis], gain, bias).squeeze(axis=1) - 1
+        net.tau_ref1 = 0.5 * dt
+        net.j = (
+            neuron_type.current(net.x[:, np.newaxis], gain, bias).squeeze(axis=1) - 1
+        )
 
     with net:
         if isinstance(neuron_type, LoihiLIF) and discretize:
             nengo_dl.configure_settings(lif_smoothing=net.sigma)
 
         net.stim = nengo.Node(np.zeros(nx))
-        net.ens = nengo.Ensemble(nx, 1,
-                                 neuron_type=neuron_type,
-                                 gain=nengo.dists.Choice([gain]),
-                                 bias=nengo.dists.Choice([bias]))
+        net.ens = nengo.Ensemble(
+            nx,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([gain]),
+            bias=nengo.dists.Choice([bias]),
+        )
         nengo.Connection(net.stim, net.ens.neurons, synapse=None)
         net.probe = nengo.Probe(net.ens.neurons)
 
-    rates = dict(
-        ref=loihi_rates(neuron_type, net.x, gain, bias, dt=dt).squeeze(axis=1))
+    rates = dict(ref=loihi_rates(neuron_type, net.x, gain, bias, dt=dt).squeeze(axis=1))
     # rates['med'] is an approximation of the smoothed Loihi tuning curve
     if isinstance(neuron_type, LoihiLIF):
-        rates['med'] = nengo_rates(
-            nengo.LIF(**lif_kw), net.x, gain, bias).squeeze(axis=1)
+        rates["med"] = nengo_rates(nengo.LIF(**lif_kw), net.x, gain, bias).squeeze(
+            axis=1
+        )
     elif isinstance(neuron_type, LoihiSpikingRectifiedLinear):
-        rates['med'] = np.zeros_like(net.j)
-        rates['med'][net.j > 0] = (
-            neuron_type.amplitude / (net.tau_ref1 + 1./net.j[net.j > 0]))
+        rates["med"] = np.zeros_like(net.j)
+        rates["med"][net.j > 0] = neuron_type.amplitude / (
+            net.tau_ref1 + 1.0 / net.j[net.j > 0]
+        )
 
     return net, rates, lif_kw
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.skipif(pytest.config.getoption("--target") == "loihi",
-                    reason="only uses nengo-dl")
-@pytest.mark.parametrize('neuron_type', [
-    LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002),
-    LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
-    LoihiSpikingRectifiedLinear(),
-    LoihiSpikingRectifiedLinear(amplitude=0.42),
-])
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") == "loihi", reason="only uses nengo-dl"
+)
+@pytest.mark.parametrize(
+    "neuron_type",
+    [
+        LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002),
+        LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
+        LoihiSpikingRectifiedLinear(),
+        LoihiSpikingRectifiedLinear(amplitude=0.42),
+    ],
+)
 def test_nengo_dl_neuron_grads(neuron_type, plt):
     from nengo_extras.neurons import SoftLIFRate
     import tensorflow as tf
     from tensorflow.python.ops import gradient_checker
+
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
-        sim.run_steps(1,
-                      input_feeds={net.stim: net.x[None, None, :]},
-                      extra_feeds={sim.tensor_graph.signals.training: True})
+        sim.run_steps(
+            1,
+            input_feeds={net.stim: net.x[None, None, :]},
+            extra_feeds={sim.tensor_graph.signals.training: True},
+        )
         y = sim.data[net.probe][0]
 
     # --- compute spiking rates
     n_spike_steps = 1000
     x_spikes = net.x + np.zeros((1, n_spike_steps, 1), dtype=net.x.dtype)
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
-        sim.run_steps(n_spike_steps,
-                      input_feeds={net.stim: x_spikes},
-                      extra_feeds={sim.tensor_graph.signals.training: False})
+        sim.run_steps(
+            n_spike_steps,
+            input_feeds={net.stim: x_spikes},
+            extra_feeds={sim.tensor_graph.signals.training: False},
+        )
         y_spikes = sim.data[net.probe]
         y_spikerate = y_spikes.mean(axis=0)
 
     # --- compute derivatives
     if isinstance(neuron_type, LoihiLIF):
         dy_ref = SoftLIFRate(sigma=net.sigma, **lif_kw).derivative(
-            net.x, net.gain, net.bias)
+            net.x, net.gain, net.bias
+        )
     else:
         # use the derivative of rates['med'] (the smoothed Loihi tuning curve)
         dy_ref = np.zeros_like(net.j)
         dy_ref[net.j > 0] = (
-            neuron_type.amplitude / (net.j[net.j > 0]*net.tau_ref1 + 1) ** 2)
+            neuron_type.amplitude / (net.j[net.j > 0] * net.tau_ref1 + 1) ** 2
+        )
 
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
         n_steps = sim.unroll
@@ -321,42 +336,47 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
         out_shape = out.get_shape().as_list()
         out_shape = [n_steps if s is None else s for s in out_shape]
 
-        data = {n: np.zeros((sim.minibatch_size, n_steps, n.size_out))
-                for n in sim.tensor_graph.invariant_inputs}
-        data.update({p: np.zeros((sim.minibatch_size, n_steps, p.size_in))
-                     for p in sim.tensor_graph.target_phs})
+        data = {
+            n: np.zeros((sim.minibatch_size, n_steps, n.size_out))
+            for n in sim.tensor_graph.invariant_inputs
+        }
+        data.update(
+            {
+                p: np.zeros((sim.minibatch_size, n_steps, p.size_in))
+                for p in sim.tensor_graph.target_phs
+            }
+        )
         feed = sim._fill_feed(n_steps, data, training=True)
 
         with tf.variable_scope(tf.get_variable_scope()) as scope:
             dx, dy = gradient_checker._compute_dx_and_dy(inp, out, out_shape)
-            sim.sess.run(tf.variables_initializer(
-                scope.get_collection("gradient_vars")))
+            sim.sess.run(
+                tf.variables_initializer(scope.get_collection("gradient_vars"))
+            )
 
         with sim.sess.as_default():
             analytic = gradient_checker._compute_theoretical_jacobian(
-                inp, inp_shape, inp_data, dy, out_shape, dx,
-                extra_feed_dict=feed)
+                inp, inp_shape, inp_data, dy, out_shape, dx, extra_feed_dict=feed
+            )
 
         dy = np.array(np.diag(analytic))
 
     dx = net.x[1] - net.x[0]
-    dy_est = np.diff(
-        nengo.synapses.Alpha(10).filtfilt(rates["ref"], dt=1)
-    ) / dx
+    dy_est = np.diff(nengo.synapses.Alpha(10).filtfilt(rates["ref"], dt=1)) / dx
     x1 = 0.5 * (net.x[:-1] + net.x[1:])
 
     # --- plots
     plt.subplot(211)
-    plt.plot(net.x, rates["med"], '--', label='LIF(tau_ref += 0.5*dt)')
-    plt.plot(net.x, y, label='nengo_dl')
-    plt.plot(net.x, y_spikerate, label='nengo_dl spikes')
-    plt.plot(net.x, rates["ref"], 'k--', label='LoihiLIF')
+    plt.plot(net.x, rates["med"], "--", label="LIF(tau_ref += 0.5*dt)")
+    plt.plot(net.x, y, label="nengo_dl")
+    plt.plot(net.x, y_spikerate, label="nengo_dl spikes")
+    plt.plot(net.x, rates["ref"], "k--", label="LoihiLIF")
     plt.legend(loc=4)
 
     plt.subplot(212)
-    plt.plot(x1, dy_est, '--', label='diff(smoothed_y)')
-    plt.plot(net.x, dy, label='nengo_dl')
-    plt.plot(net.x, dy_ref, 'k--', label='diff(SoftLIF)')
+    plt.plot(x1, dy_est, "--", label="diff(smoothed_y)")
+    plt.plot(net.x, dy, label="nengo_dl")
+    plt.plot(net.x, dy_ref, "k--", label="diff(SoftLIF)")
     plt.legend(loc=1)
 
     np.fill_diagonal(analytic, 0)
@@ -369,23 +389,28 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.skipif(pytest.config.getoption("--target") == "loihi",
-                    reason="only uses nengo-dl")
-@pytest.mark.parametrize('neuron_type', [
-    LoihiLIF(amplitude=0.3, nengo_dl_noise=LowpassRCNoise(0.001)),
-    LoihiLIF(amplitude=0.3, nengo_dl_noise=AlphaRCNoise(0.001)),
-])
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") == "loihi", reason="only uses nengo-dl"
+)
+@pytest.mark.parametrize(
+    "neuron_type",
+    [
+        LoihiLIF(amplitude=0.3, nengo_dl_noise=LowpassRCNoise(0.001)),
+        LoihiLIF(amplitude=0.3, nengo_dl_noise=AlphaRCNoise(0.001)),
+    ],
+)
 def test_nengo_dl_noise(neuron_type, seed, plt):
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
     n_noise = 1000  # number of noise samples per x point
 
-    with nengo_dl.Simulator(
-            net, dt=net.dt, minibatch_size=n_noise, seed=seed) as sim:
+    with nengo_dl.Simulator(net, dt=net.dt, minibatch_size=n_noise, seed=seed) as sim:
         input_data = {net.stim: np.tile(net.x[None, None, :], (n_noise, 1, 1))}
-        sim.step(input_feeds=input_data,
-                 extra_feeds={sim.tensor_graph.signals.training: True})
+        sim.step(
+            input_feeds=input_data,
+            extra_feeds={sim.tensor_graph.signals.training: True},
+        )
         y = sim.data[net.probe][:, 0, :]
 
     ymean = y.mean(axis=0)
@@ -398,10 +423,10 @@ def test_nengo_dl_noise(neuron_type, seed, plt):
     x1mask = net.x > 1.5
     x1 = net.x[x1mask]
     if isinstance(neuron_type.nengo_dl_noise, AlphaRCNoise):
-        exp_model = 0.7 + 2.8*np.exp(-0.22*(x1 - 1))
+        exp_model = 0.7 + 2.8 * np.exp(-0.22 * (x1 - 1))
         atol = 0.12 * exp_model.max()
     elif isinstance(neuron_type.nengo_dl_noise, LowpassRCNoise):
-        exp_model = 1.5 + 2.2*np.exp(-0.22*(x1 - 1))
+        exp_model = 1.5 + 2.2 * np.exp(-0.22 * (x1 - 1))
         atol = 0.2 * exp_model.max()
 
     rtol = 0.2
@@ -409,23 +434,23 @@ def test_nengo_dl_noise(neuron_type, seed, plt):
 
     # --- plots
     plt.subplot(211)
-    plt.plot(net.x, rates["med"], '--', label='LIF(tau_ref += 0.5*dt)')
-    plt.plot(net.x, ymean, label='nengo_dl')
-    plt.plot(net.x, y25, ':', label='25th')
-    plt.plot(net.x, y75, ':', label='75th')
-    plt.plot(net.x, rates["ref"], 'k--', label='LoihiLIF')
+    plt.plot(net.x, rates["med"], "--", label="LIF(tau_ref += 0.5*dt)")
+    plt.plot(net.x, ymean, label="nengo_dl")
+    plt.plot(net.x, y25, ":", label="25th")
+    plt.plot(net.x, y75, ":", label="75th")
+    plt.plot(net.x, rates["ref"], "k--", label="LoihiLIF")
     plt.legend()
 
     plt.subplot(212)
-    plt.plot(net.x, ymean - rates["ref"], 'b', label='mean')
-    plt.plot(net.x, mu_atol*np.ones_like(net.x), 'b:')
-    plt.plot(net.x, -mu_atol*np.ones_like(net.x), 'b:')
-    plt.plot(net.x, y25 - rates["ref"], ':', label='25th')
-    plt.plot(net.x, y75 - rates["ref"], ':', label='75th')
-    plt.plot(x1, exp_model, 'k--')
-    plt.plot(x1, exp_model*(1 + rtol) + atol, 'k:')
-    plt.plot(x1, exp_model*(1 - rtol) - atol, 'k:')
-    plt.plot(x1, -exp_model, 'k--')
+    plt.plot(net.x, ymean - rates["ref"], "b", label="mean")
+    plt.plot(net.x, mu_atol * np.ones_like(net.x), "b:")
+    plt.plot(net.x, -mu_atol * np.ones_like(net.x), "b:")
+    plt.plot(net.x, y25 - rates["ref"], ":", label="25th")
+    plt.plot(net.x, y75 - rates["ref"], ":", label="75th")
+    plt.plot(x1, exp_model, "k--")
+    plt.plot(x1, exp_model * (1 + rtol) + atol, "k:")
+    plt.plot(x1, exp_model * (1 - rtol) - atol, "k:")
+    plt.plot(x1, -exp_model, "k--")
     plt.legend()
 
     assert ymean.shape == rates["ref"].shape

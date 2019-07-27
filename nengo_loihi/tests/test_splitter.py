@@ -39,8 +39,7 @@ def test_place_ensembles():
         add_params(net)
         offchip = nengo.Ensemble(10, 1, label="offchip")
         net.config[offchip].on_chip = False
-        direct = nengo.Ensemble(
-            1, 1, neuron_type=nengo.Direct(), label="direct")
+        direct = nengo.Ensemble(1, 1, neuron_type=nengo.Direct(), label="direct")
         with nengo.Network():
             onchip = nengo.Ensemble(20, 1, label="onchip")
         pre = nengo.Ensemble(10, 1, label="pre")
@@ -100,14 +99,13 @@ def test_split_host_to_learning_rule():
         err_offchip = nengo.Ensemble(10, 1, label="err_offchip")
         net.config[err_offchip].on_chip = False
         ens_conn = nengo.Connection(pre, post, learning_rule_type=nengo.PES())
-        neurons_conn = nengo.Connection(pre.neurons, post.neurons,
-                                        learning_rule_type=nengo.PES())
+        neurons_conn = nengo.Connection(
+            pre.neurons, post.neurons, learning_rule_type=nengo.PES()
+        )
         nengo.Connection(err_onchip, ens_conn.learning_rule)
-        nengo.Connection(
-            err_onchip, neurons_conn.learning_rule)
+        nengo.Connection(err_onchip, neurons_conn.learning_rule)
         nengo.Connection(err_offchip, ens_conn.learning_rule)
-        nengo.Connection(
-            err_offchip, neurons_conn.learning_rule)
+        nengo.Connection(err_offchip, neurons_conn.learning_rule)
 
     split = Split(net)
 
@@ -141,14 +139,8 @@ def test_place_probes():
         onchip2 = nengo.Ensemble(10, 1)
         nengo.Connection(onchip1, onchip2)
         nengo.Connection(offchip1, offchip2)
-        offchip_probes = [
-            nengo.Probe(offchip1),
-            nengo.Probe(offchip2),
-        ]
-        onchip_probes = [
-            nengo.Probe(onchip1),
-            nengo.Probe(onchip2),
-        ]
+        offchip_probes = [nengo.Probe(offchip1), nengo.Probe(offchip2)]
+        onchip_probes = [nengo.Probe(onchip1), nengo.Probe(onchip2)]
 
     split = Split(net)
     assert split.on_chip(onchip1)
@@ -200,8 +192,7 @@ def test_split_pre_from_host():
     assert not split.is_precomputable(onchip)
 
     with pytest.raises(BuildError, match="not a part of the network"):
-        split.is_precomputable(
-            nengo.Node(0, add_to_container=False))
+        split.is_precomputable(nengo.Node(0, add_to_container=False))
 
 
 def test_split_precompute_loop_error():
@@ -276,7 +267,12 @@ def test_split_remove_passthrough(remove_passthrough):
 
     if remove_passthrough:
         assert split.passthrough.to_remove == {
-            conn1, conn2, conn3, conn4, discard1, discard2,
+            conn1,
+            conn2,
+            conn3,
+            conn4,
+            discard1,
+            discard2,
         }
 
         conns = list(split.passthrough.to_add)

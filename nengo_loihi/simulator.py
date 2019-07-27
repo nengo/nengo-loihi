@@ -4,11 +4,7 @@ import traceback
 import warnings
 
 import nengo
-from nengo.exceptions import (
-    ReadonlyError,
-    SimulatorClosed,
-    ValidationError,
-)
+from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.simulator import ProbeDict as NengoProbeDict
 import nengo.utils.numpy as npext
 import numpy as np
@@ -96,16 +92,16 @@ class Simulator:
     """
 
     def __init__(  # noqa: C901
-            self,
-            network,
-            dt=0.001,
-            seed=None,
-            model=None,
-            precompute=False,
-            target=None,
-            progress_bar=None,
-            remove_passthrough=True,
-            hardware_options=None,
+        self,
+        network,
+        dt=0.001,
+        seed=None,
+        model=None,
+        precompute=False,
+        target=None,
+        progress_bar=None,
+        remove_passthrough=True,
+        hardware_options=None,
     ):
         # initialize values used in __del__ and close() first
         self.closed = True
@@ -126,26 +122,25 @@ class Simulator:
             # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
         else:
-            assert isinstance(model, Model), (
-                "model is not type 'nengo_loihi.builder.Model'")
+            assert isinstance(
+                model, Model
+            ), "model is not type 'nengo_loihi.builder.Model'"
             self.model = model
             assert self.model.dt == dt
 
         if network is None:
-            raise ValidationError("network parameter must not be None",
-                                  attr="network")
+            raise ValidationError("network parameter must not be None", attr="network")
 
         config.add_params(network)
 
         # ensure seeds are identical to nengo
         # this has no effect for nengo<=2.8.0
-        seed_network(network, seeds=self.model.seeds,
-                     seeded=self.model.seeded)
+        seed_network(network, seeds=self.model.seeds, seeded=self.model.seeded)
 
         # determine how to split the host into one, two or three models
-        self.model.split = Split(network,
-                                 precompute=precompute,
-                                 remove_passthrough=remove_passthrough)
+        self.model.split = Split(
+            network, precompute=precompute, remove_passthrough=remove_passthrough
+        )
 
         # Build the network into the model
         self.model.build(network)
@@ -166,10 +161,12 @@ class Simulator:
                 dt=self.dt,
                 model=self.model.host_pre,
                 progress_bar=False,
-                optimize=False)
+                optimize=False,
+            )
         elif precompute:
-            warnings.warn("No precomputable objects. Setting "
-                          "precompute=True has no effect.")
+            warnings.warn(
+                "No precomputable objects. Setting " "precompute=True has no effect."
+            )
 
         if len(self.model.host.params):
             self.sims["host"] = nengo.Simulator(
@@ -177,7 +174,8 @@ class Simulator:
                 dt=self.dt,
                 model=self.model.host,
                 progress_bar=False,
-                optimize=False)
+                optimize=False,
+            )
         elif not precompute:
             # If there is no host and precompute=False, then all objects
             # must be on the chip, which is precomputable in the sense that
@@ -198,7 +196,7 @@ class Simulator:
                 seed = np.random.randint(npext.maxint)
 
         if target is None:
-            target = 'loihi' if HAS_NXSDK else 'sim'
+            target = "loihi" if HAS_NXSDK else "sim"
         self.target = target
 
         logger.info("Simulator target is %r", target)
@@ -209,14 +207,13 @@ class Simulator:
 
         if target in ("simreal", "sim"):
             self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)
-        elif target == 'loihi':
+        elif target == "loihi":
             assert HAS_NXSDK, "Must have NxSDK installed to use Loihi hardware"
             self.sims["loihi"] = HardwareInterface(
-                self.model, use_snips=not self.precompute, seed=seed,
-                **hardware_options)
+                self.model, use_snips=not self.precompute, seed=seed, **hardware_options
+            )
         else:
-            raise ValidationError("Must be 'simreal', 'sim', or 'loihi'",
-                                  attr="target")
+            raise ValidationError("Must be 'simreal', 'sim', or 'loihi'", attr="target")
 
         assert "emulator" in self.sims or "loihi" in self.sims
 
@@ -229,7 +226,9 @@ class Simulator:
             warnings.warn(
                 "Simulator with model=%s was deallocated while open. Please "
                 "close simulators manually to ensure resources are properly "
-                "freed." % self.model, ResourceWarning)
+                "freed." % self.model,
+                ResourceWarning,
+            )
 
     def __enter__(self):
         for sim in self.sims.values():
@@ -248,7 +247,7 @@ class Simulator:
 
     @dt.setter
     def dt(self, dummy):
-        raise ReadonlyError(attr='dt', obj=self)
+        raise ReadonlyError(attr="dt", obj=self)
 
     @property
     def n_steps(self):
@@ -280,11 +279,9 @@ class Simulator:
         for probe in self.model.probes:
             if probe in self.model.chip2host_params:
                 continue
-            assert probe.sample_every is None, (
-                "probe.sample_every not implemented")
-            assert ("loihi" not in self.sims
-                    or "emulator" not in self.sims)
-            loihi_probe = self.model.objs[probe]['out']
+            assert probe.sample_every is None, "probe.sample_every not implemented"
+            assert "loihi" not in self.sims or "emulator" not in self.sims
+            loihi_probe = self.model.objs[probe]["out"]
             if "loihi" in self.sims:
                 data = self.sims["loihi"].get_probe_output(loihi_probe)
             elif "emulator" in self.sims:
@@ -293,7 +290,9 @@ class Simulator:
             del self._probe_outputs[probe][:]
             self._probe_outputs[probe].extend(data)
             assert len(self._probe_outputs[probe]) == self.n_steps, (
-                len(self._probe_outputs[probe]), self.n_steps)
+                len(self._probe_outputs[probe]),
+                self.n_steps,
+            )
 
     def _probe_step_time(self):
         self._time = self._n_steps * self.dt
@@ -341,17 +340,24 @@ class Simulator:
             Amount of time to run the simulation for. Must be positive.
         """
         if time_in_seconds < 0:
-            raise ValidationError("Must be positive (got %g)"
-                                  % (time_in_seconds,), attr="time_in_seconds")
+            raise ValidationError(
+                "Must be positive (got %g)" % (time_in_seconds,), attr="time_in_seconds"
+            )
 
         steps = int(np.round(float(time_in_seconds) / self.dt))
 
         if steps == 0:
-            warnings.warn("%g results in running for 0 timesteps. Simulator "
-                          "still at time %g." % (time_in_seconds, self.time))
+            warnings.warn(
+                "%g results in running for 0 timesteps. Simulator "
+                "still at time %g." % (time_in_seconds, self.time)
+            )
         else:
-            logger.info("Running %s for %f seconds, or %d steps",
-                        self.model.label, time_in_seconds, steps)
+            logger.info(
+                "Running %s for %f seconds, or %d steps",
+                self.model.label,
+                time_in_seconds,
+                steps,
+            )
             self.run_steps(steps)
 
     def step(self):
@@ -367,14 +373,14 @@ class Simulator:
                 receiver.receive(t, x)
             del sender.queue[:]
 
-            if hasattr(receiver, 'collect_spikes'):
+            if hasattr(receiver, "collect_spikes"):
                 for spike_input, t, spike_idxs in receiver.collect_spikes():
                     ti = round(t / self.model.dt)
                     spikes.append((spike_input, ti, spike_idxs))
-            if hasattr(receiver, 'collect_errors'):
+            if hasattr(receiver, "collect_errors"):
                 for probe, t, e in receiver.collect_errors():
                     conn = self.model.probe_conns[probe]
-                    synapse = self.model.objs[conn]['decoders']
+                    synapse = self.model.objs[conn]["decoders"]
                     assert synapse.learning
                     ti = round(t / self.model.dt)
                     errors_ti = errors.setdefault(ti, OrderedDict())
@@ -383,8 +389,9 @@ class Simulator:
                     else:
                         errors_ti[synapse] = e.copy()
 
-        errors = [(synapse, ti, e) for ti, ee in errors.items()
-                  for synapse, e in ee.items()]
+        errors = [
+            (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
+        ]
         return spikes, errors
 
     def _host2chip(self, sim):
@@ -393,8 +400,9 @@ class Simulator:
 
     def _chip2host(self, sim):
         probes_receivers = OrderedDict(  # map probes to receivers
-            (self.model.objs[probe]['out'], receiver)
-            for probe, receiver in self.model.chip2host_receivers.items())
+            (self.model.objs[probe]["out"], receiver)
+            for probe, receiver in self.model.chip2host_receivers.items()
+        )
         sim.chip2host(probes_receivers)
 
     def _make_run_steps(self):
@@ -421,6 +429,7 @@ class Simulator:
                     emulator.run_steps(steps)
                     self._chip2host(emulator)
                     host.run_steps(steps)
+
                 self._run_steps = emu_precomputed_host_pre_and_host
 
             elif host_pre is not None:
@@ -429,6 +438,7 @@ class Simulator:
                     host_pre.run_steps(steps)
                     self._host2chip(emulator)
                     emulator.run_steps(steps)
+
                 self._run_steps = emu_precomputed_host_pre_only
 
             elif host is not None:
@@ -437,6 +447,7 @@ class Simulator:
                     emulator.run_steps(steps)
                     self._chip2host(emulator)
                     host.run_steps(steps)
+
                 self._run_steps = emu_precomputed_host_only
 
             else:
@@ -451,6 +462,7 @@ class Simulator:
                     self._host2chip(emulator)
                     emulator.step()
                     self._chip2host(emulator)
+
             self._run_steps = emu_bidirectional_with_host
 
     def _make_loihi_run_steps(self):
@@ -467,6 +479,7 @@ class Simulator:
                     loihi.run_steps(steps, blocking=True)
                     self._chip2host(loihi)
                     host.run_steps(steps)
+
                 self._run_steps = loihi_precomputed_host_pre_and_host
 
             elif host_pre is not None:
@@ -475,6 +488,7 @@ class Simulator:
                     host_pre.run_steps(steps)
                     self._host2chip(loihi)
                     loihi.run_steps(steps, blocking=True)
+
                 self._run_steps = loihi_precomputed_host_pre_only
 
             elif host is not None:
@@ -483,6 +497,7 @@ class Simulator:
                     loihi.run_steps(steps, blocking=True)
                     self._chip2host(loihi)
                     host.run_steps(steps)
+
                 self._run_steps = loihi_precomputed_host_only
 
             else:
@@ -500,6 +515,7 @@ class Simulator:
                 logger.info("Waiting for run_steps to complete...")
                 loihi.wait_for_completion()
                 logger.info("run_steps completed")
+
             self._run_steps = loihi_bidirectional_with_host
 
     def run_steps(self, steps):
@@ -529,10 +545,14 @@ class Simulator:
                     h2c.write(h2c.numElements, [0] * h2c.numElements)
                     c2h.read(c2h.numElements)
                 self.sims["loihi"].wait_for_completion()
-                d_func(self.sims["loihi"].nxsdk_board, b'bnhEcml2ZXI=',
-                       b'c3RvcEV4ZWN1dGlvbg==')
-                d_func(self.sims["loihi"].nxsdk_board, b'bnhEcml2ZXI=',
-                       b'c3RvcERyaXZlcg==')
+                d_func(
+                    self.sims["loihi"].nxsdk_board,
+                    b"bnhEcml2ZXI=",
+                    b"c3RvcEV4ZWN1dGlvbg==",
+                )
+                d_func(
+                    self.sims["loihi"].nxsdk_board, b"bnhEcml2ZXI=", b"c3RvcERyaXZlcg=="
+                )
             raise
 
         self._n_steps += steps
@@ -582,8 +602,7 @@ class ProbeDict(NengoProbeDict):
                     break
         assert key in target, "probed object not found"
 
-        if (key not in self._cache
-                or len(self._cache[key]) != len(target[key])):
+        if key not in self._cache or len(self._cache[key]) != len(target[key]):
             rval = target[key]
             if isinstance(rval, list):
                 rval = np.asarray(rval)

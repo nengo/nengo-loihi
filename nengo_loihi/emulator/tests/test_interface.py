@@ -37,9 +37,10 @@ def test_strict_mode(strict, monkeypatch):
         emu.compartment.error("Error in emulator")
 
 
-@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
-                    reason="need Loihi as comparison")
-@pytest.mark.parametrize('n_axons', [200, 1000])
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi", reason="need Loihi as comparison"
+)
+@pytest.mark.parametrize("n_axons", [200, 1000])
 def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     # TODO: Currently this is not testing the V overflow, since it is higher
     #  and I haven't been able to figure out a way to make it overflow.
@@ -49,7 +50,7 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
 
     # n_axons controls number of input spikes and thus amount of overflow
     input = SpikeInput(n_axons)
-    for t in np.arange(1, nt+1):
+    for t in np.arange(1, nt + 1):
         input.add_spikes(t, np.arange(n_axons))  # send spikes to all axons
     model.add_input(input)
 
@@ -65,18 +66,18 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     axon.target = synapse
     input.add_axon(axon)
 
-    probe_u = Probe(target=block, key='current')
+    probe_u = Probe(target=block, key="current")
     block.add_probe(probe_u)
-    probe_v = Probe(target=block, key='voltage')
+    probe_v = Probe(target=block, key="voltage")
     block.add_probe(probe_v)
-    probe_s = Probe(target=block, key='spiked')
+    probe_s = Probe(target=block, key="spiked")
     block.add_probe(probe_s)
 
     model.add_block(block)
     discretize_model(model)
 
     # must set these after `discretize` to specify discretized values
-    block.compartment.vmin = -2 ** 22 + 1
+    block.compartment.vmin = -(2 ** 22) + 1
     block.compartment.vth[:] = VTH_MAX
 
     assert EmulatorInterface.strict  # Tests should be run in strict mode

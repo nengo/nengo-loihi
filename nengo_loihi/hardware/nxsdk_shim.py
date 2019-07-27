@@ -8,16 +8,15 @@ from nengo_loihi.nxsdk_obfuscation import d_get, d_import, d_set
 
 try:
     import nxsdk
-    nxsdk_dir = os.path.realpath(
-        os.path.join(os.path.dirname(nxsdk.__file__), "..")
-    )
+
+    nxsdk_dir = os.path.realpath(os.path.join(os.path.dirname(nxsdk.__file__), ".."))
     nxsdk_version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
     HAS_NXSDK = True
 
     def assert_nxsdk():
         pass
 
-    snip_maker = d_import(b'bnhzZGsuZ3JhcGguZ3JhcGg=')
+    snip_maker = d_import(b"bnhzZGsuZ3JhcGguZ3JhcGg=")
 
     class SnipMaker(d_get(snip_maker, b"R3JhcGg=")):
         """Patch of the snip process manager that is multiprocess safe."""
@@ -38,8 +37,7 @@ try:
 
             os.mkdir(os.path.join(tmp.name, name))
 
-            tmp_path = os.path.join(
-                tmp.name, name, os.path.basename(cFilePath))
+            tmp_path = os.path.join(tmp.name, name, os.path.basename(cFilePath))
             shutil.copyfile(cFilePath, tmp_path)
             with open(cFilePath) as f0, open(tmp_path) as f1:
                 src = f0.read()
@@ -56,8 +54,7 @@ try:
             shutil.copytree(includeDir, include_path)
             assert os.path.isdir(include_path), "Copy failed %s" % include_path
 
-            return super().createProcess(
-                name, tmp_path, include_path, *args, **kwargs)
+            return super().createProcess(name, tmp_path, include_path, *args, **kwargs)
 
     d_set(snip_maker, b"R3JhcGg=", val=SnipMaker)
 
@@ -74,20 +71,15 @@ except ImportError:
 
 
 if HAS_NXSDK:
-    micro_gen = d_import(
-        b'bnhzZGsuY29tcGlsZXIubWljcm9jb2RlZ2VuLmludGVyZmFjZQ==')
+    micro_gen = d_import(b"bnhzZGsuY29tcGlsZXIubWljcm9jb2RlZ2VuLmludGVyZmFjZQ==")
     TraceConfigGenerator = d_import(
-        b'bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=',
-        b'VHJhY2VDZmdHZW4=')
-    NxsdkBoard = d_import(
-        b'bnhzZGsuZ3JhcGgubnhib2FyZA==',
-        b'TjJCb2FyZA==')
+        b"bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=", b"VHJhY2VDZmdHZW4="
+    )
+    NxsdkBoard = d_import(b"bnhzZGsuZ3JhcGgubnhib2FyZA==", b"TjJCb2FyZA==")
     SpikeGen = d_import(
-        b'bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu',
-        b'QmFzaWNTcGlrZUdlbmVyYXRvcg==')
-    SpikeProbe = d_import(
-        b'bnhzZGsuZ3JhcGgubnhwcm9iZXM=',
-        b'TjJTcGlrZVByb2Jl')
+        b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu", b"QmFzaWNTcGlrZUdlbmVyYXRvcg=="
+    )
+    SpikeProbe = d_import(b"bnhzZGsuZ3JhcGgubnhwcm9iZXM=", b"TjJTcGlrZVByb2Jl")
 else:
     micro_gen = None
     TraceConfigGenerator = None

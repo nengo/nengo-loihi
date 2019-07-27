@@ -1,6 +1,7 @@
 import logging
 
 from .version import check_nengo_version, version as __version__
+
 check_nengo_version()
 del check_nengo_version
 

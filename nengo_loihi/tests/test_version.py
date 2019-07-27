@@ -7,13 +7,12 @@ from nengo_loihi.version import check_nengo_version
 
 def test_nengo_version(Simulator, monkeypatch):
     # test nengo version below minimum
-    monkeypatch.setattr(nengo.version, 'version_info', (2, 0, 0))
-    with pytest.raises(ValueError,
-                       match="nengo-loihi does not support Nengo version"):
+    monkeypatch.setattr(nengo.version, "version_info", (2, 0, 0))
+    with pytest.raises(ValueError, match="nengo-loihi does not support Nengo version"):
         check_nengo_version()
 
     # test nengo version newer than latest
-    monkeypatch.setattr(nengo.version, 'version_info', (99, 0, 0))
+    monkeypatch.setattr(nengo.version, "version_info", (99, 0, 0))
     with pytest.warns(UserWarning):
         check_nengo_version()
 
@@ -29,8 +28,9 @@ def test_nengo_version_check():
         with pytest.warns(None) as w:
             check_nengo_version()
 
-        assert len(w) == 0, (
-            "Should not warn about version: %s" % [str(x.message) for x in w])
+        assert len(w) == 0, "Should not warn about version: %s" % [
+            str(x.message) for x in w
+        ]
     else:  # version.dev is None and nengo.version.dev is not None
         # a development version of nengo with a non-development nengo_loihi
         # version should cause a warning (we don't want to mark a nengo_loihi

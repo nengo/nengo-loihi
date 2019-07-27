@@ -13,13 +13,13 @@ default_node_neurons = OnOffDecodeNeurons()
 def test_passthrough_placement():
     with nengo.Network() as model:
         stim = nengo.Node(0)
-        a = nengo.Node(None, size_in=1)   # should be off-chip
+        a = nengo.Node(None, size_in=1)  # should be off-chip
         b = nengo.Ensemble(10, 1)
-        c = nengo.Node(None, size_in=1)   # should be removed
-        d = nengo.Node(None, size_in=1)   # should be removed
-        e = nengo.Node(None, size_in=1)   # should be removed
+        c = nengo.Node(None, size_in=1)  # should be removed
+        d = nengo.Node(None, size_in=1)  # should be removed
+        e = nengo.Node(None, size_in=1)  # should be removed
         f = nengo.Ensemble(10, 1)
-        g = nengo.Node(None, size_in=1)   # should be off-chip
+        g = nengo.Node(None, size_in=1)  # should be off-chip
         nengo.Connection(stim, a)
         nengo.Connection(a, b)
         conn_bc = nengo.Connection(b, c)
@@ -79,8 +79,7 @@ def test_identity_array(n_ensembles, ens_dimensions):
     for conn in split.to_add:
         assert conn.pre in a.all_ensembles or conn.pre_obj is a.input
         assert conn.post in b.all_ensembles
-        assert np.allclose(transform_array(conn.transform),
-                           np.eye(ens_dimensions))
+        assert np.allclose(transform_array(conn.transform), np.eye(ens_dimensions))
         pre.add(conn.pre)
         post.add(conn.post)
     assert len(pre) == n_ensembles
@@ -104,8 +103,9 @@ def test_full_array(n_ensembles, ens_dimensions):
     for conn in split.to_add:
         assert conn.pre in a.all_ensembles
         assert conn.post in b.all_ensembles
-        assert np.allclose(transform_array(conn.transform),
-                           np.ones((ens_dimensions, ens_dimensions)))
+        assert np.allclose(
+            transform_array(conn.transform), np.ones((ens_dimensions, ens_dimensions))
+        )
         pairs.add((conn.pre, conn.post))
     assert len(pairs) == n_ensembles ** 2
 
@@ -127,10 +127,10 @@ def test_synapse_merging(Simulator, seed):
     assert len(split.to_add) == 4
 
     desired_filters = {
-        ('0', '0'): None,
-        ('0', '1'): 0.2,
-        ('1', '0'): 0.1,
-        ('1', '1'): 0.3,
+        ("0", "0"): None,
+        ("0", "1"): 0.2,
+        ("1", "0"): 0.1,
+        ("1", "1"): 0.3,
     }
     for conn in split.to_add:
         if desired_filters[(conn.pre.label, conn.post.label)] is None:
@@ -138,16 +138,15 @@ def test_synapse_merging(Simulator, seed):
         else:
             assert isinstance(conn.synapse, nengo.Lowpass)
             assert np.allclose(
-                conn.synapse.tau,
-                desired_filters[(conn.pre.label, conn.post.label)])
+                conn.synapse.tau, desired_filters[(conn.pre.label, conn.post.label)]
+            )
 
     # check that model builds/runs, and issues the warning
     with pytest.warns(UserWarning) as record:
         with Simulator(model, remove_passthrough=True) as sim:
             sim.step()
 
-    assert any("Combining two Lowpass synapses" in r.message.args[0]
-               for r in record)
+    assert any("Combining two Lowpass synapses" in r.message.args[0] for r in record)
 
 
 def test_no_input(Simulator, seed, allclose):
@@ -172,7 +171,7 @@ def test_no_input(Simulator, seed, allclose):
 
 
 def test_transform_errors(Simulator):
-    def make_net(transform1=1., transform2=1.):
+    def make_net(transform1=1.0, transform2=1.0):
         with nengo.Network() as net:
             a = nengo.Ensemble(3, 2)
             q = nengo.Node(size_in=2)
@@ -205,9 +204,9 @@ def test_cluster_errors(Simulator, seed, plt):
     def make_net(learn_error=False, loop=False):
         probes = {}
         with nengo.Network(seed=seed) as net:
-            u = nengo.Node(lambda t: -np.sin((2 * np.pi / simtime) * t))
+            u = nengo.Node(lambda t: -(np.sin((2 * np.pi / simtime) * t)))
             a = nengo.Ensemble(50, 1)
-            q = nengo.Node(size_in=1, label='q')
+            q = nengo.Node(size_in=1, label="q")
             b = nengo.Ensemble(50, 1)
 
             nengo.Connection(u, a, synapse=None)
@@ -219,11 +218,11 @@ def test_cluster_errors(Simulator, seed, plt):
                 nengo.Connection(q, ab.learning_rule)
 
             if loop:
-                p = nengo.Node(size_in=1, label='p')
+                p = nengo.Node(size_in=1, label="p")
                 nengo.Connection(q, p)
                 nengo.Connection(p, q, transform=0.5)
 
-            probes['b'] = nengo.Probe(b, synapse=0.02)
+            probes["b"] = nengo.Probe(b, synapse=0.02)
 
         return net, probes
 
@@ -238,8 +237,8 @@ def test_cluster_errors(Simulator, seed, plt):
     with Simulator(net, remove_passthrough=True) as sim1:
         sim1.run(simtime)
 
-    y0_learn_error = sim0.data[probes['b']]
-    y1_learn_error = sim1.data[probes['b']]
+    y0_learn_error = sim0.data[probes["b"]]
+    y1_learn_error = sim1.data[probes["b"]]
     plt.subplot(211)
     plt.plot(sim0.trange(), y0_learn_error)
     plt.plot(sim1.trange(), y1_learn_error)
@@ -252,8 +251,8 @@ def test_cluster_errors(Simulator, seed, plt):
     with Simulator(net, remove_passthrough=True) as sim1:
         sim1.run(simtime)
 
-    y0_loop = sim0.data[probes['b']]
-    y1_loop = sim1.data[probes['b']]
+    y0_loop = sim0.data[probes["b"]]
+    y1_loop = sim1.data[probes["b"]]
     plt.subplot(212)
     plt.plot(sim0.trange(), y0_loop)
     plt.plot(sim1.trange(), y1_loop)

@@ -9,23 +9,22 @@ from nengo_loihi.config import add_params
 from nengo_loihi.neurons import nengo_rates
 
 
-@pytest.mark.parametrize('weight_solver', [False, True])
-@pytest.mark.parametrize('target_value', [-0.75, 0.4, 1.0])
-def test_ens_ens_constant(
-        allclose, weight_solver, target_value, Simulator, seed, plt):
+@pytest.mark.parametrize("weight_solver", [False, True])
+@pytest.mark.parametrize("target_value", [-0.75, 0.4, 1.0])
+def test_ens_ens_constant(allclose, weight_solver, target_value, Simulator, seed, plt):
     a_fn = lambda x: x + target_value
     solver = nengo.solvers.LstsqL2(weights=weight_solver)
 
     bnp = None
     with nengo.Network(seed=seed) as model:
-        a = nengo.Ensemble(100, 1, label='a')
+        a = nengo.Ensemble(100, 1, label="a")
 
-        b = nengo.Ensemble(101, 1, label='b')
+        b = nengo.Ensemble(101, 1, label="b")
         nengo.Connection(a, b, function=a_fn, solver=solver)
         bp = nengo.Probe(b)
         bnp = nengo.Probe(b.neurons)
 
-        c = nengo.Ensemble(1, 1, label='c')
+        c = nengo.Ensemble(1, 1, label="c")
         bc_conn = nengo.Connection(b, c)
 
     with Simulator(model) as sim:
@@ -40,24 +39,21 @@ def test_ens_ens_constant(
     output_filter = nengo.synapses.Alpha(0.03)
     target_output = target_value * np.ones_like(t)
     sim_output = output_filter.filt(sim.data[bp])
-    plt.plot(t, target_output, 'k')
+    plt.plot(t, target_output, "k")
     plt.plot(t, sim_output)
 
     assert allclose(dec_value, target_value, rtol=0.1, atol=0.1)
     t_check = t > 0.5
-    assert allclose(
-        sim_output[t_check], target_output[t_check], rtol=0.15, atol=0.15)
+    assert allclose(sim_output[t_check], target_output[t_check], rtol=0.15, atol=0.15)
 
 
-@pytest.mark.parametrize('dt', [3e-4, 1e-3])
-@pytest.mark.parametrize('precompute', [True, False])
+@pytest.mark.parametrize("dt", [3e-4, 1e-3])
+@pytest.mark.parametrize("precompute", [True, False])
 def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     tfinal = 0.4
 
     x = np.array([0.7, 0.3])
-    A = np.array([[1, 1],
-                  [1, -1],
-                  [1, -0.5]])
+    A = np.array([[1, 1], [1, -1], [1, -0.5]])
     y = np.dot(A, x)
 
     gain = [3] * len(y)
@@ -67,9 +63,10 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     z = nengo_rates(neuron_type, y[np.newaxis, :], gain, bias).squeeze(axis=0)
 
     with nengo.Network() as model:
-        u = nengo.Node(x, label='u')
-        a = nengo.Ensemble(len(y), 1, label='a',
-                           neuron_type=neuron_type, gain=gain, bias=bias)
+        u = nengo.Node(x, label="u")
+        a = nengo.Ensemble(
+            len(y), 1, label="a", neuron_type=neuron_type, gain=gain, bias=bias
+        )
         ap = nengo.Probe(a.neurons)
         nengo.Connection(u, a.neurons, transform=A)
 
@@ -81,18 +78,18 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     rates = (sim.data[ap][t > t[-1] - tsum] > 0).sum(axis=0) / tsum
 
     bar_width = 0.35
-    plt.bar(np.arange(len(z)), z, bar_width, color='k', label='z')
-    plt.bar(np.arange(len(z)) + bar_width, rates, bar_width, label='rates')
-    plt.legend(loc='best')
+    plt.bar(np.arange(len(z)), z, bar_width, color="k", label="z")
+    plt.bar(np.arange(len(z)) + bar_width, rates, bar_width, label="rates")
+    plt.legend(loc="best")
 
     assert rates.shape == z.shape
     assert allclose(rates, z, atol=3, rtol=0.1)
 
 
-@pytest.mark.parametrize("factor, do_pre_slice", [
-    (0.11, False), (0.26, True), (1.01, False)])
-def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
-                          seed, allclose, plt):
+@pytest.mark.parametrize(
+    "factor, do_pre_slice", [(0.11, False), (0.26, True), (1.01, False)]
+)
+def test_neuron_to_neuron(Simulator, factor, do_pre_slice, seed, allclose, plt):
     # note: we use these weird factor values so that voltages don't line up
     # exactly with the firing threshold.  since loihi neurons fire when
     # voltage > threshold (rather than >=), if the voltages line up
@@ -103,7 +100,7 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
     na = 500  # test big to ensure full weight matrices are not being used
 
     if do_pre_slice:
-        nb = int(np.ceil(na / 2.))
+        nb = int(np.ceil(na / 2.0))
         pre_slice = slice(None, None, 2)
     else:
         nb = na
@@ -115,10 +112,16 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
         a = nengo.Ensemble(na, 1)
         nengo.Connection(stim, a)
 
-        b = nengo.Ensemble(nb, 1, neuron_type=nengo.SpikingRectifiedLinear(),
-                           gain=np.ones(nb), bias=np.zeros(nb))
-        nengo.Connection(a.neurons[pre_slice], b.neurons, synapse=None,
-                         transform=factor)
+        b = nengo.Ensemble(
+            nb,
+            1,
+            neuron_type=nengo.SpikingRectifiedLinear(),
+            gain=np.ones(nb),
+            bias=np.zeros(nb),
+        )
+        nengo.Connection(
+            a.neurons[pre_slice], b.neurons, synapse=None, transform=factor
+        )
 
         p_a = nengo.Probe(a.neurons)
         p_b = nengo.Probe(b.neurons)
@@ -128,7 +131,7 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice,
 
     y_ref = np.floor(np.sum(sim.data[p_a][:, pre_slice] > 0, axis=0) * factor)
     y_sim = np.sum(sim.data[p_b] > 0, axis=0)
-    plt.plot(y_ref, c='k')
+    plt.plot(y_ref, c="k")
     plt.plot(y_sim)
 
     assert allclose(y_sim, y_ref, atol=1)
@@ -140,12 +143,10 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
         pre = nengo.Ensemble(20, 1)
         nengo.Connection(stim, pre)
 
-        post = nengo.Ensemble(2, 1,
-                              gain=[1., 1.], bias=[0., 0.])
+        post = nengo.Ensemble(2, 1, gain=[1.0, 1.0], bias=[0.0, 0.0])
 
         # On and off neurons
-        nengo.Connection(pre, post.neurons,
-                         synapse=None, transform=[[5], [-5]])
+        nengo.Connection(pre, post.neurons, synapse=None, transform=[[5], [-5]])
 
         p_pre = nengo.Probe(pre, synapse=nengo.synapses.Alpha(0.03))
         p_post = nengo.Probe(post.neurons)
@@ -160,7 +161,7 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     t = sim.trange()
     plt.subplot(2, 1, 1)
     plt.title("Reference Nengo")
-    plt.plot(t, nengosim.data[p_pre], c='k')
+    plt.plot(t, nengosim.data[p_pre], c="k")
     plt.ylabel("Decoded pre value")
     plt.xlabel("Time (s)")
     plt.twinx()
@@ -168,7 +169,7 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     plt.ylabel("post neuron number")
     plt.subplot(2, 1, 2)
     plt.title("Nengo Loihi")
-    plt.plot(t, sim.data[p_pre], c='k')
+    plt.plot(t, sim.data[p_pre], c="k")
     plt.ylabel("Decoded pre value")
     plt.xlabel("Time (s)")
     plt.twinx()
@@ -179,16 +180,19 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
 
     # Compare the number of spikes for each neuron.
     # We'll let them be off by 5 for now.
-    assert allclose(np.sum(sim.data[p_post], axis=0) * sim.dt,
-                    np.sum(nengosim.data[p_post], axis=0) * nengosim.dt,
-                    atol=5)
+    assert allclose(
+        np.sum(sim.data[p_post], axis=0) * sim.dt,
+        np.sum(nengosim.data[p_post], axis=0) * nengosim.dt,
+        atol=5,
+    )
 
 
-@pytest.mark.parametrize("pre_on_chip, post_ensemble", [(True, True),
-                                                        (True, False),
-                                                        (False, True)])
+@pytest.mark.parametrize(
+    "pre_on_chip, post_ensemble", [(True, True), (True, False), (False, True)]
+)
 def test_neurons_to_ensemble_transform(
-        pre_on_chip, post_ensemble, Simulator, seed, rng, allclose, plt):
+    pre_on_chip, post_ensemble, Simulator, seed, rng, allclose, plt
+):
     with nengo.Network(seed=seed) as net:
         add_params(net)
 
@@ -196,18 +200,16 @@ def test_neurons_to_ensemble_transform(
 
         n_pre = 50
         pre_encoders = np.ones((n_pre, 1))
-        pre_encoders[n_pre // 2:] *= -1
+        pre_encoders[n_pre // 2 :] *= -1
         pre = nengo.Ensemble(n_pre, 1, encoders=pre_encoders)
         net.config[pre].on_chip = pre_on_chip
         nengo.Connection(stim, pre, synapse=None)
 
         n_post = 51
         pre_decoders = pre_encoders.T / (100 * n_pre / 2)
-        post = (nengo.Ensemble(n_post, 1) if post_ensemble
-                else nengo.Node(size_in=1))
+        post = nengo.Ensemble(n_post, 1) if post_ensemble else nengo.Node(size_in=1)
 
-        nengo.Connection(pre.neurons, post, transform=pre_decoders,
-                         synapse=0.005)
+        nengo.Connection(pre.neurons, post, transform=pre_decoders, synapse=0.005)
 
         p_pre = nengo.Probe(pre, synapse=nengo.synapses.Alpha(0.03))
         p_post = nengo.Probe(post, synapse=nengo.synapses.Alpha(0.03))
@@ -223,15 +225,15 @@ def test_neurons_to_ensemble_transform(
 
     t = sim.trange()
     plt.subplot(2, 1, 1)
-    plt.plot(t, nengosim.data[p_pre], c='k')
-    plt.plot(t, sim.data[p_pre], c='g')
+    plt.plot(t, nengosim.data[p_pre], c="k")
+    plt.plot(t, sim.data[p_pre], c="g")
     plt.ylim([-1, 1])
     plt.ylabel("Decoded pre value")
     plt.xlabel("Time (s)")
 
     plt.subplot(2, 1, 2)
-    plt.plot(t, y0, c='k')
-    plt.plot(t, y1, c='g')
+    plt.plot(t, y0, c="k")
+    plt.plot(t, y1, c="g")
     plt.ylim([-1, 1])
     plt.ylabel("Decoded post value")
     plt.xlabel("Time (s)")
@@ -247,11 +249,11 @@ def test_dists(Simulator, seed):
         b = nengo.Ensemble(50, 1, radius=2)
         conn0 = nengo.Connection(a, b, transform=nengo.dists.Uniform(-1, 1))
         c = nengo.Ensemble(50, 1)
-        nengo.Connection(b, c, transform=nengo.dists.Uniform(-1, 1),
-                         seed=seed + 3)
+        nengo.Connection(b, c, transform=nengo.dists.Uniform(-1, 1), seed=seed + 3)
         d = nengo.Ensemble(50, 1)
-        conn1 = nengo.Connection(c.neurons, d.neurons,
-                                 transform=nengo.dists.Uniform(-1, 1))
+        conn1 = nengo.Connection(
+            c.neurons, d.neurons, transform=nengo.dists.Uniform(-1, 1)
+        )
 
         add_params(net)
         net.config[d].on_chip = False
@@ -298,9 +300,12 @@ def test_long_tau(Simulator):
 
 def test_zero_activity_error(Simulator):
     with nengo.Network() as net:
-        a = nengo.Ensemble(5, 1,
-                           encoders=nengo.dists.Choice([[1.]]),
-                           intercepts=nengo.dists.Choice([0.]))
+        a = nengo.Ensemble(
+            5,
+            1,
+            encoders=nengo.dists.Choice([[1.0]]),
+            intercepts=nengo.dists.Choice([0.0]),
+        )
         b = nengo.Ensemble(5, 1)
         nengo.Connection(a, b, eval_points=[[-1]])
 
@@ -316,7 +321,7 @@ def test_chip_to_host_function_points(Simulator, seed, plt, allclose):
     simtime = 0.3
 
     with nengo.Network(seed=seed) as net:
-        u = nengo.Node(lambda t: np.sin((2*np.pi/simtime) * t))
+        u = nengo.Node(lambda t: np.sin((2 * np.pi / simtime) * t))
         a = nengo.Ensemble(100, 1)
         # v has a function so it doesn't get removed as passthrough
         v = nengo.Node(lambda t, x: x + 1e-8, size_in=1)
@@ -367,11 +372,7 @@ def test_input_node(allclose, Simulator, val, type):
 
 
 @pytest.mark.parametrize(
-    "pre_d, post_d, func",
-    [(1, 1, False),
-     (1, 3, False),
-     (3, 1, True),
-     (3, 3, True)]
+    "pre_d, post_d, func", [(1, 1, False), (1, 3, False), (3, 1, True), (3, 3, True)]
 )
 def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
     simtime = 0.5
@@ -383,14 +384,15 @@ def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
         nengo.Connection(stim, a)
 
         data = []
-        output = nengo.Node(lambda t, x: data.append(x),
-                            size_in=post_d, size_out=0)
+        output = nengo.Node(lambda t, x: data.append(x), size_in=post_d, size_out=0)
 
         transform = np.identity(max(pre_d, post_d))
         transform = transform[:post_d, :pre_d]
         if func:
+
             def conn_func(x):
                 return -x
+
         else:
             conn_func = None
         nengo.Connection(a, output, transform=transform, function=conn_func)
@@ -408,26 +410,28 @@ def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
         assert allclose(
             filt_data[:, :pre_d] * (-1 if func else 1),
             sim.data[p_stim][:, :pre_d],
-            atol=0.6)
+            atol=0.6,
+        )
         assert allclose(filt_data[:, pre_d:], 0, atol=0.6)
     else:
         assert allclose(
-            filt_data * (-1 if func else 1),
-            sim.data[p_stim][:, :post_d],
-            atol=0.6)
+            filt_data * (-1 if func else 1), sim.data[p_stim][:, :post_d], atol=0.6
+        )
 
     plt.subplot(2, 1, 1)
     plt.plot(sim.trange(), sim.data[p_stim])
-    plt.title('Input (should be %d sine waves)' % pre_d)
-    plt.legend(['%d' % i for i in range(pre_d)], loc='best')
+    plt.title("Input (should be %d sine waves)" % pre_d)
+    plt.legend(["%d" % i for i in range(pre_d)], loc="best")
     plt.subplot(2, 1, 2)
     n_sine = min(pre_d, post_d)
-    status = ' flipped' if func else ''
+    status = " flipped" if func else ""
     n_flat = post_d - n_sine
-    plt.title('Output (should be %d%s sine waves and %d flat lines)' %
-              (n_sine, status, n_flat))
+    plt.title(
+        "Output (should be %d%s sine waves and %d flat lines)"
+        % (n_sine, status, n_flat)
+    )
     plt.plot(sim.trange(), filt_data)
-    plt.legend(['%d' % i for i in range(post_d)], loc='best')
+    plt.legend(["%d" % i for i in range(post_d)], loc="best")
 
 
 def test_neurons2node(Simulator, seed, plt):
@@ -435,14 +439,14 @@ def test_neurons2node(Simulator, seed, plt):
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
         p_stim = nengo.Probe(stim)
 
-        a = nengo.Ensemble(100, 1,
-                           intercepts=nengo.dists.Choice([0]))
+        a = nengo.Ensemble(100, 1, intercepts=nengo.dists.Choice([0]))
 
         nengo.Connection(stim, a)
 
         data = []
-        output = nengo.Node(lambda t, x: data.append(x),
-                            size_in=a.n_neurons, size_out=0)
+        output = nengo.Node(
+            lambda t, x: data.append(x), size_in=a.n_neurons, size_out=0
+        )
         nengo.Connection(a.neurons, output, synapse=None)
 
     with Simulator(model, precompute=True) as sim:
@@ -451,10 +455,10 @@ def test_neurons2node(Simulator, seed, plt):
     rasterplot(sim.trange(), np.array(data), ax=plt.gca())
     plt.twinx()
     plt.plot(sim.trange(), sim.data[p_stim])
-    plt.title('Raster plot for sine input')
+    plt.title("Raster plot for sine input")
 
-    pre = np.asarray(data[:len(data) // 2 - 100])
-    post = np.asarray(data[len(data) // 2 + 100:])
+    pre = np.asarray(data[: len(data) // 2 - 100])
+    post = np.asarray(data[len(data) // 2 + 100 :])
     on_neurons = np.squeeze(sim.data[a].encoders == 1)
     assert np.sum(pre[:, on_neurons]) > 0
     assert np.sum(post[:, on_neurons]) == 0
@@ -463,11 +467,7 @@ def test_neurons2node(Simulator, seed, plt):
 
 
 @pytest.mark.parametrize(
-    "pre_d, post_d, func",
-    [(1, 1, False),
-     (1, 3, False),
-     (3, 1, True),
-     (3, 3, True)]
+    "pre_d, post_d, func", [(1, 1, False), (1, 3, False), (3, 1, True), (3, 3, True)]
 )
 def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
     simtime = 0.5
@@ -479,8 +479,10 @@ def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
         transform = np.identity(max(pre_d, post_d))
         transform = transform[:post_d, :pre_d]
         if func:
+
             def function(x):
                 return -x
+
         else:
             function = None
         nengo.Connection(stim, a, transform=transform, function=function)
@@ -496,30 +498,31 @@ def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
         assert allclose(
             sim.data[p_stim][:, :pre_d],
             sim.data[p_a][:, :pre_d] * (-1 if func else 1),
-            atol=0.6)
-        assert allclose(
-            sim.data[p_a][:, pre_d:] * (-1 if func else 1), 0, atol=0.6)
+            atol=0.6,
+        )
+        assert allclose(sim.data[p_a][:, pre_d:] * (-1 if func else 1), 0, atol=0.6)
     else:
         assert allclose(
-            sim.data[p_stim][:, :post_d],
-            sim.data[p_a] * (-1 if func else 1),
-            atol=0.6)
+            sim.data[p_stim][:, :post_d], sim.data[p_a] * (-1 if func else 1), atol=0.6
+        )
 
     plt.subplot(2, 1, 1)
     plt.plot(sim.trange(), sim.data[p_stim])
-    plt.title('Input (should be %d sine waves)' % pre_d)
-    plt.legend(['%d' % i for i in range(pre_d)], loc='best')
+    plt.title("Input (should be %d sine waves)" % pre_d)
+    plt.legend(["%d" % i for i in range(pre_d)], loc="best")
     plt.subplot(2, 1, 2)
     n_sine = min(pre_d, post_d)
-    status = ' flipped' if func else ''
+    status = " flipped" if func else ""
     n_flat = post_d - n_sine
-    plt.title('Output (should be %d%s sine waves and %d flat lines)' %
-              (n_sine, status, n_flat))
+    plt.title(
+        "Output (should be %d%s sine waves and %d flat lines)"
+        % (n_sine, status, n_flat)
+    )
     plt.plot(sim.trange(), sim.data[p_a])
-    plt.legend(['%d' % i for i in range(post_d)], loc='best')
+    plt.legend(["%d" % i for i in range(post_d)], loc="best")
 
 
-@pytest.mark.parametrize('precompute', [True, False])
+@pytest.mark.parametrize("precompute", [True, False])
 def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     out_synapse = nengo.synapses.Alpha(0.03)
     simtime = 0.6
@@ -550,11 +553,11 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     plt.plot(sim.trange(), sim.data[p_b])
 
     assert allclose(sim.data[p_a], sim.data[p_stim], atol=0.05, rtol=0.01)
-    assert allclose(sim.data[p_b], -sim.data[p_a], atol=0.15, rtol=0.1)
+    assert allclose(sim.data[p_b], -(sim.data[p_a]), atol=0.15, rtol=0.1)
 
 
-@pytest.mark.parametrize('seed_ens', [True, False])
-@pytest.mark.parametrize('precompute', [True, False])
+@pytest.mark.parametrize("seed_ens", [True, False])
+@pytest.mark.parametrize("precompute", [True, False])
 def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     """Ensure that neuron to neuron connections work on and off chip."""
 
@@ -584,8 +587,7 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
         # The 0.015 scaling is chosen so the values match visually,
         # though a more principled reason would be better.
         post = nengo.Ensemble(n_neurons, dimensions=1, seed=ens_seed)
-        nengo.Connection(pre.neurons, post.neurons,
-                         transform=np.eye(n_neurons) * 0.015)
+        nengo.Connection(pre.neurons, post.neurons, transform=np.eye(n_neurons) * 0.015)
 
         p_synapse = nengo.synapses.Alpha(0.03)
         p_stim = nengo.Probe(stim, synapse=p_synapse)
@@ -613,14 +615,17 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     assert allclose(sim.data[p_post], sim2.data[p_post], atol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_chip_error(Simulator):
     with nengo.Network() as net:
         stim = nengo.Node(np.ones(4))
         ens = nengo.Ensemble(100, 2)
-        nengo.Connection(stim, ens, transform=nengo_transforms.Sparse(
-            shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1])
+        nengo.Connection(
+            stim,
+            ens,
+            transform=nengo_transforms.Sparse(
+                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
+            ),
         )
 
     with pytest.raises(BuildError, match="on host to chip connections"):
@@ -628,8 +633,7 @@ def test_sparse_host_to_chip_error(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_learning_rule_error(Simulator):
     with nengo.Network() as net:
         err = nengo.Node(np.ones(4))
@@ -640,8 +644,8 @@ def test_sparse_host_to_learning_rule_error(Simulator):
             err,
             conn.learning_rule,
             transform=nengo_transforms.Sparse(
-                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1],
-            )
+                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
+            ),
         )
 
     with pytest.raises(BuildError, match="on host to chip learning rule"):
@@ -649,14 +653,18 @@ def test_sparse_host_to_learning_rule_error(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_chip_to_chip_error(Simulator):
     with nengo.Network() as net:
         pre = nengo.Ensemble(100, 4)
         post = nengo.Ensemble(100, 2)
-        nengo.Connection(pre, post, transform=nengo_transforms.Sparse(
-            shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]))
+        nengo.Connection(
+            pre,
+            post,
+            transform=nengo_transforms.Sparse(
+                shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
+            ),
+        )
 
     with pytest.raises(BuildError, match="on chip to chip"):
         with Simulator(net):

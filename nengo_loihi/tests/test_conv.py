@@ -19,61 +19,60 @@ from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
-from nengo_loihi.neurons import (
-    loihi_rates,
-    LoihiLIF,
-    LoihiSpikingRectifiedLinear,
-)
+from nengo_loihi.neurons import loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear
 
 home_dir = os.path.dirname(nengo_loihi.__file__)
-test_dir = os.path.join(home_dir, 'tests')
+test_dir = os.path.join(home_dir, "tests")
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize(
-    'pop_type, channels_last, nc', [
-        (16, True, 2),
-        (32, True, 1),
-        (32, True, 2),
-        (32, False, 1),
-        (32, False, 2),
-    ])
+    "pop_type, channels_last, nc",
+    [(16, True, 2), (32, True, 1), (32, True, 2), (32, False, 1), (32, False, 2)],
+)
 def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     tau_rc = 0.02
     tau_ref = 0.001
     tau_s = 0.0
     dt = 0.001
 
-    neuron_bias = 1.
+    neuron_bias = 1.0
 
     pres_time = 0.4
 
     sti, stj = 1, 1
 
     if nc == 1:
-        filters = np.array([[-0.5, 2., -0.25],
-                            [-0.75, 2., -1.0],
-                            [-0.5, 3., -0.5],
-                            [-1.0, 6., -0.25]]).reshape(1, 4, 1, 3)
+        filters = np.array(
+            [
+                [-0.5, 2.0, -0.25],
+                [-0.75, 2.0, -1.0],
+                [-0.5, 3.0, -0.5],
+                [-1.0, 6.0, -0.25],
+            ]
+        ).reshape(1, 4, 1, 3)
 
-        inp_biases = np.array([[1, 5, 1],
-                               [2, 1, 2]])
+        inp_biases = np.array([[1, 5, 1], [2, 1, 2]])
         inp_biases = inp_biases[:, :, None]
     elif nc == 2:
-        filters = np.array([[[-0.5, 2., -0.2],
-                             [-0.7, 2., -1.0],
-                             [-0.5, 3., -0.5],
-                             [-1.0, 6., -0.2]],
-                            [[-1.0, 2., -1.0],
-                             [-0.5, 2., -0.5],
-                             [-0.8, 3., -0.2],
-                             [-1.0, 4., -0.2]]]).reshape(2, 4, 1, 3)
+        filters = np.array(
+            [
+                [
+                    [-0.5, 2.0, -0.2],
+                    [-0.7, 2.0, -1.0],
+                    [-0.5, 3.0, -0.5],
+                    [-1.0, 6.0, -0.2],
+                ],
+                [
+                    [-1.0, 2.0, -1.0],
+                    [-0.5, 2.0, -0.5],
+                    [-0.8, 3.0, -0.2],
+                    [-1.0, 4.0, -0.2],
+                ],
+            ]
+        ).reshape(2, 4, 1, 3)
 
-        inp_biases = np.array([[[1, 5, 1],
-                                [2, 1, 2]],
-                               [[0, 3, 1],
-                                [4, 2, 1]]])
+        inp_biases = np.array([[[1, 5, 1], [2, 1, 2]], [[0, 3, 1], [4, 2, 1]]])
         inp_biases = np.transpose(inp_biases, (1, 2, 0))
 
     # rearrange to (kernel_rows, kernel_cols, in_channels, out_channels)
@@ -93,18 +92,19 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     model = Model()
 
     # input block
-    inp = LoihiBlock(ni * nj * nk, label='inp')
+    inp = LoihiBlock(ni * nj * nk, label="inp")
     assert inp.n_neurons <= 1024
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = Axon(nij, label='inp_ax')
+    inp_ax = Axon(nij, label="inp_ax")
 
     # we always compute the pixel/channel idxs with channels_last=True
     # (not sure why?), and then set it to the correct value afterwards
     inp_shape = nengo_transforms.ChannelShape((ni, nj, nk), channels_last=True)
-    inp_ax.set_compartment_axon_map(target_axons=conv.pixel_idxs(inp_shape),
-                                    atoms=conv.channel_idxs(inp_shape))
+    inp_ax.set_compartment_axon_map(
+        target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
+    )
     inp_shape.shape = (ni, nj, nk) if channels_last else (nk, ni, nj)
     inp_shape.channels_last = channels_last
 
@@ -113,23 +113,30 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     model.add_block(inp)
 
     # conv block
-    neurons = LoihiBlock(out_size, label='neurons')
+    neurons = LoihiBlock(out_size, label="neurons")
     assert neurons.n_neurons <= 1024
     neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.compartment.configure_filter(tau_s, dt=dt)
     neurons.compartment.bias[:] = neuron_bias
 
-    synapse = Synapse(np.prod(inp_shape.spatial_shape), label='synapse')
+    synapse = Synapse(np.prod(inp_shape.spatial_shape), label="synapse")
     conv2d_transform = nengo_transforms.Convolution(
-        nf, inp_shape, strides=(sti, stj), channels_last=channels_last,
-        init=filters, kernel_size=(1, 3))
+        nf,
+        inp_shape,
+        strides=(sti, stj),
+        channels_last=channels_last,
+        init=filters,
+        kernel_size=(1, 3),
+    )
     weights, indices, axon_to_weight_map, bases = conv.conv2d_loihi_weights(
-        conv2d_transform)
+        conv2d_transform
+    )
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, bases, pop_type=pop_type)
+        weights, indices, axon_to_weight_map, bases, pop_type=pop_type
+    )
     neurons.add_synapse(synapse)
 
-    out_probe = Probe(target=neurons, key='spiked')
+    out_probe = Probe(target=neurons, key="spiked")
     neurons.add_probe(out_probe)
 
     inp_ax.target = synapse
@@ -140,7 +147,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
     n_steps = int(pres_time / dt)
     target = request.config.getoption("--target")
-    if target == 'loihi':
+    if target == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
@@ -170,27 +177,20 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
     # ref_out determined by emulator running code known to work
     if nc == 1:
-        ref_out = np.array([[0.06, 0.02],
-                            [0.055, 0.],
-                            [0.0825, 0.0225],
-                            [0.125, 0.04]])
+        ref_out = np.array(
+            [[0.06, 0.02], [0.055, 0.0], [0.0825, 0.0225], [0.125, 0.04]]
+        )
     elif nc == 2:
-        ref_out = np.array([[0.0975, 0.02],
-                            [0.0825, 0.02],
-                            [0.125, 0.055],
-                            [0.2475, 0.0825]])
+        ref_out = np.array(
+            [[0.0975, 0.02], [0.0825, 0.02], [0.125, 0.055], [0.2475, 0.0825]]
+        )
     assert allclose(sim_out[:, :, 0], ref_out, rtol=0, atol=1e-7)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
-@pytest.mark.parametrize('hw_opts', [
-    dict(),
-    dict(allocator=RoundRobin(n_chips=2)),
-])
-def test_conv2d_weights(channels_last, hw_opts,
-                        request, plt, seed, rng, allclose):
+@pytest.mark.parametrize("hw_opts", [dict(), dict(allocator=RoundRobin(n_chips=2))])
+def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclose):
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
         y = x.reshape(-1, x.shape[-1])
@@ -208,13 +208,13 @@ def test_conv2d_weights(channels_last, hw_opts,
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     target = request.config.getoption("--target")
-    if target != 'loihi' and len(hw_opts) > 0:
+    if target != "loihi" and len(hw_opts) > 0:
         pytest.skip("Hardware options only available on hardware")
 
     pop_type = 32
 
     # load data
-    with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
+    with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
     test_x = test10[0][0].reshape(28, 28)
@@ -229,18 +229,18 @@ def test_conv2d_weights(channels_last, hw_opts,
     dt = 0.001
 
     encode_type = nengo.SpikingRectifiedLinear()
-    encode_gain = 1. / dt
-    encode_bias = 0.
+    encode_gain = 1.0 / dt
+    encode_bias = 0.0
     neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
-    neuron_gain = 1.
-    neuron_bias = 1.
+    neuron_gain = 1.0
+    neuron_bias = 1.0
 
     pres_time = 0.2
 
     # --- compute ideal outputs
     def conv_pm(x, kernel):
-        y0 = scipy.signal.correlate2d(x[0], kernel, mode='valid')[::sti, ::stj]
-        y1 = scipy.signal.correlate2d(x[1], kernel, mode='valid')[::sti, ::stj]
+        y0 = scipy.signal.correlate2d(x[0], kernel, mode="valid")[::sti, ::stj]
+        y1 = scipy.signal.correlate2d(x[1], kernel, mode="valid")[::sti, ::stj]
         return [y0, -y1]
 
     ref_out = np.array([test_x, -test_x])
@@ -252,14 +252,20 @@ def test_conv2d_weights(channels_last, hw_opts,
 
     # --- compute nengo_loihi outputs
     inp_biases = np.stack([test_x, -test_x], axis=-1 if channels_last else 0)
-    inp_shape = nengo_transforms.ChannelShape(inp_biases.shape,
-                                              channels_last=channels_last)
+    inp_shape = nengo_transforms.ChannelShape(
+        inp_biases.shape, channels_last=channels_last
+    )
 
     kernel = np.array([filters, -filters])  # two channels, pos and neg
     kernel = np.transpose(kernel, (2, 3, 0, 1))
     conv2d_transform = nengo_transforms.Convolution(
-        8, inp_shape, strides=(sti, stj), channels_last=channels_last,
-        kernel_size=(7, 7), init=kernel)
+        8,
+        inp_shape,
+        strides=(sti, stj),
+        channels_last=channels_last,
+        kernel_size=(7, 7),
+        init=kernel,
+    )
 
     out_size = ref_out.size
     nf, nyi, nyj = ref_out.shape
@@ -268,34 +274,37 @@ def test_conv2d_weights(channels_last, hw_opts,
     model = Model()
 
     # input block
-    inp = LoihiBlock(inp_shape.size, label='inp')
+    inp = LoihiBlock(inp_shape.size, label="inp")
     assert inp.n_neurons <= 1024
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = Axon(np.prod(inp_shape.spatial_shape), label='inp_ax')
-    inp_ax.set_compartment_axon_map(target_axons=conv.pixel_idxs(inp_shape),
-                                    atoms=conv.channel_idxs(inp_shape))
+    inp_ax = Axon(np.prod(inp_shape.spatial_shape), label="inp_ax")
+    inp_ax.set_compartment_axon_map(
+        target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
+    )
     inp.add_axon(inp_ax)
 
     model.add_block(inp)
 
     # conv block
-    neurons = LoihiBlock(out_size, label='neurons')
+    neurons = LoihiBlock(out_size, label="neurons")
     assert neurons.n_neurons <= 1024
     neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.compartment.configure_filter(tau_s, dt=dt)
     neurons.compartment.bias[:] = neuron_bias
 
-    synapse = Synapse(np.prod(inp_shape.spatial_shape), label='synapse')
+    synapse = Synapse(np.prod(inp_shape.spatial_shape), label="synapse")
     weights, indices, axon_to_weight_map, bases = conv.conv2d_loihi_weights(
-        conv2d_transform)
+        conv2d_transform
+    )
     synapse.set_population_weights(
-        weights, indices, axon_to_weight_map, bases, pop_type=pop_type)
+        weights, indices, axon_to_weight_map, bases, pop_type=pop_type
+    )
 
     neurons.add_synapse(synapse)
 
-    out_probe = Probe(target=neurons, key='spiked')
+    out_probe = Probe(target=neurons, key="spiked")
     neurons.add_probe(out_probe)
 
     inp_ax.target = synapse
@@ -305,9 +314,8 @@ def test_conv2d_weights(channels_last, hw_opts,
     discretize_model(model)
 
     n_steps = int(pres_time / dt)
-    if target == 'loihi':
-        with HardwareInterface(model, use_snips=False, seed=seed,
-                               **hw_opts) as sim:
+    if target == "loihi":
+        with HardwareInterface(model, use_snips=False, seed=seed, **hw_opts) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
     else:
@@ -345,26 +353,24 @@ def test_conv2d_weights(channels_last, hw_opts,
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
-@pytest.mark.parametrize('channels', [1, 2])
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+@pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("channels_last", (True, False))
-def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
-                         allclose):
+def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, allclose):
     if channels_last:
         plt.saveas = None
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     # load data
-    with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
+    with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
     test_x = test10[0][0].reshape(28, 28)
     test_x = 1.999 * test_x - 0.999  # range (-1, 1)
     input_shape = nengo_transforms.ChannelShape(
-        (test_x.shape + (channels,)) if channels_last else
-        ((channels,) + test_x.shape),
-        channels_last=channels_last)
+        (test_x.shape + (channels,)) if channels_last else ((channels,) + test_x.shape),
+        channels_last=channels_last,
+    )
 
     filters = Gabor(freq=Uniform(0.5, 1)).generate(8, (7, 7), rng=rng)
     filters = filters[None, :, :, :]  # single channel
@@ -384,11 +390,14 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
 
         u = nengo.Node(test_x.ravel(), label="u")
 
-        a = nengo.Ensemble(input_shape.size, 1,
-                           neuron_type=LoihiSpikingRectifiedLinear(),
-                           max_rates=nengo.dists.Choice([40/channels]),
-                           intercepts=nengo.dists.Choice([0]),
-                           label='a')
+        a = nengo.Ensemble(
+            input_shape.size,
+            1,
+            neuron_type=LoihiSpikingRectifiedLinear(),
+            max_rates=nengo.dists.Choice([40 / channels]),
+            intercepts=nengo.dists.Choice([0]),
+            label="a",
+        )
         model.config[a].on_chip = False
 
         if channels == 1:
@@ -397,8 +406,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
             # encode image into spikes using two channels (on/off)
             if input_shape.channels_last:
                 nengo.Connection(u, a.neurons[0::2], transform=1, synapse=None)
-                nengo.Connection(u, a.neurons[1::2], transform=-1,
-                                 synapse=None)
+                nengo.Connection(u, a.neurons[1::2], transform=-1, synapse=None)
             else:
                 k = input_shape.spatial_shape[0] * input_shape.spatial_shape[1]
                 nengo.Connection(u, a.neurons[:k], transform=1, synapse=None)
@@ -409,20 +417,29 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
             raise ValueError("Test not configured for more than two channels")
 
         conv2d_transform = nengo_transforms.Convolution(
-            8, input_shape, strides=strides, kernel_size=(7, 7),
-            channels_last=channels_last, init=filters)
+            8,
+            input_shape,
+            strides=strides,
+            kernel_size=(7, 7),
+            channels_last=channels_last,
+            init=filters,
+        )
 
         output_shape = conv2d_transform.output_shape
 
         gain, bias = neuron_type.gain_bias(max_rates=100, intercepts=0)
         gain = gain * 0.01  # account for `a` max_rates
-        b = nengo.Ensemble(output_shape.size, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([gain[0]]),
-                           bias=nengo.dists.Choice([bias[0]]),
-                           label='b')
+        b = nengo.Ensemble(
+            output_shape.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([gain[0]]),
+            bias=nengo.dists.Choice([bias[0]]),
+            label="b",
+        )
         nengo.Connection(
-            a.neurons, b.neurons, synapse=tau_s, transform=conv2d_transform)
+            a.neurons, b.neurons, synapse=tau_s, transform=conv2d_transform
+        )
 
         bp = nengo.Probe(b.neurons)
 
@@ -438,7 +455,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
             sim_dl.run(pres_time)
         ndl_out = sim_dl.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    with nengo_loihi.Simulator(model, dt=dt, target='simreal') as sim_real:
+    with nengo_loihi.Simulator(model, dt=dt, target="simreal") as sim_real:
         sim_real.run(pres_time)
     real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
 
@@ -485,15 +502,14 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt,
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
-@pytest.mark.parametrize('channels_last', [True, False])
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+@pytest.mark.parametrize("channels_last", [True, False])
 def test_conv_input(channels_last, Simulator, plt, allclose):
     input_shape = nengo_transforms.ChannelShape(
-        (4, 4, 1) if channels_last else (1, 4, 4),
-        channels_last=channels_last)
+        (4, 4, 1) if channels_last else (1, 4, 4), channels_last=channels_last
+    )
     seed = 3  # fix seed to do the same computation for both channel positions
-    rng = np.random.RandomState(seed+1)
+    rng = np.random.RandomState(seed + 1)
 
     with nengo.Network(seed=seed) as net:
         nengo_loihi.add_params(net)
@@ -501,14 +517,21 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
         a = nengo.Node(rng.uniform(0, 1, size=input_shape.size))
 
         nc = 2
-        kernel = np.array([1., -1.]).reshape((1, 1, 1, nc))
+        kernel = np.array([1.0, -1.0]).reshape((1, 1, 1, nc))
         transform = nengo_transforms.Convolution(
-            nc, input_shape, channels_last=channels_last, init=kernel,
-            kernel_size=(1, 1))
-        b = nengo.Ensemble(transform.output_shape.size, 1,
-                           neuron_type=nengo.SpikingRectifiedLinear(),
-                           max_rates=nengo.dists.Choice([50]),
-                           intercepts=nengo.dists.Choice([0]))
+            nc,
+            input_shape,
+            channels_last=channels_last,
+            init=kernel,
+            kernel_size=(1, 1),
+        )
+        b = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=nengo.SpikingRectifiedLinear(),
+            max_rates=nengo.dists.Choice([50]),
+            intercepts=nengo.dists.Choice([0]),
+        )
         net.config[b].on_chip = False
         nengo.Connection(a, b.neurons, transform=transform)
         output_shape = transform.output_shape
@@ -516,12 +539,19 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
         nf = 4
         kernel = rng.uniform(-0.005, 0.005, size=(3, 3, nc, nf))
         transform = nengo_transforms.Convolution(
-            nf, output_shape, channels_last=channels_last, init=-kernel,
-            kernel_size=(3, 3))
-        c = nengo.Ensemble(transform.output_shape.size, 1,
-                           neuron_type=nengo.LIF(),
-                           max_rates=nengo.dists.Choice([100]),
-                           intercepts=nengo.dists.Choice([0]))
+            nf,
+            output_shape,
+            channels_last=channels_last,
+            init=-kernel,
+            kernel_size=(3, 3),
+        )
+        c = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=nengo.LIF(),
+            max_rates=nengo.dists.Choice([100]),
+            intercepts=nengo.dists.Choice([0]),
+        )
         nengo.Connection(b.neurons, c.neurons, transform=transform)
         output_shape = transform.output_shape
 
@@ -539,29 +569,28 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
         p0 = np.transpose(p0, (1, 2, 0))
         p1 = np.transpose(p1, (1, 2, 0))
 
-    plt.plot(p0.ravel(), 'k')
-    plt.plot(p1.ravel(), 'b--')
+    plt.plot(p0.ravel(), "k")
+    plt.plot(p1.ravel(), "b--")
 
     # loihi spikes are not exactly the same, but should be close-ish
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_split(Simulator, rng, plt, allclose):
     channels_last = False
 
     # load data
-    with open(os.path.join(test_dir, 'mnist10.pkl'), 'rb') as f:
+    with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
-    input_shape = nengo_transforms.ChannelShape((1, 28, 28),
-                                                channels_last=channels_last)
+    input_shape = nengo_transforms.ChannelShape(
+        (1, 28, 28), channels_last=channels_last
+    )
 
     n_filters = 8
     kernel_size = (7, 7)
-    kernel = Gabor(freq=Uniform(0.5, 1)).generate(
-        n_filters, kernel_size, rng=rng)
+    kernel = Gabor(freq=Uniform(0.5, 1)).generate(n_filters, kernel_size, rng=rng)
     kernel = kernel[None, :, :, :]  # single channel
     kernel = np.transpose(kernel, (2, 3, 0, 1))
     strides = (2, 2)
@@ -575,24 +604,35 @@ def test_conv_split(Simulator, rng, plt, allclose):
 
         # --- make population to turn image into spikes
         nc = 1
-        in_kernel = np.array([1.]).reshape((1, 1, 1, nc))
+        in_kernel = np.array([1.0]).reshape((1, 1, 1, nc))
         transform = nengo_transforms.Convolution(
-            1, input_shape, kernel_size=(1, 1),
-            init=in_kernel, channels_last=channels_last)
-        b = nengo.Ensemble(transform.output_shape.size, 1,
-                           neuron_type=nengo.SpikingRectifiedLinear(),
-                           max_rates=nengo.dists.Choice([50]),
-                           intercepts=nengo.dists.Choice([0]))
+            1,
+            input_shape,
+            kernel_size=(1, 1),
+            init=in_kernel,
+            channels_last=channels_last,
+        )
+        b = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=nengo.SpikingRectifiedLinear(),
+            max_rates=nengo.dists.Choice([50]),
+            intercepts=nengo.dists.Choice([0]),
+        )
         net.config[b].on_chip = False
         nengo.Connection(a, b.neurons, transform=transform)
         in_shape = transform.output_shape
 
         transform = nengo_transforms.Convolution(
-            n_filters, in_shape, kernel_size=kernel_size, strides=strides,
-            init=kernel, channels_last=channels_last)
+            n_filters,
+            in_shape,
+            kernel_size=kernel_size,
+            strides=strides,
+            init=kernel,
+            channels_last=channels_last,
+        )
         out_shape = transform.output_shape
-        split_slices = conv.split_channels(
-            out_shape, max_size=1024, max_channels=4)
+        split_slices = conv.split_channels(out_shape, max_size=1024, max_channels=4)
 
         # --- make convolution population, split across ensembles
         cc = []
@@ -602,10 +642,13 @@ def test_conv_split(Simulator, rng, plt, allclose):
         for yslice in split_slices:
             transform_xy = conv.split_transform(transform, xslice, yslice)
             out_shapes.append(transform_xy.output_shape)
-            c = nengo.Ensemble(transform_xy.output_shape.size, 1,
-                               neuron_type=nengo.LIF(),
-                               max_rates=nengo.dists.Choice([15]),
-                               intercepts=nengo.dists.Choice([0]))
+            c = nengo.Ensemble(
+                transform_xy.output_shape.size,
+                1,
+                neuron_type=nengo.LIF(),
+                max_rates=nengo.dists.Choice([15]),
+                intercepts=nengo.dists.Choice([0]),
+            )
             nengo.Connection(b.neurons, c.neurons, transform=transform_xy)
             cc.append(c)
             cp.append(nengo.Probe(c.neurons))
@@ -622,10 +665,8 @@ def test_conv_split(Simulator, rng, plt, allclose):
     nengo_out = []
     loihi_out = []
     for p, out_shape_i in zip(cp, out_shapes):
-        nengo_out.append(
-            (sim_nengo.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape))
-        loihi_out.append(
-            (sim_loihi.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape))
+        nengo_out.append((sim_nengo.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape))
+        loihi_out.append((sim_loihi.data[p] > 0).sum(axis=0).reshape(out_shape_i.shape))
 
     if channels_last:
         nengo_out = np.concatenate(nengo_out, axis=2)
@@ -660,53 +701,59 @@ def test_conv_split(Simulator, rng, plt, allclose):
     ax = plt.subplot(rows, cols, 6)
     tile(loihi_out, vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    assert allclose(loihi_out, nengo_out, atol=0.05*out_max, rtol=0.15)
+    assert allclose(loihi_out, nengo_out, atol=0.05 * out_max, rtol=0.15)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_preslice(Simulator, plt):
     from nengo._vendor.npconv2d.conv2d import conv2d
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
-    image = np.array([[1, 2, 1, 2, 0],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 3],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 0]], dtype=float)
+    image = np.array(
+        [
+            [1, 2, 1, 2, 0],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 3],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 0],
+        ],
+        dtype=float,
+    )
     image /= image.max()
 
     image2 = np.column_stack([c * x for c in image.T for x in (1, -1)])
 
-    input_gain = 149.
+    input_gain = 149.0
 
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_gain, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1),
-                   kernel.reshape(3, 3, 1, 1),
-                   pad='VALID')
-    y_ref = LoihiSpikingRectifiedLinear().rates(
-        y_ref.ravel(), 1., 0.).reshape(3, 3)
+    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
 
     with nengo.Network() as net:
         u = nengo.Node(image2.ravel())
-        a = nengo.Ensemble(50, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([input_gain]),
-                           bias=nengo.dists.Choice([0]))
+        a = nengo.Ensemble(
+            50,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([input_gain]),
+            bias=nengo.dists.Choice([0]),
+        )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1,
-            input_shape=(5, 5, 1),
-            init=kernel.reshape(3, 3, 1, 1))
+            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+        )
 
-        b = nengo.Ensemble(transform.output_shape.size, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([1]),
-                           bias=nengo.dists.Choice([0]))
+        b = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([1]),
+            bias=nengo.dists.Choice([0]),
+        )
 
         nengo.Connection(u, a.neurons, synapse=None)
         nengo.Connection(a.neurons[::2], b.neurons, transform=transform)
@@ -729,8 +776,7 @@ def test_conv_preslice(Simulator, plt):
     assert np.allclose(y, y_ref, atol=0.02, rtol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_onchip(Simulator, plt):
     """Tests a fully on-chip conv connection. """
     from nengo._vendor.npconv2d.conv2d import conv2d
@@ -738,40 +784,47 @@ def test_conv_onchip(Simulator, plt):
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
-    image = np.array([[1, 2, 1, 2, 0],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 3],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 0]], dtype=float)
+    image = np.array(
+        [
+            [1, 2, 1, 2, 0],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 3],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 0],
+        ],
+        dtype=float,
+    )
     image /= image.max()
 
-    input_scale = 119.
+    input_scale = 119.0
     bias = input_scale * image.ravel()
 
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1),
-                   kernel.reshape(3, 3, 1, 1),
-                   pad='VALID')
-    y_ref = LoihiSpikingRectifiedLinear().rates(
-        y_ref.ravel(), 1., 0.).reshape(3, 3)
+    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
 
     with nengo.Network() as net:
-        a = nengo.Ensemble(bias.size, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([0]),
-                           bias=bias)
+        a = nengo.Ensemble(
+            bias.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([0]),
+            bias=bias,
+        )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1,
-            input_shape=(5, 5, 1),
-            init=kernel.reshape(3, 3, 1, 1))
+            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+        )
 
-        b = nengo.Ensemble(transform.output_shape.size, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([1]),
-                           bias=nengo.dists.Choice([0]))
+        b = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([1]),
+            bias=nengo.dists.Choice([0]),
+        )
 
         nengo.Connection(a.neurons, b.neurons, transform=transform)
         bp = nengo.Probe(b.neurons, synapse=nengo.Alpha(0.02))
@@ -792,8 +845,7 @@ def test_conv_onchip(Simulator, plt):
     assert np.allclose(y, y_ref, atol=0.02, rtol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_overlap_input(Simulator, plt):
     """Tests a fully on-chip conv connection. """
     from nengo._vendor.npconv2d.conv2d import conv2d
@@ -801,44 +853,54 @@ def test_conv_overlap_input(Simulator, plt):
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
-    image = np.array([[1, 2, 1, 2, 0],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 3],
-                      [2, 3, 2, 1, 1],
-                      [1, 2, 1, 2, 0]], dtype=float)
+    image = np.array(
+        [
+            [1, 2, 1, 2, 0],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 3],
+            [2, 3, 2, 1, 1],
+            [1, 2, 1, 2, 0],
+        ],
+        dtype=float,
+    )
     image /= image.max()
 
-    input_scale = 119.
+    input_scale = 119.0
     bias = input_scale * image.ravel()
 
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1),
-                   kernel.reshape(3, 3, 1, 1),
-                   pad='VALID')
-    y_ref = LoihiSpikingRectifiedLinear().rates(
-        y_ref.ravel(), 1., 0.).reshape(3, 3)
+    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
 
     with nengo.Network() as net:
-        a = nengo.Ensemble(bias.size, 1,
-                           neuron_type=neuron_type,
-                           gain=nengo.dists.Choice([0]),
-                           bias=bias)
+        a = nengo.Ensemble(
+            bias.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([0]),
+            bias=bias,
+        )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1,
-            input_shape=(4, 5, 1),
-            init=kernel.reshape(3, 3, 1, 1))
+            n_filters=1, input_shape=(4, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+        )
 
-        b0 = nengo.Ensemble(transform.output_shape.size, 1,
-                            neuron_type=neuron_type,
-                            gain=nengo.dists.Choice([1]),
-                            bias=nengo.dists.Choice([0]))
-        b1 = nengo.Ensemble(transform.output_shape.size, 1,
-                            neuron_type=neuron_type,
-                            gain=nengo.dists.Choice([1]),
-                            bias=nengo.dists.Choice([0]))
+        b0 = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([1]),
+            bias=nengo.dists.Choice([0]),
+        )
+        b1 = nengo.Ensemble(
+            transform.output_shape.size,
+            1,
+            neuron_type=neuron_type,
+            gain=nengo.dists.Choice([1]),
+            bias=nengo.dists.Choice([0]),
+        )
 
         nengo.Connection(a.neurons[:20], b0.neurons, transform=transform)
         nengo.Connection(a.neurons[5:], b1.neurons, transform=transform)
@@ -866,53 +928,53 @@ def test_conv_overlap_input(Simulator, plt):
     assert np.allclose(y1, y_ref[1:], atol=0.02, rtol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_gain(Simulator):
     with nengo.Network() as net:
         a = nengo.Ensemble(16, 1)
         b = nengo.Ensemble(4, 1)
-        nengo.Connection(a.neurons, b.neurons,
-                         transform=nengo_transforms.Convolution(1, (4, 4, 1)))
+        nengo.Connection(
+            a.neurons, b.neurons, transform=nengo_transforms.Convolution(1, (4, 4, 1))
+        )
 
     with pytest.raises(ValidationError, match="must have the same gain"):
         with Simulator(net):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_non_lowpass(Simulator):
     k = 10
     d = 5
     with nengo.Network() as model:
-        a = nengo.Ensemble(n_neurons=k**2, dimensions=k)
+        a = nengo.Ensemble(n_neurons=k ** 2, dimensions=k)
 
-        x = nengo.Ensemble(n_neurons=d, dimensions=d,
-                           gain=np.ones(d), bias=np.ones(d))
+        x = nengo.Ensemble(n_neurons=d, dimensions=d, gain=np.ones(d), bias=np.ones(d))
 
         conv = nengo.Convolution(
-            n_filters=d, input_shape=(k, k, 1),
-            strides=(1, 1), kernel_size=(k, k))
-        assert conv.size_in == k**2
+            n_filters=d, input_shape=(k, k, 1), strides=(1, 1), kernel_size=(k, k)
+        )
+        assert conv.size_in == k ** 2
         assert conv.size_out == d
 
-        nengo.Connection(a.neurons, x.neurons, transform=conv,
-                         synapse=nengo.Alpha(0.005))
+        nengo.Connection(
+            a.neurons, x.neurons, transform=conv, synapse=nengo.Alpha(0.005)
+        )
 
     with pytest.raises(NotImplementedError, match="non-Lowpass synapses"):
         with Simulator(model):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_imageslice_api():
     imageshape = nengo_transforms.ChannelShape((5, 6, 8))
-    imageslice = conv.ImageSlice(imageshape,
-                                 row_slice=slice(None, None, 2),
-                                 col_slice=slice(1, 4),
-                                 channel_slice=slice(1, None, 2))
+    imageslice = conv.ImageSlice(
+        imageshape,
+        row_slice=slice(None, None, 2),
+        col_slice=slice(1, 4),
+        channel_slice=slice(1, None, 2),
+    )
     assert not imageslice.channel_slice_only()
     assert imageslice.row_idxs() == [0, 2, 4]
     assert imageslice.col_idxs() == [1, 2, 3]
@@ -928,8 +990,7 @@ def test_imageslice_api():
         conv.ImageSlice(nengo_transforms.ChannelShape((5, 6, 7, 8)))
 
 
-@pytest.mark.skipif(nengo_transforms is None,
-                    reason="Requires new nengo.transforms")
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_split_transform(rng):
     n = 8
     shape0 = nengo_transforms.ChannelShape((1, 1, n))
@@ -945,13 +1006,16 @@ def test_split_transform(rng):
     assert np.array_equal(conv.split_transform(transform), transform)
     assert np.array_equal(
         conv.split_transform(transform, in_slice=slice0),
-        transform[:, slice0.channel_slice])
+        transform[:, slice0.channel_slice],
+    )
     assert np.array_equal(
         conv.split_transform(transform, out_slice=slice1),
-        transform[slice1.channel_slice, :])
+        transform[slice1.channel_slice, :],
+    )
     assert np.array_equal(
         conv.split_transform(transform, in_slice=slice0, out_slice=slice1),
-        transform[slice1.channel_slice, slice0.channel_slice])
+        transform[slice1.channel_slice, slice0.channel_slice],
+    )
 
     with pytest.raises(AssertionError):
         conv.split_transform(transform, in_slice=slice8)

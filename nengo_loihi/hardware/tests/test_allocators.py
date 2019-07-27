@@ -7,11 +7,7 @@ import pytest
 from nengo_loihi.block import LoihiBlock, Synapse, Axon
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
-from nengo_loihi.hardware.allocators import (
-    core_stdp_pre_cfgs,
-    OneToOne,
-    RoundRobin,
-)
+from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, OneToOne, RoundRobin
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput
 
@@ -198,8 +194,10 @@ def test_round_robin_allocator_over():
     assert len(chip2.cores[0].inputs) == 1
 
 
-@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
-                    reason="Hardware allocators are Loihi-only")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi",
+    reason="Hardware allocators are Loihi-only",
+)
 def test_deterministic_network_allocation(Simulator, seed):
     # test that we get the same simulations results across allocators.
     # the determinism of the allocation itself is covered by other unit tests.
@@ -230,8 +228,9 @@ def test_deterministic_network_allocation(Simulator, seed):
 
     sim_prev = None
     for n_chips_used, allocator in allocation:
-        with Simulator(model, precompute=True,
-                       hardware_options={'allocator': allocator}) as sim_loihi:
+        with Simulator(
+            model, precompute=True, hardware_options={"allocator": allocator}
+        ) as sim_loihi:
             sim_loihi.run(sim_t)
 
         assert n_chips_used == sim_loihi.sims["loihi"].board.n_chips

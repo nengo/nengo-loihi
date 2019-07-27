@@ -10,22 +10,22 @@ import numpy as np
 from nengo_loihi.block import SynapseConfig
 from nengo_loihi.nxsdk_obfuscation import d
 
-VTH_MAN_MAX = d(b'MTMxMDcx', int)
-VTH_EXP = d(b'Ng==', int)
-VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
+VTH_MAN_MAX = d(b"MTMxMDcx", int)
+VTH_EXP = d(b"Ng==", int)
+VTH_MAX = VTH_MAN_MAX * 2 ** VTH_EXP
 
-BIAS_MAN_MAX = d(b'NDA5NQ==', int)
-BIAS_EXP_MAX = d(b'Nw==', int)
-BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
+BIAS_MAN_MAX = d(b"NDA5NQ==", int)
+BIAS_EXP_MAX = d(b"Nw==", int)
+BIAS_MAX = BIAS_MAN_MAX * 2 ** BIAS_EXP_MAX
 
 # number of bits for synapse accumulator
-Q_BITS = d(b'MjE=', int)
+Q_BITS = d(b"MjE=", int)
 # number of bits for compartment input (u)
-U_BITS = d(b'MjM=', int)
+U_BITS = d(b"MjM=", int)
 # number of bits in learning accumulator (not incl. sign)
-LEARN_BITS = d(b'MTU=', int)
+LEARN_BITS = d(b"MTU=", int)
 # extra least-significant bits added to weights for learning
-LEARN_FRAC = d(b'Nw==', int)
+LEARN_FRAC = d(b"Nw==", int)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ def learn_overflow_bits(n_factors):
     """
     factor_bits = 7  # number of bits per factor
     mantissa_bits = 3  # number of bits for learning rate mantissa
-    return factor_bits*n_factors + mantissa_bits - LEARN_BITS
+    return factor_bits * n_factors + mantissa_bits - LEARN_BITS
 
 
 def overflow_signed(x, bits=7, out=None):
@@ -97,7 +97,7 @@ def overflow_signed(x, bits=7, out=None):
 
 def vth_to_manexp(vth):
     exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
-    man = np.round(vth / 2**exp).astype(np.int32)
+    man = np.round(vth / 2 ** exp).astype(np.int32)
     assert (man > 0).all()
     assert (man <= VTH_MAN_MAX).all()
     return man, exp
@@ -106,7 +106,7 @@ def vth_to_manexp(vth):
 def bias_to_manexp(bias):
     r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
     exp = np.ceil(np.log2(r)).astype(np.int32)
-    man = np.round(bias / 2**exp).astype(np.int32)
+    man = np.round(bias / 2 ** exp).astype(np.int32)
     assert (exp >= 0).all()
     assert (exp <= BIAS_EXP_MAX).all()
     assert (np.abs(man) <= BIAS_MAN_MAX).all()
@@ -116,7 +116,7 @@ def bias_to_manexp(bias):
 def tracing_mag_int_frac(mag):
     """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    mag_frac = int(d(b'MTI4', int) * (mag - mag_int))
+    mag_frac = int(d(b"MTI4", int) * (mag - mag_int))
     return mag_int, mag_frac
 
 
@@ -130,13 +130,13 @@ def decay_int(x, decay, bits=None, offset=0, out=None):
     if out is None:
         out = np.zeros_like(x)
     if bits is None:
-        bits = d(b'MTI=', int)
-    r = (2**bits - offset - np.asarray(decay)).astype(np.int64)
+        bits = d(b"MTI=", int)
+    r = (2 ** bits - offset - np.asarray(decay)).astype(np.int64)
     np.right_shift(np.abs(x) * r, bits, out=out)
     return np.sign(x) * out
 
 
-def decay_magnitude(decay, x0=2**21, bits=12, offset=0):
+def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
     """Estimate the sum of the series of rounded integer decays of ``x0``.
 
     This can be used to estimate the total input current or voltage (summed
@@ -163,38 +163,42 @@ def decay_magnitude(decay, x0=2**21, bits=12, offset=0):
     # case and this value is better (see `test_decay_magnitude`).
     q = 0.494
 
-    r = (2**bits - offset - np.asarray(decay)) / 2**bits  # decay ratio
-    n = -np.log1p(x0 * (1 - r) / q) / np.log(r)  # solve y_n = 0 for n
+    r = (2 ** bits - offset - np.asarray(decay)) / 2 ** bits  # decay ratio
+    n = -(np.log1p(x0 * (1 - r) / q)) / np.log(r)  # solve y_n = 0 for n
 
     # principal_sum = (1./x0) sum_i^n x0 * r^i
     # loss_sum = (1./x0) sum_i^n sum_k^{i-1} q * r^k
-    principal_sum = (1 - r**(n + 1)) / (1 - r)
-    loss_sum = q / ((1 - r) * x0) * (n + 1 - (1 - r**(n+1))/(1 - r))
+    principal_sum = (1 - r ** (n + 1)) / (1 - r)
+    loss_sum = q / ((1 - r) * x0) * (n + 1 - (1 - r ** (n + 1)) / (1 - r))
     return principal_sum - loss_sum
 
 
-def scale_pes_errors(error, scale=1.):
+def scale_pes_errors(error, scale=1.0):
     """Scale PES errors based on a scaling factor, round and clip."""
     error = scale * error
     error = np.round(error).astype(np.int32)
-    max_err = d(b'MTI3', int)
+    max_err = d(b"MTI3", int)
     q = error > max_err
     if np.any(q):
-        warnings.warn("Received PES error greater than chip max (%0.2e). "
-                      "Consider changing `Model.pes_error_scale`."
-                      % (max_err / scale,))
-        logger.debug("PES error %0.2e > %0.2e (chip max)",
-                     np.max(error) / scale,
-                     max_err / scale)
+        warnings.warn(
+            "Received PES error greater than chip max (%0.2e). "
+            "Consider changing `Model.pes_error_scale`." % (max_err / scale,)
+        )
+        logger.debug(
+            "PES error %0.2e > %0.2e (chip max)", np.max(error) / scale, max_err / scale
+        )
         error[q] = max_err
     q = error < -max_err
     if np.any(q):
-        warnings.warn("Received PES error less than chip min (%0.2e). "
-                      "Consider changing `Model.pes_error_scale`."
-                      % (-max_err / scale,))
-        logger.debug("PES error %0.2e < %0.2e (chip min)",
-                     np.min(error) / scale,
-                     -max_err / scale)
+        warnings.warn(
+            "Received PES error less than chip min (%0.2e). "
+            "Consider changing `Model.pes_error_scale`." % (-max_err / scale,)
+        )
+        logger.debug(
+            "PES error %0.2e < %0.2e (chip min)",
+            np.min(error) / scale,
+            -max_err / scale,
+        )
         error[q] = -max_err
     return error
 
@@ -237,9 +241,9 @@ def discretize_block(block):
 
     p = discretize_compartment(block.compartment, w_max)
     for synapse in block.synapses:
-        discretize_synapse(synapse, w_max, p['w_scale'], p['w_exp'])
+        discretize_synapse(synapse, w_max, p["w_scale"], p["w_exp"])
     for probe in block.probes:
-        discretize_probe(probe, p['v_scale'][0])
+        discretize_probe(probe, p["v_scale"][0])
 
 
 def discretize_compartment(comp, w_max):
@@ -259,19 +263,23 @@ def discretize_compartment(comp, w_max):
 
     # --- discretize decay_u and decay_v
     # subtract 1 from decay_u here because it gets added back by the chip
-    decay_u = comp.decay_u * d(b'NDA5NQ==', int) - 1
-    array_to_int(comp.decay_u, np.clip(decay_u, 0, d(b'NDA5NQ==', int)))
-    array_to_int(comp.decay_v, comp.decay_v * d(b'NDA5NQ==', int))
+    decay_u = comp.decay_u * d(b"NDA5NQ==", int) - 1
+    array_to_int(comp.decay_u, np.clip(decay_u, 0, d(b"NDA5NQ==", int)))
+    array_to_int(comp.decay_v, comp.decay_v * d(b"NDA5NQ==", int))
 
     # Compute factors for current and voltage decay. These factors
     # counteract the fact that for longer decays, the current (or voltage)
     # created by a single spike has a larger integral.
-    u_infactor = (1. / decay_magnitude(comp.decay_u,
-                                       x0=d(b'MjA5NzE1Mg==', int), offset=1)
-                  if comp.scale_u else np.ones(comp.decay_u.shape))
-    v_infactor = (1. / decay_magnitude(comp.decay_v,
-                                       x0=d(b'MjA5NzE1Mg==', int))
-                  if comp.scale_v else np.ones(comp.decay_v.shape))
+    u_infactor = (
+        1.0 / decay_magnitude(comp.decay_u, x0=d(b"MjA5NzE1Mg==", int), offset=1)
+        if comp.scale_u
+        else np.ones(comp.decay_u.shape)
+    )
+    v_infactor = (
+        1.0 / decay_magnitude(comp.decay_v, x0=d(b"MjA5NzE1Mg==", int))
+        if comp.scale_v
+        else np.ones(comp.decay_v.shape)
+    )
     comp.scale_u = False
     comp.scale_v = False
 
@@ -289,10 +297,10 @@ def discretize_compartment(comp, w_max):
     w_exp = 0
 
     if w_max > 1e-8:
-        w_scale = (d(b'MjU1', float) / w_max)
-        s_scale = 1. / (u_infactor * v_infactor)
+        w_scale = d(b"MjU1", float) / w_max
+        s_scale = 1.0 / (u_infactor * v_infactor)
 
-        for w_exp in range(w_exp_max, d(b'LTg=', int), d(b'LTE=', int)):
+        for w_exp in range(w_exp_max, d(b"LTg=", int), d(b"LTE=", int)):
             v_scale = s_scale * w_scale * SynapseConfig.get_scale(w_exp)
             b_scale = v_scale * v_infactor
             vth = np.round(comp.vth * v_scale)
@@ -303,7 +311,7 @@ def discretize_compartment(comp, w_max):
             raise BuildError("Could not find appropriate weight exponent")
     elif b_max > 1e-8:
         b_scale = BIAS_MAX / b_max
-        while b_scale*b_max > 1:
+        while b_scale * b_max > 1:
             v_scale = b_scale / v_infactor
             w_scale = b_scale * u_infactor / SynapseConfig.get_scale(w_exp)
             vth = np.round(comp.vth * v_scale)
@@ -311,52 +319,47 @@ def discretize_compartment(comp, w_max):
             if np.all(vth <= vth_max):
                 break
 
-            b_scale /= 2.
+            b_scale /= 2.0
         else:
             raise BuildError("Could not find appropriate bias scaling")
     else:
         # reduce vth_max in this case to avoid overflow since we're setting
         # all vth to vth_max (esp. in learning with zeroed initial weights)
-        vth_max = min(vth_max, 2**Q_BITS - 1)
+        vth_max = min(vth_max, 2 ** Q_BITS - 1)
         v_scale = np.array([vth_max / (comp.vth.max() + 1)])
         vth = np.round(comp.vth * v_scale)
         b_scale = v_scale * v_infactor
         bias = np.round(comp.bias * b_scale)
-        w_scale = (v_scale * v_infactor * u_infactor
-                   / SynapseConfig.get_scale(w_exp))
+        w_scale = v_scale * v_infactor * u_infactor / SynapseConfig.get_scale(w_exp)
 
     vth_man, vth_exp = vth_to_manexp(vth)
-    array_to_int(comp.vth, vth_man * 2**vth_exp)
+    array_to_int(comp.vth, vth_man * 2 ** vth_exp)
 
     bias_man, bias_exp = bias_to_manexp(bias)
-    array_to_int(comp.bias, bias_man * 2**bias_exp)
+    array_to_int(comp.bias, bias_man * 2 ** bias_exp)
 
     # --- noise
     assert (v_scale[0] == v_scale).all()
     enable_noise = np.any(comp.enable_noise)
-    noise_exp = np.round(np.log2(10.**comp.noise_exp * v_scale[0]))
-    if enable_noise and noise_exp < d(b'MQ==', int):
+    noise_exp = np.round(np.log2(10.0 ** comp.noise_exp * v_scale[0]))
+    if enable_noise and noise_exp < d(b"MQ==", int):
         warnings.warn("Noise amplitude falls below lower limit")
         enable_noise = False
-    if enable_noise and noise_exp > d(b'MjM=', int):
-        warnings.warn(
-            "Noise amplitude exceeds upper limit (%d > 23)" % (noise_exp,))
-    comp.noise_exp = int(np.clip(noise_exp, d(b'MQ==', int), d(b'MjM=', int)))
-    comp.noise_offset = int(np.round(2*comp.noise_offset))
+    if enable_noise and noise_exp > d(b"MjM=", int):
+        warnings.warn("Noise amplitude exceeds upper limit (%d > 23)" % (noise_exp,))
+    comp.noise_exp = int(np.clip(noise_exp, d(b"MQ==", int), d(b"MjM=", int)))
+    comp.noise_offset = int(np.round(2 * comp.noise_offset))
 
     # --- vmin and vmax
     assert (v_scale[0] == v_scale).all()
     vmin = v_scale[0] * comp.vmin
     vmax = v_scale[0] * comp.vmax
     vmine = np.clip(np.round(np.log2(-vmin + 1)), 0, 2 ** 5 - 1)
-    comp.vmin = -2 ** vmine + 1
+    comp.vmin = -(2 ** vmine) + 1
     vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
     comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
-    return dict(w_max=w_max,
-                w_scale=w_scale,
-                w_exp=w_exp,
-                v_scale=v_scale)
+    return dict(w_max=w_max, w_scale=w_scale, w_exp=w_exp, v_scale=v_scale)
 
 
 def discretize_synapse(synapse, w_max, w_scale, w_exp):
@@ -386,15 +389,14 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
     elif w_max_i > 1e-16:
         dw_exp = int(np.floor(np.log2(w_max / w_max_i)))
         assert dw_exp >= 0
-        w_exp2 = max(w_exp - dw_exp, d(b'LTY=', int))
+        w_exp2 = max(w_exp - dw_exp, d(b"LTY=", int))
     else:
-        w_exp2 = d(b'LTY=', int)
+        w_exp2 = d(b"LTY=", int)
         dw_exp = w_exp - w_exp2
     synapse.format(weight_exp=w_exp2)
     for w, idxs in zip(synapse.weights, synapse.indices):
         ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
-        array_to_int(w, discretize_weights(
-            synapse.synapse_cfg, w * ws * 2 ** dw_exp))
+        array_to_int(w, discretize_weights(synapse.synapse_cfg, w * ws * 2 ** dw_exp))
 
     # discretize learning
     if synapse.learning:
@@ -425,20 +427,23 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
         synapse.learning_rate = lr_int * 2 ** lr_exp
         synapse._lr_int = lr_int
         synapse._lr_exp = lr_exp
-        assert lr_exp >= d(b'LTc=', int)
+        assert lr_exp >= d(b"LTc=", int)
 
         # discretize tracing mag into integer and fractional components
         mag_int, mag_frac = tracing_mag_int_frac(synapse.tracing_mag)
-        if mag_int > d(b'MTI3', int):
-            warnings.warn("Trace increment exceeds upper limit "
-                          "(learning rate may be too large)")
-            mag_int = d(b'MTI3', int)
-            mag_frac = d(b'MTI3', int)
-        synapse.tracing_mag = mag_int + mag_frac / d(b'MTI4', float)
+        if mag_int > d(b"MTI3", int):
+            warnings.warn(
+                "Trace increment exceeds upper limit "
+                "(learning rate may be too large)"
+            )
+            mag_int = d(b"MTI3", int)
+            mag_frac = d(b"MTI3", int)
+        synapse.tracing_mag = mag_int + mag_frac / d(b"MTI4", float)
 
 
 def discretize_weights(
-        synapse_cfg, w, dtype=np.int32, lossy_shift=True, check_result=True):
+    synapse_cfg, w, dtype=np.int32, lossy_shift=True, check_result=True
+):
     """Takes weights and returns their quantized values with weight_exp.
 
     The actual weight to be put on the chip is this returned value
@@ -458,9 +463,9 @@ def discretize_weights(
         the valid range for weights on the chip (-256 to 255).
     """
     s = synapse_cfg.shift_bits
-    m = 2**(d(b'OA==', int) - s) - 1
+    m = 2 ** (d(b"OA==", int) - s) - 1
 
-    w = np.round(w / 2.**s).clip(-m, m).astype(dtype)
+    w = np.round(w / 2.0 ** s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
 
     if lossy_shift:
@@ -469,21 +474,20 @@ def discretize_weights(
 
             # Round before `s2` right shift. Just shifting would floor
             # everything resulting in weights biased towards being smaller.
-            w = (np.round(w * 2.**s2) / 2**s2).clip(-m, m).astype(dtype)
+            w = (np.round(w * 2.0 ** s2) / 2 ** s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
-        np.left_shift(w, d(b'Ng==', int), out=w)
+        np.left_shift(w, d(b"Ng==", int), out=w)
     else:
-        shift(w, d(b'Ng==', int) + s2, out=w)
+        shift(w, d(b"Ng==", int) + s2, out=w)
 
     if check_result:
         ws = w // synapse_cfg.scale
-        assert (np.all(ws <= d(b'MjU1', int))
-                and np.all(ws >= d(b'LTI1Ng==', int)))
+        assert np.all(ws <= d(b"MjU1", int)) and np.all(ws >= d(b"LTI1Ng==", int))
 
     return w
 
 
 def discretize_probe(probe, v_scale):
-    if probe.key == 'voltage' and probe.weights is not None:
+    if probe.key == "voltage" and probe.weights is not None:
         probe.weights /= v_scale

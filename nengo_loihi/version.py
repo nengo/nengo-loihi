@@ -14,25 +14,27 @@ def check_nengo_version():
     if nengo.version.version_info < minimum_nengo_version_info:
         raise ValueError(
             "nengo-loihi does not support Nengo version %s. "
-            "Upgrade with 'pip install --upgrade --no-deps nengo'."
-            % nengo.__version__)
+            "Upgrade with 'pip install --upgrade --no-deps nengo'." % nengo.__version__
+        )
     elif nengo.version.version_info > latest_nengo_version_info:
-        warnings.warn("This version of `nengo_loihi` has not been tested "
-                      "with your `nengo` version (%s). The latest fully "
-                      "supported version is %s" % (
-                          nengo.__version__, latest_nengo_version))
+        warnings.warn(
+            "This version of `nengo_loihi` has not been tested "
+            "with your `nengo` version (%s). The latest fully "
+            "supported version is %s" % (nengo.__version__, latest_nengo_version)
+        )
 
 
 def info2string(info):
-    return '.'.join(str(v) for v in info)
+    return ".".join(str(v) for v in info)
 
 
 name = "nengo_loihi"
 version_info = (0, 9, 0)  # (major, minor, patch)
 dev = 0
 
-version = "{v}{dev}".format(v=info2string(version_info),
-                            dev=('.dev%d' % dev) if dev is not None else '')
+version = "{v}{dev}".format(
+    v=info2string(version_info), dev=(".dev%d" % dev) if dev is not None else ""
+)
 
 # --- Nengo version compatibility
 # oldest nengo version we are compatible with (test on release)

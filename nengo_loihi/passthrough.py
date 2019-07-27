@@ -38,6 +38,7 @@ class Cluster:
     represents this collection of passthrough Nodes and allows us to remove
     them all at once.
     """
+
     def __init__(self, obj):
         self.objs = set([obj])  # the Nodes in the cluster
         self.conns_in = set()  # Connections into the cluster
@@ -70,6 +71,7 @@ class Cluster:
             nengo.Connection(a, b, transform=t)
 
         """
+
         def format_transform(size, transform):
             if nengo_transforms is not None:
                 if isinstance(transform, nengo_transforms.Dense):
@@ -77,27 +79,30 @@ class Cluster:
                 else:
                     raise NotImplementedError(
                         "Mergeable transforms must be Dense; "
-                        "set remove_passthrough=False")
+                        "set remove_passthrough=False"
+                    )
 
             if not isinstance(transform, np.ndarray):
                 raise NotImplementedError(
                     "Mergeable transforms must be specified as Numpy arrays, "
-                    "not distributions. Set `remove_passthrough=False`.")
+                    "not distributions. Set `remove_passthrough=False`."
+                )
 
             if transform.ndim == 0:  # scalar
                 transform = np.eye(size) * transform
             elif transform.ndim != 2:
-                raise BuildError("Unhandled transform shape: %s"
-                                 % (transform.shape,))
+                raise BuildError("Unhandled transform shape: %s" % (transform.shape,))
 
             return transform
 
-        assert len(sizes) == len(transforms) == len(slices) == 2, (
-            "Only merging two transforms is currently supported")
+        assert (
+            len(sizes) == len(transforms) == len(slices) == 2
+        ), "Only merging two transforms is currently supported"
         mid_t = np.eye(node.size_in)[slices[1], slices[0]]
         transform = np.dot(
             format_transform(sizes[1], transforms[1]),
-            np.dot(mid_t, format_transform(sizes[0], transforms[0])))
+            np.dot(mid_t, format_transform(sizes[0], transforms[0])),
+        )
 
         if nengo_transforms is None:
             return transform
@@ -115,7 +120,8 @@ class Cluster:
             warnings.warn(
                 "Combining two Lowpass synapses, this may change the "
                 "behaviour of the network (set `remove_passthrough=False` "
-                "to avoid this).")
+                "to avoid this)."
+            )
             return Lowpass(syn1.tau + syn2.tau)
 
     def generate_from(self, obj, outputs, previous=None):
@@ -141,8 +147,7 @@ class Cluster:
             # a new Connection that goes to it, as the original Connections
             # will get removed
             if nengo_transforms is not None:
-                trans1 = nengo_transforms.Dense(
-                    (obj.size_out, obj.size_out), init=1.0)
+                trans1 = nengo_transforms.Dense((obj.size_out, obj.size_out), init=1.0)
             else:
                 trans1 = np.array(1.0)
             yield (slice(None), trans1, None, obj)
@@ -165,14 +170,16 @@ class Cluster:
                 # this Connection goes to another passthrough Node in this
                 # Cluster, so iterate into that Node and continue
                 for pre_slice, transform, synapse, post in self.generate_from(
-                        c.post_obj, outputs, previous=previous+[obj]):
+                    c.post_obj, outputs, previous=previous + [obj]
+                ):
 
                     syn = self.merge_synapses(c.synapse, synapse)
                     trans = self.merge_transforms(
                         c.post_obj,
                         [c.pre.size_out, post.size_in],
                         [c.transform, transform],
-                        [c.post_slice, pre_slice])
+                        [c.post_slice, pre_slice],
+                    )
 
                     yield c.pre_slice, trans, syn, post
 
@@ -189,13 +196,15 @@ class Cluster:
         for c in self.conns_in:
             assert c.post_obj in self.objs
             for k, (pre_slice, transform, synapse, post) in enumerate(
-                    self.generate_from(c.post_obj, outputs)):
+                self.generate_from(c.post_obj, outputs)
+            ):
                 syn = self.merge_synapses(c.synapse, synapse)
                 trans = self.merge_transforms(
                     c.post_obj,
                     [c.size_mid, post.size_in],
                     [c.transform, transform],
-                    [c.post_slice, pre_slice])
+                    [c.post_slice, pre_slice],
+                )
 
                 if not np.allclose(transform_array(trans), 0):
                     yield Connection(
@@ -207,8 +216,7 @@ class Cluster:
                         synapse=syn,
                         transform=trans,
                         add_to_container=False,
-                        label=(None if c.label is None
-                               else "%s_%d" % (c.label, k)),
+                        label=(None if c.label is None else "%s_%d" % (c.label, k)),
                     )
 
 
@@ -256,16 +264,14 @@ class PassthroughSplit:
             assert not isinstance(base_pre, Probe)
             assert not isinstance(base_post, Probe)
 
-            pass_pre = (is_passthrough(c.pre_obj)
-                        and c.pre_obj not in self.ignore)
+            pass_pre = is_passthrough(c.pre_obj) and c.pre_obj not in self.ignore
             if pass_pre and c.pre_obj not in clusters:
                 # add new objects to their own initial Cluster
                 clusters[c.pre_obj] = Cluster(c.pre_obj)
                 if c.pre_obj in probed_objs:
                     clusters[c.pre_obj].probed_objs.add(c.pre_obj)
 
-            pass_post = (is_passthrough(c.post_obj)
-                         and c.post_obj not in self.ignore)
+            pass_post = is_passthrough(c.post_obj) and c.post_obj not in self.ignore
             if pass_post and c.post_obj not in clusters:
                 # add new objects to their own initial Cluster
                 clusters[c.post_obj] = Cluster(c.post_obj)
@@ -295,10 +301,10 @@ class PassthroughSplit:
         assert cluster not in self._already_split
         self._already_split.add(cluster)
 
-        onchip_input = any(base_obj(c.pre) not in self.ignore
-                           for c in cluster.conns_in)
-        onchip_output = any(base_obj(c.post) not in self.ignore
-                            for c in cluster.conns_out)
+        onchip_input = any(base_obj(c.pre) not in self.ignore for c in cluster.conns_in)
+        onchip_output = any(
+            base_obj(c.post) not in self.ignore for c in cluster.conns_out
+        )
 
         has_input = len(cluster.conns_in) > 0
         no_output = len(cluster.conns_out) + len(cluster.probed_objs) == 0
@@ -312,5 +318,6 @@ class PassthroughSplit:
 
             self.to_remove.update(cluster.objs - cluster.probed_objs)
             self.to_remove.update(
-                cluster.conns_in | cluster.conns_mid | cluster.conns_out)
+                cluster.conns_in | cluster.conns_mid | cluster.conns_out
+            )
             self.to_add.update(new_conns)

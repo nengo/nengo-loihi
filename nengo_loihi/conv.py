@@ -20,15 +20,25 @@ class ImageSlice:
     channel_slice : slice
         Slice across the image channels.
     """
-    def __init__(self, full_shape, row_slice=slice(None),
-                 col_slice=slice(None), channel_slice=slice(None)):
+
+    def __init__(
+        self,
+        full_shape,
+        row_slice=slice(None),
+        col_slice=slice(None),
+        channel_slice=slice(None),
+    ):
         if nengo_transforms is None:
             raise NotImplementedError("ImageSlice requires newer Nengo")
-        if not (isinstance(full_shape, nengo_transforms.ChannelShape)
-                and full_shape.dimensions == 2):
+        if not (
+            isinstance(full_shape, nengo_transforms.ChannelShape)
+            and full_shape.dimensions == 2
+        ):
             raise ValidationError(
                 "must be 2-D ChannelShape (got %r)" % full_shape,
-                attr='full_shape', obj=self)
+                attr="full_shape",
+                obj=self,
+            )
         self.full_shape = full_shape
         self.row_slice = row_slice
         self.col_slice = col_slice
@@ -59,18 +69,23 @@ def split_transform(transform, in_slice=None, out_slice=None):
             assert out_slice.channel_slice_only()
             b_slice = out_slice.channel_slice
 
-        assert isinstance(transform.init, np.ndarray), \
-            "doesn't work with distributions"
+        assert isinstance(transform.init, np.ndarray), "doesn't work with distributions"
         kernel = transform.init[:, :, a_slice, b_slice]
         rows, cols = transform.input_shape.spatial_shape
         nc = kernel.shape[2]
         input_shape = nengo_transforms.ChannelShape(
             (rows, cols, nc) if transform.channels_last else (nc, rows, cols),
-            channels_last=transform.channels_last)
+            channels_last=transform.channels_last,
+        )
         return nengo_transforms.Convolution(
-            kernel.shape[3], input_shape, strides=transform.strides,
-            channels_last=transform.channels_last, padding=transform.padding,
-            kernel_size=transform.kernel_size, init=kernel)
+            kernel.shape[3],
+            input_shape,
+            strides=transform.strides,
+            channels_last=transform.channels_last,
+            padding=transform.padding,
+            kernel_size=transform.kernel_size,
+            init=kernel,
+        )
     else:
         if in_slice is not None:
             assert in_slice.channel_slice_only()
@@ -89,8 +104,10 @@ def split_channels(shape, max_size=None, max_channels=1024):
     assert max_channels >= 1
     n_split = -(-shape.n_channels // max_channels)  # ceiling division
     nc_per_split = -(-shape.n_channels // n_split)  # ceiling division
-    return [ImageSlice(shape, channel_slice=slice(i, i+nc_per_split))
-            for i in range(0, shape.n_channels, nc_per_split)]
+    return [
+        ImageSlice(shape, channel_slice=slice(i, i + nc_per_split))
+        for i in range(0, shape.n_channels, nc_per_split)
+    ]
 
 
 def channel_idxs(shape):
@@ -102,8 +119,11 @@ def channel_idxs(shape):
         Output shape of convolution
     """
     idxs = np.arange(shape.size, dtype=int)
-    return ((idxs % shape.n_channels) if shape.channels_last else
-            (idxs // np.prod(shape.spatial_shape)))
+    return (
+        (idxs % shape.n_channels)
+        if shape.channels_last
+        else (idxs // np.prod(shape.spatial_shape))
+    )
 
 
 def pixel_idxs(shape):
@@ -115,8 +135,11 @@ def pixel_idxs(shape):
         Output shape of convolution
     """
     idxs = np.arange(shape.size, dtype=int)
-    return ((idxs // shape.n_channels) if shape.channels_last else
-            (idxs % np.prod(shape.spatial_shape)))
+    return (
+        (idxs // shape.n_channels)
+        if shape.channels_last
+        else (idxs % np.prod(shape.spatial_shape))
+    )
 
 
 def conv2d_loihi_weights(transform):
@@ -166,30 +189,39 @@ def conv2d_loihi_weights(transform):
             kernel = kernel[:, ::-1, ::-1, :]
 
             w = kernel[:, wmask_i[:, None] * wmask_j, :]
-            assert w.size == (inp_shape.n_channels
-                              * wmask_i.sum()
-                              * wmask_j.sum()
-                              * transform.n_filters)
-            assert w.shape == (inp_shape.n_channels,
-                               wmask_i.sum() * wmask_j.sum(),
-                               transform.n_filters)
+            assert w.size == (
+                inp_shape.n_channels
+                * wmask_i.sum()
+                * wmask_j.sum()
+                * transform.n_filters
+            )
+            assert w.shape == (
+                inp_shape.n_channels,
+                wmask_i.sum() * wmask_j.sum(),
+                transform.n_filters,
+            )
 
             if transform.channels_last:
                 w = w.reshape(inp_shape.n_channels, -1)
                 inds = (
                     np.zeros((inp_shape.n_channels, 1, 1, 1), dtype=int)
-                    + (output_cols * transform.n_filters
-                       * np.arange(wmask_i.sum())[:, None, None])
+                    + (
+                        output_cols
+                        * transform.n_filters
+                        * np.arange(wmask_i.sum())[:, None, None]
+                    )
                     + transform.n_filters * np.arange(wmask_j.sum())[:, None]
                     + np.arange(transform.n_filters)
                 ).reshape(inp_shape.n_channels, -1)
             else:
-                w = np.transpose(w, (0, 2, 1)).reshape(
-                    inp_shape.n_channels, -1)
+                w = np.transpose(w, (0, 2, 1)).reshape(inp_shape.n_channels, -1)
                 inds = (
                     np.zeros((inp_shape.n_channels, 1, 1, 1), dtype=int)
-                    + (output_rows * output_cols
-                       * np.arange(transform.n_filters)[:, None, None])
+                    + (
+                        output_rows
+                        * output_cols
+                        * np.arange(transform.n_filters)[:, None, None]
+                    )
                     + output_cols * np.arange(wmask_i.sum())[:, None]
                     + np.arange(wmask_j.sum())
                 ).reshape(inp_shape.n_channels, -1)
@@ -200,8 +232,7 @@ def conv2d_loihi_weights(transform):
 
         axon_to_weight_map[ij] = weights_map[weight_key]
 
-        assert ri[wmask_i][0] % transform.strides[0] == 0, \
-            "true if mode == 'valid'"
+        assert ri[wmask_i][0] % transform.strides[0] == 0, "true if mode == 'valid'"
         yi0 = ri[wmask_i][0] // transform.strides[0]
         yj0 = rj[wmask_j][0] // transform.strides[1]
         if transform.channels_last:
@@ -210,7 +241,8 @@ def conv2d_loihi_weights(transform):
             offsets[ij] = yi0 * output_cols + yj0
 
         inds = indices[axon_to_weight_map[ij]]
-        assert (offsets[ij] + inds
-                < output_rows * output_cols * transform.n_filters).all()
+        assert (
+            offsets[ij] + inds < output_rows * output_cols * transform.n_filters
+        ).all()
 
     return weights, indices, axon_to_weight_map, offsets

@@ -18,13 +18,14 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
     if ens.gain is not None and ens.bias is not None:
         gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
         bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
-        max_rates, intercepts = ens.neuron_type.max_rates_intercepts(
-            gain, bias)
+        max_rates, intercepts = ens.neuron_type.max_rates_intercepts(gain, bias)
     elif ens.gain is not None or ens.bias is not None:
         # TODO: handle this instead of error
-        raise NotImplementedError("gain or bias set for %s, but not both. "
-                                  "Solving for one given the other is not "
-                                  "implemented yet." % ens)
+        raise NotImplementedError(
+            "gain or bias set for %s, but not both. "
+            "Solving for one given the other is not "
+            "implemented yet." % ens
+        )
     else:
         int_distorarray = ens.intercepts
         if isinstance(int_distorarray, nengo.dists.Uniform):
@@ -32,10 +33,12 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
                 warnings.warn(
                     "Intercepts are larger than intercept limit (%g). "
                     "High intercept values cause issues when discretizing "
-                    "the model for running on Loihi." % intercept_limit)
+                    "the model for running on Loihi." % intercept_limit
+                )
                 int_distorarray = nengo.dists.Uniform(
                     min(int_distorarray.low, intercept_limit),
-                    min(int_distorarray.high, intercept_limit))
+                    min(int_distorarray.high, intercept_limit),
+                )
 
         max_rates = get_samples(ens.max_rates, ens.n_neurons, rng=rng)
         intercepts = get_samples(int_distorarray, ens.n_neurons, rng=rng)
@@ -45,17 +48,18 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
             warnings.warn(
                 "Intercepts are larger than intercept limit (%g). "
                 "High intercept values cause issues when discretizing "
-                "the model for running on Loihi." % intercept_limit)
+                "the model for running on Loihi." % intercept_limit
+            )
 
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
-        if gain is not None and (
-                not np.all(np.isfinite(gain)) or np.any(gain <= 0.)):
+        if gain is not None and (not np.all(np.isfinite(gain)) or np.any(gain <= 0.0)):
             raise BuildError(
                 "The specified intercepts for %s lead to neurons with "
                 "negative or non-finite gain. Please adjust the intercepts so "
                 "that all gains are positive. For most neuron types (e.g., "
                 "LIF neurons) this is achieved by reducing the maximum "
-                "intercept value to below 1." % ens)
+                "intercept value to below 1." % ens
+            )
 
     return gain, bias, max_rates, intercepts
 
@@ -72,8 +76,7 @@ def build_ensemble(model, ens):
 
     # Set up encoders
     if isinstance(ens.encoders, Distribution):
-        encoders = get_samples(
-            ens.encoders, ens.n_neurons, ens.dimensions, rng=rng)
+        encoders = get_samples(ens.encoders, ens.n_neurons, ens.dimensions, rng=rng)
     else:
         encoders = npext.array(ens.encoders, min_dims=2, dtype=np.float64)
 
@@ -81,16 +84,14 @@ def build_ensemble(model, ens):
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
 
     # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(
-        ens, rng, model.intercept_limit)
+    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng, model.intercept_limit)
 
-    block = LoihiBlock(ens.n_neurons, label='%s' % ens)
+    block = LoihiBlock(ens.n_neurons, label="%s" % ens)
     block.compartment.bias[:] = bias
     model.build(ens.neuron_type, ens.neurons, block)
 
     # set default filter just in case no other filter gets set
-    block.compartment.configure_default_filter(
-        model.decode_tau, dt=model.dt)
+    block.compartment.configure_default_filter(model.decode_tau, dt=model.dt)
 
     if ens.noise is not None:
         raise NotImplementedError("Ensemble noise not implemented")
@@ -101,10 +102,10 @@ def build_ensemble(model, ens):
 
     model.add_block(block)
 
-    model.objs[ens]['in'] = block
-    model.objs[ens]['out'] = block
-    model.objs[ens.neurons]['in'] = block
-    model.objs[ens.neurons]['out'] = block
+    model.objs[ens]["in"] = block
+    model.objs[ens]["out"] = block
+    model.objs[ens.neurons]["in"] = block
+    model.objs[ens.neurons]["out"] = block
     model.params[ens] = BuiltEnsemble(
         eval_points=eval_points,
         encoders=encoders,
@@ -112,7 +113,8 @@ def build_ensemble(model, ens):
         max_rates=max_rates,
         scaled_encoders=scaled_encoders,
         gain=gain,
-        bias=bias)
+        bias=bias,
+    )
 
 
 @Builder.register(nengo.neurons.NeuronType)
@@ -124,20 +126,20 @@ def build_neurons(model, neurontype, neurons, block):
         "switch to a supported neuron type like LIF or "
         "SpikingRectifiedLinear, or explicitly mark ensembles using this "
         "neuron type as off-chip with\n"
-        "  net.config[ensembles].on_chip = False")
+        "  net.config[ensembles].on_chip = False"
+    )
 
 
 @Builder.register(nengo.LIF)
 def build_lif(model, lif, neurons, block):
     block.compartment.configure_lif(
-        tau_rc=lif.tau_rc,
-        tau_ref=lif.tau_ref,
-        min_voltage=lif.min_voltage,
-        dt=model.dt)
+        tau_rc=lif.tau_rc, tau_ref=lif.tau_ref, min_voltage=lif.min_voltage, dt=model.dt
+    )
 
 
 @Builder.register(nengo.SpikingRectifiedLinear)
 def build_relu(model, relu, neurons, block):
     block.compartment.configure_relu(
-        vth=1./model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
-        dt=model.dt)
+        vth=1.0 / model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
+        dt=model.dt,
+    )

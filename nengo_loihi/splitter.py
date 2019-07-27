@@ -27,8 +27,9 @@ class Split:
         # Step 2. Place all possible ensembles on chip
         # Note: assumes add_params already called by the simulator
         for ens in network.all_ensembles:
-            if (network.config[ens].on_chip in (None, True)
-                    and not isinstance(ens.neuron_type, Direct)):
+            if network.config[ens].on_chip in (None, True) and not isinstance(
+                ens.neuron_type, Direct
+            ):
                 self._chip_objects.add(ens)
             self._seen_objects.add(ens)
 
@@ -36,27 +37,34 @@ class Split:
         for conn in network.all_connections:
             pre = base_obj(conn.pre)
             post = base_obj(conn.post)
-            if (conn.learning_rule_type is not None
-                    and isinstance(post, Ensemble)
-                    and post in self._chip_objects):
+            if (
+                conn.learning_rule_type is not None
+                and isinstance(post, Ensemble)
+                and post in self._chip_objects
+            ):
                 if network.config[post].on_chip:
-                    raise BuildError("Post ensemble (%r) of learned "
-                                     "connection (%r) must not be configured "
-                                     "as on_chip." % (post, conn))
+                    raise BuildError(
+                        "Post ensemble (%r) of learned "
+                        "connection (%r) must not be configured "
+                        "as on_chip." % (post, conn)
+                    )
                 self._chip_objects.remove(post)
-            elif (isinstance(post, LearningRule)
-                  and isinstance(pre, Ensemble)
-                  and pre in self._chip_objects):
+            elif (
+                isinstance(post, LearningRule)
+                and isinstance(pre, Ensemble)
+                and pre in self._chip_objects
+            ):
                 if network.config[pre].on_chip:
-                    raise BuildError("Pre ensemble (%r) of error "
-                                     "connection (%r) must not be configured "
-                                     "as on_chip." % (pre, conn))
+                    raise BuildError(
+                        "Pre ensemble (%r) of error "
+                        "connection (%r) must not be configured "
+                        "as on_chip." % (pre, conn)
+                    )
                 self._chip_objects.remove(pre)
 
         # Step 4. Mark passthrough nodes for removal
         if remove_passthrough:
-            passthroughs = set(
-                obj for obj in network.all_nodes if is_passthrough(obj))
+            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
             ignore = self._seen_objects - self._chip_objects - passthroughs
             self.passthrough = PassthroughSplit(network, ignore)
         else:
@@ -91,8 +99,9 @@ class Split:
                 queue.append(obj)
 
         # determine which connections will actually be built
-        conns = ((set(self.network.all_connections)
-                  | self.passthrough.to_add) - self.passthrough.to_remove)
+        conns = (
+            set(self.network.all_connections) | self.passthrough.to_add
+        ) - self.passthrough.to_remove
 
         # Initialize queue with the pre objects on host->chip connections.
         # We assume that all `conn.pre` objects are pre-computable, and then
@@ -110,10 +119,10 @@ class Split:
             assert pre not in self.passthrough.to_remove
             assert post not in self.passthrough.to_remove
 
-            if (isinstance(post, LearningRule)
-                    or conn.learning_rule is not None):
-                raise BuildError("precompute=True not supported when using "
-                                 "learning rules")
+            if isinstance(post, LearningRule) or conn.learning_rule is not None:
+                raise BuildError(
+                    "precompute=True not supported when using " "learning rules"
+                )
 
             if self.on_chip(post) and not self.on_chip(pre):
                 mark_precomputable(pre)
@@ -135,8 +144,9 @@ class Split:
                 assert base_obj(conn.post) is node_or_ens
                 pre = base_obj(conn.pre)
                 if self.on_chip(pre):
-                    raise BuildError("Cannot precompute input, "
-                                     "as it is dependent on output")
+                    raise BuildError(
+                        "Cannot precompute input, " "as it is dependent on output"
+                    )
                 mark_precomputable(pre)
 
         return precomputable
@@ -144,16 +154,16 @@ class Split:
     def is_precomputable(self, obj):
         if isinstance(obj, Probe):
             obj = base_obj(obj.target)
-        return (not self.on_chip(obj)
-                and obj in self._host_precomputable_objects)
+        return not self.on_chip(obj) and obj in self._host_precomputable_objects
 
     def on_chip(self, obj):
         if isinstance(obj, Probe):
             obj = base_obj(obj.target)
         if not isinstance(obj, (Ensemble, Node)):
-            raise BuildError("Locations are only established for ensembles ",
-                             "nodes, and probes -- not for %r" % (obj,))
+            raise BuildError(
+                "Locations are only established for ensembles ",
+                "nodes, and probes -- not for %r" % (obj,),
+            )
         if obj not in self._seen_objects:
-            raise BuildError("Object (%r) is not a part of the network"
-                             % (obj,))
+            raise BuildError("Object (%r) is not a part of the network" % (obj,))
         return obj in self._chip_objects

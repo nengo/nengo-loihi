@@ -8,9 +8,9 @@ from nengo_loihi.block import Config
 from nengo_loihi.nxsdk_obfuscation import d, d_get
 
 
-MAX_COMPARTMENT_CFGS = d(b'MzI=', int)
-MAX_VTH_CFGS = d(b'OA==', int)
-MAX_SYNAPSE_CFGS = d(b'OA==', int)
+MAX_COMPARTMENT_CFGS = d(b"MzI=", int)
+MAX_VTH_CFGS = d(b"OA==", int)
+MAX_SYNAPSE_CFGS = d(b"OA==", int)
 
 
 class Board:
@@ -36,8 +36,7 @@ class Board:
 
     @property
     def n_synapses_per_core(self):
-        return [[core.n_synapses for core in chip.cores]
-                for chip in self.chips]
+        return [[core.n_synapses for core in chip.cores] for chip in self.chips]
 
     def _add_chip(self, chip):
         assert chip not in self.chips
@@ -126,8 +125,9 @@ class Core:
 
     @property
     def n_synapses(self):
-        return sum(synapse.size() for block in self.blocks
-                   for synapse in block.synapses)
+        return sum(
+            synapse.size() for block in self.blocks for synapse in block.synapses
+        )
 
     def iterate_blocks(self):
         i0 = 0
@@ -181,7 +181,7 @@ class Core:
             last = next(reversed(self.synapse_axons))
             a0 = self.synapse_axons[last][-1] + 1
         idxs_per_synapse = synapse.idxs_per_synapse()
-        idxs = [a0 + idxs_per_synapse*i for i in range(synapse.n_axons)]
+        idxs = [a0 + idxs_per_synapse * i for i in range(synapse.n_axons)]
         self.synapse_axons[synapse] = idxs
         self.board.index_synapse(synapse, self.chip, self, idxs)
 
@@ -235,7 +235,7 @@ class LoihiSpikeInput:
             spikes (i.e. axon_type != 0).
         """
 
-        __slots__ = ['axon_type', 'chip_id', 'core_id', 'axon_id', 'atom']
+        __slots__ = ["axon_type", "chip_id", "core_id", "axon_id", "atom"]
 
         def __init__(self, axon_type, chip_id, core_id, axon_id, atom=0):
             # TODO: obfuscate axon_type, or atom?
@@ -247,8 +247,7 @@ class LoihiSpikeInput:
             self.atom = atom
 
         def _slots_str(self):
-            return ", ".join("%s=%s" % (s, getattr(self, s))
-                             for s in self.__slots__)
+            return ", ".join("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
 
         def __repr__(self):
             return "%s(%s)" % (type(self).__name__, self._slots_str())
@@ -264,7 +263,7 @@ class LoihiSpikeInput:
             The axon information to target the spike to a particular chip axon.
         """
 
-        __slots__ = ['time', 'axon']
+        __slots__ = ["time", "axon"]
 
         def __init__(self, time, axon):
             self.time = time
@@ -272,7 +271,10 @@ class LoihiSpikeInput:
 
         def __repr__(self):
             return "%s(time=%s, %s)" % (
-                type(self).__name__, self.time, self.axon._slots_str())
+                type(self).__name__,
+                self.time,
+                self.axon._slots_str(),
+            )
 
     def __init__(self):
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
@@ -297,8 +299,8 @@ class LoihiSpikeInput:
             axon_type = axon.pop_type
             assert axon_type in (0, 32), "Only discrete and pop32 supported"
             tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(axon.target)
-            tchip = d_get(nxsdk_board, b'bjJDaGlwcw==')[tchip_idx]
-            tcore = d_get(tchip, b'bjJDb3Jlcw==')[tcore_idx]
+            tchip = d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx]
+            tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
                 if spike is not None:
@@ -311,7 +313,8 @@ class LoihiSpikeInput:
                             core_id=tcore.id,
                             axon_id=taxon_id,
                             atom=spike.atom,
-                        ))
+                        )
+                    )
 
     def spikes_to_loihi(self, t, input_idxs):
         """Map spike input indices to spikes for the chip.
@@ -334,11 +337,11 @@ class LoihiSpikeInput:
 
 
 class CompartmentConfig(Config):
-    DECAY_U_MAX = d(b'NDA5NQ==', int)
-    DECAY_V_MAX = d(b'NDA5NQ==', int)
-    REFRACT_DELAY_MAX = d(b'NjM=', int)
+    DECAY_U_MAX = d(b"NDA5NQ==", int)
+    DECAY_V_MAX = d(b"NDA5NQ==", int)
+    REFRACT_DELAY_MAX = d(b"NjM=", int)
 
-    params = ('decay_u', 'decay_v', 'refract_delay', 'enable_noise')
+    params = ("decay_u", "decay_v", "refract_delay", "enable_noise")
 
     def __init__(self, decay_v, decay_u, refract_delay, enable_noise):
         super(CompartmentConfig, self).__init__()
@@ -357,7 +360,8 @@ class VthConfig(Config):
         The mantissa of the voltage threshold for a compartment. To get the
         actual voltage threshold, this is multiplied by VTH_EXP.
     """
-    params = ('vth',)
+
+    params = ("vth",)
 
     def __init__(self, vth):
         super(VthConfig, self).__init__()
@@ -365,7 +369,7 @@ class VthConfig(Config):
 
 
 class TraceConfig(Config):
-    params = ('tau', 'spike_int', 'spike_frac')
+    params = ("tau", "spike_int", "spike_frac")
 
     def __init__(self, tau=0, spike_int=0, spike_frac=0):
         super(TraceConfig, self).__init__()

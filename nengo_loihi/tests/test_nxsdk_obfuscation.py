@@ -1,7 +1,13 @@
 import pytest
 
 from nengo_loihi.nxsdk_obfuscation import (
-    obfuscate, deobfuscate, d_get, d_import, d_func, d_set)
+    obfuscate,
+    deobfuscate,
+    d_get,
+    d_import,
+    d_func,
+    d_set,
+)
 
 
 def test_obfuscate_deobfuscate():
@@ -27,8 +33,9 @@ def test_obfuscate_deobfuscate():
 
 
 def test_d_import():
-    imported0 = d_import(obfuscate("nengo_loihi.emulator.interface"),
-                         attr=obfuscate("EmulatorInterface"))
+    imported0 = d_import(
+        obfuscate("nengo_loihi.emulator.interface"), attr=obfuscate("EmulatorInterface")
+    )
     from nengo_loihi.emulator.interface import EmulatorInterface as imported1
 
     assert imported0 is imported1
@@ -60,5 +67,6 @@ def test_d_func():
             return val
 
     obj = TestClass()
-    assert d_func(obj, obfuscate("test_func"),
-                  kwargs={obfuscate("val"): "test"}) == "test"
+    assert (
+        d_func(obj, obfuscate("test_func"), kwargs={obfuscate("val"): "test"}) == "test"
+    )

@@ -25,7 +25,7 @@ def test_installer_called_twice(caplog, monkeypatch):
     with caplog.at_level(logging.DEBUG):
         install()
     assert [rec.message for rec in caplog.records] == [
-        "NengoDL neuron builders already installed",
+        "NengoDL neuron builders already installed"
     ]
 
 

@@ -12,10 +12,7 @@ class HostSendNode(Node):
     def __init__(self, dimensions, label=Default):
         self.queue = []
         super(HostSendNode, self).__init__(
-            self.update,
-            size_in=dimensions,
-            size_out=0,
-            label=label,
+            self.update, size_in=dimensions, size_out=0, label=label
         )
 
     def update(self, t, x):
@@ -30,15 +27,14 @@ class HostReceiveNode(Node):
         self.queue = [(0, np.zeros(dimensions))]
         self.queue_index = 0
         super(HostReceiveNode, self).__init__(
-            self.update,
-            size_in=0,
-            size_out=dimensions,
-            label=label,
+            self.update, size_in=0, size_out=dimensions, label=label
         )
 
     def update(self, t):
-        while (len(self.queue) > self.queue_index + 1
-               and self.queue[self.queue_index][0] < t):
+        while (
+            len(self.queue) > self.queue_index + 1
+            and self.queue[self.queue_index][0] < t
+        ):
             self.queue_index += 1
         return self.queue[self.queue_index][1]
 
@@ -54,7 +50,8 @@ class ChipReceiveNode(Node):
         self.spikes = []
         self.spike_input = None  # set by builder
         super(ChipReceiveNode, self).__init__(
-            self.update, size_in=0, size_out=size_out, label=label)
+            self.update, size_in=0, size_out=size_out, label=label
+        )
 
     def clear(self):
         self.spikes.clear()
@@ -75,10 +72,10 @@ class ChipReceiveNode(Node):
 
 class ChipReceiveNeurons(ChipReceiveNode):
     """Passes spikes directly (no on-off neuron encoding)"""
+
     def __init__(self, dimensions, neuron_type=None, label=Default):
         self.neuron_type = neuron_type
-        super(ChipReceiveNeurons, self).__init__(
-            dimensions, dimensions, label=label)
+        super(ChipReceiveNeurons, self).__init__(dimensions, dimensions, label=label)
 
 
 class PESModulatoryTarget:

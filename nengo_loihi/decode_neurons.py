@@ -19,6 +19,7 @@ class DecodeNeurons:
     dt : float
         Time step used by the simulator.
     """
+
     def __init__(self, dt=0.001):
         self.dt = dt
 
@@ -127,9 +128,8 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
         self.pairs_per_dim = pairs_per_dim
 
-        self.rate = (1. / (self.dt * self.pairs_per_dim) if rate is None
-                     else rate)
-        self.scale = 1. / (self.dt * self.rate * self.pairs_per_dim)
+        self.rate = 1.0 / (self.dt * self.pairs_per_dim) if rate is None else rate
+        self.scale = 1.0 / (self.dt * self.rate * self.pairs_per_dim)
         self.neuron_type = LoihiSpikingRectifiedLinear()
 
         gain = 0.5 * self.rate * np.ones(self.pairs_per_dim)
@@ -140,7 +140,11 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
     def __str__(self):
         return "%s(pairs_per_dim=%d, dt=%0.3g, rate=%0.3g)" % (
-            type(self).__name__, self.pairs_per_dim, self.dt, self.rate)
+            type(self).__name__,
+            self.pairs_per_dim,
+            self.dt,
+            self.rate,
+        )
 
     def get_block(self, weights, block_label=None, syn_label=None):
         gain = self.gain * self.dt
@@ -155,7 +159,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
         syn = Synapse(n, label=syn_label)
         weights2 = []
         for ga, gb in gain.reshape(self.pairs_per_dim, 2):
-            weights2.extend([ga*weights.T, -gb*weights.T])
+            weights2.extend([ga * weights.T, -gb * weights.T])
         weights2 = np.hstack(weights2)
         syn.set_full_weights(weights2)
         block.add_synapse(syn)
@@ -170,17 +174,20 @@ class OnOffDecodeNeurons(DecodeNeurons):
             # where we can have multiple spikes per axon per timestep, or we
             # need to do it on the chip with one input axon per neuron.
             raise NotImplementedError(
-                "Input neurons with more than one neuron per dimension")
+                "Input neurons with more than one neuron per dimension"
+            )
 
         n_neurons = 2 * dim * self.pairs_per_dim
-        encoders = np.vstack([np.eye(dim), -np.eye(dim)] * self.pairs_per_dim)
+        encoders = np.vstack([np.eye(dim), -(np.eye(dim))] * self.pairs_per_dim)
         ens = nengo.Ensemble(
-            n_neurons, dim,
+            n_neurons,
+            dim,
             neuron_type=nengo.SpikingRectifiedLinear(),
             encoders=encoders,
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),
-            add_to_container=False)
+            add_to_container=False,
+        )
         return ens
 
     def get_post_encoders(self, encoders):
@@ -215,25 +222,25 @@ class NoisyDecodeNeurons(OnOffDecodeNeurons):
         Base-10 exponent for noise added to neuron voltages.
     """
 
-    def __init__(self, pairs_per_dim, dt=0.001, rate=None, noise_exp=-2.):
+    def __init__(self, pairs_per_dim, dt=0.001, rate=None, noise_exp=-2.0):
         super(NoisyDecodeNeurons, self).__init__(
-            pairs_per_dim=pairs_per_dim, dt=dt, rate=rate)
+            pairs_per_dim=pairs_per_dim, dt=dt, rate=rate
+        )
         self.noise_exp = noise_exp  # noise exponent for added voltage noise
 
     def __str__(self):
-        return (
-            "%s(pairs_per_dim=%d, dt=%0.3g, rate=%0.3g, noise_exp=%0.3g)" % (
-                type(self).__name__,
-                self.pairs_per_dim,
-                self.dt,
-                self.rate,
-                self.noise_exp,
-            )
+        return "%s(pairs_per_dim=%d, dt=%0.3g, rate=%0.3g, noise_exp=%0.3g)" % (
+            type(self).__name__,
+            self.pairs_per_dim,
+            self.dt,
+            self.rate,
+            self.noise_exp,
         )
 
     def get_block(self, weights, block_label=None, syn_label=None):
         block, syn = super(NoisyDecodeNeurons, self).get_block(
-            weights, block_label=block_label, syn_label=syn_label)
+            weights, block_label=block_label, syn_label=syn_label
+        )
 
         if self.noise_exp > -30:
             block.compartment.enable_noise[:] = 1
@@ -251,8 +258,7 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
     """
 
     def __init__(self, dt=0.001, rate=None):
-        super(Preset5DecodeNeurons, self).__init__(
-            pairs_per_dim=5, dt=dt, rate=rate)
+        super(Preset5DecodeNeurons, self).__init__(pairs_per_dim=5, dt=dt, rate=rate)
 
         assert self.pairs_per_dim == 5
         intercepts = np.linspace(-0.8, 0.8, self.pairs_per_dim)
@@ -270,8 +276,7 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
         # ^ repeat for on/off neurons
 
     def __str__(self):
-        return "%s(dt=%0.3g, rate=%0.3g)" % (
-            type(self).__name__, self.dt, self.rate)
+        return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)
 
 
 class Preset10DecodeNeurons(OnOffDecodeNeurons):
@@ -282,8 +287,7 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
     """
 
     def __init__(self, dt=0.001, rate=None):
-        super(Preset10DecodeNeurons, self).__init__(
-            pairs_per_dim=10, dt=dt, rate=rate)
+        super(Preset10DecodeNeurons, self).__init__(pairs_per_dim=10, dt=dt, rate=rate)
 
         # Parameters determined by hyperopt
         assert self.pairs_per_dim == 10
@@ -302,5 +306,4 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
         # ^ repeat for on/off neurons
 
     def __str__(self):
-        return "%s(dt=%0.3g, rate=%0.3g)" % (
-            type(self).__name__, self.dt, self.rate)
+        return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)

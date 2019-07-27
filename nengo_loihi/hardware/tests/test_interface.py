@@ -20,7 +20,7 @@ def test_error_on_old_version(monkeypatch):
     mock = MockNxsdk()
     mock.__version__ = "0.5.5"
 
-    monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
+    monkeypatch.setattr(hardware_interface, "nxsdk", mock)
     with pytest.raises(ImportError, match="nxsdk"):
         hardware_interface.HardwareInterface.check_nxsdk_version()
 
@@ -29,8 +29,8 @@ def test_no_warn_on_current_version(monkeypatch):
     mock = MockNxsdk()
     mock.__version__ = "0.8.5"
 
-    monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
-    monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
+    monkeypatch.setattr(hardware_interface, "nxsdk", mock)
+    monkeypatch.setattr(hardware_interface, "assert_nxsdk", lambda: True)
     with pytest.warns(None) as record:
         hardware_interface.HardwareInterface.check_nxsdk_version()
     assert len(record) == 0
@@ -40,14 +40,14 @@ def test_warn_on_future_version(monkeypatch):
     mock = MockNxsdk()
     mock.__version__ = "100.0.0"
 
-    monkeypatch.setattr(hardware_interface, 'nxsdk', mock)
-    monkeypatch.setattr(hardware_interface, 'assert_nxsdk', lambda: True)
+    monkeypatch.setattr(hardware_interface, "nxsdk", mock)
+    monkeypatch.setattr(hardware_interface, "assert_nxsdk", lambda: True)
     with pytest.warns(UserWarning):
         hardware_interface.HardwareInterface.check_nxsdk_version()
 
 
 def test_builder_poptype_errors():
-    pytest.importorskip('nxsdk')
+    pytest.importorskip("nxsdk")
 
     # Test error in build_synapse
     model = Model()
@@ -94,15 +94,16 @@ def test_builder_poptype_errors():
         build_board(board)
 
 
-@pytest.mark.skipif(pytest.config.getoption('--target') != 'loihi',
-                    reason="Loihi-only test")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi", reason="Loihi-only test"
+)
 def test_interface_connection_errors(Simulator):
     with nengo.Network() as net:
         nengo.Ensemble(2, 1)
 
     # test unbuilt model error
     with Simulator(net) as sim:
-        sim.sims['loihi'].nxsdk_board = None
+        sim.sims["loihi"].nxsdk_board = None
 
         with pytest.raises(SimulationError, match="build.*before running"):
             sim.step()
@@ -112,15 +113,16 @@ def test_interface_connection_errors(Simulator):
         raise Exception("Mock failure to connect")
 
     with Simulator(net) as sim:
-        interface = sim.sims['loihi']
-        d_set(interface.nxsdk_board, b'c3RhcnQ=', val=start)
+        interface = sim.sims["loihi"]
+        d_set(interface.nxsdk_board, b"c3RhcnQ=", val=start)
 
         with pytest.raises(SimulationError, match="[Cc]ould not connect"):
             interface.connect(attempts=1)
 
 
-@pytest.mark.skipif(pytest.config.getoption("--target") != "loihi",
-                    reason="snips only exist on loihi")
+@pytest.mark.skipif(
+    pytest.config.getoption("--target") != "loihi", reason="snips only exist on loihi"
+)
 def test_snip_input_count(Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:
         a = nengo.Ensemble(100, 1)

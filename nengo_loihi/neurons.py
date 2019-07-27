@@ -16,8 +16,8 @@ def discretize_tau_rc(tau_rc, dt):
     """
     lib = tf if HAS_TF and isinstance(tau_rc, tf.Tensor) else np
 
-    decay_rc = -lib.expm1(-dt / tau_rc)
-    decay_rc = lib.round(decay_rc * (2**12 - 1)) / (2**12 - 1)
+    decay_rc = -(lib.expm1(-dt / tau_rc))
+    decay_rc = lib.round(decay_rc * (2 ** 12 - 1)) / (2 ** 12 - 1)
     return -dt / lib.log1p(-decay_rc)
 
 
@@ -42,7 +42,7 @@ def loihi_lif_rates(neuron_type, x, gain, bias, dt):
 
     j = neuron_type.current(x, gain, bias) - 1
     out = np.zeros_like(j)
-    period = tau_ref + tau_rc * np.log1p(1. / j[j > 0])
+    period = tau_ref + tau_rc * np.log1p(1.0 / j[j > 0])
     out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
     return out
 
@@ -51,7 +51,7 @@ def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt):
     j = neuron_type.current(x, gain, bias)
 
     out = np.zeros_like(j)
-    period = 1. / j[j > 0]
+    period = 1.0 / j[j > 0]
     out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
     return out
 
@@ -102,18 +102,15 @@ class LoihiLIF(LIF):
     """
 
     def __init__(
-            self,
-            tau_rc=0.02,
-            tau_ref=0.002,
-            min_voltage=0,
-            amplitude=1,
-            nengo_dl_noise=None,
+        self,
+        tau_rc=0.02,
+        tau_ref=0.002,
+        min_voltage=0,
+        amplitude=1,
+        nengo_dl_noise=None,
     ):
         super(LoihiLIF, self).__init__(
-            tau_rc=tau_rc,
-            tau_ref=tau_ref,
-            min_voltage=min_voltage,
-            amplitude=amplitude,
+            tau_rc=tau_rc, tau_ref=tau_ref, min_voltage=min_voltage, amplitude=amplitude
         )
         self.nengo_dl_noise = nengo_dl_noise
 
@@ -171,6 +168,7 @@ class NeuronOutputNoise:
     implementation in spiking neurons to simulate the variability
     caused by spiking.
     """
+
     pass
 
 
@@ -198,6 +196,7 @@ class LowpassRCNoise(NeuronOutputNoise):
        Biological Approaches to Object Recognition." PhD thesis. pp. 106--113.
        (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)
     """
+
     def __init__(self, tau_s):
         self.tau_s = tau_s
 
@@ -229,6 +228,7 @@ class AlphaRCNoise(NeuronOutputNoise):
        Biological Approaches to Object Recognition." PhD thesis. pp. 106--113.
        (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)
     """
+
     def __init__(self, tau_s):
         self.tau_s = tau_s
 
