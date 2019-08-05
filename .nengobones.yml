@@ -91,7 +91,6 @@ setup_cfg:
       - superfluous-parens
       - undefined-loop-variable
       - unnecessary-pass
-      - unused-import
       - unused-variable
       - wrong-import-position
     known_third_party:

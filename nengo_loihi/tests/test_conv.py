@@ -3,7 +3,7 @@ import pickle
 
 import nengo
 from nengo.dists import Uniform
-from nengo.exceptions import BuildError, ValidationError
+from nengo.exceptions import ValidationError
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
 import numpy as np

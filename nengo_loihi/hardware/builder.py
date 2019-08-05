@@ -1,10 +1,7 @@
-from __future__ import division
-
 import logging
 
 import nengo.utils.numpy as npext
 from nengo.exceptions import BuildError
-from nengo.utils.stdlib import groupby
 import numpy as np
 
 from nengo_loihi.discretize import bias_to_manexp

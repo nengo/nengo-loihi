@@ -1,5 +1,3 @@
-from __future__ import division
-
 import collections
 from distutils.version import LooseVersion
 import logging
