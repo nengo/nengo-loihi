@@ -653,7 +653,7 @@ class Synapse:
 
         Does not include ``axon_compartment_base``.
         """
-        return max(i.max() if len(i) > 0 else -1 for i in self.indices)
+        return max(i.max() if i.size > 0 else -1 for i in self.indices)
 
     def _set_weights_indices(self, weights, indices=None):
         weights = [np.array(w, copy=False, dtype=np.float32, ndmin=2) for w in weights]
