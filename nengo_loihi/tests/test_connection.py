@@ -752,3 +752,38 @@ def test_input_synapses(Simulator, allclose, plt):
 
     # Only looking at t < 0.4 as there are weird effects at the end
     assert allclose(ref_filt[t < 0.4], sim_filt[t < 0.4], atol=1.5)
+
+
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+def test_sparse_transforms_empty_neurons(Simulator):
+    """Test that sparse transforms work properly, even if some neurons get no input"""
+    n_neurons = 3
+    transform = nengo_transforms.Sparse(
+        shape=(n_neurons, n_neurons), indices=[(0, 0), (2, 2)], init=[1, 2]
+    )
+
+    with nengo.Network() as model:
+        x = nengo.Ensemble(
+            n_neurons,
+            1,
+            max_rates=nengo.dists.Choice([200]),
+            intercepts=nengo.dists.Choice([-1]),
+        )
+        y = nengo.Ensemble(
+            n_neurons,
+            1,
+            max_rates=nengo.dists.Choice([100]),
+            intercepts=nengo.dists.Choice([0]),
+        )
+        nengo.Connection(x.neurons, y.neurons, transform=transform)
+
+        probe = nengo.Probe(y.neurons)
+
+    with Simulator(model) as sim:
+        # Ensure the model builds and runs correctly as this used to raise a ValueError
+        assert sim
+        sim.run(0.1)
+
+    # only the first and third neurons should get input, not the second
+    spikes = (sim.data[probe] > 0).sum(axis=0)
+    assert np.array_equal(spikes > 0, [1, 0, 1])

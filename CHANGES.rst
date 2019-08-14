@@ -60,6 +60,9 @@ Release history
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 - Fixed an issue that prevented population spikes to be sent to the chip when
   ``precompute=True``. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Fixed a bug preventing making sparse connections to an ensemble.
+  (`#245 <https://github.com/nengo/nengo-loihi/issues/245>`__,
+  `#246 <https://github.com/nengo/nengo-loihi/pull/246>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
