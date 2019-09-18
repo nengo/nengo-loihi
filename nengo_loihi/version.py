@@ -9,7 +9,7 @@ import warnings
 
 
 def check_nengo_version():
-    import nengo
+    import nengo  # pylint: disable=import-outside-toplevel
 
     if nengo.version.version_info < minimum_nengo_version_info:
         raise ValueError(

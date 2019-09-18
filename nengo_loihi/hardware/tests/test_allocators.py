@@ -194,10 +194,7 @@ def test_round_robin_allocator_over():
     assert len(chip2.cores[0].inputs) == 1
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi",
-    reason="Hardware allocators are Loihi-only",
-)
+@pytest.mark.target_loihi
 def test_deterministic_network_allocation(Simulator, seed):
     # test that we get the same simulations results across allocators.
     # the determinism of the allocation itself is covered by other unit tests.

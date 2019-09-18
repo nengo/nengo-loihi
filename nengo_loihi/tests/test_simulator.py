@@ -298,9 +298,7 @@ def test_all_onchip(Simulator):
     assert np.all(sim.data[out_p][-1] > 100)
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi", reason="snips only on Loihi"
-)
+@pytest.mark.target_loihi
 def test_snips_round_robin_unsupported(Simulator):
     with nengo.Network() as model:
         # input is required otherwise precompute will be
@@ -455,10 +453,7 @@ def test_interface(Simulator, allclose):
 
 
 @pytest.mark.hang
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi",
-    reason="Only Loihi has special shutdown procedure",
-)
+@pytest.mark.target_loihi
 def test_loihi_simulation_exception(Simulator):
     """Test that Loihi shuts down properly after exception during simulation"""
 
@@ -711,12 +706,8 @@ def test_precompute(allclose, Simulator, seed, plt):
     assert allclose(sim1.data[p_out], sim2.data[p_out])
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi", reason="Loihi only test"
-)
-@pytest.mark.xfail(
-    pytest.config.getoption("--target") == "loihi", reason="Fails allclose check"
-)
+@pytest.mark.target_loihi
+@pytest.mark.xfail
 def test_input_node_precompute(allclose, Simulator, plt):
     simtime = 1.0
     input_fn = lambda t: np.sin(6 * np.pi * t / simtime)

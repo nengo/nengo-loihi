@@ -94,9 +94,7 @@ def test_builder_poptype_errors():
         build_board(board)
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi", reason="Loihi-only test"
-)
+@pytest.mark.target_loihi
 def test_interface_connection_errors(Simulator):
     with nengo.Network() as net:
         nengo.Ensemble(2, 1)
@@ -120,9 +118,7 @@ def test_interface_connection_errors(Simulator):
             interface.connect(attempts=1)
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi", reason="snips only exist on loihi"
-)
+@pytest.mark.target_loihi
 def test_snip_input_count(Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:
         a = nengo.Ensemble(100, 1)

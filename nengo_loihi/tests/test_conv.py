@@ -50,7 +50,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
                 [-0.5, 3.0, -0.5],
                 [-1.0, 6.0, -0.25],
             ]
-        ).reshape(1, 4, 1, 3)
+        ).reshape((1, 4, 1, 3))
 
         inp_biases = np.array([[1, 5, 1], [2, 1, 2]])
         inp_biases = inp_biases[:, :, None]
@@ -70,7 +70,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
                     [-1.0, 4.0, -0.2],
                 ],
             ]
-        ).reshape(2, 4, 1, 3)
+        ).reshape((2, 4, 1, 3))
 
         inp_biases = np.array([[[1, 5, 1], [2, 1, 2]], [[0, 3, 1], [4, 2, 1]]])
         inp_biases = np.transpose(inp_biases, (1, 2, 0))
@@ -193,7 +193,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclose):
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
-        y = x.reshape(-1, x.shape[-1])
+        y = x.reshape((-1, x.shape[-1]))
         gain = np.asarray(gain)
         bias = np.asarray(bias)
         if gain.ndim == 0:
@@ -201,7 +201,7 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
         if bias.ndim == 0:
             bias = bias * np.ones(x.shape[-1])
         rates = loihi_rates(neuron_type, y, gain, bias, dt)
-        return rates.reshape(*x.shape)
+        return rates.reshape(x.shape)
 
     if channels_last:
         plt.saveas = None
@@ -209,6 +209,7 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 
     target = request.config.getoption("--target")
     if target != "loihi" and len(hw_opts) > 0:
+        plt.saveas = None
         pytest.skip("Hardware options only available on hardware")
 
     pop_type = 32
@@ -217,7 +218,7 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
-    test_x = test10[0][0].reshape(28, 28)
+    test_x = test10[0][0].reshape((28, 28))
     test_x = test_x[3:24, 3:24]
     test_x = 1.999 * test_x - 0.999
 
@@ -350,7 +351,7 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
     # tile(sim_out, vmin=0, vmax=1, cols=8, ax=ax)
     tile(sim_out, vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
+    assert allclose(sim_out, ref_out, atol=12, rtol=1e-3)
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
@@ -365,7 +366,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
-    test_x = test10[0][0].reshape(28, 28)
+    test_x = test10[0][0].reshape((28, 28))
     test_x = 1.999 * test_x - 0.999  # range (-1, 1)
     input_shape = nengo_transforms.ChannelShape(
         (test_x.shape + (channels,)) if channels_last else ((channels,) + test_x.shape),
@@ -701,7 +702,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
     ax = plt.subplot(rows, cols, 6)
     tile(loihi_out, vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    assert allclose(loihi_out, nengo_out, atol=0.05 * out_max, rtol=0.15)
+    assert allclose(loihi_out, nengo_out, atol=0.15 * out_max, rtol=0.15)
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
@@ -730,8 +731,10 @@ def test_conv_preslice(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_gain, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
-    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
+    y_ref = conv2d(
+        y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
+    )
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
 
     with nengo.Network() as net:
         u = nengo.Node(image2.ravel())
@@ -744,7 +747,7 @@ def test_conv_preslice(Simulator, plt):
         )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
         b = nengo.Ensemble(
@@ -764,7 +767,7 @@ def test_conv_preslice(Simulator, plt):
         sim.run(0.3)
 
     y_ref = y_ref / input_gain
-    y = sim.data[bp][-1].reshape(3, -1) / input_gain
+    y = sim.data[bp][-1].reshape((3, -1)) / input_gain
 
     plt.subplot(121)
     plt.imshow(y_ref)
@@ -802,8 +805,10 @@ def test_conv_onchip(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
-    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
+    y_ref = conv2d(
+        y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
+    )
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
 
     with nengo.Network() as net:
         a = nengo.Ensemble(
@@ -815,7 +820,7 @@ def test_conv_onchip(Simulator, plt):
         )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+            n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
         b = nengo.Ensemble(
@@ -833,7 +838,7 @@ def test_conv_onchip(Simulator, plt):
         sim.run(0.3)
 
     y_ref = y_ref / input_scale
-    y = sim.data[bp][-1].reshape(3, -1) / input_scale
+    y = sim.data[bp][-1].reshape((3, -1)) / input_scale
 
     plt.subplot(121)
     plt.imshow(y_ref)
@@ -871,8 +876,10 @@ def test_conv_overlap_input(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(y_ref.reshape(1, 5, 5, 1), kernel.reshape(3, 3, 1, 1), pad="VALID")
-    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape(3, 3)
+    y_ref = conv2d(
+        y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
+    )
+    y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
 
     with nengo.Network() as net:
         a = nengo.Ensemble(
@@ -884,7 +891,7 @@ def test_conv_overlap_input(Simulator, plt):
         )
 
         transform = nengo_transforms.Convolution(
-            n_filters=1, input_shape=(4, 5, 1), init=kernel.reshape(3, 3, 1, 1)
+            n_filters=1, input_shape=(4, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
         b0 = nengo.Ensemble(
@@ -911,8 +918,8 @@ def test_conv_overlap_input(Simulator, plt):
         sim.run(0.3)
 
     y_ref = y_ref / input_scale
-    y0 = sim.data[b0p][-1].reshape(2, -1) / input_scale
-    y1 = sim.data[b1p][-1].reshape(2, -1) / input_scale
+    y0 = sim.data[b0p][-1].reshape((2, -1)) / input_scale
+    y1 = sim.data[b1p][-1].reshape((2, -1)) / input_scale
 
     plt.subplot(131)
     plt.imshow(y_ref)

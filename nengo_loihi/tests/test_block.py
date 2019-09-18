@@ -47,10 +47,8 @@ def test_strings():
     assert str(spike) == "Spike(axon_id=7, atom=2)"
 
 
-@pytest.mark.xfail(
-    pytest.config.getvalue("--target") == "loihi",
-    reason="Existing bug with negative cx_base on Loihi",
-)
+# TODO: Only targeting sim due to bug with negative cx_base on Loihi
+@pytest.mark.target_sim
 def test_negative_base(request, seed):
     n_axons = 3
 

@@ -1,3 +1,5 @@
+import logging
+
 import nengo
 from nengo.exceptions import BuildError
 from nengo.utils.numpy import rms
@@ -42,7 +44,7 @@ def test_overflow_signed(b, rng):
 
 
 @pytest.mark.parametrize("offset", (0, 1))
-def test_decay_magnitude(offset, plt, logger):
+def test_decay_magnitude(offset, plt):
     bits = 12
     decays = np.arange(1, 2 ** bits, 7)
     ref = []
@@ -85,7 +87,7 @@ def test_decay_magnitude(offset, plt, logger):
     est = np.array(est)
     rms_ref = rms(ref - emp) / rms(emp)
     rms_est = rms(est - emp) / rms(emp)
-    logger.info(
+    logging.info(
         "Ref rel RMSE: %0.3e, decay_magnitude rel RMSE: %0.3e" % (rms_ref, rms_est)
     )
 

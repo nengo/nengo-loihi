@@ -1,5 +1,6 @@
-import numpy as np
 import nengo
+from nengo_extras.neurons import SoftLIFRate
+import numpy as np
 import pytest
 
 from nengo_loihi.builder.nengo_dl import install_dl_builders
@@ -271,22 +272,24 @@ def rate_nengo_dl_net(
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") == "loihi", reason="only uses nengo-dl"
-)
+@pytest.mark.target_sim
 @pytest.mark.parametrize(
     "neuron_type",
     [
-        LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002),
-        LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
+        pytest.param(
+            LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002), marks=pytest.mark.xfail
+        ),
+        pytest.param(
+            LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
+            marks=pytest.mark.xfail,
+        ),
         LoihiSpikingRectifiedLinear(),
         LoihiSpikingRectifiedLinear(amplitude=0.42),
     ],
 )
 def test_nengo_dl_neuron_grads(neuron_type, plt):
-    from nengo_extras.neurons import SoftLIFRate
-    import tensorflow as tf
-    from tensorflow.python.ops import gradient_checker
+    tf = pytest.importorskip("tensorflow")
+    gradient_checker = pytest.importorskip("tensorflow.python.ops").gradient_checker
 
     install_dl_builders()
 
@@ -389,9 +392,7 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") == "loihi", reason="only uses nengo-dl"
-)
+@pytest.mark.target_sim
 @pytest.mark.parametrize(
     "neuron_type",
     [

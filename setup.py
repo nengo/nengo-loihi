@@ -47,8 +47,11 @@ tests_req = [
     "coverage>=4.3",
     "nengo-extras",
     "pytest>=3.4,<4",
+    "pytest-allclose>=1.0.0",
     "pytest-cov>=2.6.0",
-    "pytest-xdist>=1.26.0,<1.28.0",
+    "pytest-plt>=1.0.0",
+    "pytest-rng>=1.0.0",
+    "pytest-xdist<1.28.0",
     "matplotlib>=2.0",
     "tensorflow<1.14",
 ]

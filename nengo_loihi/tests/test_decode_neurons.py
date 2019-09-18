@@ -17,7 +17,7 @@ from nengo_loihi.decode_neurons import (
     [
         (OnOffDecodeNeurons(), 0.35),
         (NoisyDecodeNeurons(5), 0.12),
-        (NoisyDecodeNeurons(10), 0.10),
+        (NoisyDecodeNeurons(10), 0.11),
         (Preset5DecodeNeurons(), 0.06),
         (Preset10DecodeNeurons(), 0.03),
     ],

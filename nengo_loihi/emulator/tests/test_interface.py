@@ -37,9 +37,7 @@ def test_strict_mode(strict, monkeypatch):
         emu.compartment.error("Error in emulator")
 
 
-@pytest.mark.skipif(
-    pytest.config.getoption("--target") != "loihi", reason="need Loihi as comparison"
-)
+@pytest.mark.target_loihi
 @pytest.mark.parametrize("n_axons", [200, 1000])
 def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     # TODO: Currently this is not testing the V overflow, since it is higher

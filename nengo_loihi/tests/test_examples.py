@@ -12,8 +12,10 @@ except ImportError:
         return (cell for cell in nb.cells if cell.cell_type == cell_type)
 
     def load_notebook(nb_path):
-        import io
-        from nengo.utils.ipython import nbformat
+        import io  # pylint: disable=import-outside-toplevel
+        from nengo.utils.ipython import (
+            nbformat,
+        )  # pylint: disable=import-outside-toplevel
 
         with io.open(nb_path, "r", encoding="utf-8") as f:
             nb = nbformat.read(f, as_version=4)
