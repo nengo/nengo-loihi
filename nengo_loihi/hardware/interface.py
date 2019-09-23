@@ -125,9 +125,7 @@ class HardwareInterface:
             )
 
     def _iter_probes(self):
-        for block in self.model.blocks:
-            for probe in block.probes:
-                yield probe
+        return iter(self.model.probes)
 
     @property
     def is_built(self):
@@ -182,29 +180,69 @@ class HardwareInterface:
             self.host_socket.connect((host_address, self.host_socket_port))
             self.host_socket_connected = True
 
+    def _get_weighted_probe(self, probe, outputs):
+        # `outputs` shape is (blocks in probe, timesteps, outputs in block)
+        assert len(outputs) == len(probe.targets)
+
+        weighted_outputs = []
+        for k, output in enumerate(outputs):
+            output = np.asarray(output)  # , dtype=np.float32)
+            if probe.weights[k] is not None:
+                output = output.dot(probe.weights[k])
+            weighted_outputs.append(output)
+
+        nt = weighted_outputs[0].shape[0] if weighted_outputs[0].ndim == 2 else None
+        nc = sum(x.shape[-1] for x in weighted_outputs)
+        assert all(
+            x.shape[0] == nt if x.ndim == 2 else x.ndim == 1 for x in weighted_outputs
+        )
+
+        result = (
+            np.hstack(weighted_outputs)
+            if nt is None
+            else np.column_stack(weighted_outputs)
+        )
+        if probe.reindexing is not None:
+            result = result[..., probe.reindexing]
+
+        if nt is None and result.ndim == 2:
+            assert result.shape[0] == 1, "nt: %s, nc: %s, result.shape: %s" % (
+                nt,
+                nc,
+                result.shape,
+            )
+            result.shape = (-1,)
+
+        assert (
+            nt is None and result.shape == (nc,) or result.shape == (nt, nc)
+        ), "nt: %s, nc: %s, result.shape: %s" % (nt, nc, result.shape)
+
+        return result
+
     def _chip2host_monitor(self, probes_receivers):
         increment = None
         for probe, receiver in probes_receivers.items():
             assert not probe.use_snip
-            nxsdk_probe = self.board.probe_map[probe]
-            x = np.column_stack(
-                [
-                    d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")[
-                        self._chip2host_sent_steps :
+            nxsdk_probes = self.board.probe_map[probe]
+            outputs = [
+                np.column_stack(
+                    [
+                        d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")[
+                            self._chip2host_sent_steps :
+                        ]
+                        for p in nxsdk_probe
                     ]
-                    for p in nxsdk_probe
-                ]
-            )
-            assert x.ndim == 2
+                )
+                for nxsdk_probe in nxsdk_probes
+            ]
 
-            if len(x) > 0:
+            if len(outputs) > 0:
+                x = self._get_weighted_probe(probe, outputs)
+
                 if increment is None:
                     increment = len(x)
 
                 assert increment == len(x), "All x need same number of steps"
-
-                if probe.weights is not None:
-                    x = np.dot(x, probe.weights)
 
                 for j in range(len(x)):
                     receiver.receive(
@@ -248,19 +286,19 @@ class HardwareInterface:
 
         for probe in self._snip_probe_data:
             assert probe.use_snip
-            x = data[snip_range[probe]]
-            assert x.ndim == 1
+            outputs = [data[r] for r in snip_range[probe]]
+            assert all(x.ndim == 1 for x in outputs)
+
             if probe.key == "spiked":
-                assert isinstance(probe.target, LoihiBlock)
-                refract_delays = probe.target.compartment.refract_delay
+                assert all(isinstance(target, LoihiBlock) for target in probe.targets)
+                for i, output in enumerate(outputs):
+                    # Loihi uses the voltage value to indicate where we
+                    # are in the refractory period. We want to find neurons
+                    # starting their refractory period.
+                    refract_delays = probe.targets[i].compartment.refract_delay
+                    outputs[i] = output == refract_delays * d(b"MTI4", int)
 
-                # Loihi uses the voltage value to indicate where we
-                # are in the refractory period. We want to find neurons
-                # starting their refractory period.
-                x = x == refract_delays * d(b"MTI4", int)
-
-            if probe.weights is not None:
-                x = np.dot(x, probe.weights)
+            x = self._get_weighted_probe(probe, outputs)
 
             receiver = probes_receivers.get(probe, None)
             if receiver is not None:
@@ -442,11 +480,15 @@ class HardwareInterface:
         if probe.use_snip:
             data = self._snip_probe_data[probe]
         else:
-            nxsdk_probe = self.board.probe_map[probe]
-            data = np.column_stack(
-                [d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==") for p in nxsdk_probe]
-            )
-            data = data if probe.weights is None else np.dot(data, probe.weights)
+            nxsdk_probes = self.board.probe_map[probe]
+            outputs = [
+                np.column_stack(
+                    [d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==") for p in nxsdk_probe]
+                )
+                for nxsdk_probe in nxsdk_probes
+            ]
+            data = self._get_weighted_probe(probe, outputs)
+
         return self._filter_probe(probe, data)
 
     def create_io_snip(self):
@@ -478,21 +520,24 @@ class HardwareInterface:
         cores = set()
         # TODO: should snip_range be stored on the probe?
         snip_range = {}
-        for block in self.model.blocks:
-            for probe in block.probes:
-                if probe.use_snip:
-                    info = probe.snip_info
-                    assert info["key"] in ("u", "v", "spike")
-                    # For spike probes, we record V and determine if the neuron
-                    # spiked in Simulator.
-                    cores.add(info["core_id"])
-                    snip_range[probe] = slice(
-                        n_outputs - 1, n_outputs + len(info["compartment_idxs"]) - 1
+        for probe in self._iter_probes():
+            if probe.use_snip:
+                info = probe.snip_info
+                key = info["key"]
+                assert key in ("u", "v", "spike")
+                # For spike probes, we record V and determine if the neuron
+                # spiked in Simulator.
+
+                snip_range[probe] = []
+                for core_id, compartment_idxs in zip(
+                    info["core_id"], info["compartment_idxs"]
+                ):
+                    cores.add(core_id)
+                    snip_range[probe].append(
+                        slice(n_outputs - 1, n_outputs + len(compartment_idxs) - 1)
                     )
-                    for compartment in info["compartment_idxs"]:
-                        probes.append(
-                            (n_outputs, info["core_id"], compartment, info["key"])
-                        )
+                    for compartment in compartment_idxs:
+                        probes.append((n_outputs, core_id, compartment, key))
                         n_outputs += 1
 
         # obfuscated strings used in templates

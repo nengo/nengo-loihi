@@ -241,7 +241,8 @@ def discretize_block(block):
     for synapse in block.synapses:
         discretize_synapse(synapse, w_max, p["w_scale"], p["w_exp"])
     for probe in block.probes:
-        discretize_probe(probe, p["v_scale"][0])
+        i = probe.targets.index(block)
+        discretize_probe(probe, i, p["v_scale"][0])
 
 
 def discretize_compartment(comp, w_max):
@@ -486,6 +487,6 @@ def discretize_weights(
     return w
 
 
-def discretize_probe(probe, v_scale):
-    if probe.key == "voltage" and probe.weights is not None:
-        probe.weights /= v_scale
+def discretize_probe(probe, i, v_scale):
+    if probe.key == "voltage" and probe.weights[i] is not None:
+        probe.weights[i] /= v_scale

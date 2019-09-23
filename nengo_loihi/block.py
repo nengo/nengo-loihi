@@ -5,6 +5,7 @@ from nengo.exceptions import BuildError
 import numpy as np
 import scipy.sparse
 
+from nengo_loihi.compat import is_iterable
 from nengo_loihi.nxsdk_obfuscation import d
 
 
@@ -39,8 +40,6 @@ class LoihiBlock:
         Mapping from a name to a Synapse object.
     label : string
         A label for the block (for debugging purposes).
-    probes : list of Probe
-        Probes recording information from objects in the block.
     synapses : list of Synapse
         Synapse objects projecting to compartments in the block.
     """
@@ -53,7 +52,7 @@ class LoihiBlock:
         self.axons = []
         self.synapses = []
         self.named_synapses = {}
-        self.probes = []
+        self.probes = []  # convenience list of probes that target this block
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
@@ -66,10 +65,6 @@ class LoihiBlock:
 
     def add_axon(self, axon):
         self.axons.append(axon)
-
-    def add_probe(self, probe):
-        assert probe.target is self
-        self.probes.append(probe)
 
 
 class Config:
@@ -761,13 +756,13 @@ class Probe:
 
     Parameters
     ----------
-    target : LoihiBlock
+    target : LoihiBlock or list of LoihiBlock
         The block to record values from. Use ``slice`` to record from a subset
         of compartments.
     key : string ('current', 'voltage', 'spiked')
         The compartment attribute to probe.
-    slice : slice or list
-        Select a subset of the compartments in the block to record from.
+    slice : list of <slice or list>
+        Select a subset of the compartments in each block to record from.
     synapse : nengo.synapses.Synapse
         A synapse to use for filtering the probe.
     weights : np.ndarray
@@ -776,11 +771,57 @@ class Probe:
 
     _slice = slice
 
-    def __init__(self, target=None, key=None, slice=None, weights=None, synapse=None):
-        self.target = target
+    def __init__(
+        self,
+        targets=None,
+        key=None,
+        slices=None,
+        weights=None,
+        synapse=None,
+        reindexing=None,
+    ):
+        iterable_targets = is_iterable(targets)
+        self.targets = (
+            [] if targets is None else list(targets) if iterable_targets else [targets]
+        )
+        assert all(isinstance(target, LoihiBlock) for target in self.targets)
+
+        self.slices = (
+            [self._slice(None) for _ in self.targets]
+            if slices is None
+            else slices
+            if iterable_targets
+            else [slices]
+        )
+        assert len(self.slices) == len(self.targets)
+
+        self.reindexing = reindexing
+        if self.reindexing is not None:
+            assert len(reindexing) == sum(
+                np.arange(target.compartment.n_compartments)[slice].size
+                for target, slice in zip(self.targets, self.slice)
+            )
+
+        # self.reindexing = (
+        #     None
+        #     if reindexing is None
+        #     else reindexing
+        #     if iterable_targets
+        #     else [reindexing]
+        # )
+        # if self.reindexing is not None:
+        #     assert len(reindexing) == len(self.targets)
+
+        self.weights = (
+            [None for _ in self.targets]
+            if weights is None
+            else weights
+            if iterable_targets
+            else [weights]
+        )
+        # assert len(self.weights) == len(self.targets)
+
         self.key = key
-        self.slice = slice if slice is not None else self._slice(None)
-        self.weights = weights
         self.synapse = synapse
         self.use_snip = False
         self.snip_info = None

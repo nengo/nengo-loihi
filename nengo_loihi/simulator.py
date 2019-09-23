@@ -275,7 +275,7 @@ class Simulator:
         """Copy all probed signals to buffers."""
         self._probe_step_time()
 
-        for probe in self.model.probes:
+        for probe in self.model.nengo_probes:
             if probe in self.model.chip2host_params:
                 continue
             assert probe.sample_every is None, "probe.sample_every not implemented"
@@ -318,7 +318,7 @@ class Simulator:
         self.timers = dict(steps=0.0)
 
         # clear probe data
-        for probe in self.model.probes:
+        for probe in self.model.nengo_probes:
             self._probe_outputs[probe] = []
         self.data.reset()
 
@@ -371,7 +371,7 @@ class Simulator:
             spike_target = receiver.spike_target
             error_target = receiver.error_target
             if error_target is not None:
-                conn = self.model.probe_conns[error_target]
+                conn = self.model.nengo_probe_conns[error_target]
                 error_synapse = self.model.objs[conn]["decoders"]
                 assert error_synapse.learning
             else:

@@ -122,6 +122,7 @@ class Model:
         # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()
         self.blocks = OrderedDict()
+        self.probes = []
 
         # Will be filled in by the simulator __init__
         self.split = None
@@ -131,10 +132,10 @@ class Model:
         self.config = None
 
         # Resources used by the build process
-        self.objs = defaultdict(dict)
-        self.params = {}  # Holds data generated when building objects
-        self.probes = []
-        self.probe_conns = {}
+        self.objs = defaultdict(dict)  # maps Nengo objects to Loihi objects
+        self.params = {}  # maps Nengo objects to data generated during build
+        self.nengo_probes = []  # list of Nengo probes in the model
+        self.nengo_probe_conns = {}
         self.seeds = {}
         self.seeded = {}
 

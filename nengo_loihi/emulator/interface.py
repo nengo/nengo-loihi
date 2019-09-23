@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 import logging
 import warnings
 
@@ -56,7 +56,7 @@ class EmulatorInterface:
             strict=self.strict,
         )
         self.axons = AxonState(self.block_info)
-        self.probes = ProbeState(self.block_info, self.inputs, model.dt)
+        self.probes = ProbeState(self.block_info, list(model.probes), model.dt)
 
         self.t = 0
         self._chip2host_sent_steps = 0
@@ -577,23 +577,36 @@ class ProbeState:
         Maps Probes to the SpikeInput that they are probing.
     """
 
-    def __init__(self, block_info, inputs, dt):
+    def __init__(self, block_info, probes, dt):
         self.dt = dt
 
         self.probes = OrderedDict()
-        for block in block_info.blocks:
-            for probe in block.probes:
-                self.probes[probe] = block_info.slices[block]
+        for probe in probes:
+            block_slices = OrderedDict(
+                [(block, block_info.slices[block]) for block in probe.targets]
+            )
+            self.probes[probe] = block_slices
 
         self.filters = {}
         self.filter_pos = {}
-        for probe, sl in self.probes.items():
+        for probe, block_slices in self.probes.items():
             if probe.synapse is not None:
-                if probe.weights is None or is_number(probe.weights):
-                    size = sl.stop - sl.start
-                else:
-                    assert is_array(probe.weights) and probe.weights.ndim == 2
-                    size = probe.weights.shape[1]
+                size = 0
+                for k, (block, block_slice) in enumerate(block_slices.items()):
+                    assert block_slice.step in (None, 1)
+                    raw_size = block_slice.stop - block_slice.start
+                    weights = probe.weights[k]
+
+                    probe_slice = probe.slices[k]
+                    if probe_slice != slice(None):
+                        raw_size = np.arange(raw_size)[probe_slice].size
+
+                    if weights is None or is_number(weights):
+                        size += raw_size
+                    else:
+                        assert is_array(weights) and weights.ndim == 2
+                        assert weights.shape[0] == raw_size
+                        size += weights.shape[1]
 
                 self.filters[probe] = make_process_step(
                     probe.synapse,
@@ -605,12 +618,38 @@ class ProbeState:
                 )
                 self.filter_pos[probe] = 0
 
-        self.outputs = defaultdict(list)
+        self.outputs = {probe: [] for probe in self.probes}
+        # self.outputs = {}
+        # for probe, block_slices in self.probes.items():
+        # self.outputs[probe] = [[] for block in block_slices]
+
+    def _get_weighted(self, probe, outputs=None):
+        # `outputs` shape is (timesteps, blocks in probe, outputs in block)
+        if outputs is None:
+            outputs = self.outputs[probe]  # get all outputs
+
+        nt = len(outputs)
+        block_slices = self.probes[probe]
+        assert all(len(output) == len(block_slices) for output in outputs)
+
+        weighted_outputs = []
+        for k in range(len(block_slices)):
+            output = np.asarray([output[k] for output in outputs], dtype=np.float32)
+            weights = probe.weights[k]
+            if weights is not None:
+                output = output.dot(weights)
+            weighted_outputs.append(output)
+
+        outputs = np.hstack(weighted_outputs)
+        if probe.reindexing is not None:
+            outputs = outputs[:, probe.reindexing]
+        assert outputs.shape == (nt, sum(o.shape[-1] for o in weighted_outputs))
+        return outputs
 
     def __getitem__(self, probe):
         assert isinstance(probe, Probe)
-        out = np.asarray(self.outputs[probe], dtype=np.float32)
-        out = out if probe.weights is None else np.dot(out, probe.weights)
+        out = self._get_weighted(probe)
+        # TODO: if this is called multiple times, won't it change the filter state?
         return self._filter(probe, out) if probe in self.filters else out
 
     def _filter(self, probe, data):
@@ -634,15 +673,20 @@ class ProbeState:
         x = self.outputs[probe][already_sent:]
 
         if len(x) > 0:
-            if probe.weights is not None:
-                x = np.dot(x, probe.weights)
+            x = self._get_weighted(probe, x)
+            # TODO: shouldn't we be filtering here?
             for j, xx in enumerate(x):
                 receiver.receive(self.dt * (already_sent + j + 2), xx)
         return len(x)
 
     def update(self, t, compartment):
-        for probe, sl in self.probes.items():
-            p_slice = probe.slice
+        for probe, block_slices in self.probes.items():
             assert hasattr(compartment, probe.key)
-            output = getattr(compartment, probe.key)[sl][p_slice].copy()
-            self.outputs[probe].append(output)
+            target_attr = getattr(compartment, probe.key)
+
+            outputs = []
+            for k, (block, block_slice) in enumerate(block_slices.items()):
+                probe_slice = probe.slices[k]
+                outputs.append(target_attr[block_slice][probe_slice].copy())
+
+            self.outputs[probe].append(outputs)

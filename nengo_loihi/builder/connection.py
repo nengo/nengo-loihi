@@ -548,7 +548,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
         if isinstance(post_obj, Probe):
             # use non-spiking decode neurons for voltage probing
-            assert post_obj.target is None
+            assert len(post_obj.targets) == 0
             assert post_slice == slice(None)
 
             # use the same scaling as the ensemble does, to get good
@@ -655,10 +655,13 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         mid_obj = decoder_block
 
     if isinstance(post_obj, Probe):
-        assert post_obj.target is None
+        assert len(post_obj.targets) == 0
         assert post_slice == slice(None)
-        post_obj.target = mid_obj
-        mid_obj.add_probe(post_obj)
+        post_obj.targets = [mid_obj]
+        post_obj.slices = [slice(None)]
+        mid_obj.probes.append(post_obj)
+        assert post_obj not in model.probes, "Remove this from final, should not happen"
+        model.probes.append(post_obj)
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_obj, LoihiBlock)
         assert post_slice == slice(None)

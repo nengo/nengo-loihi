@@ -57,7 +57,7 @@ def conn_probe(model, nengo_probe):
             add_to_container=False,
             **kwargs,
         )
-        model.probe_conns[nengo_probe] = conn
+        model.nengo_probe_conns[nengo_probe] = conn
     else:
         conn = Connection(
             nengo_probe.target,
@@ -96,7 +96,7 @@ def conn_probe(model, nengo_probe):
     # add an extra entry for simulator.run_steps to read data out
     model.objs[nengo_probe]["out"] = probe
 
-    # Build the connection
+    # Build the connection (sets probe targets, adds probe)
     model.build(conn)
 
 
@@ -120,13 +120,14 @@ def signal_probe(model, key, probe):
     target = model.objs[probe.obj]["out"]
 
     loihi_probe = Probe(
-        target=target,
+        targets=target,
         key=key,
-        slice=probe.slice,
+        slices=probe.slice,
         synapse=probe.synapse,
         weights=weights,
     )
-    target.add_probe(loihi_probe)
+    target.probes.append(loihi_probe)
+    model.probes.append(loihi_probe)
     model.objs[probe]["in"] = target
     model.objs[probe]["out"] = loihi_probe
 
@@ -163,7 +164,7 @@ def build_probe(model, probe):
     else:
         signal_probe(model, key, probe)
 
-    model.probes.append(probe)
+    model.nengo_probes.append(probe)
 
     # Simulator will fill this list with probe data during simulation
     model.params[probe] = []

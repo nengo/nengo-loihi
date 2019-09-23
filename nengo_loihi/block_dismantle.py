@@ -72,17 +72,9 @@ def dismantle_model(model):
         # leave input the same, but point axons to new blocks
         dismantle_input_axons(input, block_map, synapse_map)
 
-    for nengo_probe in model.probes:
-        loihi_probe = model.objs[nengo_probe]["out"]
-        # assert len(loihi_probe.target) == 1
-        # old_block = loihi_probe.target[0]
-        old_block = loihi_probe.target
-
-        if len(block_map[old_block]) > 1:
-            raise NotImplementedError("Splitting probes not yet supported")
-
-        # loihi_probe.target = list(block_map[old_block])
-        # loihi_probe.slice = list(block_map[old_block].values())
+    for probe in model.probes:
+        # loihi_probe = model.objs[nengo_probe]["out"]
+        dismantle_probe(probe, block_map, synapse_map)
 
     new_blocks = [block for group in block_map.values() for block in group]
 
@@ -99,6 +91,45 @@ def dismantle_model(model):
         pass
 
     # return new_inputs, new_blocks
+
+
+def dismantle_probe(probe, block_map, synapse_map):
+    """Modify probe in place to target new blocks"""
+    assert len(probe.targets) == len(probe.slices) == len(probe.weights) == 1
+    old_block = probe.targets[0]
+    old_weights = probe.weights[0]
+    scalar_weights = not isinstance(old_weights, np.ndarray) or old_weights.size == 1
+
+    new_blocks = block_map[old_block]
+    if len(new_blocks) < 2:
+        return  # block was not split, so current probes are fine
+
+    # TODO: figure out interaction between probe.reindexing and probe.slice
+    assert probe.slices[0] == slice(None)
+
+    targets = []
+    inds = []
+    weights = []
+    slices = []
+    for block, block_comp_inds in new_blocks.items():
+        block_comp_inds = list(block_comp_inds)
+        targets.append(block)
+        inds.append(block_comp_inds)
+        weights.append(old_weights if scalar_weights else old_weights[block_comp_inds])
+        slices.append(slice(None))
+
+    all_inds = np.concatenate(inds)
+    if np.array_equal(all_inds, np.arange(all_inds.size)):
+        probe.reindexing = None
+    # elif probe.weights is not None:
+    #     # permute weights
+    #     probe.weights = probe.weights[all_inds, :]
+    else:
+        probe.reindexing = np.argsort(all_inds)
+
+    probe.targets = targets
+    probe.slices = slices
+    probe.weights = weights
 
 
 def dismantle_block_axons(old_block, block_map, synapse_map):
