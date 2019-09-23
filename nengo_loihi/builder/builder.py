@@ -4,10 +4,10 @@ import logging
 from nengo import Ensemble, Network, Node, Probe
 from nengo.builder import Model as NengoModel
 from nengo.builder.builder import Builder as NengoBuilder
-from nengo.builder.network import build_network
 from nengo.cache import NoDecoderCache
 
 from nengo_loihi.block import LoihiBlock
+from nengo_loihi.config import add_params
 from nengo_loihi.decode_neurons import Preset10DecodeNeurons, OnOffDecodeNeurons
 from nengo_loihi.inputs import LoihiInput
 
@@ -66,8 +66,10 @@ class Model:
 
     Internal attributes
 
-    blocks : list of LoihiBlock
-        List of Loihi blocks simulated by this model.
+    blocks : dict
+        Mapping from Loihi blocks to a unique integer for that block.
+    block_shapes : dict
+        Mapping from Loihi blocks to `.BlockShape` instances.
     builder : Builder
         The build functions used by this model.
     dt : float
@@ -121,6 +123,7 @@ class Model:
         # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()
         self.blocks = OrderedDict()
+        self.block_shapes = {}
         self.probes = []
 
         # Will be filled in by the simulator __init__
@@ -195,7 +198,7 @@ class Model:
 
     def build(self, obj, *args, **kwargs):
         # Don't build the objects marked as "to_remove" by PassthroughSplit
-        if obj in self.split.passthrough.to_remove:
+        if self.split is not None and obj in self.split.passthrough.to_remove:
             return None
 
         if not isinstance(obj, (Node, Ensemble, Probe)):
@@ -211,6 +214,10 @@ class Model:
             # seeding to all other models
             model.seeds[obj] = self.seeds[obj]
             model.seeded[obj] = self.seeded[obj]
+
+        if isinstance(obj, Network):
+            # some build functions assume the network has nengo-loihi config params
+            add_params(obj)
 
         built = model.builder.build(model, obj, *args, **kwargs)
         if self.build_callback is not None:
@@ -238,6 +245,3 @@ class Builder(NengoBuilder):
     """
 
     builders = {}
-
-
-Builder.register(Network)(build_network)

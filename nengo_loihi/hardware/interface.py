@@ -22,7 +22,6 @@ from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.probe import LoihiProbe
-from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +81,6 @@ class HardwareInterface:
         self.seed = seed
 
         self.check_nxsdk_version()
-
-        validate_model(self.model)
 
         # clear cached content from SpikeProbe class attribute
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
@@ -654,7 +651,6 @@ class Snips:
                     outputs.append(data[r])
 
             assert all(x.ndim == 1 for x in outputs)
-
             weighted_outputs = probe.weight_outputs(outputs)[0]
 
             receiver = probes_receivers.get(probe, None)

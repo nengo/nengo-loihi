@@ -17,7 +17,6 @@ from nengo_loihi.discretize import (
     U_BITS,
 )
 from nengo_loihi.probe import LoihiProbe
-from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,6 @@ class EmulatorInterface:
 
     def __init__(self, model, seed=None):
         self.closed = True
-        validate_model(model)
 
         if seed is None:
             seed = np.random.randint(2 ** 31 - 1)

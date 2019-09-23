@@ -26,6 +26,17 @@ home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, "tests")
 
 
+def make_shape(spatial_shape, n_channels, channels_last):
+    s = tuple(spatial_shape)
+    c = (n_channels,)
+    return s + c if channels_last else c + s
+
+
+def make_channel_shape(spatial_shape, n_channels, channels_last):
+    shape = make_shape(spatial_shape, n_channels, channels_last)
+    return nengo_transforms.ChannelShape(shape, channels_last=channels_last)
+
+
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize(
     "pop_type, channels_last, nc",
@@ -104,11 +115,11 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
     # we always compute the pixel/channel idxs with channels_last=True
     # (not sure why?), and then set it to the correct value afterwards
-    inp_shape = nengo_transforms.ChannelShape((ni, nj, nk), channels_last=True)
+    inp_shape = make_channel_shape((ni, nj), nk, channels_last=True)
     inp_ax.set_compartment_axon_map(
         target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
     )
-    inp_shape.shape = (ni, nj, nk) if channels_last else (nk, ni, nj)
+    inp_shape.shape = make_shape((ni, nj), nk, channels_last)
     inp_shape.channels_last = channels_last
 
     inp.add_axon(inp_ax)
@@ -159,11 +170,9 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
             sim_out = sim.get_probe_output(out_probe)
 
     sim_out = np.sum(sim_out, axis=0) * (dt / pres_time)
+    sim_out.shape = make_shape((nyi, nyj), nf, channels_last)
     if channels_last:
-        sim_out.shape = (nyi, nyj, nf)
         sim_out = np.transpose(sim_out, (2, 0, 1))
-    else:
-        sim_out.shape = (nf, nyi, nyj)
 
     out_max = sim_out.max()
 
@@ -328,11 +337,9 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
             sim_out = sim.get_probe_output(out_probe)
 
     sim_out = np.sum(sim_out, axis=0) / pres_time
+    sim_out.shape = make_shape((nyi, nyj), nf, channels_last)
     if channels_last:
-        sim_out.shape = (nyi, nyj, nf)
         sim_out = np.transpose(sim_out, (2, 0, 1))
-    else:
-        sim_out.shape = (nf, nyi, nyj)
 
     out_max = max(ref_out.max(), sim_out.max())
 
@@ -367,10 +374,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
     test_x = test10[0][0].reshape((28, 28))
     test_x = 1.999 * test_x - 0.999  # range (-1, 1)
-    input_shape = nengo_transforms.ChannelShape(
-        (test_x.shape + (channels,)) if channels_last else ((channels,) + test_x.shape),
-        channels_last=channels_last,
-    )
+    input_shape = make_channel_shape(test_x.shape, channels, channels_last)
 
     filters = Gabor(freq=Uniform(0.5, 1)).generate(8, (7, 7), rng=rng)
     filters = filters[None, :, :, :]  # single channel
@@ -492,9 +496,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", [True, False])
 def test_conv_input(channels_last, Simulator, plt, allclose):
-    input_shape = nengo_transforms.ChannelShape(
-        (4, 4, 1) if channels_last else (1, 4, 4), channels_last=channels_last
-    )
+    input_shape = make_channel_shape((4, 4), 1, channels_last=channels_last)
     seed = 3  # fix seed to do the same computation for both channel positions
     rng = np.random.RandomState(seed + 1)
 
@@ -564,9 +566,17 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-@pytest.mark.parametrize("pop_type", [32, 16])
 @pytest.mark.parametrize("precompute", [False, True])
-def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose):
+@pytest.mark.parametrize("channels_last, pop_type", [(False, 32), (True, 16)])
+def test_conv_deepnet(
+    channels_last, pop_type, precompute, Simulator, rng, seed, plt, allclose
+):
+    """Run a convolutional network with two layers on the chip.
+
+    Checks that network with block splitting on the target matches one without
+    on the emulator.
+    """
+
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
     ):
@@ -590,20 +600,17 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
 
         return layer, conv, conn
 
-    channels_last = True
     channels = 1
     n_filters0 = 1
     n_filters1 = 4
     n_filters2 = 4
+
     # load data
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
     test_x = test10[0][0].reshape(28, 28)  # range (0, 1)
-    input_shape = nengo_transforms.ChannelShape(
-        (test_x.shape + (channels,)) if channels_last else ((channels,) + test_x.shape),
-        channels_last=channels_last,
-    )
+    input_shape = make_channel_shape(test_x.shape, channels, channels_last)
 
     filters0 = np.ones((1, 1, channels, n_filters0))
 
@@ -623,6 +630,7 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
     tau_s = 0.001
     max_rate = 100
     amp = 1 / max_rate
+    f_split = 2 if pop_type == 32 else 4
 
     # use Loihi neuron type so Nengo sim mimics Loihi neuron effects
     neuron_type = LoihiSpikingRectifiedLinear(amplitude=amp)
@@ -644,6 +652,7 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
             input_shape=input_shape,
             array_init=filters0,
             strides=(1, 1),
+            channels_last=channels_last,
             label="layer0",
             conn_args=dict(synapse=None),
         )
@@ -654,7 +663,11 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
             input_shape=conv0.output_shape,
             array_init=filters1,
             strides=(2, 2),
+            channels_last=channels_last,
             label="layer1",
+        )
+        net.config[layer1].block_shape = nengo_loihi.BlockShape(
+            make_shape((4, 4), f_split, channels_last), conv1
         )
         net.config[conn1].pop_type = pop_type
 
@@ -663,7 +676,11 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
             input_shape=conv1.output_shape,
             array_init=filters2,
             strides=(1, 1),
+            channels_last=channels_last,
             label="layer2",
+        )
+        net.config[layer2].block_shape = nengo_loihi.BlockShape(
+            make_shape((4, 4), f_split, channels_last), conv2
         )
         net.config[conn2].pop_type = pop_type
 
@@ -674,19 +691,25 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
         sim_nengo.run(pres_time)
         ref_out = (sim_nengo.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
+    with Simulator(net, target="sim") as sim_emu:
+        sim_emu.run(pres_time)
+        emu_out = (sim_emu.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
+
     hw_opts = dict(snip_max_spikes_per_step=800)
     with Simulator(net, precompute=precompute, hardware_options=hw_opts) as sim_loihi:
-        block1 = sim_loihi.model.objs[layer1]["out"]
-        n_axons1 = sum(axon.axon_slots() for axon in block1.axons)
-        n_inputs1 = np.prod(conv1.output_shape.spatial_shape)
-        assert n_axons1 == (2 if pop_type == 32 else 1) * n_inputs1
-
         sim_loihi.run(pres_time)
         sim_out = (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
     out_max = ref_out.max()
     ref_out = ref_out / out_max
+    emu_out = emu_out / out_max
     sim_out = sim_out / out_max
+
+    if channels_last:
+        # channels first, to display channels in separate plots
+        ref_out = np.transpose(ref_out, (2, 0, 1))
+        emu_out = np.transpose(emu_out, (2, 0, 1))
+        sim_out = np.transpose(sim_out, (2, 0, 1))
 
     # --- plot results
     rows = 2
@@ -699,20 +722,19 @@ def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose)
     tile(np.transpose(filters1, (2, 3, 0, 1))[0], rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 3)
-    assert filters2.shape[:2] == (1, 1)
-    filters12 = filters1.dot(filters2[0, 0])
-    tile(np.transpose(filters12, (2, 3, 0, 1))[0], rows=2, cols=2, grid=True, ax=ax)
+    plt.hist((ref_out.ravel(), emu_out.ravel(), sim_out.ravel()), bins=21)
 
     ax = plt.subplot(rows, cols, 4)
-    plt.hist((ref_out.ravel(), sim_out.ravel()), bins=21)
+    tile(ref_out, rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 5)
-    tile(np.transpose(ref_out, (2, 0, 1)), rows=2, cols=2, grid=True, ax=ax)
+    tile(emu_out, rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 6)
-    tile(np.transpose(sim_out, (2, 0, 1)), rows=2, cols=2, grid=True, ax=ax)
+    tile(sim_out, rows=2, cols=2, grid=True, ax=ax)
 
     assert allclose(sim_out, ref_out, atol=0.15, rtol=1e-3)
+    assert allclose(sim_out, emu_out, atol=1e-3, rtol=1e-3)
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
@@ -723,9 +745,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
-    input_shape = nengo_transforms.ChannelShape(
-        (1, 28, 28), channels_last=channels_last
-    )
+    input_shape = make_channel_shape((28, 28), 1, channels_last)
 
     n_filters = 8
     kernel_size = (7, 7)

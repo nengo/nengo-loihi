@@ -1,5 +1,126 @@
+import warnings
+
 import nengo
+from nengo.exceptions import ValidationError
 from nengo.params import Parameter
+import numpy as np
+
+from nengo_loihi.compat import is_integer, nengo_transforms
+
+
+class BlockShapeParam(Parameter):
+    def coerce(self, instance, block_shape):
+        self.check_type(instance, block_shape, BlockShape)
+        return super().coerce(instance, block_shape)
+
+
+class BlockShape:
+    """Specifies how an ensemble should be split across Loihi neuron cores.
+
+    Each neuron core can have, at most, 1024 compartments. Ensembles with more
+    than 1024 neurons are automatically split such that they will be distributed
+    evenly across as few cores as possible.
+
+    This class allows you to split a smaller ensemble onto multiple cores.
+    It also allows you to control the splitting process for any ensemble,
+    which is particularly useful when that ensemble participates in a
+    convolutional connection.
+
+    Parameters
+    ----------
+    shape : tuple of int
+        The conceptual shape of the compartments on each core after splitting.
+        This tuple must have the same number of elements as ``ensemble_shape``.
+    ensemble_shape_or_transform : tuple of int or `nengo.Convolution`
+        The conceptual shape of the neurons in the ensemble. If a `nengo.Convolution`
+        instance is passed, the conceptual shape is inferred automatically.
+
+    Attributes
+    ----------
+    shape : tuple of int
+        The conceptual shape of the compartments on each core after splitting.
+    ensemble_shape : tuple of int
+        The conceptual shape of the neurons in the ensemble.
+
+    Examples
+    --------
+
+    Split an ensemble across two Loihi blocks.
+
+    .. testcode::
+
+       with nengo.Network() as net:
+           nengo_loihi.add_params(net)
+           ens = nengo.Ensemble(10, 1)
+           net.config[ens].block_shape = nengo_loihi.BlockShape((5,), (10,))
+       print(net.config[ens].block_shape.n_splits)
+
+    .. testoutput::
+
+       2
+
+    Interpret an ensemble as a two dimensional layer and split into four blocks.
+
+    .. testcode::
+
+       with nengo.Network() as net:
+           nengo_loihi.add_params(net)
+           ens = nengo.Ensemble(16, 1)
+           net.config[ens].block_shape = nengo_loihi.BlockShape((2, 2), (4, 4))
+       print(net.config[ens].block_shape.n_splits)
+
+    .. testoutput::
+
+       4
+    """
+
+    def __init__(self, shape, ensemble_shape_or_transform):
+        self.ensemble_shape = ensemble_shape_or_transform
+        if nengo_transforms is not None and isinstance(
+            ensemble_shape_or_transform, nengo_transforms.Convolution
+        ):
+            self.ensemble_shape = ensemble_shape_or_transform.output_shape.shape
+        self.shape = shape
+
+        for attr in ["ensemble_shape", "shape"]:
+            shape = getattr(self, attr)
+            if not isinstance(shape, tuple):
+                raise ValidationError("Must be a tuple", attr=attr)
+            if any(not is_integer(el) for el in shape):
+                raise ValidationError("All elements must be an int", attr=attr)
+        if len(self.shape) != len(self.ensemble_shape):
+            raise ValidationError(
+                "`shape` and `ensemble_shape` must be the same length", attr="shape"
+            )
+
+        # Store numpy array versions of these shapes for easier manipulation
+        self._ens_shape = np.asarray(self.ensemble_shape)
+        self._shape = np.asarray(self.shape)
+
+        # See if we can make the block shape smaller while achieving the same
+        # number of splits.
+        n_splits = np.ceil(self._ens_shape / self._shape).astype(int)
+        shape = np.ceil(self._ens_shape / n_splits).astype(int)
+        self.n_splits = np.prod(n_splits)
+        if not np.all(shape == self._shape):
+            self._shape = shape
+            shape = tuple(shape)
+            warnings.warn(
+                "Requested shape %s uses the same number of blocks as %s. "
+                "Using %s instead." % (self.shape, shape, shape)
+            )
+            self.shape = shape
+
+    @property
+    def block_size(self):
+        return np.prod(self._shape)
+
+    @property
+    def ensemble_size(self):
+        return np.prod(self._ens_shape)
+
+    def zip_dimensions(self):
+        return zip(self.ensemble_shape, self.shape)
 
 
 def add_params(network):
@@ -11,6 +132,8 @@ def add_params(network):
       * ``on_chip``: Whether the ensemble should be simulated
         on a Loihi chip. Marking specific ensembles for simulation
         off of a Loihi chip can help with debugging.
+      * ``block_shape``: Specifies how this ensemble should be split across
+        Loihi neuron cores. See `.BlockShape` for more details.
     `nengo.Connection`
       * ``pop_type``: The axon format when using population spikes, which are only
         used for convolutional connections. Must be an int between 16 and 32.
@@ -32,6 +155,10 @@ def add_params(network):
     ens_cfg = config[nengo.Ensemble]
     if "on_chip" not in ens_cfg._extra_params:
         ens_cfg.set_param("on_chip", Parameter("on_chip", default=None, optional=True))
+    if "block_shape" not in ens_cfg._extra_params:
+        ens_cfg.set_param(
+            "block_shape", BlockShapeParam("block_shape", default=None, optional=True)
+        )
 
     conn_cfg = config[nengo.Connection]
     if "pop_type" not in conn_cfg._extra_params:

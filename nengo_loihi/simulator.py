@@ -11,11 +11,9 @@ import numpy as np
 
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
-from nengo_loihi.compat import NengoSimulationData, seed_network
-from nengo_loihi.discretize import discretize_model
+from nengo_loihi.compat import NengoSimulationData
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
-from nengo_loihi.splitter import Split
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +119,6 @@ class Simulator:
             install_dl_builders()
 
         if model is None:
-            # Call the builder to make a model
             self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
         else:
             assert isinstance(
@@ -133,29 +130,22 @@ class Simulator:
         if network is None:
             raise ValidationError("network parameter must not be None", attr="network")
 
-        # ensure seeds are identical to nengo
-        # this has no effect for nengo<=2.8.0
-        seed_network(network, seeds=self.model.seeds, seeded=self.model.seeded)
-
-        # determine how to split the host into one, two or three models
-        self.model.split = Split(
-            network, precompute=precompute, remove_passthrough=remove_passthrough
-        )
+        if target is None:
+            target = "loihi" if HAS_NXSDK else "sim"
+        self.target = target
+        logger.info("Simulator target is %r", target)
 
         # Build the network into the model
-        self.model.build(network)
-
-        # Build the extra passthrough connections into the model
-        passthrough = self.model.split.passthrough
-        for conn in passthrough.to_add:
-            # Note: connections added by the passthrough splitter do not
-            # respect seeds
-            self.model.seeds[conn] = None
-            self.model.seeded[conn] = False
-            self.model.build(conn)
+        self.model.build(
+            network,
+            precompute=precompute,
+            remove_passthrough=remove_passthrough,
+            discretize=target != "simreal",
+        )
 
         # Create host_pre and host simulators if necessary
         self.precompute = self.model.split.precompute
+        logger.info("Simulator precompute is %r", self.precompute)
         assert precompute is None or precompute == self.precompute
         if self.model.split.precomputable() and not self.precompute:
             warnings.warn(
@@ -191,16 +181,6 @@ class Simulator:
                 seed = network.seed + 1
             else:
                 seed = np.random.randint(npext.maxint)
-
-        if target is None:
-            target = "loihi" if HAS_NXSDK else "sim"
-        self.target = target
-
-        logger.info("Simulator target is %r", target)
-        logger.info("Simulator precompute is %r", self.precompute)
-
-        if target != "simreal":
-            discretize_model(self.model)
 
         if target in ("simreal", "sim"):
             self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)

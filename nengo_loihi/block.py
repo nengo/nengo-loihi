@@ -8,6 +8,12 @@ import scipy.sparse
 from nengo_loihi.nxsdk_obfuscation import d
 
 
+MAX_COMPARTMENTS = d(b"MTAyNA==", int)
+MAX_IN_AXONS = d(b"NDA5Ng==", int)
+MAX_OUT_AXONS = d(b"NDA5Ng==", int)
+MAX_SYNAPSE_BITS = d(b"MTA0ODU3Ng==", int)
+
+
 class LoihiBlock:
     """Class holding Loihi objects that can be placed on the chip.
 
@@ -627,11 +633,14 @@ class Synapse:
     def idx_bits(self):
         """The number of index bits required for each weight entry."""
         bits = int(np.ceil(np.log2(self.max_ind() + 1)))
-        assert (
-            bits <= SynapseConfig.INDEX_BITS_MAP[-1]
-        ), "bits out of range, ensemble too large?"
-        bits = next(i for i, v in enumerate(SynapseConfig.INDEX_BITS_MAP) if v >= bits)
-        return bits
+        if bits <= SynapseConfig.INDEX_BITS_MAP[-1]:
+            return next(
+                i for i, v in enumerate(SynapseConfig.INDEX_BITS_MAP) if v >= bits
+            )
+        else:  # pragma: no cover
+            # number of bits is actually out of range, we need to split this ensemble
+            # before it goes on the chip. Use -1 as a placeholder.
+            return -1
 
     def idxs_per_synapse(self):
         """The number of axon indices (slots) required for each incoming axon."""
@@ -648,8 +657,16 @@ class Synapse:
         """
         return max(i.max() if i.size > 0 else -1 for i in self.indices)
 
-    def _set_weights_indices(self, weights, indices=None):
-        weights = [np.array(w, copy=False, dtype=np.float32, ndmin=2) for w in weights]
+    def _set_weights_indices(
+        self,
+        weights,
+        indices=None,
+        weight_dtype=np.float32,
+        compression=d(b"MA==", int),
+    ):
+        weights = [
+            np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
+        ]
         assert all(
             w.ndim == 2 for w in weights
         ), "Weights must be shape (n_axons,) (n_populations, n_compartments)"
@@ -674,6 +691,14 @@ class Synapse:
         assert len(weights) == len(indices)
         self.indices = indices
 
+        self.format(
+            compression=compression,
+            idx_bits=self.idx_bits(),
+            fanout_type=d(b"MQ==", int),
+            n_synapses=d(b"NjM=", int),
+            weight_bits=d(b"Nw==", int),
+        )
+
     def set_weights(self, weights):
         """Set dense or sparse weights on this Synapse."""
         if isinstance(weights, scipy.sparse.spmatrix):
@@ -692,15 +717,7 @@ class Synapse:
             indices = None
 
         assert len(weights) == self.n_axons, "Must have different weights for each axon"
-        self._set_weights_indices(weights, indices=indices)
-
-        self.format(
-            compression=d(b"Mw==", int),
-            idx_bits=self.idx_bits(),
-            fanout_type=d(b"MQ==", int),
-            n_synapses=d(b"NjM=", int),
-            weight_bits=d(b"Nw==", int),
-        )
+        self._set_weights_indices(weights, indices=indices, compression=d(b"Mw==", int))
 
     def set_learning(
         self, learning_rate=1.0, tracing_tau=2, tracing_mag=1.0, wgt_exp=4
@@ -725,19 +742,11 @@ class Synapse:
         self, weights, indices, axon_to_weight_map, compartment_bases, pop_type=None
     ):
         """Set population weights on this Synapse."""
-        self._set_weights_indices(weights, indices)
         self.axon_to_weight_map = axon_to_weight_map
         self.axon_compartment_bases = compartment_bases
         self.pop_type = 16 if pop_type is None else pop_type
 
-        idx_bits = self.idx_bits()
-        self.format(
-            compression=d(b"MA==", int),
-            idx_bits=idx_bits,
-            fanout_type=d(b"MQ==", int),
-            n_synapses=d(b"NjM=", int),
-            weight_bits=d(b"Nw==", int),
-        )
+        self._set_weights_indices(weights, indices=indices, compression=d(b"MA==", int))
 
     def size(self):
         return sum(w.size for w in self.weights)

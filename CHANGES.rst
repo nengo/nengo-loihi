@@ -35,6 +35,11 @@ Release history
   See `nengo_loihi.add_params
   <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
   for details. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Added the ``block_shape`` configuration option to the ``Ensemble`` config,
+  and added the ``nengo_loihi.BlockShape`` class to set that option.
+  See `nengo_loihi.add_params
+  <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
+  for details. (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 
 **Changed**
 
@@ -55,6 +60,9 @@ Release history
   It has also been moved from ``nengo_loihi.block`` to ``nengo_loihi.probe``.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 - We now raise a more informative error if connecting to Loihi hardware fails.
+  (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- It is now possible to build models with larger ensembles because
+  the builder can now split large Loihi blocks into smaller ones.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 
 **Fixed**

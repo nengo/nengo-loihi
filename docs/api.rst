@@ -11,11 +11,14 @@ Main
 
    nengo_loihi.Simulator
    nengo_loihi.add_params
+   nengo_loihi.BlockShape
    nengo_loihi.set_defaults
 
 .. autoclass:: nengo_loihi.Simulator
 
 .. autofunction:: nengo_loihi.add_params
+
+.. autoclass:: nengo_loihi.BlockShape
 
 .. autofunction:: nengo_loihi.set_defaults
 
@@ -39,6 +42,30 @@ Neurons
 .. autoclass:: nengo_loihi.neurons.LowpassRCNoise
 
 .. autoclass:: nengo_loihi.neurons.AlphaRCNoise
+
+Decode neurons
+==============
+
+Decode neurons facilitate NEF-style connections on the chip.
+The type of decode neurons used by a model can be set on `.builder.Model`.
+
+.. autosummary::
+
+   nengo_loihi.decode_neurons.DecodeNeurons
+   nengo_loihi.decode_neurons.OnOffDecodeNeurons
+   nengo_loihi.decode_neurons.NoisyDecodeNeurons
+   nengo_loihi.decode_neurons.Preset5DecodeNeurons
+   nengo_loihi.decode_neurons.Preset10DecodeNeurons
+
+.. autoclass:: nengo_loihi.decode_neurons.DecodeNeurons
+
+.. autoclass:: nengo_loihi.decode_neurons.OnOffDecodeNeurons
+
+.. autoclass:: nengo_loihi.decode_neurons.NoisyDecodeNeurons
+
+.. autoclass:: nengo_loihi.decode_neurons.Preset5DecodeNeurons
+
+.. autoclass:: nengo_loihi.decode_neurons.Preset10DecodeNeurons
 
 Builder
 =======
@@ -80,32 +107,8 @@ and `.LoihiProbe` objects to collect output.
 
 .. autoclass:: nengo_loihi.probe.LoihiProbe
 
-Decode neurons
-==============
-
-Decode neurons facilitate NEF-style connections on the chip.
-The type of decode neurons used by a model can be set on `.builder.Model`.
-
-.. autosummary::
-
-   nengo_loihi.decode_neurons.DecodeNeurons
-   nengo_loihi.decode_neurons.OnOffDecodeNeurons
-   nengo_loihi.decode_neurons.NoisyDecodeNeurons
-   nengo_loihi.decode_neurons.Preset5DecodeNeurons
-   nengo_loihi.decode_neurons.Preset10DecodeNeurons
-
-.. autoclass:: nengo_loihi.decode_neurons.DecodeNeurons
-
-.. autoclass:: nengo_loihi.decode_neurons.OnOffDecodeNeurons
-
-.. autoclass:: nengo_loihi.decode_neurons.NoisyDecodeNeurons
-
-.. autoclass:: nengo_loihi.decode_neurons.Preset5DecodeNeurons
-
-.. autoclass:: nengo_loihi.decode_neurons.Preset10DecodeNeurons
-
 Discretization
-==============
+--------------
 
 .. autofunction:: nengo_loihi.discretize.discretize_model
 

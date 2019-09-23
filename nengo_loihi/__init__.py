@@ -6,7 +6,7 @@ check_nengo_version()
 del check_nengo_version
 
 from .simulator import Simulator
-from .config import add_params, set_defaults
+from .config import add_params, BlockShape, set_defaults
 
 # Import builders so they are registered
 from . import builder
