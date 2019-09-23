@@ -46,6 +46,11 @@ def build_board(board, use_snips=False, seed=None):
         seed = rng.randint(npext.maxint)
         build_chip(nxsdk_chip, chip, seed=seed)
 
+    # build probes
+    logger.debug("Building %d probes", len(board.probes))
+    for probe in board.probes:
+        build_probe(nxsdk_board, board, probe)
+
     return nxsdk_board
 
 
@@ -363,10 +368,6 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
     for axon in block.axons:
         build_axons(nxsdk_core, core, block, axon, compartment_idxs, pop_id_map)
 
-    logger.debug("- Building %d probes", len(block.probes))
-    for probe in block.probes:
-        build_probe(nxsdk_core, core, block, probe, compartment_idxs)
-
 
 def build_input(nxsdk_core, core, spike_input, compartment_idxs):
     assert len(spike_input.axons) > 0
@@ -568,10 +569,6 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         elif synapse.pop_type in (16, 32):
             n_blocks = len(core.blocks)
             assert n_blocks == 0 or (n_blocks == 1 and block is core.blocks[0])
-            assert len(block.probes) == 0, (
-                "Probing a block with population axons mixes population and "
-                "discrete axons for compartments, which is not supported."
-            )
 
             # pop_id is a unique index for the population. Must be the same for
             # all axons going to the same target synmap (with different atoms
@@ -603,20 +600,38 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
             raise BuildError("Axon: unrecognized pop_type: %s" % (synapse.pop_type,))
 
 
-def build_probe(nxsdk_core, core, block, probe, compartment_idxs):
+def build_probe(nxsdk_board, board, probe):
     key_map = {"current": "u", "voltage": "v", "spiked": "spike"}
     assert probe.key in key_map, "probe key not found"
     key = key_map[probe.key]
 
-    nxsdk_board = d_get(nxsdk_core, b"cGFyZW50", b"cGFyZW50")
-    r = compartment_idxs[probe.slice]
-
     if probe.use_snip:
-        probe.snip_info = dict(
-            core_id=d_get(nxsdk_core, b"aWQ="), compartment_idxs=r, key=key
-        )
+        assert probe.snip_info is None
+        probe.snip_info = dict(core_id=[], compartment_idxs=[], key=key)
     else:
-        p = d_get(nxsdk_board, b"bW9uaXRvcg==", b"cHJvYmU=")(
-            d_get(nxsdk_core, b"Y3hTdGF0ZQ=="), r, key
-        )
-        core.board.map_probe(probe, p)
+        assert probe not in board.probe_map
+        board.probe_map[probe] = []
+
+    assert len(probe.target) == len(probe.slice) == len(probe.weights)
+    for k, target in enumerate(probe.target):
+        for axon in target.axons:
+            assert axon.target.pop_type not in (16, 32), (
+                "Probing a block with population axons mixes population and "
+                "discrete axons for compartments, which is not supported."
+            )
+
+        chip_idx, core_idx, block_idx, compartment_idxs, _ = board.find_block(target)
+        assert chip_idx is not None, "Could not find probe target on board"
+
+        nxsdk_chip = d_get(nxsdk_board, b"bjJDaGlwcw==")[chip_idx]
+        nxsdk_core = d_get(nxsdk_chip, b"bjJDb3Jlcw==")[core_idx]
+
+        r = compartment_idxs[probe.slice[k]]
+        if probe.use_snip:
+            probe.snip_info["core_id"].append(d_get(nxsdk_core, b"aWQ="))
+            probe.snip_info["compartment_idxs"].append(r)
+        else:
+            nxsdk_probe = d_get(nxsdk_board, b"bW9uaXRvcg==", b"cHJvYmU=")(
+                d_get(nxsdk_core, b"Y3hTdGF0ZQ=="), r, key
+            )
+            board.probe_map[probe].append(nxsdk_probe)

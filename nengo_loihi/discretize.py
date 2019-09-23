@@ -219,8 +219,14 @@ def discretize_model(model):
     model : `.Model`
         The model to discretize.
     """
+    v_scale = {}
+
     for block in model.blocks:
-        discretize_block(block)
+        v_scale[block] = discretize_block(block)
+
+    for probe in model.probes:
+        for i, block in enumerate(probe.target):
+            discretize_probe(probe, i, v_scale[block])
 
 
 def discretize_block(block):
@@ -240,8 +246,7 @@ def discretize_block(block):
     p = discretize_compartment(block.compartment, w_max)
     for synapse in block.synapses:
         discretize_synapse(synapse, w_max, p["w_scale"], p["w_exp"])
-    for probe in block.probes:
-        discretize_probe(probe, p["v_scale"][0])
+    return p["v_scale"]
 
 
 def discretize_compartment(comp, w_max):
@@ -336,10 +341,12 @@ def discretize_compartment(comp, w_max):
     bias_man, bias_exp = bias_to_manexp(bias)
     array_to_int(comp.bias, bias_man * 2 ** bias_exp)
 
-    # --- noise
     assert (v_scale[0] == v_scale).all()
+    v_scale = v_scale[0]
+
+    # --- noise
     enable_noise = np.any(comp.enable_noise)
-    noise_exp = np.round(np.log2(10.0 ** comp.noise_exp * v_scale[0]))
+    noise_exp = np.round(np.log2(10.0 ** comp.noise_exp * v_scale))
     if enable_noise and noise_exp < d(b"MQ==", int):
         warnings.warn("Noise amplitude falls below lower limit")
         enable_noise = False
@@ -349,9 +356,8 @@ def discretize_compartment(comp, w_max):
     comp.noise_offset = int(np.round(2 * comp.noise_offset))
 
     # --- vmin and vmax
-    assert (v_scale[0] == v_scale).all()
-    vmin = v_scale[0] * comp.vmin
-    vmax = v_scale[0] * comp.vmax
+    vmin = v_scale * comp.vmin
+    vmax = v_scale * comp.vmax
     vmine = np.clip(np.round(np.log2(-vmin + 1)), 0, 2 ** 5 - 1)
     comp.vmin = -(2 ** vmine) + 1
     vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
@@ -486,6 +492,6 @@ def discretize_weights(
     return w
 
 
-def discretize_probe(probe, v_scale):
-    if probe.key == "voltage" and probe.weights is not None:
-        probe.weights /= v_scale
+def discretize_probe(probe, i, v_scale):
+    if probe.key == "voltage" and probe.weights[i] is not None:
+        probe.weights[i] /= v_scale

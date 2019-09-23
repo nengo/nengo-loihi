@@ -50,6 +50,10 @@ Release history
 - ``Convolution`` transforms with ``channels_last=True`` now work with outputs
   up to 1024 neurons.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- The ``Probe`` has been renamed to ``LoihiProbe`` to mirror the ``LoihiBlock``
+  and ``LoihiInput`` classes, which are conceptually very similar.
+  It has also been moved from ``nengo_loihi.block`` to ``nengo_loihi.probe``.
+  (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 
 **Fixed**
 

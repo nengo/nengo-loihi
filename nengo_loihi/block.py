@@ -14,8 +14,8 @@ class LoihiBlock:
     This class can be thought of as a block of the Loihi board, and is how
     Nengo Loihi keeps track of how Loihi Neuron cores will be configured.
     Generally, the job of the build process is to convert Nengo objects
-    (ensembles, connections, nodes, and probes) to LoihiBlocks, which
-    will then be used by the `.EmulatorInterface` or `.HardwareInterface`.
+    (ensembles, connections, and nodes) to LoihiBlocks, which will then
+    be used by the `.EmulatorInterface` or `.HardwareInterface`.
 
     Initially, parameters in a LoihiBlock are floating point values.
     The `.discretize_block` function converts them to integer values inplace
@@ -33,8 +33,6 @@ class LoihiBlock:
         Mapping from a name to a Synapse object.
     label : string
         A label for the block (for debugging purposes).
-    probes : list of Probe
-        Probes recording information from objects in the block.
     synapses : list of Synapse
         Synapse objects projecting to compartments in the block.
     """
@@ -47,7 +45,6 @@ class LoihiBlock:
         self.axons = []
         self.synapses = []
         self.named_synapses = {}
-        self.probes = []
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
@@ -60,10 +57,6 @@ class LoihiBlock:
 
     def add_axon(self, axon):
         self.axons.append(axon)
-
-    def add_probe(self, probe):
-        assert probe.target is self
-        self.probes.append(probe)
 
 
 class Config:
@@ -748,33 +741,3 @@ class Synapse:
 
     def size(self):
         return sum(w.size for w in self.weights)
-
-
-class Probe:
-    """Record data from compartment states of a LoihiBlock.
-
-    Parameters
-    ----------
-    target : LoihiBlock
-        The block to record values from. Use ``slice`` to record from a subset
-        of compartments.
-    key : string ('current', 'voltage', 'spiked')
-        The compartment attribute to probe.
-    slice : slice or list
-        Select a subset of the compartments in the block to record from.
-    synapse : nengo.synapses.Synapse
-        A synapse to use for filtering the probe.
-    weights : np.ndarray
-        A linear transformation to apply to the outputs.
-    """
-
-    _slice = slice
-
-    def __init__(self, target=None, key=None, slice=None, weights=None, synapse=None):
-        self.target = target
-        self.key = key
-        self.slice = slice if slice is not None else self._slice(None)
-        self.weights = weights
-        self.synapse = synapse
-        self.use_snip = False
-        self.snip_info = None

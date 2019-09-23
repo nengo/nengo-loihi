@@ -17,7 +17,7 @@ from nengo.solvers import NoSolver, Solver
 import numpy as np
 import scipy.sparse
 
-from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder.builder import Builder
 from nengo_loihi.builder.inputs import (
     ChipReceiveNode,
@@ -26,16 +26,17 @@ from nengo_loihi.builder.inputs import (
     HostReceiveNode,
     PESModulatoryTarget,
 )
-from nengo_loihi.compat import conn_solver, multiply, nengo_transforms, sample_transform
-from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
-from nengo_loihi.inputs import LoihiInput
-from nengo_loihi.neurons import loihi_rates
-from nengo_loihi.passthrough import base_obj
 from nengo_loihi.builder.sparse_matrix import (
     expand_matrix,
     scale_matrix,
     stack_matrices,
 )
+from nengo_loihi.compat import conn_solver, multiply, nengo_transforms, sample_transform
+from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
+from nengo_loihi.inputs import LoihiInput
+from nengo_loihi.neurons import loihi_rates
+from nengo_loihi.passthrough import base_obj
+from nengo_loihi.probe import LoihiProbe
 
 logger = logging.getLogger(__name__)
 
@@ -447,7 +448,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     pre_obj = model.objs[conn.pre_obj]["out"]
     post_obj = model.objs[conn.post_obj]["in"]
     assert isinstance(pre_obj, (LoihiBlock, LoihiInput))
-    assert isinstance(post_obj, (LoihiBlock, Probe))
+    assert isinstance(post_obj, (LoihiBlock, LoihiProbe))
 
     weights = None
     eval_points = None
@@ -545,9 +546,9 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         assert weights.ndim == 2
         n, d = loihi_weights.shape
 
-        if isinstance(post_obj, Probe):
+        if isinstance(post_obj, LoihiProbe):
             # use non-spiking decode neurons for voltage probing
-            assert post_obj.target is None
+            assert len(post_obj.target) == 0 or post_obj.target == [None]
             assert post_slice == slice(None)
 
             # use the same scaling as the ensemble does, to get good
@@ -653,11 +654,11 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
         mid_obj = decoder_block
 
-    if isinstance(post_obj, Probe):
-        assert post_obj.target is None
+    if isinstance(post_obj, LoihiProbe):
+        assert post_obj.target == [None]
         assert post_slice == slice(None)
-        post_obj.target = mid_obj
-        mid_obj.add_probe(post_obj)
+        post_obj.target[0] = mid_obj
+        model.add_probe(post_obj)
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_obj, LoihiBlock)
         assert post_slice == slice(None)

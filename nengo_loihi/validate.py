@@ -15,6 +15,9 @@ def validate_model(model):
     for block in model.blocks:
         validate_block(block)
 
+    for probe in model.probes:
+        validate_probe(probe)
+
 
 def validate_block(block):
     # -- Compartment
@@ -47,10 +50,6 @@ def validate_block(block):
 
     for synapse in block.synapses:
         validate_synapse(synapse)
-
-    # -- Probes
-    for probe in block.probes:
-        validate_probe(probe)
 
 
 def validate_compartment(comp):

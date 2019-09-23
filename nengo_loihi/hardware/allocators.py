@@ -136,6 +136,8 @@ class OneToOne(Allocator):
         for input in model.inputs:
             self.input_to_chip(input, chip)
 
+        board.probes.extend(model.probes)
+
         return board
 
 
@@ -166,5 +168,7 @@ class RoundRobin(OneToOne):
             i += 1
 
         logger.info("Round-robin allocation across %d chips", board.n_chips)
+
+        board.probes.extend(model.probes)
 
         return board

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Model:
     """The data structure for the emulator/hardware simulator.
 
-    Defines methods for adding inputs and blocks. Also handles build
+    Defines methods for adding inputs, blocks and probes. Also handles build
     functions, and information associated with building the Nengo model.
 
     Some of the Model attributes can be modified before the build process
@@ -85,8 +85,7 @@ class Model:
         Mapping from objects to namedtuples containing parameters generated
         in the build process.
     probes : list
-        List of all probes. Probes must be added to this list in the build
-        process, as this list is used by Simulator.
+        List of probes on this model.
     seeded : dict
         All objects are assigned a seed, whether the user defined the seed
         or it was automatically generated. 'seeded' keeps track of whether
@@ -122,6 +121,7 @@ class Model:
         # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()
         self.blocks = OrderedDict()
+        self.probes = []
 
         # Will be filled in by the simulator __init__
         self.split = None
@@ -131,10 +131,10 @@ class Model:
         self.config = None
 
         # Resources used by the build process
-        self.objs = defaultdict(dict)
-        self.params = {}  # Holds data generated when building objects
-        self.probes = []
-        self.probe_conns = {}
+        self.objs = defaultdict(dict)  # maps Nengo objects to Loihi objects
+        self.params = {}  # maps Nengo objects to data generated during build
+        self.nengo_probes = []  # list of Nengo probes in the model
+        self.nengo_probe_conns = {}
         self.seeds = {}
         self.seeded = {}
 
@@ -177,15 +177,21 @@ class Model:
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label)
 
+    def add_block(self, block):
+        assert isinstance(block, LoihiBlock)
+        assert block not in self.blocks
+        self.blocks[block] = len(self.blocks)
+
     def add_input(self, input):
         assert isinstance(input, LoihiInput)
         assert input not in self.inputs
         self.inputs[input] = len(self.inputs)
 
-    def add_block(self, block):
-        assert isinstance(block, LoihiBlock)
-        assert block not in self.blocks
-        self.blocks[block] = len(self.blocks)
+    def add_probe(self, probe):
+        self.probes.append(probe)
+        for block in probe.target:
+            assert isinstance(block, LoihiBlock)
+            assert block in self.blocks, "Add all target blocks to model before probe"
 
     def build(self, obj, *args, **kwargs):
         # Don't build the objects marked as "to_remove" by PassthroughSplit

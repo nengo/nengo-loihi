@@ -6,8 +6,8 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.block import Probe
 from nengo_loihi.builder.builder import Builder
+from nengo_loihi.probe import LoihiProbe
 
 
 def conn_probe(model, nengo_probe):
@@ -56,7 +56,7 @@ def conn_probe(model, nengo_probe):
             add_to_container=False,
             **kwargs,
         )
-        model.probe_conns[nengo_probe] = conn
+        model.nengo_probe_conns[nengo_probe] = conn
     else:
         conn = Connection(
             nengo_probe.target,
@@ -88,14 +88,17 @@ def conn_probe(model, nengo_probe):
             "Nodes cannot be onchip, connections not yet probeable"
         )
 
-    probe = Probe(key="voltage", weights=weights, synapse=nengo_probe.synapse)
+    # probe target will be set when we build the connection below
+    probe = LoihiProbe(
+        target=[None], key="voltage", weights=[weights], synapse=nengo_probe.synapse
+    )
     model.objs[target]["in"] = probe
     model.objs[target]["out"] = probe
 
     # add an extra entry for simulator.run_steps to read data out
     model.objs[nengo_probe]["out"] = probe
 
-    # Build the connection
+    # Build the connection (sets probe targets, adds probe)
     model.build(conn)
 
 
@@ -118,14 +121,14 @@ def signal_probe(model, key, probe):
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]["out"]
 
-    loihi_probe = Probe(
+    loihi_probe = LoihiProbe(
         target=target,
         key=key,
         slice=probe.slice,
         synapse=probe.synapse,
         weights=weights,
     )
-    target.add_probe(loihi_probe)
+    model.add_probe(loihi_probe)
     model.objs[probe]["in"] = target
     model.objs[probe]["out"] = loihi_probe
 
@@ -162,7 +165,7 @@ def build_probe(model, probe):
     else:
         signal_probe(model, key, probe)
 
-    model.probes.append(probe)
+    model.nengo_probes.append(probe)
 
     # Simulator will fill this list with probe data during simulation
     model.params[probe] = []

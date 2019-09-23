@@ -7,13 +7,14 @@ import numpy as np
 import pytest
 
 import nengo_loihi
-from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.probe import LoihiProbe
 from nengo_loihi.simulator import Timers
 
 
@@ -584,18 +585,17 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
 
     model = Model()
     block = LoihiBlock(n_compartments)
+    model.add_block(block)
+
     block.compartment.configure_relu()
-
     block.compartment.vmin = -1
-
     block.compartment.enable_noise[:] = 1
     block.compartment.noise_exp = exp
     block.compartment.noise_offset = offset
     block.compartment.noise_at_membrane = 1
 
-    probe = Probe(target=block, key="voltage")
-    block.add_probe(probe)
-    model.add_block(block)
+    probe = LoihiProbe(target=block, key="voltage")
+    model.add_probe(probe)
 
     discretize_model(model)
     exp2 = block.compartment.noise_exp
@@ -678,8 +678,8 @@ def test_population_input(request, allclose):
     block.add_synapse(synapse)
     input_axon.target = synapse
 
-    probe = Probe(target=block, key="voltage")
-    block.add_probe(probe)
+    probe = LoihiProbe(target=block, key="voltage")
+    model.add_probe(probe)
 
     discretize_model(model)
 

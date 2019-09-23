@@ -47,6 +47,8 @@ The builder turns a Nengo network into a `.builder.Model`
 appropriate for running on Loihi.
 This model is mainly composed of `.LoihiBlock` objects,
 which map parts of the network to Loihi compartments, axons, and synapses.
+The model also contains `.LoihiInput` objects to provide input,
+and `.LoihiProbe` objects to collect output.
 
 .. autosummary::
 
@@ -56,7 +58,9 @@ which map parts of the network to Loihi compartments, axons, and synapses.
    nengo_loihi.block.Compartment
    nengo_loihi.block.Axon
    nengo_loihi.block.Synapse
-   nengo_loihi.block.Probe
+   nengo_loihi.inputs.LoihiInput
+   nengo_loihi.inputs.SpikeInput
+   nengo_loihi.probe.LoihiProbe
 
 .. autoclass:: nengo_loihi.builder.Model
 
@@ -70,7 +74,11 @@ which map parts of the network to Loihi compartments, axons, and synapses.
 
 .. autoclass:: nengo_loihi.block.Synapse
 
-.. autoclass:: nengo_loihi.block.Probe
+.. autoclass:: nengo_loihi.inputs.LoihiInput
+
+.. autoclass:: nengo_loihi.inputs.SpikeInput
+
+.. autoclass:: nengo_loihi.probe.LoihiProbe
 
 Decode neurons
 ==============

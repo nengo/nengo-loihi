@@ -115,3 +115,24 @@ def test_neuron_probe_with_synapse(Simulator, seed, allclose):
         sim.run(0.1)
 
     assert allclose(sim.data[p_synapse], synapse.filt(sim.data[p_nosynapse]))
+
+
+@pytest.mark.xfail
+def test_probe_filter_twice(plt, seed, Simulator):
+    with nengo.Network(seed=seed) as net:
+        stim = nengo.Node([1])
+        ens = nengo.Ensemble(100, 1)
+        probe = nengo.Probe(ens, synapse=0.01)
+        nengo.Connection(stim, ens)
+
+    with Simulator(net) as sim0:
+        sim0.run(0.04)
+
+    with Simulator(net) as sim1:
+        sim1.run(0.02)
+        sim1.run(0.02)
+
+    plt.plot(sim0.trange(), sim0.data[probe])
+    plt.plot(sim1.trange(), sim1.data[probe])
+
+    assert np.all(sim0.data[probe] == sim1.data[probe])

@@ -1,8 +1,9 @@
 from nengo.exceptions import SimulationError
+from nengo.synapses import Lowpass
 import numpy as np
 import pytest
 
-from nengo_loihi.block import Axon, LoihiBlock, Synapse, Probe
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model, VTH_MAX
 from nengo_loihi.emulator import EmulatorInterface
@@ -14,6 +15,7 @@ from nengo_loihi.emulator.interface import (
 )
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.probe import LoihiProbe
 
 
 @pytest.mark.parametrize("strict", (True, False))
@@ -55,6 +57,7 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     block = LoihiBlock(1)
     block.compartment.configure_relu()
     block.compartment.configure_filter(0.1)
+    model.add_block(block)
 
     synapse = Synapse(n_axons)
     synapse.set_weights(np.ones((n_axons, 1)))
@@ -64,14 +67,13 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     axon.target = synapse
     input.add_axon(axon)
 
-    probe_u = Probe(target=block, key="current")
-    block.add_probe(probe_u)
-    probe_v = Probe(target=block, key="voltage")
-    block.add_probe(probe_v)
-    probe_s = Probe(target=block, key="spiked")
-    block.add_probe(probe_s)
+    probe_u = LoihiProbe(target=block, key="current")
+    model.add_probe(probe_u)
+    probe_v = LoihiProbe(target=block, key="voltage")
+    model.add_probe(probe_v)
+    probe_s = LoihiProbe(target=block, key="spiked")
+    model.add_probe(probe_s)
 
-    model.add_block(block)
     discretize_model(model)
 
     # must set these after `discretize` to specify discretized values
@@ -121,3 +123,56 @@ def test_dtype_errors():
         NoiseState(block_info)
     with pytest.raises(ValueError, match="dtype.*not supported"):
         SynapseState(block_info)
+
+
+@pytest.mark.xfail
+def test_multiple_get_probe_output():
+    n_steps = 15
+    n_axons = 3
+
+    model = Model()
+
+    # n_axons controls number of input spikes and thus amount of overflow
+    input = SpikeInput(n_axons)
+    for t in np.arange(1, n_steps + 1):
+        input.add_spikes(t, np.arange(n_axons))  # send spikes to all axons
+    model.add_input(input)
+
+    block = LoihiBlock(1)
+    block.compartment.configure_relu()
+    block.compartment.configure_filter(0.1)
+    model.add_block(block)
+
+    synapse = Synapse(n_axons)
+    synapse.set_weights(np.ones((n_axons, 1)))
+    block.add_synapse(synapse)
+
+    axon = Axon(n_axons)
+    axon.target = synapse
+    input.add_axon(axon)
+
+    probe_u = LoihiProbe(target=block, key="current", synapse=Lowpass(0.005))
+    model.add_probe(probe_u)
+    probe_v = LoihiProbe(target=block, key="voltage", synapse=Lowpass(0.005))
+    model.add_probe(probe_v)
+    probe_s = LoihiProbe(target=block, key="spiked", synapse=Lowpass(0.005))
+    model.add_probe(probe_s)
+
+    discretize_model(model)
+
+    # must set these after `discretize` to specify discretized values
+    block.compartment.vmin = -(2 ** 22) + 1
+    block.compartment.vth[:] = VTH_MAX
+
+    with EmulatorInterface(model) as emu:
+        emu.run_steps(n_steps)
+        first_u = emu.get_probe_output(probe_u)
+        first_v = emu.get_probe_output(probe_v)
+        first_s = emu.get_probe_output(probe_s)
+        second_u = emu.get_probe_output(probe_u)
+        second_v = emu.get_probe_output(probe_v)
+        second_s = emu.get_probe_output(probe_s)
+
+    assert np.all(first_u == second_u)
+    assert np.all(first_v == second_v)
+    assert np.all(first_s == second_s)

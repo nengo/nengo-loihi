@@ -22,6 +22,7 @@ class Board:
 
         self.synapse_index = {}
 
+        self.probes = []
         self.probe_map = {}
 
     @property
@@ -49,14 +50,32 @@ class Board:
     def chip_index(self, chip):
         return self.chip_idxs[chip]
 
-    def map_probe(self, probe, nxsdk_probe):
-        assert probe not in self.probe_map
-        self.probe_map[probe] = nxsdk_probe
-
     def index_synapse(self, synapse, chip, core, idxs):
         chip_idx = self.chip_index(chip)
         core_idx = chip.core_index(core)
         self.synapse_index[synapse] = (chip_idx, core_idx, idxs)
+
+    def find_block(self, target_block):
+        for chip in self.chips:
+            for core in chip.cores:
+                if target_block not in core.blocks:  # early skipping for speed
+                    continue
+
+                for block, compartment_idxs, ax_range in core.iterate_blocks():
+                    if target_block is block:
+                        return (
+                            self.chip_index(chip),
+                            chip.core_index(core),
+                            core.blocks.index(block),
+                            compartment_idxs,
+                            ax_range,
+                        )
+
+                raise RuntimeError(
+                    "Block is in core, but not found?!"
+                )  # pragma: no cover
+
+        return (None, None, None, None, None)  # pragma: no cover
 
     def find_synapse(self, synapse):
         return self.synapse_index[synapse]

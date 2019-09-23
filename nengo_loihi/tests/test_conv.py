@@ -11,7 +11,7 @@ import pytest
 import scipy.signal
 
 import nengo_loihi
-from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.compat import nengo_transforms
 from nengo_loihi import conv
@@ -20,6 +20,7 @@ from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.neurons import loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear
+from nengo_loihi.probe import LoihiProbe
 
 home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, "tests")
@@ -93,6 +94,8 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
     # input block
     inp = LoihiBlock(ni * nj * nk, label="inp")
+    model.add_block(inp)
+
     assert inp.n_neurons <= 1024
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
@@ -110,10 +113,10 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
     inp.add_axon(inp_ax)
 
-    model.add_block(inp)
-
     # conv block
     neurons = LoihiBlock(out_size, label="neurons")
+    model.add_block(neurons)
+
     assert neurons.n_neurons <= 1024
     neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.compartment.configure_filter(tau_s, dt=dt)
@@ -136,11 +139,10 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     )
     neurons.add_synapse(synapse)
 
-    out_probe = Probe(target=neurons, key="spiked")
-    neurons.add_probe(out_probe)
+    out_probe = LoihiProbe(target=neurons, key="spiked")
+    model.add_probe(out_probe)
 
     inp_ax.target = synapse
-    model.add_block(neurons)
 
     # simulation
     discretize_model(model)
@@ -276,6 +278,8 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 
     # input block
     inp = LoihiBlock(inp_shape.size, label="inp")
+    model.add_block(inp)
+
     assert inp.n_neurons <= 1024
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
@@ -286,10 +290,10 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
     )
     inp.add_axon(inp_ax)
 
-    model.add_block(inp)
-
     # conv block
     neurons = LoihiBlock(out_size, label="neurons")
+    model.add_block(neurons)
+
     assert neurons.n_neurons <= 1024
     neurons.compartment.configure_lif(tau_rc=tau_rc, tau_ref=tau_ref, dt=dt)
     neurons.compartment.configure_filter(tau_s, dt=dt)
@@ -305,11 +309,10 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 
     neurons.add_synapse(synapse)
 
-    out_probe = Probe(target=neurons, key="spiked")
-    neurons.add_probe(out_probe)
+    out_probe = LoihiProbe(target=neurons, key="spiked")
+    model.add_probe(out_probe)
 
     inp_ax.target = synapse
-    model.add_block(neurons)
 
     # simulation
     discretize_model(model)

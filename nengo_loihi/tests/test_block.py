@@ -2,12 +2,13 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
-from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.probe import LoihiProbe
 
 
 def test_compartment_errors():
@@ -76,8 +77,8 @@ def test_negative_base(request, seed):
     axon.target = synapse
     block.add_synapse(synapse)
 
-    probe = Probe(target=block, key="voltage")
-    block.add_probe(probe)
+    probe = LoihiProbe(target=block, key="voltage")
+    model.add_probe(probe)
 
     discretize_model(model)
 

@@ -1,12 +1,11 @@
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 import logging
 import warnings
 
 from nengo.exceptions import SimulationError, ValidationError
 import numpy as np
 
-from nengo_loihi.block import Probe
-from nengo_loihi.compat import is_array, is_number, make_process_step
+from nengo_loihi.compat import make_process_step
 from nengo_loihi.discretize import (
     decay_int,
     LEARN_FRAC,
@@ -17,6 +16,7 @@ from nengo_loihi.discretize import (
     Q_BITS,
     U_BITS,
 )
+from nengo_loihi.probe import LoihiProbe
 from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class EmulatorInterface:
             strict=self.strict,
         )
         self.axons = AxonState(self.block_info)
-        self.probes = ProbeState(self.block_info, self.inputs, model.dt)
+        self.probes = ProbeState(self.block_info, list(model.probes), model.dt)
 
         self.t = 0
         self._chip2host_sent_steps = 0
@@ -577,24 +577,21 @@ class ProbeState:
         Maps Probes to the SpikeInput that they are probing.
     """
 
-    def __init__(self, block_info, inputs, dt):
+    def __init__(self, block_info, probes, dt):
         self.dt = dt
 
         self.probes = OrderedDict()
-        for block in block_info.blocks:
-            for probe in block.probes:
-                self.probes[probe] = block_info.slices[block]
+        for probe in probes:
+            block_slices = OrderedDict(
+                [(block, block_info.slices[block]) for block in probe.target]
+            )
+            self.probes[probe] = block_slices
 
         self.filters = {}
         self.filter_pos = {}
-        for probe, sl in self.probes.items():
+        for probe, block_slices in self.probes.items():
             if probe.synapse is not None:
-                if probe.weights is None or is_number(probe.weights):
-                    size = sl.stop - sl.start
-                else:
-                    assert is_array(probe.weights) and probe.weights.ndim == 2
-                    size = probe.weights.shape[1]
-
+                size = probe.output_size
                 self.filters[probe] = make_process_step(
                     probe.synapse,
                     shape_in=(size,),
@@ -605,12 +602,14 @@ class ProbeState:
                 )
                 self.filter_pos[probe] = 0
 
-        self.outputs = defaultdict(list)
+        self.outputs = {}
+        for probe, block_slices in self.probes.items():
+            self.outputs[probe] = [[] for block in block_slices]
 
     def __getitem__(self, probe):
-        assert isinstance(probe, Probe)
-        out = np.asarray(self.outputs[probe], dtype=np.float32)
-        out = out if probe.weights is None else np.dot(out, probe.weights)
+        assert isinstance(probe, LoihiProbe)
+        out = probe.weight_outputs(self.outputs[probe])
+        # TODO: if this is called multiple times, it will change the filter state
         return self._filter(probe, out) if probe in self.filters else out
 
     def _filter(self, probe, data):
@@ -631,18 +630,28 @@ class ProbeState:
         steps : int
             The number of steps sent to the receiver.
         """
-        x = self.outputs[probe][already_sent:]
+        # we don't currently filter here, so make sure the probe isn't expecting it
+        assert probe.synapse is None, "Filtering should be done on host-side connection"
 
-        if len(x) > 0:
-            if probe.weights is not None:
-                x = np.dot(x, probe.weights)
+        outputs = [block_output[already_sent:] for block_output in self.outputs[probe]]
+
+        n_timesteps = len(outputs[0])
+        if n_timesteps > 0:
+            x = probe.weight_outputs(outputs)
             for j, xx in enumerate(x):
                 receiver.receive(self.dt * (already_sent + j + 2), xx)
-        return len(x)
+
+        return n_timesteps
 
     def update(self, t, compartment):
-        for probe, sl in self.probes.items():
-            p_slice = probe.slice
+        for probe, block_slices in self.probes.items():
             assert hasattr(compartment, probe.key)
-            output = getattr(compartment, probe.key)[sl][p_slice].copy()
-            self.outputs[probe].append(output)
+            target_attr = getattr(compartment, probe.key)
+
+            for k, (block, block_slice) in enumerate(block_slices.items()):
+                output = target_attr[block_slice][probe.slice[k]]
+                if output.base is not None:
+                    # if not already copied by the probe slice, then copy
+                    output = output.copy()
+
+                self.outputs[probe][k].append(output)
