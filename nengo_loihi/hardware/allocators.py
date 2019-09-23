@@ -98,7 +98,7 @@ class OneToOne(Allocator):
 
     def block_to_chip(self, block, chip):
         if block.compartment.n_compartments > d(b"MTAyNA==", int):
-            raise ValidationError("Segment does not fit on one chip", "n_neurons")
+            raise ValidationError("Segment does not fit on one core", "n_neurons")
 
         core = chip.new_core()
         core.add_block(block)

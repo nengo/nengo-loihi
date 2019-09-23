@@ -8,6 +8,7 @@ from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 import nengo.utils.numpy as npext
 import numpy as np
 
+from nengo_loihi.block_dismantle import dismantle_model
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
 from nengo_loihi.compat import NengoSimulationData, seed_network
@@ -196,6 +197,9 @@ class Simulator:
 
         logger.info("Simulator target is %r", target)
         logger.info("Simulator precompute is %r", self.precompute)
+
+        # split apart large blocks to fit on chip
+        dismantle_model(self.model)
 
         if target != "simreal":
             discretize_model(self.model)
