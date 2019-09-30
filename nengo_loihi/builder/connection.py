@@ -427,17 +427,20 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
     return _build_no_solver(*args)
 
 
-def build_chip_connection(model, conn):  # noqa: C901
+def build_chip_connection(model, conn):
     if nengo_transforms is not None:
-        if isinstance(conn.transform, nengo_transforms.Convolution):
-            return build_conv2d_connection(model, conn)
-        elif not isinstance(
+        if isinstance(
             conn.transform, (nengo_transforms.Dense, nengo_transforms.Sparse)
         ):
-            raise BuildError(
-                "nengo-loihi does not yet support %r transforms "
-                "on chip to chip connections" % (type(conn.transform).__name__,)
-            )
+            return build_full_chip_connection(model, conn)
+        else:
+            model.build(conn.transform, conn)
+    else:
+        return build_full_chip_connection(model, conn)
+
+
+def build_full_chip_connection(model, conn):  # noqa: C901
+    """Build dense or sparse connections on-chip"""
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
@@ -737,16 +740,29 @@ def build_chip_connection(model, conn):  # noqa: C901
     )
 
 
-def build_conv2d_connection(model, conn):
+def register_transform_builder(attr):
+    if nengo_transforms is not None:
+        transform = getattr(nengo_transforms, attr)
+        return Builder.register(transform)
+    else:
+
+        def register_builder(build_fn):
+            return build_fn
+
+        return register_builder
+
+
+@register_transform_builder("Convolution")
+def build_conv2d_connection(model, transform, conn):
     if nengo_transforms is None:
         # It should not be possible to reach this, because this function is
         # only called for a Convolution transform, which can exist only if
         # nengo_transforms exists.
         raise NotImplementedError("Convolution requires newer Nengo")
 
-    if conn.transform.dimensions != 2:
+    if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
-    if conn.transform.padding != "valid":
+    if transform.padding != "valid":
         raise NotImplementedError(
             "nengo-loihi only supports convolution with 'valid' padding"
         )
@@ -767,10 +783,10 @@ def build_conv2d_connection(model, conn):
 
     # --- pre
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
-    assert isinstance(conn.transform, nengo_transforms.Convolution)
+    assert isinstance(transform, nengo_transforms.Convolution)
 
-    kernel = conn.transform.sample(rng=rng)
-    input_shape = conn.transform.input_shape
+    kernel = transform.sample(rng=rng)
+    input_shape = transform.input_shape
 
     # Account for nengo spike height of 1/dt
     kernel = kernel / model.dt
@@ -800,7 +816,8 @@ def build_conv2d_connection(model, conn):
     kernel = kernel * gain[0]
 
     pop_type = model.config[conn].pop_type
-    new_transform = copy.copy(conn.transform)
+
+    new_transform = copy.copy(transform)
     type(new_transform).init.data[new_transform] = kernel
     weights, indices, axon_to_weight_map, offsets = conv2d_loihi_weights(new_transform)
 
