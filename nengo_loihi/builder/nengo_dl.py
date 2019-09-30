@@ -10,6 +10,7 @@ from nengo_loihi.neurons import (
     discretize_tau_ref,
     LoihiLIF,
     LoihiSpikingRectifiedLinear,
+    LowpassIntegratedNoise,
     LowpassRCNoise,
 )
 
@@ -134,6 +135,67 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         r_rc1 = -(tf.math.expm1(-period / tau_rc))  # 1 - exp(-period/tau_rc)
         r_s1 = -(tf.math.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
         return (1.0 / d) * (q_rc / r_rc1 - q_s / r_s1)
+
+
+@NoiseBuilder.register(LowpassIntegratedNoise)
+class LowpassIntegratedNoiseBuilder(NoiseBuilder):
+    """nengo_dl builder for the LowpassIntegratedNoise model."""
+
+    def __init__(self, ops, signals, *args, **kwargs):
+        super(LowpassIntegratedNoiseBuilder, self).__init__(
+            ops, signals, *args, **kwargs
+        )
+
+        # tau_s is the time constant of the synaptic filter
+        tau_s = np.concatenate(
+            [
+                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                for model, op in zip(self.noise_models, ops)
+            ]
+        )
+        self.tau_s = signals.constant(tau_s, dtype=self.dtype)
+
+    def generate(self, period, tau_rc=None):
+        r"""Get Tensorflow code for generating this noise.
+
+        This noise model combines the transfer function for a perfect integrator neuron
+        membrane (e.g. ``SpikingRectifiedLinear``) with that of a ``Lowpass`` filter::
+
+            H(s) = 1/s * 1/(tau*s + 1) = 1/s - tau/(tau*s + 1)
+            h(t) = 1 - exp(-t/tau)
+
+        where ``tau`` is the synapse time constant.
+
+        We wish to look at how this filter applies to a regular spike train of period
+        ``p`` as the length of the spike train approaches infinity. Since this filter
+        convolved with an infinite spike train will result in an infinite series, we
+        subtract the "ideal" response of the neuron, given by ``x(t) = t/p``.
+
+            s(t) = sum_{i=0}^{N=\infty} [1 - e^{-(ip + t)/\tau}] - x((N - 1)p + t)
+                 = N - e^{-t/\tau} / (1 - e^{-p/\tau}) - ((N - 1)p + t) / p
+                 = 1 - e^{-t/\tau} / (1 - e^{-p/\tau}) - t/p
+
+        Because the transfer function has a pure integrator in it, this series is
+        sensitive to offsets that happen at the beginning of the spike train, even
+        when looking at infinite trains. To accommodate this, we compute and subtract
+        the mean of the series.
+
+            E[s(t)] = 1/p \int_0^p s(t) dt = 1/2 - \tau/p
+        """
+        if tau_rc is not None:
+            raise ValueError(
+                "This noise model only works for neurons with pure "
+                "integrator membranes (e.g. `SpikingRectifiedLinear`)"
+            )
+
+        u01 = tf.random.uniform(tf.shape(period))
+        t = u01 * period
+        q_s = tf.exp(-t / self.tau_s)
+        r_s1 = -(tf.math.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
+        eta = (0.5 + self.tau_s / period) - q_s / r_s1 - t / period
+
+        x = tf.math.reciprocal(period)
+        return x * (1 + eta)
 
 
 @NoiseBuilder.register(AlphaRCNoise)
@@ -287,6 +349,7 @@ class LoihiSpikingRectifiedLinearBuilder(
 
     def __init__(self, ops, signals, config):
         super(LoihiSpikingRectifiedLinearBuilder, self).__init__(ops, signals, config)
+        self.spike_noise = NoiseBuilder.build(ops, signals, config)
 
         self.amplitude = signals.op_constant(
             [op.neurons for op in ops],
@@ -313,8 +376,9 @@ class LoihiSpikingRectifiedLinearBuilder(
 
         # --- compute Loihi rates (for forward pass)
         period = tf.math.reciprocal(tf.maximum(J, self.epsilon))
-        loihi_rates = self.alpha / tf.math.ceil(period / dt)
-        loihi_rates = tf.where(J > self.zero, loihi_rates, self.zeros)
+        period = dt * tf.math.ceil(period / dt)
+        loihi_rates = self.spike_noise.generate(period)
+        loihi_rates = tf.where(J > self.zero, self.amplitude * loihi_rates, self.zeros)
 
         # --- compute RectifiedLinear rates (for backward pass)
         rates = self.amplitude / (

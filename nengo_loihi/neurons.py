@@ -148,6 +148,17 @@ class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
     in e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.
     """
 
+    def __init__(self, amplitude=1, nengo_dl_noise=None):
+        super(LoihiSpikingRectifiedLinear, self).__init__(amplitude=amplitude)
+        self.nengo_dl_noise = nengo_dl_noise
+
+    @property
+    def _argreprs(self):
+        args = super(LoihiSpikingRectifiedLinear, self)._argreprs
+        if self.nengo_dl_noise is not None:
+            args.append("nengo_dl_noise=%s" % self.nengo_dl_noise)
+        return args
+
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
 
@@ -170,6 +181,30 @@ class NeuronOutputNoise:
     """
 
     pass
+
+
+class LowpassIntegratedNoise(NeuronOutputNoise):
+    """Noise model combining Lowpass synapse and neuron membrane integration.
+
+    Samples "noise" (i.e. variability) from a regular spike train filtered
+    by the following transfer function, where :math:`\\tau_s` is the synapse time
+    constant, and the neuron membrane is a perfect integrator:
+
+    .. math::
+
+        H(s) = [(\\tau_s s + 1) (s)]^{-1}
+
+    Attributes
+    ----------
+    tau_s : float
+        Time constant for Lowpass synaptic filter.
+    """
+
+    def __init__(self, tau_s):
+        self.tau_s = tau_s
+
+    def __repr__(self):
+        return "%s(tau_s=%s)" % (type(self).__name__, self.tau_s)
 
 
 class LowpassRCNoise(NeuronOutputNoise):
