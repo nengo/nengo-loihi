@@ -1,6 +1,7 @@
 """Break apart LoihiBlocks too large to fit on a single core. """
 
 import collections
+import itertools
 
 import numpy as np
 
@@ -14,6 +15,21 @@ from nengo_loihi.block import (
     Synapse,
 )
 from nengo_loihi.inputs import SpikeInput
+
+
+class SetList:
+    def __init__(self, values):
+        self.list = list(values)
+        self.set = set(self.list)
+
+    def __contains__(self, val):
+        return val in self.set
+
+    def __iter__(self):
+        return iter(self.list)
+
+    def __len__(self):
+        return len(self.list)
 
 
 def array_hash(a):
@@ -225,29 +241,45 @@ def dismantle_block(old_block):
     n_out_axons = sum(axon.axon_slots() for axon in old_block.axons)
     synapse_bits = sum(synapse.bits() for synapse in old_block.synapses)
 
-    n_split = max(
-        (
-            ceil_div(n_compartments, MAX_COMPARTMENTS),
-            ceil_div(n_in_axons, MAX_IN_AXONS),
-            ceil_div(n_out_axons, MAX_OUT_AXONS),
-            ceil_div(synapse_bits, MAX_SYNAPSE_BITS),
-        )
-    )
+    new_block_inds = []
+    if old_block.split_shape is not None:
+        print("Splitting using shape")
+        full_shape = np.asarray(old_block.split_full_shape)
+        split_shape = np.asarray(old_block.split_shape)
+        assert full_shape is not None and full_shape.ndim == 1
+        assert full_shape.shape == split_shape.shape
+        ranges = [range(0, n, i) for n, i in zip(full_shape, split_shape)]
 
-    if n_split == 1:
+        full_inds = np.arange(np.prod(full_shape)).reshape(full_shape)
+        for inds0 in itertools.product(*ranges):
+            inds1 = np.minimum(inds0 + split_shape, full_shape)
+            indslice = tuple(slice(i0, i1) for i0, i1 in zip(inds0, inds1))
+            inds = full_inds[indslice]
+            new_block_inds.append(SetList(inds.flat))
+    else:
+        # break block sequentially
+        # TODO: account for compartments having different numbers of synapses/axons/etc
+        n_split = max(
+            (
+                ceil_div(n_compartments, MAX_COMPARTMENTS),
+                ceil_div(n_in_axons, MAX_IN_AXONS),
+                ceil_div(n_out_axons, MAX_OUT_AXONS),
+                ceil_div(synapse_bits, MAX_SYNAPSE_BITS),
+            )
+        )
+
+        compartments_per_block = ceil_div(n_compartments, n_split)
+        for i0 in range(0, n_compartments, compartments_per_block):
+            i1 = min(i0 + compartments_per_block, n_compartments)
+            new_block_inds.append(SetList(range(i0, i1)))
+
+    assert len(new_block_inds) > 0
+    if len(new_block_inds) == 1:
         # if block can fit on one core, just return the current block
         # TODO: should we copy it, just so all new blocks are consistently copies?
+        assert new_block_inds[0].set == set(range(n_compartments))
         new_blocks = [old_block]
-        new_block_inds = [set(range(old_block.n_neurons))]
         return collections.OrderedDict(zip(new_blocks, new_block_inds))
-
-    # break block sequentially
-    # TODO: account for compartments having different numbers of synapses/axons/etc
-    new_block_inds = []
-    compartments_per_block = ceil_div(n_compartments, n_split)
-    for i0 in range(0, n_compartments, compartments_per_block):
-        i1 = min(i0 + compartments_per_block, n_compartments)
-        new_block_inds.append(set(range(i0, i1)))
 
     # break apart block
     new_blocks = []
@@ -356,7 +388,7 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
     new_synapse_axons = collections.OrderedDict()
     for k, (block, block_comp_inds) in enumerate(new_blocks.items()):
         axon_overlaps = [
-            block_comp_inds.intersection(axon_comp_ind_set)
+            block_comp_inds.set.intersection(axon_comp_ind_set)
             for _, _, _, axon_comp_ind_set in old_input_axons
         ]
         axon_idxs = [
@@ -379,9 +411,10 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
         weight_idx_map = {}
         new_axon_weight_map = []
         new_axon_compartment_bases = []
+        # key_old_inds = {}
 
         compartment_map = dict(zip(block_comp_inds, range(len(block_comp_inds))))
-        new_block_comp_inds = set(range(len(block_comp_inds)))
+        new_block_comp_inds = SetList(range(len(block_comp_inds)))
 
         for new_axon_idx, old_axon_idx in enumerate(axon_idxs):
             (
@@ -413,36 +446,52 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
                 key = old_weight_idx
             else:
                 key = hash((array_hash(ww), array_hash(ii)))
+                # key = hash((old_weight_idx,
+                #             array_hash(old_weights),
+                #             array_hash(old_indices),
+                #             array_hash(i_valid)))
 
             # TODO: Need to map old compartment inds to new compartment inds.
             # Mapping could be arbitrary (given by block_comp_inds).
             if not has_shared_weights:
                 # assume that if no shared weights, also no compartment base (see above)
                 assert old_base == 0
+                new_base = 0
 
                 # map old inds directly to new inds
                 new_ii = np.array([compartment_map[i] for i in valid_comp_inds])
                 new_ii = np.tile(new_ii, (ii.shape[0], 1))
                 assert new_ii.shape == ii.shape
-
-                # new_base = None
-                new_base = 0
             else:
                 # Map old compartment indices to new. Then figure out new base.
-                new_ii = np.array([compartment_map[i] for i in valid_comp_inds])
+                new_axon_comp_inds = np.array(
+                    [compartment_map[i] for i in valid_comp_inds]
+                )
+
+                min_i = np.argmin(valid_comp_inds)
+                assert min_i == np.argmin(new_axon_comp_inds)
+
+                # old_offset = valid_comp_inds[min_i] - old_base
+                # new_base = new_axon_comp_inds[min_i] - old_offset
+                new_base = new_axon_comp_inds[min_i]
+                assert new_base >= 0
+
+                new_ii = new_axon_comp_inds - new_base
                 new_ii = np.tile(new_ii, (ii.shape[0], 1))
                 assert new_ii.shape == ii.shape
 
-                ii_diff = new_ii - ii
-                new_base = ii_diff[0, 0]
-                assert (ii_diff == ii_diff[0, 0]).all()
-
-            assert not (has_shared_weights and (key not in weight_idx_map))
+            # key = hash((array_hash(ww), array_hash(new_ii)))
             if key not in weight_idx_map:
                 weight_idx_map[key] = len(weights)
+                # key_old_inds[key] = (old_base, old_indices, valid_comp_inds)
                 weights.append(ww)
                 indices.append(new_ii)
                 assert all(new_base + i in new_block_comp_inds for i in new_ii.flat)
+            else:
+                # assert np.array_equal(old_indices, key_old_inds[key])
+                weight_idx = weight_idx_map[key]
+                assert np.array_equal(ww, weights[weight_idx])
+                assert np.array_equal(new_ii, indices[weight_idx])
 
             new_axon_weight_map.append(weight_idx_map[key])
             new_axon_compartment_bases.append(new_base)

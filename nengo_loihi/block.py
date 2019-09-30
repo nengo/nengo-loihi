@@ -54,6 +54,10 @@ class LoihiBlock:
         self.named_synapses = {}
         self.probes = []  # convenience list of probes that target this block
 
+        # helpers set by builder and used in dismantle_block
+        self.split_full_shape = None
+        self.split_shape = None
+
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
 

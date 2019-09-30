@@ -107,6 +107,10 @@ def build_ensemble(model, ens):
     # we exclude the radius to keep scaling reasonable for decode neurons
     scaled_encoders = encoders * gain[:, np.newaxis]
 
+    # add instructions for splitting, if provided
+    block.split_full_shape = model.config[ens].split_full_shape
+    block.split_shape = model.config[ens].split_shape
+
     model.add_block(block)
 
     model.objs[ens]["in"] = block

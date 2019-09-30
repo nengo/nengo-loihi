@@ -102,6 +102,7 @@ class Simulator:
         progress_bar=None,
         remove_passthrough=True,
         hardware_options=None,
+        dismantle=False,
     ):
         # initialize values used in __del__ and close() first
         self.closed = True
@@ -198,11 +199,12 @@ class Simulator:
         logger.info("Simulator target is %r", target)
         logger.info("Simulator precompute is %r", self.precompute)
 
-        # split apart large blocks to fit on chip
-        dismantle_model(self.model)
-
         if target != "simreal":
             discretize_model(self.model)
+
+        # split apart large blocks to fit on chip
+        if dismantle:
+            dismantle_model(self.model)
 
         if target in ("simreal", "sim"):
             self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)

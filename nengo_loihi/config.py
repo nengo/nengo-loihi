@@ -28,6 +28,15 @@ def add_params(network):
     ens_cfg = config[nengo.Ensemble]
     if "on_chip" not in ens_cfg._extra_params:
         ens_cfg.set_param("on_chip", Parameter("on_chip", default=None, optional=True))
+    if "split_full_shape" not in ens_cfg._extra_params:
+        ens_cfg.set_param(
+            "split_full_shape",
+            Parameter("split_full_shape", default=None, optional=True),
+        )
+    if "split_shape" not in ens_cfg._extra_params:
+        ens_cfg.set_param(
+            "split_shape", Parameter("split_shape", default=None, optional=True)
+        )
 
     conn_cfg = config[nengo.Connection]
     if "pop_type" not in conn_cfg._extra_params:
