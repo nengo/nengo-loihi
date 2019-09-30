@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 import scipy.sparse
 
-from nengo_loihi.builder import connection
 from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.neurons import nengo_rates
@@ -665,15 +664,14 @@ def test_chip_to_chip_transform_error(Simulator):
         size_in = 1
         size_out = 1
 
-    with nengo.Network():
+    with nengo.Network() as net:
         ens0 = nengo.Ensemble(10, 1)
         ens1 = nengo.Ensemble(10, 1)
-        conn = nengo.Connection(ens0, ens1, transform=MyTransform())
+        nengo.Connection(ens0, ens1, transform=MyTransform())
 
-    with pytest.raises(BuildError, match="on chip to chip connections"):
-        # note: we bypass the regular build process so that we don't have to write a
-        # fully working transform
-        connection.build_chip_connection(None, conn)
+    with pytest.raises(BuildError, match="Cannot build object of type 'MyTransform'"):
+        with Simulator(net):
+            pass
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
