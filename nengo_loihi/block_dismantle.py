@@ -367,7 +367,7 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
     ), "Sparse weights not yet supported"
 
     old_compression = old_synapse.synapse_cfg.compression
-    old_input_axons = []
+    old_input_axons = collections.OrderedDict()
     for axon_idx in range(old_synapse.n_axons):
         weight_idx = old_synapse.axon_weight_idx(axon_idx)
         indices = old_synapse.indices[weight_idx]
@@ -377,6 +377,9 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
         indices = indices[0]
 
         base = old_synapse.axon_compartment_base(axon_idx)
+        if base is None:
+            continue  # this axon is not used
+
         axon_comp_inds = base + indices
         old_input_axons[axon_idx] = (
             weight_idx,
@@ -387,14 +390,12 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
 
     new_synapse_axons = collections.OrderedDict()
     for k, (block, block_comp_inds) in enumerate(new_blocks.items()):
-        axon_overlaps = [
-            block_comp_inds.set.intersection(axon_comp_ind_set)
-            for _, _, _, axon_comp_ind_set in old_input_axons
-        ]
+        axon_overlaps = {
+            axon_idx: block_comp_inds.set.intersection(axon_comp_ind_set)
+            for axon_idx, (_, _, _, axon_comp_ind_set) in old_input_axons.items()
+        }
         axon_idxs = [
-            axon_idx
-            for axon_idx, overlap in enumerate(axon_overlaps)
-            if len(overlap) > 0
+            axon_idx for axon_idx in old_input_axons if len(axon_overlaps[axon_idx]) > 0
         ]
         if len(axon_idxs) == 0:
             continue
@@ -405,13 +406,12 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
         block.add_synapse(new_synapse)
         new_synapse_axons[new_synapse] = axon_idxs
 
-        # weight_idx_map: maps old weight idx or key to new weight idx
         weights = []
         indices = []
+        # weight_idx_map: maps old weight idx or key to new weight idx
         weight_idx_map = {}
         new_axon_weight_map = []
         new_axon_compartment_bases = []
-        # key_old_inds = {}
 
         compartment_map = dict(zip(block_comp_inds, range(len(block_comp_inds))))
         new_block_comp_inds = SetList(range(len(block_comp_inds)))
@@ -446,12 +446,8 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
                 key = old_weight_idx
             else:
                 key = hash((array_hash(ww), array_hash(ii)))
-                # key = hash((old_weight_idx,
-                #             array_hash(old_weights),
-                #             array_hash(old_indices),
-                #             array_hash(i_valid)))
 
-            # TODO: Need to map old compartment inds to new compartment inds.
+            # Map old compartment inds to new compartment inds.
             # Mapping could be arbitrary (given by block_comp_inds).
             if not has_shared_weights:
                 # assume that if no shared weights, also no compartment base (see above)
@@ -468,11 +464,9 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
                     [compartment_map[i] for i in valid_comp_inds]
                 )
 
+                # new_base is lowest index
                 min_i = np.argmin(valid_comp_inds)
                 assert min_i == np.argmin(new_axon_comp_inds)
-
-                # old_offset = valid_comp_inds[min_i] - old_base
-                # new_base = new_axon_comp_inds[min_i] - old_offset
                 new_base = new_axon_comp_inds[min_i]
                 assert new_base >= 0
 
@@ -483,12 +477,10 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
             # key = hash((array_hash(ww), array_hash(new_ii)))
             if key not in weight_idx_map:
                 weight_idx_map[key] = len(weights)
-                # key_old_inds[key] = (old_base, old_indices, valid_comp_inds)
                 weights.append(ww)
                 indices.append(new_ii)
                 assert all(new_base + i in new_block_comp_inds for i in new_ii.flat)
             else:
-                # assert np.array_equal(old_indices, key_old_inds[key])
                 weight_idx = weight_idx_map[key]
                 assert np.array_equal(ww, weights[weight_idx])
                 assert np.array_equal(new_ii, indices[weight_idx])
@@ -525,27 +517,3 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
 
     # return OrderedDict of new synapses, and which old input axons each of them need
     return new_synapse_axons
-
-    # # find which new blocks need which input axons and which weights
-    # for axon_idx, (weight_idx, base, axon_comp_inds) in enumerate(old_input_axons):
-    #     for block, block_comp_inds in new_blocks.items():
-    #         if not block_comp_inds.isdisjoint(axon_comp_inds):
-    #             new_block_input_axon_idxs[new_block].add(axon_idx)
-
-    # # create new synapses
-    # for block in (b for b in new_blocks if b in new_block_input_axon_idxs):
-    #     axon_idxs = new_block_input_axon_idxs[block]
-
-    #     # old_weight_idxs = list(new_block_weight_idxs[block])
-    #     # old_weights = old_synapse.weights[weight_idxs]
-    #     # old_indices = old_synapse.indices[weight_idxs]
-
-    #     block_comp_inds = new_blocks[block]
-    #     weights = collections.OrderedDict()
-    #     for axon_idx in axon_idxs:
-    #         old_base = old_synapse.axon_compartment_base(axon_idx)
-    #         old_weight_idx = old_synapse.axon_weight_idx(axon_idx)
-    #         w = old_synapse.weights[old_weight_idx]
-    #         i = old_synapse.indices[old_weight_idx]
-
-    #         # key = hash((array_hash(
