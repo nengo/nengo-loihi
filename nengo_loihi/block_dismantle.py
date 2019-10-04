@@ -440,12 +440,12 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
                 ii = old_indices[:, i_valid]
                 valid_comp_inds = old_axon_comp_inds[i_valid]
 
-            if not has_shared_weights:
-                key = old_weight_idx
-            elif all_targets_in_block:
-                key = old_weight_idx
-            else:
-                key = hash((array_hash(ww), array_hash(ii)))
+            # if not has_shared_weights:
+            #     key = old_weight_idx
+            # elif all_targets_in_block:
+            #     key = old_weight_idx
+            # else:
+            #     key = hash((array_hash(ww), array_hash(ii)))
 
             # Map old compartment inds to new compartment inds.
             # Mapping could be arbitrary (given by block_comp_inds).
@@ -470,11 +470,14 @@ def dismantle_synapse(old_block, old_synapse, new_blocks):  # noqa: C901
                 new_base = new_axon_comp_inds[min_i]
                 assert new_base >= 0
 
+                # new_base needs to be < 256 due to chip constraints
+                new_base = new_base % 256
+
                 new_ii = new_axon_comp_inds - new_base
                 new_ii = np.tile(new_ii, (ii.shape[0], 1))
                 assert new_ii.shape == ii.shape
 
-            # key = hash((array_hash(ww), array_hash(new_ii)))
+            key = hash((array_hash(ww), array_hash(new_ii)))
             if key not in weight_idx_map:
                 weight_idx_map[key] = len(weights)
                 weights.append(ww)
