@@ -22,7 +22,6 @@ from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
 from nengo_loihi.hardware.validate import validate_board
-from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
 

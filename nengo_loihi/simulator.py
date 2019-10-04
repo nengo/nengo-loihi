@@ -17,6 +17,7 @@ from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
 from nengo_loihi.splitter import Split
+from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,8 @@ class Simulator:
         progress_bar=None,
         remove_passthrough=True,
         hardware_options=None,
-        dismantle=False,
+        dismantle=None,
+        validate=None,
     ):
         # initialize values used in __del__ and close() first
         self.closed = True
@@ -203,8 +205,15 @@ class Simulator:
             discretize_model(self.model)
 
         # split apart large blocks to fit on chip
+        if dismantle is None:
+            dismantle = target == "loihi"
         if dismantle:
             dismantle_model(self.model)
+
+        if validate is None:
+            validate = dismantle
+        if validate:
+            validate_model(self.model)
 
         if target in ("simreal", "sim"):
             self.sims["emulator"] = EmulatorInterface(self.model, seed=seed)
