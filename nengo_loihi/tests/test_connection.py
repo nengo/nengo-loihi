@@ -719,3 +719,33 @@ def test_sparse_ens_ens(Simulator, seed, plt, allclose):
 
     assert allclose(sim.data[bp][:, 0], -0.8 * sim.data[up][:, 2], atol=0.2)
     assert allclose(sim.data[bp][:, 1], 0.6 * sim.data[up][:, 0], atol=0.2)
+
+
+def test_input_synapses(Simulator, allclose, plt):
+    synapse = 0.1
+    with nengo.Network() as net:
+        stim = nengo.Node(lambda t: 1 if t % 0.5 < 0.25 else 0)
+        ens = nengo.Ensemble(
+            n_neurons=1, dimensions=1, encoders=[[1]], intercepts=[0], max_rates=[50]
+        )
+        nengo.Connection(stim, ens, synapse=synapse)
+        p_stim = nengo.Probe(stim)
+        p_neurons = nengo.Probe(ens.neurons)
+
+    with Simulator(net) as sim:
+        sim.run(0.5)
+    with nengo.Simulator(net) as ref:
+        ref.run(0.5)
+
+    t = sim.trange()
+    ref_filt = nengo.Alpha(0.03).filtfilt(ref.data[p_neurons])
+    sim_filt = nengo.Alpha(0.03).filtfilt(sim.data[p_neurons])
+
+    plt.plot(t, ref_filt, label="nengo")
+    plt.plot(t, sim_filt, label="nengo_loihi")
+    plt.legend(loc="best")
+    plt.twinx()
+    plt.plot(t, sim.data[p_stim], c="k")
+
+    # Only looking at t < 0.4 as there are weird effects at the end
+    assert allclose(ref_filt[t < 0.4], sim_filt[t < 0.4], atol=1.5)
