@@ -29,6 +29,10 @@ def add_params(network):
     if "on_chip" not in ens_cfg._extra_params:
         ens_cfg.set_param("on_chip", Parameter("on_chip", default=None, optional=True))
 
+    conn_cfg = config[nengo.Connection]
+    if "pop_type" not in conn_cfg._extra_params:
+        conn_cfg.set_param("pop_type", Parameter("pop_type", default=32, optional=True))
+
 
 def set_defaults():
     """Modify Nengo's default parameters for better performance with Loihi.
