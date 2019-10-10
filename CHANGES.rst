@@ -31,6 +31,10 @@ Release history
 - Added a ``timers`` attribute to ``Simulator`` that tracks the wall time
   taken by various parts of the model, including build time and run time.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- Added the ``pop_type`` configuration option to the ``Connection`` config.
+  See `nengo_loihi.add_params
+  <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
+  for details. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Changed**
 

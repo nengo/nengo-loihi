@@ -45,6 +45,21 @@ def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
     dest_model.seeds[dest_obj] = src_model.seeds[src_obj]
 
 
+def _inherit_config(dest_model, dest_obj, src_model, src_obj):
+    if src_model.config is None:
+        return
+
+    assert dest_model.config is not None, "Destination model must have a config"
+    src_params = src_model.config[src_obj]  # InstanceParams object for source
+    filled_params = [
+        attr
+        for attr in src_params._clsparams.params
+        if src_params in src_params._clsparams.get_param(attr)
+    ]
+    for attr in filled_params:
+        setattr(dest_model.config[dest_obj], attr, getattr(src_params, attr))
+
+
 @Builder.register(Connection)
 def build_connection(model, conn):
     pre_onchip = model.split.on_chip(base_obj(conn.pre))
@@ -101,6 +116,7 @@ def build_host_neurons_to_chip(model, conn):
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
+    _inherit_config(model, receive2post, model, conn)
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating HostSendNode for %s", conn)
@@ -182,6 +198,7 @@ def build_host_to_chip(model, conn):
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
+    _inherit_config(model, receive2post, model, conn)
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
@@ -781,7 +798,7 @@ def build_conv2d_connection(model, conn):
         )
     weights = weights * gain[0]
 
-    pop_type = 32  # TODO: pick this
+    pop_type = model.config[conn].pop_type
     new_transform = copy.copy(conn.transform)
     type(new_transform).init.data[new_transform] = weights
     weights, indices, axon_to_weight_map, offsets = conv2d_loihi_weights(new_transform)

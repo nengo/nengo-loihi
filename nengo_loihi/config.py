@@ -11,6 +11,10 @@ def add_params(network):
       * ``on_chip``: Whether the ensemble should be simulated
         on a Loihi chip. Marking specific ensembles for simulation
         off of a Loihi chip can help with debugging.
+    `nengo.Connection`
+      * ``pop_type``: The axon format when using population spikes, which are only
+        used for convolutional connections. Must be an int between 16 and 32.
+        By default, we use ``pop_type`` 32.
 
     Examples
     --------
@@ -28,6 +32,10 @@ def add_params(network):
     ens_cfg = config[nengo.Ensemble]
     if "on_chip" not in ens_cfg._extra_params:
         ens_cfg.set_param("on_chip", Parameter("on_chip", default=None, optional=True))
+
+    conn_cfg = config[nengo.Connection]
+    if "pop_type" not in conn_cfg._extra_params:
+        conn_cfg.set_param("pop_type", Parameter("pop_type", default=32, optional=True))
 
 
 def set_defaults():
