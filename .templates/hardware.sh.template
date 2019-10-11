@@ -1,34 +1,16 @@
-{% extends "templates/base_script.sh.template" %}
+{% extends "templates/remote.sh.template" %}
 
-{% block install %}
+{% block remote_install %}
 {{ super() }}
-    exe openssl aes-256-cbc -K "${encrypted_e0365add3e93_key:?}" -iv "${encrypted_e0365add3e93_iv:?}" -in .ci/travis_rsa.enc -out ~/.ssh/id_rsa -d  # decrypt private key, see https://docs.travis-ci.com/user/encrypting-files/
-    exe chmod 600 ~/.ssh/id_rsa
-    echo -e "$INTELHOST_INFO" >> ~/.ssh/config  # ssh config, stored in travis-ci settings
-    ssh -o StrictHostKeyChecking=no loihihost "echo 'Connected to loihihost'"
-    exe scp -r "$(pwd)" "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER"
-{% endblock %}
-
-{% block script %}
-    exe ssh loihihost << EOF
-        sh /etc/profile
-        sh ~/.bashrc
-        HW_STATUS=0
-        cd /tmp/nengo-loihi-$TRAVIS_JOB_NUMBER
-        conda create -y -n travis-ci-$TRAVIS_JOB_NUMBER python=3.5.2 scipy
-        source activate travis-ci-$TRAVIS_JOB_NUMBER
+        conda install -y scipy
         pip install $NENGO_DL_VERSION jupyter
         pip install -e .[tests]
         pip install $NENGO_VERSION --upgrade
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
         pip install nxsdk-$NXSDK_VERSION.tar.gz
-        SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || HW_STATUS=1
-        exit \$HW_STATUS
-EOF
 {% endblock %}
 
-{% block after_script %}
-    exe scp "loihihost:/tmp/nengo-loihi-$TRAVIS_JOB_NUMBER/coverage.xml" coverage.xml
-    eval "bash <(curl -s https://codecov.io/bash)"
-    exe ssh loihihost "conda-env remove -y -n travis-ci-$TRAVIS_JOB_NUMBER"
+{% block remote_script %}
+{{ super() }}
+        SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
 {% endblock %}
