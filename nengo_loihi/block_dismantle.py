@@ -106,7 +106,7 @@ def dismantle_model(model):
         # TODO: update probes (need to collect data from multiple blocks)
         pass
 
-    # return new_inputs, new_blocks
+    return block_map
 
 
 def dismantle_probe(probe, block_map, synapse_map):

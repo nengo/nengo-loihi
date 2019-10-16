@@ -1,0 +1,57 @@
+#include <stdlib.h>
+#include <string.h>
+#include "test_split_convlayer_io.h"
+
+const int steps_per_write = {{ steps_per_write }};
+FILE* fp_out = NULL;
+
+int doRunMgmt(runState *s) {
+    return 1;
+}
+
+const int n_output_cores = {{ n_output_cores }};
+const uint8_t output_core_ids[] = {{ output_core_ids }};
+const int output_core_neurons[] = {{ output_core_neurons }};
+NeuronCore* output_cores[{{ n_output_cores }}];
+const int n_outputs = {{ n_outputs }};
+uint8_t outputs[{{ n_outputs }}];
+
+
+void runMgmt(runState *s) {
+    if (fp_out == NULL) {
+        fp_out = fopen("{{ output_file_name }}", "wb");
+        if (fp_out == NULL) {
+            printf("Error opening output file\n");
+            return;
+        }
+
+        for (int i = 0; i < n_outputs; i++) {
+            outputs[i] = 0;
+        }
+    }
+
+    if (output_cores[0] == NULL) {
+        for (int i = 0; i < n_output_cores; i++) {
+            // todo: make this work for multi-chip
+            output_cores[i] = NEURON_PTR((CoreId){ .id=core_ids[i] });
+            if (output_cores[i] == NULL) {
+                printf("Error getting core pointer\n");
+                return;
+            }
+        }
+    }
+
+    // loop through neurons
+    for (int i = 0; i < n_output_cores; i++) {
+        for (int j = 0; j < output_core_neurons[i]; j++) {
+            bool spike = output_cores[i]->cx_state[j].V == {{ spike_voltage }};
+        }
+    }
+
+    // write output
+    int time = s->time;  // starts at time == 1 for the first timestep
+    int write_offset = time % steps_per_write;
+    if (write_offset == 0) {
+        fwrite(outputs, 1, n_outputs, fp_out);
+    }
+}

@@ -1,6 +1,10 @@
+import os
 import pickle
 import warnings
 
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+import jinja2
 import matplotlib.pyplot as plt
 import nengo
 from nengo._vendor.npconv2d.conv2d import conv2d
@@ -8,7 +12,9 @@ import nengo_loihi
 import numpy as np
 import PIL as pil
 
-warnings.filterwarnings("ignore", category=FutureWarning)
+this_dir = os.path.dirname(os.path.realpath(__file__))
+
+SNIP_PROBE = True
 
 n_dim = 5
 dt = 0.001
@@ -38,8 +44,8 @@ kernel = np.transpose(kernel, (1, 2, 3, 0))
 kernel /= np.abs(kernel).sum(axis=(0, 1, 2), keepdims=True)
 n_filters = kernel.shape[-1]
 
-for k in range(kernel.shape[-1]):
-    print(kernel[..., 0, k])
+# for k in range(kernel.shape[-1]):
+#     print(kernel[..., 0, k])
 
 if 0:
     # single-channel
@@ -58,7 +64,8 @@ ref_outputs = conv2d(enc_images[None, ...], kernel, pad="VALID")[0]
 ref_outputs = relu(ref_outputs)
 
 for k in range(ref_outputs.shape[-1]):
-    print(ref_outputs[:5, :5, k])
+    # print(ref_outputs[:5, :5, k])
+    print(np.round(ref_outputs[::10, ::10, k] / ref_outputs[:, :, k].max(), 3))
 
 if 0:
     rows = 1
@@ -115,12 +122,11 @@ with nengo.Network(seed=0) as net:
     net.config[a].split_shape = (16, 16, 2)
     nengo.Connection(enc.neurons, a.neurons, transform=transform, label="enc-a")
 
-    # b = nengo.Ensemble(1000, n_dim, radius=1.3, label="b")
-    # nengo.Connection(a, b, label="a-b")
-
     up = nengo.Probe(u)
-    ap = nengo.Probe(a.neurons, synapse=nengo.Alpha(0.01))
-    # bp = nengo.Probe(b.neurons, synapse=nengo.Alpha(0.01))
+
+    output_ensemble = a
+    if not SNIP_PROBE:
+        ap = nengo.Probe(a.neurons, synapse=nengo.Alpha(0.01))
 
 
 def ind_string(inds):
@@ -131,30 +137,107 @@ def ind_string(inds):
         return str(inds)
 
 
-with nengo_loihi.Simulator(net, dt=dt) as sim:
-    for input in sim.model.inputs:
-        print("Input %s: %d" % (input.label, input.n_neurons))
-        for axon in input.axons:
-            print(
-                "  Axon %s: target %s: %d"
-                % (axon.label, axon.target.label, axon.n_axons)
-            )
-    for block in sim.model.blocks:
-        print("Block %s: %d" % (block.label, block.compartment.n_compartments))
-        for synapse in block.synapses:
-            print("  Synapse %s: %d" % (synapse.label, synapse.n_axons))
-        for axon in block.axons:
-            print(
-                "  Axon %s: target %s: %d"
-                % (axon.label, axon.target.label, axon.n_axons)
-            )
-            print("    inds: %s" % ind_string(axon.compartment_map))
+with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
+    # for input in sim.model.inputs:
+    #     print("Input %s: %d" % (input.label, input.n_neurons))
+    #     for axon in input.axons:
+    #         print(
+    #             "  Axon %s: target %s: %d"
+    #             % (axon.label, axon.target.label, axon.n_axons)
+    #         )
+    # for block in sim.model.blocks:
+    #     print("Block %s: %d" % (block.label, block.compartment.n_compartments))
+    #     for synapse in block.synapses:
+    #         print("  Synapse %s: %d" % (synapse.label, synapse.n_axons))
+    #     for axon in block.axons:
+    #         print(
+    #             "  Axon %s: target %s: %d"
+    #             % (axon.label, axon.target.label, axon.n_axons)
+    #         )
+    #         print("    inds: %s" % ind_string(axon.compartment_map))
+
+    output_block = sim.model.objs[output_ensemble]["out"]
+    output_blocks = list(sim.dismantle_blockmap.get(output_block, [output_block]))
+    del output_block
+
+    if SNIP_PROBE:
+        snip_file_base = "test_split_convlayer_io"
+        output_file_name = "test_split_convlayer_output.bin"
+
+        board = sim.sims["loihi"].board
+        n2board = sim.sims["loihi"].n2board
+
+        refract_delay = output_blocks[0].compartment.refract_delay
+        assert all(
+            block.compartment.refract_delay == refract_delay for block in output_blocks
+        )
+
+        output_core_ids = []
+        output_core_neurons = []
+        for block in output_blocks:
+            chip_idx, core_idx, block_idx, _, _ = board.find_block(block)
+            assert block_idx == 0
+            n2core = n2board.n2Chips[chip_idx].n2Cores[core_idx]
+            output_core_ids.append(n2core.id)
+
+        n_outputs = sum(output_core_neurons)
+
+        # --- make snip
+        env = jinja2.Environment(
+            trim_blocks=True,
+            loader=jinja2.FileSystemLoader(this_dir),
+            keep_trailing_newline=True,
+        )
+        template = env.get_template(snip_file_base + ".c.template")
+        code = template.render(
+            steps_per_write=steps_per_write,
+            output_file_name=os.path.join(this_dir, output_file_name),
+            n_output_cores=len(output_core_ids),
+            output_core_ids="{%s}" % ",".join(str(x) for x in output_core_ids),
+            output_core_neurons="{%s}" % ",".join(str(x) for x in output_core_neurons),
+            n_outputs=n_outputs,
+            spike_voltage=refract_delay * 128,
+        )
+
+        cPath = os.path.join(this_dir, snip_file_base + ".c")
+        with open(cPath, "w") as f:
+            f.write(code)
+
+        includeDir = this_dir
+        funcName = "runMgmt"
+        guardName = "doRunMgmt"
+        phase = "mgmt"
+        board.io_snip = board.createProcess(
+            "runMgmt", cPath, includeDir, funcName, guardName, phase
+        )
 
     # sim.run(1.0)
     sim.run(0.2)
 
 nt = len(sim.trange())
-a_outputs = sim.data[ap].reshape((nt, 62, 62, n_filters))
+
+if not SNIP_PROBE:
+    a_outputs = sim.data[ap].reshape((nt, 62, 62, n_filters))
+    a_outputs = a_outputs[-10:].mean(axis=0)
+else:
+    with open(output_file_name, "rb") as fh:
+        output_bytes = []
+        while True:
+            line = fh.read(n_outputs)
+            if len(line) > 0:
+                assert len(line) == n_outputs
+                output_bytes.append(line)
+            else:
+                break
+
+    a_outputs = np.array(
+        [np.frombuffer(b, dtype=np.uint8) for b in output_bytes], dtype=np.float32
+    )
+
+    # take mean of last 50 timesteps, because
+    n = 50
+    a_outputs = a_outputs[-n // steps_per_write :].mean(axis=0) / steps_per_write
+
 print(a_outputs.max())
 
 # spikes = sim.data[anp]
@@ -174,9 +257,12 @@ for k in range(n_filters):
     plt.imshow(ref_outputs[:, :, k])
 
     plt.subplot(rows, cols, 1 * cols + 1 + k + 1)
-    plt.imshow(a_outputs[-1, :, :, k], vmin=0, vmax=a_outputs[-1, :, :, k].max())
-    print("Output channel %d: max: %0.3f" % (k, a_outputs[-1, :, :, k].max()))
+    a_max_k = a_outputs[:, :, k].max()
+    plt.imshow(a_outputs[:, :, k], vmin=0, vmax=a_max_k)
+    print("Output channel %d: max: %0.3f" % (k, a_max_k))
 
-    print(a_outputs[-1, :5, :5, k])
+    # print(a_outputs[:5, :5, k])
+    print(np.round(a_outputs[::10, ::10, k] / a_max_k, 3))
 
+plt.savefig("test_split_convlayer.png")
 plt.show()

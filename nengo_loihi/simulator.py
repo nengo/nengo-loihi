@@ -205,10 +205,11 @@ class Simulator:
             discretize_model(self.model)
 
         # split apart large blocks to fit on chip
+        self.dismantle_blockmap = {}
         if dismantle is None:
             dismantle = target == "loihi"
         if dismantle:
-            dismantle_model(self.model)
+            self.dismantle_blockmap = dismantle_model(self.model)
 
         if validate is None:
             validate = dismantle
