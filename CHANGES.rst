@@ -22,10 +22,18 @@ Release history
 0.11.0 (unreleased)
 ===================
 
+*Compatible with NxSDK 0.8.7 - 0.9.0*
+
 **Added**
 
 - Added Legendre Memory Unit example.
   (`#267 <https://github.com/nengo/nengo-loihi/pull/267>`__)
+
+**Changed**
+
+- The ``precompute`` argument of ``Simulator`` now defaults to ``None``
+  and will be automatically set to ``True`` if the model can be precomputed.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
