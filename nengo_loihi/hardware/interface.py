@@ -132,7 +132,9 @@ class HardwareInterface:
         validate_board(self.board)
 
         # --- build
-        self.nxsdk_board = build_board(self.board, seed=seed)
+        self.nxsdk_board = build_board(
+            self.board, use_snips=self.use_snips, seed=self.seed
+        )
 
     def run_steps(self, steps, blocking=True):
         if self.use_snips and self.nengo_io_h2c is None:

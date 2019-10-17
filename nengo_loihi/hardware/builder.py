@@ -22,7 +22,7 @@ from nengo_loihi.inputs import SpikeInput
 logger = logging.getLogger(__name__)
 
 
-def build_board(board, seed=None):
+def build_board(board, use_snips=False, seed=None):
     n_chips = board.n_chips
     n_cores_per_chip = board.n_cores_per_chip
     n_synapses_per_core = board.n_synapses_per_core
@@ -32,7 +32,7 @@ def build_board(board, seed=None):
 
     # add our own attribute for storing our spike generator
     assert not hasattr(nxsdk_board, "global_spike_generator")
-    nxsdk_board.global_spike_generator = SpikeGen(nxsdk_board)
+    nxsdk_board.global_spike_generator = None if use_snips else SpikeGen(nxsdk_board)
 
     # custom attr for storing SpikeInputs (filled in build_input)
     assert not hasattr(nxsdk_board, "spike_inputs")
@@ -380,6 +380,10 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
 
     # add any pre-existing spikes to spikegen
     for t in spike_input.spike_times():
+        assert (
+            nxsdk_board.global_spike_generator is not None
+        ), "Cannot add pre-existing spikes when using Snips (no spike generator)"
+
         spikes = spike_input.spike_idxs(t)
         for spike in loihi_input.spikes_to_loihi(t, spikes):
             assert (

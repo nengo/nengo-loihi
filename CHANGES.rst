@@ -35,6 +35,11 @@ Release history
   and will be automatically set to ``True`` if the model can be precomputed.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
+**Fixed**
+
+- We no longer create a spike generator if we are communicating through Snips.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+
 0.10.0 (November 25, 2019)
 ==========================
 
