@@ -13,13 +13,19 @@
 #include "nxsdkhost.h"
 
 #define N_OUTPUTS {{ n_outputs }}
-//#define BUFFER_SIZE {{ host_buffer_size }}
-#define BUFFER_SIZE 1024
+#define N_OUTPUT_PACKETS {{ n_output_packets }}
+#define BUFFER_SIZE {{ host_buffer_size }}
+#define PACKET_SIZE {{ packet_size }}
 
 #define SERVER_PORT htons({{ server_port }})
 
 
 namespace nengo_host {
+
+template <class T>
+inline T ceil_div(T a, T b) {
+    return (a / b) + (a % b != 0);
+}
 
 const char input_channel[] = "{{ input_channel }}";
 const char output_channel[] = "{{ output_channel }}";
@@ -91,6 +97,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
             }
 
             // read messages from superhost socket
+            // we make sure BUFFER_SIZE is large enough for any message
+            // TODO: read in blocks of e.g 4096 bytes (small power of 2) for speed
             size_t n_read = read(client_socket, buffer, BUFFER_SIZE * sizeof(int32_t));
             if (n_read % sizeof(int32_t) != 0) {
                 std::cout << "Did not read full int32s from socket" << std::endl;
@@ -102,7 +110,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
             }
 
             // write packets to chip (PACKET_SIZE == sizeof(int32_t))
-            writeChannel(input_channel, buffer, n_read / sizeof(int32_t));
+            size_t n_packets = ceil_div<size_t>(n_read, 4*PACKET_SIZE);
+            writeChannel(input_channel, buffer, n_packets);
 
             // wait until chip has written output
             while (!end_of_execution && !probeChannel(output_channel)) {
@@ -113,7 +122,7 @@ class NengoHostProcess : public ConcurrentHostSnip {
             }
 
             // read chip output
-            readChannel(output_channel, buffer, N_OUTPUTS);
+            readChannel(output_channel, buffer, N_OUTPUT_PACKETS);
 
             // write output to superhost socket
             const size_t write_len = N_OUTPUTS;

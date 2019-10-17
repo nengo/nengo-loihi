@@ -55,6 +55,7 @@ class HardwareInterface:
 
     min_nxsdk_version = LooseVersion("0.8.7")
     max_nxsdk_version = LooseVersion("0.9.0")
+    channel_packet_size = 64  # size of channel packets in int32s
 
     def __init__(
         self,
@@ -430,6 +431,7 @@ class HardwareInterface:
         n_errors = 0
         total_error_len = 0
         max_error_len = 0
+        assert len(self.board.chips) == 1, "Learning not implemented for multiple chips"
         for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
             if core.learning_coreid:
                 error_len = core.blocks[0].n_neurons // 2
@@ -466,7 +468,7 @@ class HardwareInterface:
             get_channel=d(b"Z2V0Q2hhbm5lbElE"),
             int_type=d(b"aW50MzJfdA=="),
             spike_size=d(b"Mg=="),
-            error_info_size=d(b"Mg=="),
+            error_info_size=d(b"Mg==", int),
             step=d(b"dGltZV9zdGVw"),
             read=d(b"cmVhZENoYW5uZWw="),
             write=d(b"d3JpdGVDaGFubmVs"),
@@ -489,6 +491,8 @@ class HardwareInterface:
             ),
         )
 
+        n_output_packets = ceil_div(n_outputs, self.channel_packet_size)
+
         # --- write c file using template
         template = env.get_template("nengo_io.c.template")
         self.tmp_snip_dir = tempfile.TemporaryDirectory()
@@ -501,12 +505,21 @@ class HardwareInterface:
             len(cores),
             len(probes),
         )
-        chip_buffer_size = max(1024, roundup(n_outputs, SpikePacker.size()))
+        chip_buffer_size = roundup(
+            max(
+                n_outputs,  # currently, buffer needs to hold all outputs at once
+                self.channel_packet_size
+                + max(SpikePacker.size(), obfs["error_info_size"]),
+            ),
+            self.channel_packet_size,
+        )
         code = template.render(
             n_outputs=n_outputs,
+            n_output_packets=n_output_packets,
             n_errors=n_errors,
             max_error_len=max_error_len,
             buffer_size=chip_buffer_size,
+            packet_size=self.channel_packet_size,
             cores=cores,
             probes=probes,
             obfs=obfs,
@@ -553,14 +566,18 @@ class HardwareInterface:
         host_socket_port = np.random.randint(50000, 60000)
 
         max_inputs = n_errors + self.snip_max_spikes_per_step * SpikePacker.size()
+        host_buffer_size = roundup(max(max_inputs, n_outputs), self.channel_packet_size)
+
         host_template = env.get_template("nengo_host.cc.template")
         host_path = os.path.join(self.tmp_snip_dir.name, "nengo_host.cc")
         host_code = host_template.render(
-            host_buffer_size=max(max_inputs, n_outputs),
+            host_buffer_size=host_buffer_size,
             n_outputs=n_outputs,
+            n_output_packets=n_output_packets,
             server_port=host_socket_port,
             input_channel="nengo_io_h2c",
             output_channel="nengo_io_c2h",
+            packet_size=self.channel_packet_size,
             obfs=obfs,
         )
         with open(host_path, "w") as f:
@@ -582,25 +599,33 @@ class HardwareInterface:
         self.host_socket_port = host_socket_port
 
         # --- create channels
-        size = (
+        input_channel_size = (
             1  # first int stores number of spikes
             + self.snip_max_spikes_per_step * SpikePacker.size()
             + total_error_len
         )
-        logger.debug("Creating nengo_io_h2c channel (%d)" % size)
+        logger.debug("Creating nengo_io_h2c channel (%d)" % input_channel_size)
         self.nengo_io_h2c = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_h2c",  # name of the channel
+            b"nengo_io_h2c",  # channel name
             **{
-                d(b"bnVtRWxlbWVudHM="): size,  # size of the channel (in elements)
-                d(b"bWVzc2FnZVNpemU="): 4,  # size of one packet (in bytes)
+                # channel size (in elements)
+                d(b"bnVtRWxlbWVudHM="): input_channel_size,
+                # size of one packet (in bytes)
+                d(b"bWVzc2FnZVNpemU="): 4 * self.channel_packet_size,
+                # size of send/receive buffer on chip/host (in packets)
+                d(b"c2xhY2s="): 16,
             },
         )
         logger.debug("Creating nengo_io_c2h channel (%d)" % n_outputs)
         self.nengo_io_c2h = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_c2h",  # name of the channel
+            b"nengo_io_c2h",  # channel name
             **{
-                d(b"bnVtRWxlbWVudHM="): n_outputs,  # size of the channel (in elements)
-                d(b"bWVzc2FnZVNpemU="): 4,  # size of one packet (in bytes)
+                # channel size (in elements)
+                d(b"bnVtRWxlbWVudHM="): n_outputs,
+                # size of one packet (in bytes)
+                d(b"bWVzc2FnZVNpemU="): 4 * self.channel_packet_size,
+                # size of send/receive buffer on chip/host (in packets)
+                d(b"c2xhY2s="): 16,
             },
         )
         d_get(self.nengo_io_h2c, b"Y29ubmVjdA==")(host_process, nengo_io)
