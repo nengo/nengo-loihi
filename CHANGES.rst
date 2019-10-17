@@ -22,7 +22,12 @@ Release history
 0.11.0 (unreleased)
 ===================
 
+**Changed**
 
+- The default value for ``Simulator.precompute`` is now ``None``. This allows the
+  simulator to be forced to use ``precompute=False`` (mostly for testing). Also added
+  better detection for when ``precompute=True`` can be used.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
