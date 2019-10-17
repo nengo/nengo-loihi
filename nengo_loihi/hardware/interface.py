@@ -13,7 +13,7 @@ import jinja2
 from nengo.exceptions import SimulationError
 import numpy as np
 
-from nengo_loihi.block import LoihiBlock, Probe
+from nengo_loihi.block import Probe
 from nengo_loihi.compat import make_process_step
 from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
@@ -285,17 +285,20 @@ class HardwareInterface:
 
         for probe in self._snip_probe_data:
             assert probe.use_snip
-            outputs = [data[r] for r in snip_range[probe]]
-            assert all(x.ndim == 1 for x in outputs)
 
-            if probe.key == "spiked":
-                assert all(isinstance(target, LoihiBlock) for target in probe.targets)
-                for i, output in enumerate(outputs):
-                    # Loihi uses the voltage value to indicate where we
-                    # are in the refractory period. We want to find neurons
-                    # starting their refractory period.
-                    refract_delays = probe.targets[i].compartment.refract_delay
-                    outputs[i] = output == refract_delays * d(b"MTI4", int)
+            outputs = []
+            for r, n_packed_spikes in snip_range[probe]:
+                if n_packed_spikes > 0:
+                    packed32 = data[r]
+                    packed8 = packed32.view("uint8")
+                    unpacked = np.unpackbits(packed8)
+                    unpacked = unpacked.reshape((-1, 8))[:, ::-1].ravel()
+                    unpacked = unpacked[:n_packed_spikes]
+                    outputs.append(unpacked)
+                else:
+                    outputs.append(data[r])
+
+            assert all(x.ndim == 1 for x in outputs)
 
             x = self._get_weighted_probe(probe, outputs)
 
@@ -514,7 +517,8 @@ class HardwareInterface:
                 n_errors += 1
                 total_error_len += 2 + error_len
 
-        n_outputs = 1
+        output_offset = 1  # first output is timestamp
+        i_output = 0
         probes = []
         cores = set()
         # TODO: should snip_range be stored on the probe?
@@ -522,22 +526,51 @@ class HardwareInterface:
         for probe in self._iter_probes():
             if probe.use_snip:
                 info = probe.snip_info
-                key = info["key"]
-                assert key in ("u", "v", "spike")
-                # For spike probes, we record V and determine if the neuron
-                # spiked in Simulator.
+                assert info["key"] in ("u", "v", "spike")
 
                 snip_range[probe] = []
-                for core_id, compartment_idxs in zip(
-                    info["core_id"], info["compartment_idxs"]
+                for block, core_id, compartment_idxs in zip(
+                    probe.targets, info["core_id"], info["compartment_idxs"]
                 ):
+                    key = info["key"]
+                    if info["key"] == "spike":
+                        refract_delay = block.compartment.refract_delay[0]
+                        assert np.all(block.compartment.refract_delay == refract_delay)
+                        key = refract_delay * d(b"MTI4", int)
+
                     cores.add(core_id)
-                    snip_range[probe].append(
-                        slice(n_outputs - 1, n_outputs + len(compartment_idxs) - 1)
-                    )
-                    for compartment in compartment_idxs:
-                        probes.append((n_outputs, core_id, compartment, key))
-                        n_outputs += 1
+                    n_comps = len(compartment_idxs)
+                    comp0 = compartment_idxs[0]
+                    comp_diff = np.diff(compartment_idxs)
+                    comp_step = comp_diff[0]
+                    is_ranged_comps = np.all(comp_diff == comp_step)
+                    is_packed_spikes = is_ranged_comps and (info["key"] == "spike")
+                    n_packed_spikes = n_comps if is_packed_spikes else 0
+
+                    output_len = ceil_div(n_comps, 32) if is_packed_spikes else n_comps
+                    output_slice = slice(i_output, i_output + output_len)
+                    snip_range[probe].append((output_slice, n_packed_spikes))
+
+                    if is_ranged_comps:
+                        probes.append(
+                            (
+                                output_offset + i_output,
+                                key,
+                                core_id,
+                                comp0,
+                                comp_step,
+                                n_comps,
+                            )
+                        )
+                        i_output += output_len
+                    else:
+                        for comp in compartment_idxs:
+                            probes.append(
+                                (output_offset + i_output, key, core_id, comp, 0, 1)
+                            )
+                            i_output += 1
+
+        n_outputs = output_offset + i_output
 
         # obfuscated strings used in templates
         obfs = dict(

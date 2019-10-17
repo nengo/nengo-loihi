@@ -178,12 +178,31 @@ void nengo_io(runState *s) {
         }
     }
 
-    buffer[0] = s->{{ obfs.step }};
-{% for n_out, core, compartment, key in probes %}
-{% if key == 'u' %}
-    buffer[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].U;
-{% elif key in ('v', 'spike') %}
-    buffer[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].V;
+    // Write output
+    buffer[0] = s->{{ obfs.step }};  // first output is time step
+{% for i_out, key, core, comp0, comp_step, n_comps in probes %}
+{% if n_comps > 1 %}
+    for (int i=0; i < {{ n_comps }}; i++) {
+{% if key in ('u', 'v') %}
+        buffer[{{ i_out }} + i] =
+            core{{ core }}->{{ obfs.state }}[{{ comp0 }} + i*{{ comp_step }}].{{ key | upper }};
+{% else %}
+        // pack spikes
+        int i_out = {{ i_out }} + (i / 32);
+        int shift = i % 32;
+        if (shift == 0) {
+            buffer[i_out] = 0;
+        }
+        int spike = core{{ core }}->{{ obfs.state }}[{{ comp0 }} + i*{{ comp_step }}].V == {{ key }};
+        buffer[i_out] |= spike << shift;
+{% endif %}
+    }
+{% else %}
+{% if key in ('u', 'v') %}
+    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.state }}[{{ comp0 }}].{{ key | upper }};
+{% else %}
+    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.state }}[{{ comp0 }}].V == {{ key }};
+{% endif %}
 {% endif %}
 {% endfor %}
 

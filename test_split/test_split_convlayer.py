@@ -14,12 +14,12 @@ import PIL as pil
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
-SNIP_PROBE = True
+SNIP_PROBE = False
 
 n_dim = 5
 dt = 0.001
 
-with open("mnist10.pkl", "rb") as fh:
+with open("../nengo_loihi/tests/mnist10.pkl", "rb") as fh:
     images, labels = pickle.load(fh)
 
 image = images[1].reshape(28, 28)
@@ -137,7 +137,10 @@ def ind_string(inds):
         return str(inds)
 
 
-with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
+#with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
+#with nengo_loihi.Simulator(net, dt=dt, dismantle=True) as sim:
+with nengo_loihi.Simulator(net, dt=dt, dismantle=True, precompute=False) as sim:
+
     # for input in sim.model.inputs:
     #     print("Input %s: %d" % (input.label, input.n_neurons))
     #     for axon in input.axons:
@@ -163,13 +166,15 @@ with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
     if SNIP_PROBE:
         snip_file_base = "test_split_convlayer_io"
         output_file_name = "test_split_convlayer_output.bin"
+        steps_per_write = 10
 
         board = sim.sims["loihi"].board
-        n2board = sim.sims["loihi"].n2board
+        nxsdk_board = sim.sims["loihi"].nxsdk_board
 
-        refract_delay = output_blocks[0].compartment.refract_delay
+        refract_delay = output_blocks[0].compartment.refract_delay[0]
         assert all(
-            block.compartment.refract_delay == refract_delay for block in output_blocks
+            (block.compartment.refract_delay == refract_delay).all()
+            for block in output_blocks
         )
 
         output_core_ids = []
@@ -177,8 +182,9 @@ with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
         for block in output_blocks:
             chip_idx, core_idx, block_idx, _, _ = board.find_block(block)
             assert block_idx == 0
-            n2core = n2board.n2Chips[chip_idx].n2Cores[core_idx]
-            output_core_ids.append(n2core.id)
+            nxsdk_core = nxsdk_board.n2Chips[chip_idx].n2Cores[core_idx]
+            output_core_ids.append(nxsdk_core.id)
+            output_core_neurons.append(block.n_neurons)
 
         n_outputs = sum(output_core_neurons)
 
@@ -207,7 +213,7 @@ with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
         funcName = "runMgmt"
         guardName = "doRunMgmt"
         phase = "mgmt"
-        board.io_snip = board.createProcess(
+        nxsdk_board.io_snip = nxsdk_board.createProcess(
             "runMgmt", cPath, includeDir, funcName, guardName, phase
         )
 
