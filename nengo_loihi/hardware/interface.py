@@ -136,7 +136,9 @@ class HardwareInterface:
         validate_board(self.board)
 
         # --- build
-        self.nxsdk_board = build_board(self.board, seed=self.seed)
+        self.nxsdk_board = build_board(
+            self.board, use_snips=self.use_snips, seed=self.seed
+        )
 
         # --- create snips
         if self.use_snips:
