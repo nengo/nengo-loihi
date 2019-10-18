@@ -27,7 +27,6 @@ htmlcov
 *.analytics/
 *.logs/
 *.plots/
-nengo_io.c
 
 # For .ipynb examples
 *.pdf

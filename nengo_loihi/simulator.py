@@ -1,6 +1,7 @@
 from collections import OrderedDict
+from collections.abc import Mapping
 import logging
-import traceback
+from timeit import default_timer
 import warnings
 
 import nengo
@@ -14,7 +15,6 @@ from nengo_loihi.compat import NengoSimulationData, seed_network
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
-from nengo_loihi.nxsdk_obfuscation import d_func
 from nengo_loihi.splitter import Split
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,6 @@ class Simulator:
         self.closed = True
         self.network = network
         self.sims = OrderedDict()
-        self._run_steps = None
 
         hardware_options = {} if hardware_options is None else hardware_options
 
@@ -211,6 +210,7 @@ class Simulator:
 
         assert "emulator" in self.sims or "loihi" in self.sims
 
+        self._runner = StepRunner(self.model, self.sims, self.precompute)
         self.closed = False
         self.reset(seed=seed)
 
@@ -264,6 +264,7 @@ class Simulator:
         for sim in self.sims.values():
             if not sim.closed:
                 sim.close()
+        self._runner = None
         self.closed = True
 
     def _probe(self):
@@ -354,11 +355,88 @@ class Simulator:
             )
             self.run_steps(steps)
 
+    def run_steps(self, steps):
+        """Simulate for the given number of ``dt`` steps.
+
+        Parameters
+        ----------
+        steps : int
+            Number of steps to run the simulation for.
+        """
+        if self.closed:
+            raise SimulatorClosed("Simulator cannot run because it is closed.")
+
+        self._runner.run_steps(steps)
+        self._n_steps += steps
+        logger.info("Finished running for %d steps", steps)
+        self._probe()
+
     def step(self):
         """Advance the simulator by 1 step (``dt`` seconds)."""
         self.run_steps(1)
 
-    def _collect_receiver_info(self):
+    def trange(self, sample_every=None, dt=None):
+        """Create a vector of times matching probed data.
+
+        Note that the range does not start at 0 as one might expect, but at
+        the first timestep (i.e., ``dt``).
+
+        Parameters
+        ----------
+        sample_every : float, optional (Default: None)
+            The sampling period of the probe to create a range for.
+            If None, a time value for every ``dt`` will be produced.
+        """
+        period = 1 if sample_every is None else sample_every / self.dt
+        steps = np.arange(1, self.n_steps + 1)
+        return self.dt * steps[steps % period < 1]
+
+
+class StepRunner:
+    def __init__(self, model, sims, precompute):
+        self.model = model
+
+        self.host_pre = sims.get("host_pre", None)
+        self.host = sims.get("host", None)
+        self.emulator = sims.get("emulator", None)
+        self.loihi = sims.get("loihi", None)
+
+        run_steps = {
+            (
+                True,
+                "host_pre",
+                "host",
+                "loihi",
+            ): self.loihi_precomputed_host_pre_and_host,
+            (True, "host_pre", "loihi"): self.loihi_precomputed_host_pre_only,
+            (True, "host", "loihi"): self.loihi_precomputed_host_only,
+            (False, "host", "loihi"): self.loihi_bidirectional_with_host,
+            (True, "loihi"): self.loihi_only,
+            (False, "loihi"): self.loihi_only,
+            (
+                True,
+                "host_pre",
+                "host",
+                "emulator",
+            ): self.emu_precomputed_host_pre_and_host,
+            (True, "host_pre", "emulator"): self.emu_precomputed_host_pre_only,
+            (True, "host", "emulator"): self.emu_precomputed_host_only,
+            (False, "host", "emulator"): self.emu_bidirectional_with_host,
+            (True, "emulator"): self.emu_only,
+            (False, "emulator"): self.emu_only,
+        }
+
+        run_config = (precompute,) + tuple(sims)
+        self.run_steps = run_steps[run_config]
+
+    def _chip2host(self, sim):
+        probes_receivers = OrderedDict(  # map probes to receivers
+            (self.model.objs[probe]["out"], receiver)
+            for probe, receiver in self.model.chip2host_receivers.items()
+        )
+        sim.chip2host(probes_receivers)
+
+    def _host2chip(self, sim):
         spikes = []
         errors = OrderedDict()
         for sender, receiver in self.model.host2chip_senders.items():
@@ -386,199 +464,66 @@ class Simulator:
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
         ]
-        return spikes, errors
-
-    def _host2chip(self, sim):
-        spikes, errors = self._collect_receiver_info()
         sim.host2chip(spikes, errors)
 
-    def _chip2host(self, sim):
-        probes_receivers = OrderedDict(  # map probes to receivers
-            (self.model.objs[probe]["out"], receiver)
-            for probe, receiver in self.model.chip2host_receivers.items()
-        )
-        sim.chip2host(probes_receivers)
+    def emu_precomputed_host_pre_and_host(self, steps):
+        self.host_pre.run_steps(steps)
+        self._host2chip(self.emulator)
+        self.emulator.run_steps(steps)
+        self._chip2host(self.emulator)
+        self.host.run_steps(steps)
 
-    def _make_run_steps(self):
-        if self._run_steps is not None:
-            return
+    def emu_precomputed_host_pre_only(self, steps):
+        self.host_pre.run_steps(steps)
+        self._host2chip(self.emulator)
+        self.emulator.run_steps(steps)
 
-        assert "emulator" not in self.sims or "loihi" not in self.sims
-        if "emulator" in self.sims:
-            self._make_emu_run_steps()
-        else:
-            self._make_loihi_run_steps()
+    def emu_precomputed_host_only(self, steps):
+        self.emulator.run_steps(steps)
+        self._chip2host(self.emulator)
+        self.host.run_steps(steps)
 
-    def _make_emu_run_steps(self):  # noqa: C901
-        host_pre = self.sims.get("host_pre", None)
-        emulator = self.sims["emulator"]
-        host = self.sims.get("host", None)
+    def emu_only(self, steps):
+        self.emulator.run_steps(steps)
 
-        if self.precompute:
-            if host_pre is not None and host is not None:
+    def emu_bidirectional_with_host(self, steps):
+        for _ in range(steps):
+            self.host.step()
+            self._host2chip(self.emulator)
+            self.emulator.step()
+            self._chip2host(self.emulator)
 
-                def emu_precomputed_host_pre_and_host(steps):
-                    host_pre.run_steps(steps)
-                    self._host2chip(emulator)
-                    emulator.run_steps(steps)
-                    self._chip2host(emulator)
-                    host.run_steps(steps)
+    def loihi_precomputed_host_pre_and_host(self, steps):
+        self.host_pre.run_steps(steps)
+        self._host2chip(self.loihi)
+        self.loihi.run_steps(steps, blocking=True)
+        self._chip2host(self.loihi)
+        self.host.run_steps(steps)
 
-                self._run_steps = emu_precomputed_host_pre_and_host
+    def loihi_precomputed_host_pre_only(self, steps):
+        self.host_pre.run_steps(steps)
+        self._host2chip(self.loihi)
+        self.loihi.run_steps(steps, blocking=True)
 
-            elif host_pre is not None:
+    def loihi_precomputed_host_only(self, steps):
+        self.loihi.run_steps(steps, blocking=True)
+        self._chip2host(self.loihi)
+        self.host.run_steps(steps)
 
-                def emu_precomputed_host_pre_only(steps):
-                    host_pre.run_steps(steps)
-                    self._host2chip(emulator)
-                    emulator.run_steps(steps)
+    def loihi_only(self, steps):
+        self.loihi.run_steps(steps)
 
-                self._run_steps = emu_precomputed_host_pre_only
+    def loihi_bidirectional_with_host(self, steps):
+        self.loihi.run_steps(steps, blocking=False)
 
-            elif host is not None:
+        for _ in range(steps):
+            self.host.step()
+            self._host2chip(self.loihi)
+            self._chip2host(self.loihi)
 
-                def emu_precomputed_host_only(steps):
-                    emulator.run_steps(steps)
-                    self._chip2host(emulator)
-                    host.run_steps(steps)
-
-                self._run_steps = emu_precomputed_host_only
-
-            else:
-                self._run_steps = emulator.run_steps
-
-        else:
-            assert host_pre is None
-
-            if host is not None:
-
-                def emu_bidirectional_with_host(steps):
-                    for _ in range(steps):
-                        host.step()
-                        self._host2chip(emulator)
-                        emulator.step()
-                        self._chip2host(emulator)
-
-                self._run_steps = emu_bidirectional_with_host
-
-            else:
-                self._run_steps = emulator.run_steps
-
-    def _make_loihi_run_steps(self):  # noqa: C901
-        host_pre = self.sims.get("host_pre", None)
-        loihi = self.sims["loihi"]
-        host = self.sims.get("host", None)
-
-        if self.precompute:
-            if host_pre is not None and host is not None:
-
-                def loihi_precomputed_host_pre_and_host(steps):
-                    host_pre.run_steps(steps)
-                    self._host2chip(loihi)
-                    loihi.run_steps(steps, blocking=True)
-                    self._chip2host(loihi)
-                    host.run_steps(steps)
-
-                self._run_steps = loihi_precomputed_host_pre_and_host
-
-            elif host_pre is not None:
-
-                def loihi_precomputed_host_pre_only(steps):
-                    host_pre.run_steps(steps)
-                    self._host2chip(loihi)
-                    loihi.run_steps(steps, blocking=True)
-
-                self._run_steps = loihi_precomputed_host_pre_only
-
-            elif host is not None:
-
-                def loihi_precomputed_host_only(steps):
-                    loihi.run_steps(steps, blocking=True)
-                    self._chip2host(loihi)
-                    host.run_steps(steps)
-
-                self._run_steps = loihi_precomputed_host_only
-
-            else:
-                self._run_steps = loihi.run_steps
-
-        else:
-            assert host_pre is None
-
-            if host is not None:
-
-                def loihi_bidirectional_with_host(steps):
-                    loihi.run_steps(steps, blocking=False)
-                    for _ in range(steps):
-                        host.step()
-                        self._host2chip(loihi)
-                        self._chip2host(loihi)
-                    logger.info("Waiting for run_steps to complete...")
-                    loihi.wait_for_completion()
-                    logger.info("run_steps completed")
-
-                self._run_steps = loihi_bidirectional_with_host
-
-            else:
-                # Here, we run without Snips. See `HardwareInterface` creation above.
-                self._run_steps = loihi.run_steps
-
-    def run_steps(self, steps):
-        """Simulate for the given number of ``dt`` steps.
-
-        Parameters
-        ----------
-        steps : int
-            Number of steps to run the simulation for.
-        """
-        if self.closed:
-            raise SimulatorClosed("Simulator cannot run because it is closed.")
-
-        self._make_run_steps()
-        try:
-            self._run_steps(steps)
-        except Exception:
-            if "loihi" in self.sims and self.sims["loihi"].use_snips:
-                # Need to write to board, otherwise it will wait indefinitely
-                h2c = self.sims["loihi"].nengo_io_h2c
-                c2h = self.sims["loihi"].nengo_io_c2h
-
-                print(traceback.format_exc())
-                print("\nAttempting to end simulation...")
-
-                for _ in range(steps):
-                    h2c.write(h2c.numElements, [0] * h2c.numElements)
-                    c2h.read(c2h.numElements)
-                self.sims["loihi"].wait_for_completion()
-                d_func(
-                    self.sims["loihi"].nxsdk_board,
-                    b"bnhEcml2ZXI=",
-                    b"c3RvcEV4ZWN1dGlvbg==",
-                )
-                d_func(
-                    self.sims["loihi"].nxsdk_board, b"bnhEcml2ZXI=", b"c3RvcERyaXZlcg=="
-                )
-            raise
-
-        self._n_steps += steps
-        logger.info("Finished running for %d steps", steps)
-        self._probe()
-
-    def trange(self, sample_every=None, dt=None):
-        """Create a vector of times matching probed data.
-
-        Note that the range does not start at 0 as one might expect, but at
-        the first timestep (i.e., ``dt``).
-
-        Parameters
-        ----------
-        sample_every : float, optional (Default: None)
-            The sampling period of the probe to create a range for.
-            If None, a time value for every ``dt`` will be produced.
-        """
-        period = 1 if sample_every is None else sample_every / self.dt
-        steps = np.arange(1, self.n_steps + 1)
-        return self.dt * steps[steps % period < 1]
+        logger.info("Waiting for run_steps to complete...")
+        self.loihi.wait_for_completion()
+        logger.info("run_steps completed")
 
 
 class SimulationData(NengoSimulationData):

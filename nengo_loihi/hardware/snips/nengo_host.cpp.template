@@ -1,0 +1,167 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <unistd.h>  // usleep
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#include "nxsdkhost.h"
+
+#define DEBUG 0
+
+#define N_OUTPUTS {{ n_outputs }}
+#define N_OUTPUT_PACKETS {{ n_output_packets }}
+#define BUFFER_SIZE {{ host_buffer_size }}
+#define PACKET_BYTES {{ packet_bytes }} // size of a packet, in bytes
+
+#define SERVER_PORT htons({{ server_port }})
+
+
+namespace nengo_host {
+
+template <class T>
+inline T ceil_div(T a, T b) {
+    return (a / b) + (a % b != 0);
+}
+
+const char input_channel[] = "{{ input_channel }}";
+const char output_channel[] = "{{ output_channel }}";
+
+class NengoHostProcess : public ConcurrentHostSnip {
+    int32_t buffer[BUFFER_SIZE];
+    int server_socket;
+    int client_socket;
+
+  public:
+    NengoHostProcess() {
+        // --- set up socket to communicate with superhost
+        // This machine will act as the server, and the superhost will
+        // connect in as the client
+        server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+        int disable_delay = 1;
+        setsockopt(server_socket, SOL_TCP, TCP_NODELAY, &disable_delay,
+                   sizeof(disable_delay));
+
+        sockaddr_in server_address;
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = SERVER_PORT;
+        server_address.sin_addr.s_addr = INADDR_ANY;
+
+        bind(server_socket, (struct sockaddr*)&server_address,
+             sizeof(struct sockaddr));
+
+        // wait for a client
+        std::cout << "Host snip listening for client" << std::endl;
+        listen(server_socket, 1);
+
+        // get incoming client connection
+        sockaddr_in client_address;
+        socklen_t sin_size = sizeof(struct sockaddr_in);
+        client_socket = accept(server_socket,
+                               (struct sockaddr*)&client_address, &sin_size);
+
+        std::cout << "Host snip connected to client" << std::endl;
+    }
+
+    ~NengoHostProcess() {
+        std::cout << "Closing host (server) socket" << std::endl;
+        close(server_socket);
+    }
+
+    void run(std::atomic_bool& end_of_execution) override {
+        if (server_socket < 0 || client_socket < 0) {
+            std::cout << "Error creating socket, server or client socket < 0"
+                      << std::endl;
+            std::cout << "Server socket: " << server_socket << std::endl;
+            std::cout << "client socket: " << client_socket << std::endl;
+            goto cleanup;
+        }
+        // --- loop to transmit data from superhost to chip and vice versa
+        while (!end_of_execution) {
+            // read packets from superhost socket
+            // first read is blocking, so we wait for packets
+#if DEBUG > 1
+            std::cout << "Host: Preparing to read socket" << std::endl;
+#endif
+            ssize_t n_read = recv(client_socket, buffer, PACKET_BYTES, 0);
+            if (buffer[0] < 0) {
+                std::cout << "Host received shutdown signal: " << buffer[0]
+                          << std::endl;
+                goto cleanup;
+            }
+#if DEBUG > 0
+            std::cout << "Host: Read " << n_read << " bytes" << std::endl;
+#endif
+
+            while (n_read > 0) {
+#if DEBUG > 1
+                std::cout << "Input buffer: [";
+                for (int i = 0; i < ceil_div(n_read, 4); i++) {
+                    std::cout << buffer[i] << ", ";
+                }
+                std::cout << "]" << std::endl;
+#endif
+                if (n_read % 4 != 0) {
+                    std::cout << "Did not read full int32s from socket: n_read="
+                              << n_read << std::endl;
+                    goto cleanup;
+                }
+
+                // write packet to chip
+                writeChannel(input_channel, buffer, 1);
+
+                // subsequent reads are non-blocking, so we just read what's there
+                n_read =
+                    recv(client_socket, buffer, PACKET_BYTES, MSG_DONTWAIT);
+#if DEBUG > 0
+                std::cout << "Read " << n_read << " bytes" << std::endl;
+#endif
+            }
+
+            // wait until chip has written output
+            while (!end_of_execution && !probeChannel(output_channel)) {
+                usleep(100);
+            }
+            if (end_of_execution) {
+                break;
+            }
+
+            // read chip output
+            readChannel(output_channel, buffer, N_OUTPUT_PACKETS);
+
+            // write output to superhost socket
+            const size_t write_len = N_OUTPUTS;
+            const size_t write_bytes = write_len * sizeof(int32_t);
+            size_t n_write = write(client_socket, buffer, write_bytes);
+#if DEBUG > 0
+            std::cout << "Sent " << n_write << " bytes" << std::endl;
+#endif
+            if (n_write != write_bytes) {
+                std::cout << "Failed write to socket (tried " << write_bytes
+                          << ", wrote " << n_write << " bytes)" << std::endl;
+                goto cleanup;
+            }
+        }
+
+    cleanup:
+        // make sure chip gets shutdown signal
+        buffer[0] = -1;
+        writeChannel(input_channel, buffer, 1);
+    }
+};
+
+}  // namespace nengo_host
+
+using nengo_host::NengoHostProcess;
+
+// Each ConcurrentHostSnip is run within a thread
+// If you have more threads on the host cpu, you can choose to create individual
+// snips for input and output
+REGISTER_SNIP(NengoHostProcess, ConcurrentHostSnip);

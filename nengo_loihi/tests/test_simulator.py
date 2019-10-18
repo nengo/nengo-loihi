@@ -1,4 +1,5 @@
 import inspect
+import re
 
 import nengo
 from nengo.exceptions import BuildError, ReadonlyError, SimulationError, ValidationError
@@ -13,6 +14,7 @@ from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.simulator import Timers
 
 
 def test_none_network(Simulator):
@@ -202,24 +204,25 @@ class TestRunSteps:
         # precompute=None, no host, no host_pre
         with Simulator(net, precompute=None) as sim:
             sim.run(0.001)
-        # Since no objects on host, we should be precomputing even if we did not
-        # explicitly request precomputing
-        assert sim.precompute
-        assert inspect.ismethod(sim._run_steps)
-        assert sim._run_steps.__name__ == "run_steps"
+
+            # Since no objects on host, we should be precomputing even if we did not
+            # explicitly request precomputing
+            assert sim.precompute
+            assert inspect.ismethod(sim._runner.run_steps)
+            assert sim._runner.run_steps.__name__.endswith("_only")
 
         # precompute=False, no host
         with pytest.warns(UserWarning, match="Model is precomputable"):
             with Simulator(net, precompute=False) as sim:
                 sim.run(0.001)
-        assert inspect.ismethod(sim._run_steps)
-        assert sim._run_steps.__name__ == "run_steps"
+                assert inspect.ismethod(sim._runner.run_steps)
+                assert sim._runner.run_steps.__name__.endswith("_only")
 
         # precompute=True, no host, no host_pre
         with Simulator(net, precompute=True) as sim:
             sim.run(0.001)
-        assert inspect.ismethod(sim._run_steps)
-        assert sim._run_steps.__name__ == "run_steps"
+            assert inspect.ismethod(sim._runner.run_steps)
+            assert sim._runner.run_steps.__name__.endswith("_only")
 
     def test_all_precomputable(self, Simulator):
         """One precomputable host object.
@@ -234,19 +237,21 @@ class TestRunSteps:
         # precompute=None, no host
         with Simulator(net, precompute=None) as sim:
             sim.run(0.001)
-        assert sim.precompute
-        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
+            assert sim.precompute
+            assert sim._runner.run_steps.__name__.endswith("_precomputed_host_pre_only")
 
         # precompute=False, no host_pre
         with pytest.warns(UserWarning, match="Model is precomputable"):
             with Simulator(net, precompute=False) as sim:
                 sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+                assert sim._runner.run_steps.__name__.endswith(
+                    "_bidirectional_with_host"
+                )
 
         # precompute=True, no host
         with Simulator(net, precompute=True) as sim:
             sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
+            assert sim._runner.run_steps.__name__.endswith("_precomputed_host_pre_only")
 
     def test_precomputable_and_not(self, Simulator):
         """One precomputable host object and one non-precomputable host object.
@@ -265,19 +270,25 @@ class TestRunSteps:
         # precompute=None
         with Simulator(net) as sim:
             sim.run(0.001)
-        assert sim.precompute
-        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+            assert sim.precompute
+            assert sim._runner.run_steps.__name__.endswith(
+                "_precomputed_host_pre_and_host"
+            )
 
         # precompute=False, no host_pre
         with pytest.warns(UserWarning, match="Model is precomputable"):
             with Simulator(net, precompute=False) as sim:
                 sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+                assert sim._runner.run_steps.__name__.endswith(
+                    "_bidirectional_with_host"
+                )
 
         # precompute=True
         with Simulator(net, precompute=True) as sim:
             sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+            assert sim._runner.run_steps.__name__.endswith(
+                "_precomputed_host_pre_and_host"
+            )
 
     def test_all_non_precomputable(self, Simulator):
         """One non-precomputable host object.
@@ -294,19 +305,21 @@ class TestRunSteps:
         # precompute=None, no host_pre
         with Simulator(net) as sim:
             sim.run(0.001)
-        assert sim.precompute
-        assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+            assert sim.precompute
+            assert sim._runner.run_steps.__name__.endswith("_precomputed_host_only")
 
         # precompute=False, no host_pre
         with pytest.warns(UserWarning, match="Model is precomputable"):
             with Simulator(net, precompute=False) as sim:
                 sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+                assert sim._runner.run_steps.__name__.endswith(
+                    "_bidirectional_with_host"
+                )
 
         # precompute=True, no host_pre
         with Simulator(net, precompute=True) as sim:
             sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+            assert sim._runner.run_steps.__name__.endswith("_precomputed_host_only")
 
     def test_feedback_loop(self, Simulator):
         """Chip input depends on output, nothing is precomputable.
@@ -322,13 +335,13 @@ class TestRunSteps:
         # precompute=None
         with Simulator(net) as sim:
             sim.run(0.001)
-        assert not sim.precompute
-        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+            assert not sim.precompute
+            assert sim._runner.run_steps.__name__.endswith("_bidirectional_with_host")
 
         # precompute=False
         with Simulator(net, precompute=False) as sim:
             sim.run(0.001)
-        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+            assert sim._runner.run_steps.__name__.endswith("_bidirectional_with_host")
 
         # precompute=True, raises BuildError
         with pytest.raises(BuildError):
@@ -349,13 +362,13 @@ class TestRunSteps:
         with Simulator(net, precompute=None) as sim:
             sim.run(0.01)
 
-        # Though we did not specify precompute, the model should be marked as
-        # precomputable because there are no off-chip objects
-        assert sim.precompute
-        assert inspect.ismethod(sim._run_steps)
-        assert sim._run_steps.__name__ == "run_steps"
-        assert sim.data[out_p].shape[0] == sim.trange().shape[0]
-        assert np.all(sim.data[out_p][-1] > 100)
+            # Though we did not specify precompute, the model should be marked as
+            # precomputable because there are no off-chip objects
+            assert sim.precompute
+            assert inspect.ismethod(sim._runner.run_steps)
+            assert sim._runner.run_steps.__name__.endswith("_only")
+            assert sim.data[out_p].shape[0] == sim.trange().shape[0]
+            assert np.all(sim.data[out_p][-1] > 100)
 
 
 @pytest.mark.target_loihi
@@ -511,7 +524,6 @@ def test_interface(Simulator, allclose):
             sim.run(1e-8)
 
 
-@pytest.mark.hang
 @pytest.mark.target_loihi
 def test_loihi_simulation_exception(Simulator):
     """Test that Loihi shuts down properly after exception during simulation"""
@@ -527,9 +539,11 @@ def test_loihi_simulation_exception(Simulator):
         e = nengo.Ensemble(8, 1)
         nengo.Connection(u, e)
 
-    with Simulator(net, precompute=False) as sim:
-        sim.run(0.01)
-        assert not sim.sims["loihi"].nxDriver.conn
+    with pytest.raises(RuntimeError, match="exception to kill"):
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.01)
+
+    assert sim.sims["loihi"].closed
 
 
 @pytest.mark.filterwarnings("ignore:Model is precomputable.")

@@ -8,7 +8,8 @@ from nengo_loihi.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
 from nengo_loihi.hardware.allocators import OneToOne
 from nengo_loihi.hardware.builder import build_board
-from nengo_loihi.nxsdk_obfuscation import d_set
+from nengo_loihi.hardware.nxsdk_shim import NxsdkBoard
+from nengo_loihi.nxsdk_obfuscation import d
 
 
 class MockNxsdk:
@@ -95,27 +96,28 @@ def test_builder_poptype_errors():
 
 
 @pytest.mark.target_loihi
-def test_interface_connection_errors(Simulator):
+def test_interface_connection_errors(Simulator, monkeypatch):
     with nengo.Network() as net:
         nengo.Ensemble(2, 1)
 
-    # test unbuilt model error
-    with Simulator(net) as sim:
-        sim.sims["loihi"].nxsdk_board = None
-
-        with pytest.raises(SimulationError, match="build.*before running"):
-            sim.step()
+    # test opening closed interface error
+    sim = Simulator(net)
+    interface = sim.sims["loihi"]
+    interface.close()
+    with pytest.raises(SimulationError, match="cannot be reopened"):
+        with interface:
+            pass
+    sim.close()
 
     # test failed connection error
     def start(*args, **kwargs):
         raise Exception("Mock failure to connect")
 
-    with Simulator(net) as sim:
-        interface = sim.sims["loihi"]
-        d_set(interface.nxsdk_board, b"c3RhcnQ=", val=start)
+    monkeypatch.setattr(NxsdkBoard, d(b"c3RhcnQ="), start)
 
-        with pytest.raises(SimulationError, match="[Cc]ould not connect"):
-            interface.connect(attempts=1)
+    with pytest.raises(SimulationError, match="[Cc]ould not connect"):
+        with Simulator(net):
+            pass
 
 
 @pytest.mark.filterwarnings("ignore:Model is precomputable.")
@@ -129,3 +131,40 @@ def test_snip_input_count(Simulator, seed, plt):
     with Simulator(model, precompute=False) as sim:
         with pytest.warns(UserWarning, match="Too many spikes"):
             sim.run(0.01)
+
+
+@pytest.mark.target_loihi
+def test_find_learning_core_id():
+    # This is mostly just a test for the ValueError, since it was uncovered
+    allocator = OneToOne()
+
+    model = Model()
+
+    for _ in range(9):
+        block = LoihiBlock(1)
+        block.compartment.configure_lif()
+        model.add_block(block)
+
+        synapse = Synapse(1)
+        synapse.set_weights([[1]])
+        block.add_synapse(synapse)
+
+    good_synapse = Synapse(n_axons=1)
+    good_synapse.set_weights([[1]])
+    good_core_idx = 3
+    good_core_id = 392
+    list(model.blocks)[good_core_idx].add_synapse(good_synapse)
+
+    bad_synapse = Synapse(n_axons=1)
+    bad_synapse.set_weights([[1]])
+
+    discretize_model(model)
+
+    interface = hardware_interface.HardwareInterface(model, use_snips=False)
+    interface.board = allocator(model)
+
+    interface.board.chips[0].cores[good_core_idx].learning_coreid = good_core_id
+    assert interface._find_learning_core_id(good_synapse) == good_core_id
+
+    with pytest.raises(ValueError, match="Could not find core ID"):
+        interface._find_learning_core_id(bad_synapse)

@@ -380,7 +380,6 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     tau_rc = 0.02
     tau_ref = 0.002
     tau_s = 0.005
-    dt = 0.001
 
     neuron_type = LoihiLIF(tau_rc=tau_rc, tau_ref=tau_ref)
 
@@ -444,7 +443,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
         bp = nengo.Probe(b.neurons)
 
-    with nengo.Simulator(model, dt=dt, optimize=False) as sim:
+    with nengo.Simulator(model, optimize=False) as sim:
         sim.run(pres_time)
     ref_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
 
@@ -452,17 +451,16 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     use_nengo_dl = HAS_DL and channels_last
     ndl_out = np.zeros_like(ref_out)
     if use_nengo_dl:
-        with nengo_dl.Simulator(model, dt=dt) as sim_dl:
+        with nengo_dl.Simulator(model) as sim_dl:
             sim_dl.run(pres_time)
         ndl_out = sim_dl.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    with nengo_loihi.Simulator(model, dt=dt, target="simreal") as sim_real:
+    with nengo_loihi.Simulator(model, target="simreal") as sim_real:
         sim_real.run(pres_time)
     real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    with Simulator(model, dt=dt) as sim_loihi:
-        if "loihi" in sim_loihi.sims:
-            sim_loihi.sims["loihi"].snip_max_spikes_per_step = 800
+    hw_opts = dict(snip_max_spikes_per_step=800)
+    with Simulator(model, hardware_options=hw_opts) as sim_loihi:
         sim_loihi.run(pres_time)
     sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape)
 

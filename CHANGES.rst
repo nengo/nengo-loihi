@@ -31,6 +31,9 @@ Release history
 
 **Changed**
 
+- We improved performance when ``precompute=False`` through better spike packing,
+  larger packets, and communicating to the host over a socket.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 - The ``precompute`` argument of ``Simulator`` now defaults to ``None``
   and will be automatically set to ``True`` if the model can be precomputed.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
