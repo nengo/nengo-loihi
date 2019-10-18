@@ -60,9 +60,6 @@ class HardwareInterface:
             )
 
         self.closed = False
-        self.use_snips = use_snips
-        self.check_nxsdk_version()
-
         self.nxsdk_board = None
         self.nengo_io_h2c = None  # IO snip host-to-chip channel
         self.nengo_io_c2h = None  # IO snip chip-to-host channel
@@ -71,14 +68,20 @@ class HardwareInterface:
         self._snip_probe_data = collections.OrderedDict()
         self._chip2host_sent_steps = 0
 
+        self.model = model
+        self.use_snips = use_snips
+        self.seed = seed
         # Maximum number of spikes that can be sent through
         # the nengo_io_h2c channel on one timestep.
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
+        self.allocator = allocator
+
+        self.check_nxsdk_version()
 
         # clear cached content from SpikeProbe class attribute
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
-        self.build(model, allocator=allocator, seed=seed)
+        self.build()
 
     def __enter__(self):
         return self
@@ -113,10 +116,11 @@ class HardwareInterface:
             for probe in block.probes:
                 yield probe
 
-    def build(self, model, allocator, seed=None):
-        validate_model(model)
-        self.model = model
-        self.pes_error_scale = getattr(model, "pes_error_scale", 1.0)
+    def build(self):
+        assert self.nxsdk_board is None, "Cannot rebuild model"
+
+        validate_model(self.model)
+        self.pes_error_scale = getattr(self.model, "pes_error_scale", 1.0)
 
         if self.use_snips:
             # tag all probes as being snip-based,
@@ -126,20 +130,20 @@ class HardwareInterface:
                 self._snip_probe_data[probe] = []
 
         # --- allocate
-        self.board = allocator(self.model)
+        self.board = self.allocator(self.model)
 
         # --- validate
         validate_board(self.board)
 
         # --- build
-        self.nxsdk_board = build_board(self.board, seed=seed)
+        self.nxsdk_board = build_board(self.board, seed=self.seed)
 
-    def run_steps(self, steps, blocking=True):
-        if self.use_snips and self.nengo_io_h2c is None:
+        # --- create snips
+        if self.use_snips:
             self.create_io_snip()
 
-        # NOTE: we need to call connect() after snips are created
-        self.connect()
+    def run_steps(self, steps, blocking=True):
+        self.connect()  # returns immediately if already connected
         d_get(self.nxsdk_board, b"cnVu")(steps, **{d(b"YVN5bmM="): not blocking})
 
     def _chip2host_monitor(self, probes_receivers):
