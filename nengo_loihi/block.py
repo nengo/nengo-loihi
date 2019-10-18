@@ -639,11 +639,14 @@ class Synapse:
     def idx_bits(self):
         """The number of index bits required for each weight entry."""
         bits = int(np.ceil(np.log2(self.max_ind() + 1)))
-        assert (
-            bits <= SynapseConfig.INDEX_BITS_MAP[-1]
-        ), "bits out of range, ensemble too large?"
-        bits = next(i for i, v in enumerate(SynapseConfig.INDEX_BITS_MAP) if v >= bits)
-        return bits
+        if bits <= SynapseConfig.INDEX_BITS_MAP[-1]:
+            return next(
+                i for i, v in enumerate(SynapseConfig.INDEX_BITS_MAP) if v >= bits
+            )
+        else:
+            # number of bits is actually out of range, we need to split this ensemble
+            # before it goes on the chip. Use -1 as a placeholder.
+            return -1
 
     def idxs_per_synapse(self):
         """The number of axon indices (slots) required for each incoming axon."""

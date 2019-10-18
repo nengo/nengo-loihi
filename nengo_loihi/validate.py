@@ -93,6 +93,12 @@ def validate_synapse(synapse):
 
 
 def validate_synapse_cfg(synapse_cfg):
+    if synapse_cfg.idx_bits < 0:
+        raise AssertionError(
+            "Synapse idx_bits is < 0. This likely indicates the target"
+            " compartment is too large to fit on a core."
+        )
+
     assert d(b"LTc=", int) <= synapse_cfg.weight_exp <= d(b"Nw==", int)
     assert d(b"MA==", int) <= synapse_cfg.tag_bits < d(b"NA==", int)
     assert d(b"MA==", int) <= synapse_cfg.delay_bits < d(b"OA==", int)
