@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import logging
+import timeit
 import traceback
 import warnings
 
@@ -322,6 +323,7 @@ class Simulator:
 
         self._n_steps = 0
         self._time = 0
+        self.timers = dict(steps=0.0)
 
         # clear probe data
         for probe in self.model.probes:
@@ -511,13 +513,18 @@ class Simulator:
 
         else:
             assert host is not None, "Model is precomputable"
+            self.timers["snips"] = 0
 
             def loihi_bidirectional_with_host(steps):
                 loihi.run_steps(steps, blocking=False)
+                time0 = timeit.default_timer()
                 for _ in range(steps):
                     host.step()
                     self._host2chip(loihi)
                     self._chip2host(loihi)
+                time1 = timeit.default_timer()
+                self.timers["snips"] += time1 - time0
+
                 logger.info("Waiting for run_steps to complete...")
                 loihi.wait_for_completion()
                 logger.info("run_steps completed")
@@ -536,6 +543,11 @@ class Simulator:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
         self._make_run_steps()
+
+        if "loihi" in self.sims:
+            self.sims["loihi"].connect()  # connect outside timing loop
+
+        time0 = timeit.default_timer()
         try:
             self._run_steps(steps)
         except Exception:
@@ -561,6 +573,7 @@ class Simulator:
                 )
             raise
 
+        self.timers["steps"] += timeit.default_timer() - time0
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)
         self._probe()
