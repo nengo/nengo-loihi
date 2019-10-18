@@ -14,7 +14,9 @@ import PIL as pil
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
-SNIP_PROBE = False
+image_shape = nengo.transforms.ChannelShape((64, 64, 1), channels_last=True)
+#image_shape = nengo.transforms.ChannelShape((32, 32, 1), channels_last=True)
+#image_shape = nengo.transforms.ChannelShape((16, 16, 1), channels_last=True)
 
 n_dim = 5
 dt = 0.001
@@ -24,12 +26,10 @@ with open("../nengo_loihi/tests/mnist10.pkl", "rb") as fh:
 
 image = images[1].reshape(28, 28)
 image2 = pil.Image.fromarray(image, mode="F")
-image2 = image2.resize((64, 64))
+image2 = image2.resize(image_shape.spatial_shape)
 image = np.array(image2)
 
 image = 2 * image - 1  # range [-1, 1]
-
-image_shape = nengo.transforms.ChannelShape((64, 64, 1), channels_last=True)
 
 kernel = np.array(
     [
@@ -39,7 +39,7 @@ kernel = np.array(
         [[0, -1, 0], [-1, 4, -1], [0, -1, 0]],
     ],
     dtype=np.float32,
-).reshape((4, 3, 3, 1))
+).reshape((-1, 3, 3, 1))
 kernel = np.transpose(kernel, (1, 2, 3, 0))
 kernel /= np.abs(kernel).sum(axis=(0, 1, 2), keepdims=True)
 n_filters = kernel.shape[-1]
@@ -90,6 +90,7 @@ with nengo.Network(seed=0) as net:
 
     u = nengo.Node(input_f, label="u")
 
+    enc_rate = 200
     transform0 = nengo.Convolution(
         n_filters=n_channels,
         input_shape=image_shape,
@@ -101,32 +102,33 @@ with nengo.Network(seed=0) as net:
         n_dim,
         label="a",
         neuron_type=nengo.SpikingRectifiedLinear(),
-        max_rates=nengo.dists.Choice([1000]),
+        max_rates=nengo.dists.Choice([enc_rate]),
         intercepts=nengo.dists.Choice([0]),
     )
     net.config[enc].on_chip = False
     nengo.Connection(u, enc.neurons, transform=transform0, label="u-enc")
 
     transform = nengo.Convolution(
-        n_filters=n_filters, input_shape=transform0.output_shape, init=kernel * dt
+        n_filters=n_filters,
+        input_shape=transform0.output_shape,
+        init=kernel / enc_rate
     )
     a = nengo.Ensemble(
         transform.output_shape.size,
         n_dim,
         label="a",
         neuron_type=nengo.SpikingRectifiedLinear(),
-        max_rates=nengo.dists.Choice([500]),
+        max_rates=nengo.dists.Choice([200]),
         intercepts=nengo.dists.Choice([0]),
     )
     net.config[a].split_full_shape = transform.output_shape.shape
     net.config[a].split_shape = (16, 16, 2)
+    #net.config[a].split_shape = (16, 16, 4)
     nengo.Connection(enc.neurons, a.neurons, transform=transform, label="enc-a")
+    output_shape = transform.output_shape
 
     up = nengo.Probe(u)
-
-    output_ensemble = a
-    if not SNIP_PROBE:
-        ap = nengo.Probe(a.neurons, synapse=nengo.Alpha(0.01))
+    ap = nengo.Probe(a.neurons, synapse=nengo.Alpha(0.01))
 
 
 def ind_string(inds):
@@ -137,9 +139,16 @@ def ind_string(inds):
         return str(inds)
 
 
-#with nengo_loihi.Simulator(net, dt=dt, precompute=True, dismantle=True) as sim:
-#with nengo_loihi.Simulator(net, dt=dt, dismantle=True) as sim:
-with nengo_loihi.Simulator(net, dt=dt, dismantle=True, precompute=False) as sim:
+sim_params = dict(
+    #target="sim",
+    #target="loihi",
+    dismantle=True,
+    precompute=False,
+    #hardware_options=dict(snip_max_spikes_per_step=4000),
+    hardware_options=dict(snip_max_spikes_per_step=8000),
+)
+
+with nengo_loihi.Simulator(net, dt=dt, **sim_params) as sim:
 
     # for input in sim.model.inputs:
     #     print("Input %s: %d" % (input.label, input.n_neurons))
@@ -159,90 +168,15 @@ with nengo_loihi.Simulator(net, dt=dt, dismantle=True, precompute=False) as sim:
     #         )
     #         print("    inds: %s" % ind_string(axon.compartment_map))
 
-    output_block = sim.model.objs[output_ensemble]["out"]
-    output_blocks = list(sim.dismantle_blockmap.get(output_block, [output_block]))
-    del output_block
-
-    if SNIP_PROBE:
-        snip_file_base = "test_split_convlayer_io"
-        output_file_name = "test_split_convlayer_output.bin"
-        steps_per_write = 10
-
-        board = sim.sims["loihi"].board
-        nxsdk_board = sim.sims["loihi"].nxsdk_board
-
-        refract_delay = output_blocks[0].compartment.refract_delay[0]
-        assert all(
-            (block.compartment.refract_delay == refract_delay).all()
-            for block in output_blocks
-        )
-
-        output_core_ids = []
-        output_core_neurons = []
-        for block in output_blocks:
-            chip_idx, core_idx, block_idx, _, _ = board.find_block(block)
-            assert block_idx == 0
-            nxsdk_core = nxsdk_board.n2Chips[chip_idx].n2Cores[core_idx]
-            output_core_ids.append(nxsdk_core.id)
-            output_core_neurons.append(block.n_neurons)
-
-        n_outputs = sum(output_core_neurons)
-
-        # --- make snip
-        env = jinja2.Environment(
-            trim_blocks=True,
-            loader=jinja2.FileSystemLoader(this_dir),
-            keep_trailing_newline=True,
-        )
-        template = env.get_template(snip_file_base + ".c.template")
-        code = template.render(
-            steps_per_write=steps_per_write,
-            output_file_name=os.path.join(this_dir, output_file_name),
-            n_output_cores=len(output_core_ids),
-            output_core_ids="{%s}" % ",".join(str(x) for x in output_core_ids),
-            output_core_neurons="{%s}" % ",".join(str(x) for x in output_core_neurons),
-            n_outputs=n_outputs,
-            spike_voltage=refract_delay * 128,
-        )
-
-        cPath = os.path.join(this_dir, snip_file_base + ".c")
-        with open(cPath, "w") as f:
-            f.write(code)
-
-        includeDir = this_dir
-        funcName = "runMgmt"
-        guardName = "doRunMgmt"
-        phase = "mgmt"
-        nxsdk_board.io_snip = nxsdk_board.createProcess(
-            "runMgmt", cPath, includeDir, funcName, guardName, phase
-        )
-
     # sim.run(1.0)
     sim.run(0.2)
+    #sim.run(0.05)
+    print("Ran in %0.1f ms/step" % (sim.wall_time / sim.n_steps * 1000))
 
 nt = len(sim.trange())
 
-if not SNIP_PROBE:
-    a_outputs = sim.data[ap].reshape((nt, 62, 62, n_filters))
-    a_outputs = a_outputs[-10:].mean(axis=0)
-else:
-    with open(output_file_name, "rb") as fh:
-        output_bytes = []
-        while True:
-            line = fh.read(n_outputs)
-            if len(line) > 0:
-                assert len(line) == n_outputs
-                output_bytes.append(line)
-            else:
-                break
-
-    a_outputs = np.array(
-        [np.frombuffer(b, dtype=np.uint8) for b in output_bytes], dtype=np.float32
-    )
-
-    # take mean of last 50 timesteps, because
-    n = 50
-    a_outputs = a_outputs[-n // steps_per_write :].mean(axis=0) / steps_per_write
+a_outputs = sim.data[ap].reshape((nt,) + output_shape.shape)
+a_outputs = a_outputs[-10:].mean(axis=0)
 
 print(a_outputs.max())
 
@@ -261,14 +195,21 @@ plt.imshow(image)
 for k in range(n_filters):
     plt.subplot(rows, cols, 1 + k + 1)
     plt.imshow(ref_outputs[:, :, k])
+    plt.xticks([])
+    plt.yticks([])
 
     plt.subplot(rows, cols, 1 * cols + 1 + k + 1)
     a_max_k = a_outputs[:, :, k].max()
-    plt.imshow(a_outputs[:, :, k], vmin=0, vmax=a_max_k)
+    plt.imshow(a_outputs[:, :, k] / a_max_k, vmin=0, vmax=1)
+    plt.xticks([])
+    plt.yticks([])
+
     print("Output channel %d: max: %0.3f" % (k, a_max_k))
 
     # print(a_outputs[:5, :5, k])
     print(np.round(a_outputs[::10, ::10, k] / a_max_k, 3))
+
+plt.tight_layout()
 
 plt.savefig("test_split_convlayer.png")
 plt.show()
