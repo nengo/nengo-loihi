@@ -43,6 +43,9 @@ class HardwareInterface:
         Defaults to one block and one input per core on a single chip.
     """
 
+    min_nxsdk_version = LooseVersion("0.8.7")
+    max_nxsdk_version = LooseVersion("0.9.0")
+
     def __init__(
         self,
         model,
@@ -83,24 +86,23 @@ class HardwareInterface:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    @staticmethod
-    def check_nxsdk_version():
+    @classmethod
+    def check_nxsdk_version(cls):
         # raise exception if nxsdk not installed
         assert_nxsdk()
 
         # if installed, check version
         version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
-        minimum = LooseVersion("0.8.7")
-        max_tested = LooseVersion("0.8.7")
-        if version < minimum:
+        if version < cls.min_nxsdk_version:
             raise ImportError(
-                "nengo-loihi requires nxsdk>=%s, found %s" % (minimum, version)
+                "nengo-loihi requires nxsdk>=%s, found %s"
+                % (cls.min_nxsdk_version, version)
             )
-        elif version > max_tested:
+        elif version > cls.max_nxsdk_version:
             warnings.warn(
                 "nengo-loihi has not been tested with your nxsdk "
                 "version (%s); latest fully supported version is "
-                "%s" % (version, max_tested)
+                "%s" % (version, cls.max_nxsdk_version)
             )
 
     def _iter_blocks(self):
@@ -492,11 +494,19 @@ class HardwareInterface:
         )
         logger.debug("Creating nengo_io_h2c channel (%d)" % size)
         self.nengo_io_h2c = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_h2c", "int", size
+            b"nengo_io_h2c",  # name of the channel
+            **{
+                d(b"bnVtRWxlbWVudHM="): size,  # size of the channel (in elements)
+                d(b"bWVzc2FnZVNpemU="): 4,  # size of one packet (in bytes)
+            },
         )
         logger.debug("Creating nengo_io_c2h channel (%d)" % n_outputs)
         self.nengo_io_c2h = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_c2h", "int", n_outputs
+            b"nengo_io_c2h",  # name of the channel
+            **{
+                d(b"bnVtRWxlbWVudHM="): n_outputs,  # size of the channel (in elements)
+                d(b"bWVzc2FnZVNpemU="): 4,  # size of one packet (in bytes)
+            },
         )
         d_get(self.nengo_io_h2c, b"Y29ubmVjdA==")(None, nengo_io)
         d_get(self.nengo_io_c2h, b"Y29ubmVjdA==")(nengo_io, None)
