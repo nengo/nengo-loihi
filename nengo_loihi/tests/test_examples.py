@@ -13,9 +13,9 @@ except ImportError:
 
     def load_notebook(nb_path):
         import io  # pylint: disable=import-outside-toplevel
-        from nengo.utils.ipython import (
+        from nengo.utils.ipython import (  # pylint: disable=import-outside-toplevel
             nbformat,
-        )  # pylint: disable=import-outside-toplevel
+        )
 
         with io.open(nb_path, "r", encoding="utf-8") as f:
             nb = nbformat.read(f, as_version=4)

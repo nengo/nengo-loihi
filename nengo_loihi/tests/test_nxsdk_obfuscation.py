@@ -36,7 +36,9 @@ def test_d_import():
     imported0 = d_import(
         obfuscate("nengo_loihi.emulator.interface"), attr=obfuscate("EmulatorInterface")
     )
-    from nengo_loihi.emulator.interface import EmulatorInterface as imported1
+    from nengo_loihi.emulator.interface import (  # pylint: disable=import-outside-toplevel
+        EmulatorInterface as imported1,
+    )
 
     assert imported0 is imported1
 

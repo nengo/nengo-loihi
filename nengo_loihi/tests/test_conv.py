@@ -705,9 +705,8 @@ def test_conv_split(Simulator, rng, plt, allclose):
     assert allclose(loihi_out, nengo_out, atol=0.15 * out_max, rtol=0.15)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_preslice(Simulator, plt):
-    from nengo._vendor.npconv2d.conv2d import conv2d
+    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
@@ -731,7 +730,7 @@ def test_conv_preslice(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_gain, 0)
-    y_ref = conv2d(
+    y_ref = conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
@@ -779,10 +778,9 @@ def test_conv_preslice(Simulator, plt):
     assert np.allclose(y, y_ref, atol=0.02, rtol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_onchip(Simulator, plt):
     """Tests a fully on-chip conv connection. """
-    from nengo._vendor.npconv2d.conv2d import conv2d
+    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
@@ -805,7 +803,7 @@ def test_conv_onchip(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(
+    y_ref = conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
@@ -850,10 +848,9 @@ def test_conv_onchip(Simulator, plt):
     assert np.allclose(y, y_ref, atol=0.02, rtol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_overlap_input(Simulator, plt):
     """Tests a fully on-chip conv connection. """
-    from nengo._vendor.npconv2d.conv2d import conv2d
+    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
@@ -876,7 +873,7 @@ def test_conv_overlap_input(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d(
+    y_ref = conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
