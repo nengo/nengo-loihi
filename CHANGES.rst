@@ -22,8 +22,12 @@ Release history
 0.10.0 (unreleased)
 ===================
 
+**Added**
+- Nengo Loihi now supports NxSDK version 0.9.0.
+  (`#255 <https://github.com/nengo/nengo-loihi/pull/255>`__)
+
 **Changed**
-- Nengo Loihi now requires NxSDK version 0.8.7.
+- Nengo Loihi now requires minimum NxSDK version 0.8.7.
   (`#234 <https://github.com/nengo/nengo-loihi/pull/234>`__)
 
 0.9.0 (unreleased)

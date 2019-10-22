@@ -27,7 +27,7 @@ def test_error_on_old_version(monkeypatch):
 
 def test_no_warn_on_current_version(monkeypatch):
     mock = MockNxsdk()
-    mock.__version__ = "0.8.7"
+    mock.__version__ = str(hardware_interface.HardwareInterface.max_nxsdk_version)
 
     monkeypatch.setattr(hardware_interface, "nxsdk", mock)
     monkeypatch.setattr(hardware_interface, "assert_nxsdk", lambda: True)
