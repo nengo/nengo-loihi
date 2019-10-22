@@ -31,6 +31,8 @@ Release history
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
 - A more informative error message is raised if any encoders contain NaNs.
   (`#251 <https://github.com/nengo/nengo-loihi/pull/251>`__)
+- Nengo Loihi now supports NxSDK version 0.9.0.
+  (`#255 <https://github.com/nengo/nengo-loihi/pull/255>`__)
 
 **Changed**
 
