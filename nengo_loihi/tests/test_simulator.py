@@ -452,7 +452,6 @@ def test_interface(Simulator, allclose):
             sim.run(1e-8)
 
 
-@pytest.mark.hang
 @pytest.mark.target_loihi
 def test_loihi_simulation_exception(Simulator):
     """Test that Loihi shuts down properly after exception during simulation"""
