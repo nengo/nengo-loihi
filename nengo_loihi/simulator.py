@@ -1,7 +1,6 @@
 from collections import OrderedDict
 import logging
 import timeit
-import traceback
 import warnings
 
 import nengo
@@ -16,7 +15,6 @@ import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
-from nengo_loihi.nxsdk_obfuscation import d_func
 from nengo_loihi.splitter import Split
 
 logger = logging.getLogger(__name__)
@@ -551,30 +549,7 @@ class Simulator:
             self.sims["loihi"].connect()
 
         time0 = timeit.default_timer()
-        try:
-            self._run_steps(steps)
-        except Exception:
-            if "loihi" in self.sims and self.sims["loihi"].use_snips:
-                # Need to write to board, otherwise it will wait indefinitely
-                h2c = self.sims["loihi"].nengo_io_h2c
-                c2h = self.sims["loihi"].nengo_io_c2h
-
-                print(traceback.format_exc())
-                print("\nAttempting to end simulation...")
-
-                for _ in range(steps):
-                    h2c.write(h2c.numElements, [0] * h2c.numElements)
-                    c2h.read(c2h.numElements)
-                self.sims["loihi"].wait_for_completion()
-                d_func(
-                    self.sims["loihi"].nxsdk_board,
-                    b"bnhEcml2ZXI=",
-                    b"c3RvcEV4ZWN1dGlvbg==",
-                )
-                d_func(
-                    self.sims["loihi"].nxsdk_board, b"bnhEcml2ZXI=", b"c3RvcERyaXZlcg=="
-                )
-            raise
+        self._run_steps(steps)
 
         self.timers["steps"] += timeit.default_timer() - time0
         self._n_steps += steps

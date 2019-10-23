@@ -33,6 +33,10 @@ Release history
   ``"steps"``, which reports the amount of time taken to run the simulation steps
   (not including connection time).
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- SNIPs now use a host SNIP to facilitate communication between the host and the chip.
+  This improves performance when ``precompute=False`` (however, ``precompute=True``
+  is still typically more performant for models that support it).
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

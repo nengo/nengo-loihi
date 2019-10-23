@@ -477,7 +477,6 @@ def test_interface(Simulator, allclose):
             sim.run(1e-8)
 
 
-@pytest.mark.hang
 @pytest.mark.target_loihi
 def test_loihi_simulation_exception(Simulator):
     """Test that Loihi shuts down properly after exception during simulation"""
@@ -493,9 +492,11 @@ def test_loihi_simulation_exception(Simulator):
         e = nengo.Ensemble(8, 1)
         nengo.Connection(u, e)
 
-    with Simulator(net, precompute=False) as sim:
-        sim.run(0.01)
-        assert not sim.sims["loihi"].nxDriver.conn
+    with pytest.raises(RuntimeError, match="exception to kill"):
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.01)
+
+    assert sim.sims["loihi"].closed
 
 
 @pytest.mark.parametrize("precompute", [True, False])

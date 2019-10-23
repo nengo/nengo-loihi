@@ -3,6 +3,8 @@ from distutils.version import LooseVersion
 import logging
 import os
 import shutil
+import socket
+import struct
 import tempfile
 import time
 import warnings
@@ -22,6 +24,14 @@ from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.validate import validate_model
 
 logger = logging.getLogger(__name__)
+
+
+def ceil_div(a, b):
+    return -((-a) // b)
+
+
+def roundup(a, b):
+    return b * ceil_div(a, b)
 
 
 class HardwareInterface:
@@ -63,6 +73,9 @@ class HardwareInterface:
         self.nxsdk_board = None
         self.nengo_io_h2c = None  # IO snip host-to-chip channel
         self.nengo_io_c2h = None  # IO snip chip-to-host channel
+        self.host_socket = None  # IO snip superhost (this) <-> host socket
+        self.host_socket_connected = False
+        self.host_socket_port = None
         self._probe_filters = {}
         self._probe_filter_pos = {}
         self._snip_probe_data = collections.OrderedDict()
@@ -153,6 +166,23 @@ class HardwareInterface:
         # start the board running the desired number of steps
         d_get(self.nxsdk_board, b"cnVu")(steps, **{d(b"YVN5bmM="): not blocking})
 
+        # connect to host socket
+        if self.host_socket is not None and not self.host_socket_connected:
+            # pause to allow host snip to start and listen for connection
+            time.sleep(0.1)
+
+            host_address = self.nxsdk_board.executor._host_coordinator.hostAddr
+            print(
+                "Connecting to host socket at (%s, %s)"
+                % (host_address, self.host_socket_port)
+            )
+            self.host_socket.connect((host_address, self.host_socket_port))
+            self.host_socket_connected = True
+
+        if self.host_socket is not None:
+            # send number of steps to host process
+            self.host_socket.send(struct.pack("i", steps))
+
     def _chip2host_monitor(self, probes_receivers):
         increment = None
         for probe, receiver in probes_receivers.items():
@@ -186,9 +216,9 @@ class HardwareInterface:
             self._chip2host_sent_steps += increment
 
     def _chip2host_snips(self, probes_receivers):
-        count = self.nengo_io_c2h_count
-        data = self.nengo_io_c2h.read(count)
-        time_step, data = data[0], np.array(data[1:], dtype=np.int32)
+        data = self.host_socket.recv(4 * self.nengo_io_c2h_count)
+        data = np.frombuffer(data, dtype=np.int32)
+        time_step, data = data[0], data[1:]
         snip_range = self.nengo_io_snip_range
 
         for probe in self._snip_probe_data:
@@ -242,6 +272,8 @@ class HardwareInterface:
             )
 
     def _host2chip_snips(self, loihi_spikes, loihi_errors):
+        assert self.host_socket_connected
+
         max_spikes = self.snip_max_spikes_per_step
         if len(loihi_spikes) > max_spikes:
             warnings.warn(
@@ -260,8 +292,15 @@ class HardwareInterface:
         assert len(loihi_errors) == self.nengo_io_h2c_errors
         for error in loihi_errors:
             msg.extend(error)
-        assert len(msg) <= self.nengo_io_h2c.numElements
-        self.nengo_io_h2c.write(len(msg), msg)
+
+        i = 0
+        send_size = 1024
+        while i < len(msg):
+            msg_i = msg[i : i + send_size]
+            msg_bytes = struct.pack("%di" % len(msg_i), *msg_i)
+            bytes_sent = self.host_socket.send(msg_bytes)
+            assert bytes_sent == len(msg_bytes), "Host socket send failed"
+            i += len(msg_i)
 
     def host2chip(self, spikes, errors):
         loihi_spikes = []
@@ -321,6 +360,16 @@ class HardwareInterface:
             raise SimulationError("Could not connect to the board")
 
     def close(self):
+        if self.host_socket is not None and self.host_socket_connected:
+            # send -1 to signal host/chip that we're done
+            self.host_socket.send(struct.pack("i", -1))
+
+            # pause to allow chip to receive -1 signal via host
+            time.sleep(0.1)
+
+            self.host_socket.close()
+            self.host_socket_connected = False
+
         if self.nxsdk_board is not None:
             d_func(self.nxsdk_board, b"ZGlzY29ubmVjdA==")
 
@@ -452,10 +501,12 @@ class HardwareInterface:
             len(cores),
             len(probes),
         )
+        chip_buffer_size = max(1024, roundup(n_outputs, SpikePacker.size()))
         code = template.render(
             n_outputs=n_outputs,
             n_errors=n_errors,
             max_error_len=max_error_len,
+            buffer_size=chip_buffer_size,
             cores=cores,
             probes=probes,
             obfs=obfs,
@@ -468,8 +519,8 @@ class HardwareInterface:
         with open(os.path.join(snips_dir, "nengo_learn.c"), "w") as f:
             f.write(code)
 
-        # --- create SNIP process and channels
-        logger.debug("Creating nengo_io snip process")
+        # --- create chip processes
+        logger.debug("Creating nengo_io chip process")
         nengo_io = d_func(
             self.nxsdk_board,
             b"Y3JlYXRlU25pcA==",
@@ -482,7 +533,7 @@ class HardwareInterface:
                 b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfTUdNVA=="),
             },
         )
-        logger.debug("Creating nengo_learn snip process")
+        logger.debug("Creating nengo_learn chip process")
         c_path = os.path.join(self.tmp_snip_dir.name, "nengo_learn.c")
         shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
         d_func(
@@ -498,6 +549,39 @@ class HardwareInterface:
             },
         )
 
+        # --- create host process (for faster communication via sockets)
+        host_socket_port = np.random.randint(50000, 60000)
+
+        max_inputs = n_errors + self.snip_max_spikes_per_step * SpikePacker.size()
+        host_template = env.get_template("nengo_host.cc.template")
+        host_path = os.path.join(self.tmp_snip_dir.name, "nengo_host.cc")
+        host_code = host_template.render(
+            host_buffer_size=max(max_inputs, n_outputs),
+            n_outputs=n_outputs,
+            server_port=host_socket_port,
+            input_channel="nengo_io_h2c",
+            output_channel="nengo_io_c2h",
+            obfs=obfs,
+        )
+        with open(host_path, "w") as f:
+            f.write(host_code)
+
+        # make process
+        host_process = d_func(
+            self.nxsdk_board,
+            b"Y3JlYXRlU25pcA==",
+            kwargs={
+                b"cGhhc2U=": SnipPhase.HOST_CONCURRENT_EXECUTION,
+                b"Y3BwRmlsZQ==": host_path,
+            },
+        )
+
+        # connect to host socket
+        print("Making superhost socket")
+        self.host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.host_socket_port = host_socket_port
+
+        # --- create channels
         size = (
             1  # first int stores number of spikes
             + self.snip_max_spikes_per_step * SpikePacker.size()
@@ -519,8 +603,8 @@ class HardwareInterface:
                 d(b"bWVzc2FnZVNpemU="): 4,  # size of one packet (in bytes)
             },
         )
-        d_get(self.nengo_io_h2c, b"Y29ubmVjdA==")(None, nengo_io)
-        d_get(self.nengo_io_c2h, b"Y29ubmVjdA==")(nengo_io, None)
+        d_get(self.nengo_io_h2c, b"Y29ubmVjdA==")(host_process, nengo_io)
+        d_get(self.nengo_io_c2h, b"Y29ubmVjdA==")(nengo_io, host_process)
         self.nengo_io_h2c_errors = n_errors
         self.nengo_io_c2h_count = n_outputs
         self.nengo_io_snip_range = snip_range
