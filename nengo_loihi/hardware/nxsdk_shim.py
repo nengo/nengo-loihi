@@ -80,9 +80,11 @@ if HAS_NXSDK:
         b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu", b"QmFzaWNTcGlrZUdlbmVyYXRvcg=="
     )
     SpikeProbe = d_import(b"bnhzZGsuZ3JhcGgubnhwcm9iZXM=", b"TjJTcGlrZVByb2Jl")
+    SnipPhase = d_import(b"bnhzZGsuZ3JhcGgucHJvY2Vzc2VzLnBoYXNlX2VudW1z", b"UGhhc2U=")
 else:
     micro_gen = None
     TraceConfigGenerator = None
     NxsdkBoard = None
     SpikeGen = None
     SpikeProbe = None
+    SnipPhase = None

@@ -9,8 +9,14 @@
 #define SPIKE_SIZE {{ obfs.spike_size }}
 #define ERROR_INFO_SIZE {{ obfs.error_info_size }}
 
+int is_shutdown = 0;  // if true, we've been asked to shut down
+
+inline int min(int a, int b) {
+    return (a < b) ? a : b;
+}
+
 int guard_io(runState *s) {
-    return 1;
+    return !is_shutdown;
 }
 
 void nengo_io(runState *s) {
@@ -41,6 +47,11 @@ void nengo_io(runState *s) {
     }
 
     {{ obfs.read }}(in_channel, count, 1);
+    if (count < 0) {
+        printf("Chip received shutdown signal: %d\n", count);
+        is_shutdown = 1;
+        return;
+    }
     if (DEBUG) {
         printf("count %d\n", count[0]);
     }

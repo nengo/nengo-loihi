@@ -1,8 +1,11 @@
 import nengo
 from nengo.exceptions import SimulationError
+import numpy as np
 import pytest
 
+import nengo_loihi
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
+from nengo_loihi.compat import signals_allclose
 from nengo_loihi.builder import Model
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.hardware import interface as hardware_interface
@@ -128,3 +131,50 @@ def test_snip_input_count(Simulator, seed, plt):
     with Simulator(model) as sim:
         with pytest.warns(UserWarning, match="Too many spikes"):
             sim.run(0.01)
+
+
+@pytest.mark.target_loihi
+def test_no_hang_on_exception(Simulator, seed):
+    def input_fn(t):
+        if 0.03 < t < 0.05:
+            raise RuntimeError("test_no_hang")
+
+        return t
+
+    with nengo.Network(seed=seed) as net:
+        u = nengo.Node(input_fn)
+        a = nengo.Ensemble(100, 1)
+        nengo.Connection(u, a)
+        nengo.Probe(a)
+
+    with pytest.raises(RuntimeError, match="test_no_hang"):
+        with nengo_loihi.Simulator(net, precompute=False) as sim:
+            sim.run(0.1)
+
+
+@pytest.mark.target_loihi
+def test_multiple_run_calls(Simulator, seed, plt):
+    """Test that we can re-start the SNIPs for a second `run` call"""
+    # NOTE: probe synapses get applied at the end of `run`, so we keep probe
+    # synapses off and do our own filtering.
+
+    f = lambda t: np.sin(8 * np.pi * t)
+
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.set_defaults()
+
+        u = nengo.Node(f)
+        a = nengo.Ensemble(100, 1)
+        nengo.Connection(u, a, synapse=None)
+        ap = nengo.Probe(a)
+
+    with nengo_loihi.Simulator(net, precompute=False) as sim:
+        sim.run(0.1)
+        sim.run(0.15)
+
+    t = sim.trange()
+    x = f(sim.trange())
+    y = nengo.synapses.Alpha(0.01).filt(sim.data[ap], dt=sim.dt)
+    plt.plot(t, x)
+    plt.plot(t, y)
+    assert signals_allclose(t, x, y, atol=0.07, rtol=0.07, delay=0.024, plt=plt)
