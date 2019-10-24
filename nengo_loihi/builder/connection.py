@@ -9,7 +9,6 @@ from nengo.builder.connection import (
     BuiltConnection,
     get_eval_points,
     get_targets,
-    multiply,
 )
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
@@ -27,7 +26,7 @@ from nengo_loihi.builder.inputs import (
     HostReceiveNode,
     PESModulatoryTarget,
 )
-from nengo_loihi.compat import conn_solver, nengo_transforms, sample_transform
+from nengo_loihi.compat import conn_solver, multiply, nengo_transforms, sample_transform
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
 from nengo_loihi.inputs import LoihiInput
 from nengo_loihi.neurons import loihi_rates

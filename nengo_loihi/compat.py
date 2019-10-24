@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
     from nengo.builder.network import seed_network
+    from nengo.builder.transforms import multiply
     import nengo.transforms as nengo_transforms
 
     def conn_solver(solver, activities, targets, rng):
@@ -34,6 +35,8 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
 
 
 else:
+    from nengo.builder.connection import multiply
+
     nengo_transforms = None
     from nengo.dists import get_samples as _get_samples
 
