@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "nengo_io.h"
+#include "{{ header_file }}"
 
 #define DEBUG 0
 #define N_OUTPUTS {{ n_outputs }}
@@ -22,20 +22,25 @@ int guard_io(runState *s) {
     return !is_shutdown;
 }
 
-void nengo_io(runState *s) {
-#if SPIKE_SIZE != 2
-    // SPIKE_SIZE != 2 will require a number of changes to this function.
-    // Search for SPIKE_SIZE == 2 precompiler directives.
-    printf("SPIKE_SIZE == 2 assertion failed\n");
-    return;
-#endif
+void shutdown({{ obfs.int_type }} *buffer) {
+    int out_channel = {{ obfs.get_channel }}("{{ output_channel }}");
+    if (!is_shutdown) {
+        printf("Shutting down...\n");
+        buffer[0] = -1;
+        if (out_channel != -1) {
+            {{ obfs.write }}(out_channel, buffer, 1);
+        }
+        is_shutdown = 1;
+    }
+}
 
+void nengo_io(runState *s) {
 {% for core in cores %}
     {{ obfs.core_class }} *core{{ core }} = NEURON_PTR((CoreId){.id = {{ core }}});
 {% endfor %}
 
-    int in_channel = {{ obfs.get_channel }}("nengo_io_h2c");
-    int out_channel = {{ obfs.get_channel }}("nengo_io_c2h");
+    int in_channel = {{ obfs.get_channel }}("{{ input_channel }}");
+    int out_channel = {{ obfs.get_channel }}("{{ output_channel }}");
 
     {{ obfs.int_type }} n_spikes; // input spike count
     {{ obfs.int_type }} i_spike;  // input spike position
@@ -55,14 +60,27 @@ void nengo_io(runState *s) {
     {{ obfs.int_type }} buffer_pos; // current read position in buffer
     {{ obfs.int_type }} buffer_len; // current length of info in buffer
 
+#if SPIKE_SIZE != 2
+    // SPIKE_SIZE != 2 will require a number of changes to this function.
+    // Search for SPIKE_SIZE == 2 precompiler directives.
+    printf("SPIKE_SIZE == 2 assertion failed\n");
+    shutdown(buffer);
+    return;
+#endif
+
     if (in_channel == -1 || out_channel == -1) {
         printf("Got an invalid channel ID\n");
+        shutdown(buffer);
         return;
     }
 
-    if (s->{{ obfs.step }} % 100 == 0) {
-        printf("time %d\n", s->{{ obfs.step }});
+#if DEBUG > 0
+    printf("time %d\n", s->{{ obfs.s_step }});
+#else
+    if (s->{{ obfs.s_step }} % 100 == 0) {
+        printf("time %d\n", s->{{ obfs.s_step }});
     }
+#endif
 
     // read first packet
     {{ obfs.read }}(in_channel, buffer, 1);
@@ -71,17 +89,17 @@ void nengo_io(runState *s) {
     buffer_pos = 1;
     if (n_spikes < 0) {
         printf("Chip received shutdown signal: %d\n", n_spikes);
-        is_shutdown = 1;
+        shutdown(buffer);
         return;
     }
-#if DEBUG
+#if DEBUG > 0
     printf("num input spikes: %d\n", n_spikes);
 #endif
 
     for (i_spike = 0; i_spike < n_spikes; i_spike++) {
         // read a new packet if necessary
         if (buffer_pos + SPIKE_SIZE > buffer_len) {
-            if (buffer_len - buffer_pos > 0) {
+            if (buffer_pos < buffer_len) {
                 // part of a spike remains at end of buffer
 #if SPIKE_SIZE == 2
                 buffer[0] = buffer[buffer_pos];
@@ -95,15 +113,14 @@ void nengo_io(runState *s) {
             {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
             buffer_len += PACKET_ELEMENTS;
             buffer_pos = 0;
-
-#if DEBUG
-            printf("Read packet. Buffer len: %d\n", buffer_len);
+#if DEBUG > 1
+            printf("Read (spike) packet. Buffer len: %d\n", buffer_len);
 #endif
         }
 
         spike = &buffer[buffer_pos];
         buffer_pos += SPIKE_SIZE;
-#if DEBUG
+#if DEBUG > 2
         printf("send spike %d.%d\n", spike[0], spike[1]);
 #endif
 
@@ -113,25 +130,26 @@ void nengo_io(runState *s) {
         axon_type = spike[1] >> {{ obfs.spike_shift }};
         atom = spike[1] & {{ obfs.spike_mask }};
 #endif
-#if DEBUG
+#if DEBUG > 2
         printf("send spike core=%d, axon=%d, type=%d atom=%d\n", core_id.id,
                axon_id, axon_type, atom);
 #endif
         if (axon_type == 0) {
-            {{ obfs.do_axon_type_0 }}(s->{{ obfs.step }}, core_id, axon_id);
+            {{ obfs.do_axon_type_0 }}(s->{{ obfs.s_step }}, core_id, axon_id);
         } else if (axon_type == 32) {
-            {{ obfs.do_axon_type_32 }}(s->{{ obfs.step }}, core_id, axon_id, atom, 0, 0, 0);
+            {{ obfs.do_axon_type_32 }}(s->{{ obfs.s_step }}, core_id, axon_id, atom, 0, 0, 0);
         } else if (axon_type >= 16) {
             atom_bits = axon_type - 16;
-            {{ obfs.do_axon_type_16 }}(s->{{ obfs.step }}, core_id, axon_id, atom, atom_bits);
+            {{ obfs.do_axon_type_16 }}(s->{{ obfs.s_step }}, core_id, axon_id, atom, atom_bits);
         } else {
-            printf("Got invalid axon_type: %d\n", axon_type);
+            printf("Got invalid axon_type: %d (%d.%d)\n", axon_type, spike[0], spike[1]);
+            shutdown(buffer);
             return;
         }
     }
 
     // Communicate with learning snip
-    s->{{ obfs.data }}[0] = N_ERRORS;
+    s->{{ obfs.s_data }}[0] = N_ERRORS;
     error_index = 1;
     i_error = 0;
     j_error = 0;
@@ -154,12 +172,15 @@ void nengo_io(runState *s) {
             {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
             buffer_len += PACKET_ELEMENTS;
             buffer_pos = 0;
+#if DEBUG > 1
+            printf("Read (error) packet. Buffer len: %d\n", buffer_len);
+#endif
         }
 
         if (n_errors < 0) {
             // move to next error block
 {% for j in range(obfs.error_info_size) %}
-            s->{{ obfs.data }}[error_index + {{ j }}] = buffer[buffer_pos + {{ j }}];
+            s->{{ obfs.s_data }}[error_index + {{ j }}] = buffer[buffer_pos + {{ j }}];
 {% endfor %}
             n_errors = buffer[buffer_pos + 1];
             j_error = 0;
@@ -167,7 +188,7 @@ void nengo_io(runState *s) {
             buffer_pos += ERROR_INFO_SIZE;
         } else {
             // read next error
-            s->{{ obfs.data }}[error_index] = buffer[buffer_pos];
+            s->{{ obfs.s_data }}[error_index] = buffer[buffer_pos];
             j_error++;
             error_index++;
             buffer_pos++;
@@ -180,13 +201,14 @@ void nengo_io(runState *s) {
     }
 
     // Write output
-    buffer[0] = s->{{ obfs.step }};  // first output is time step
+    buffer[0] = s->{{ obfs.s_step }};  // first output is time step
 {% for i_out, key, core, comp0, comp_step, n_comps in probes %}
 {% if n_comps > 1 %}
-    for (int i=0; i < {{ n_comps }}; i++) {
+    for (int i = 0; i < {{ n_comps }}; i++) {
 {% if key in ('u', 'v') %}
         buffer[{{ i_out }} + i] =
-            core{{ core }}->{{ obfs.state }}[{{ comp0 }} + i*{{ comp_step }}].{{ key | upper }};
+            core{{ core }}->{{ obfs.comp_state }}
+                [{{ comp0 }} + i*{{ comp_step }}].{{ key | upper }};
 {% else %}
         // pack spikes
         int i_out = {{ i_out }} + (i / 32);
@@ -194,18 +216,39 @@ void nengo_io(runState *s) {
         if (shift == 0) {
             buffer[i_out] = 0;
         }
-        int spike = core{{ core }}->{{ obfs.state }}[{{ comp0 }} + i*{{ comp_step }}].V == {{ key }};
+        int spike = core{{ core }}->{{ obfs.comp_state }}
+            [{{ comp0 }} + i*{{ comp_step }}].V == {{ key }};
         buffer[i_out] |= spike << shift;
 {% endif %}
     }
 {% else %}
 {% if key in ('u', 'v') %}
-    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.state }}[{{ comp0 }}].{{ key | upper }};
+    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.comp_state }}[{{ comp0 }}].{{ key | upper }};
 {% else %}
-    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.state }}[{{ comp0 }}].V == {{ key }};
+    buffer[{{ i_out }}] = core{{ core }}->{{ obfs.comp_state }}[{{ comp0 }}].V == {{ key }};
 {% endif %}
 {% endif %}
 {% endfor %}
 
+#if DEBUG > 0
+    printf("Sending %d packet(s)\n", N_OUTPUT_PACKETS);
+#endif
     {{ obfs.write }}(out_channel, buffer, N_OUTPUT_PACKETS);
+
+    if (s->{{ obfs.s_n_steps }} > 0 && s->{{ obfs.s_step }} >= s->{{ obfs.s_n_steps }}) {
+        // Do nonsense computations to waste time. This will make sure Chip 0 doesn't
+        // finish early, and thus the channels stay open. If there are still hangs
+        // at the end of simulation on some platforms, try increasing the wait time
+        // (number of loop iterations). Also, the print statement appears necessary
+        // so that the compiler doesn't just optimize this out.
+        int sum = 0;
+        for (int i = 0; i < 3000000; i++) {
+            if (i % 2 == 0) {
+                sum += (i*i) % 10;
+            } else {
+                sum -= (i*i) % 10;
+            }
+        }
+        printf("Waited to exit (nonsense sum %d)\n", sum);
+    }
 }

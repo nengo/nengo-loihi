@@ -25,6 +25,8 @@ class Board:
         self.inputs = []
 
         self.probes = []
+        # When using snips, this maps to a ProbeSnip instance
+        # When not using snips, this maps to an NxSDK probe
         self.probe_map = {}
 
     @property

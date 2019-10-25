@@ -1,9 +1,11 @@
+import os
 import nengo
 from nengo.exceptions import ValidationError, SimulationError
 from nengo.utils.numpy import rms
 import numpy as np
 import pytest
 
+from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.builder import Model
 
 
@@ -52,7 +54,7 @@ def pes_network(
 
 @pytest.mark.parametrize("dims", (1, 3))
 def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
-    n_per_dim = 120
+    n_per_dim = 300
     tau = 0.01
     simtime = 1.5
     model, probes = pes_network(
@@ -67,7 +69,9 @@ def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(simtime)
 
-    with Simulator(model) as loihi_sim:
+    with Simulator(
+        model, hardware_options={"allocator": RoundRobin(n_chips=2)}
+    ) as loihi_sim:
         loihi_sim.run(simtime)
 
     with Simulator(model, target="simreal") as real_sim:
@@ -97,18 +101,18 @@ def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
     plt.plot(t[post_tmask], y_loihi[post_tmask] - y_nengo[post_tmask], "b")
 
     x_loihi = loihi_sim.data[probes["pre"]]
-    assert allclose(x_loihi[pre_tmask], y_dpre[pre_tmask], atol=0.15, rtol=0.05)
+    assert allclose(x_loihi[pre_tmask], y_dpre[pre_tmask], atol=0.18, rtol=0.05)
 
-    assert allclose(y_loihi[post_tmask], y_dpost[post_tmask], atol=0.15, rtol=0.05)
+    assert allclose(y_loihi[post_tmask], y_dpost[post_tmask], atol=0.18, rtol=0.05)
     assert allclose(y_loihi, y_nengo, atol=0.2, rtol=0.2)
 
-    assert allclose(y_real[post_tmask], y_dpost[post_tmask], atol=0.15, rtol=0.05)
+    assert allclose(y_real[post_tmask], y_dpost[post_tmask], atol=0.18, rtol=0.05)
     assert allclose(y_real, y_nengo, atol=0.2, rtol=0.2)
 
 
 def test_pes_overflow(plt, seed, Simulator):
     dims = 3
-    n_per_dim = 120
+    n_per_dim = 300
     tau = 0.01
     simtime = 0.6
     model, probes = pes_network(
@@ -125,7 +129,9 @@ def test_pes_overflow(plt, seed, Simulator):
     # set learning_wgt_exp low to create overflow in weight values
     loihi_model.pes_wgt_exp = -2
 
-    with Simulator(model, model=loihi_model) as loihi_sim:
+    with Simulator(
+        model, model=loihi_model, hardware_options={"allocator": RoundRobin(n_chips=2)},
+    ) as loihi_sim:
         loihi_sim.run(simtime)
 
     t = loihi_sim.trange()
@@ -154,7 +160,7 @@ def test_pes_overflow(plt, seed, Simulator):
             "any scaled version of the target output" % j
         )
         assert scale[i] > 0.25, "Learning output for dim %d is too small" % j
-        assert scale[i] < 0.7, (
+        assert scale[i] < 0.9, (
             "Learning output for dim %d is too large "
             "(weights or traces not clipping as expected)" % j
         )
@@ -178,7 +184,9 @@ def test_pes_error_clip(plt, seed, Simulator):
     )
 
     with pytest.warns(UserWarning, match=r".*PES error.*pes_error_scale.*"):
-        with Simulator(model) as loihi_sim:
+        with Simulator(
+            model, hardware_options={"allocator": RoundRobin(n_chips=2)}
+        ) as loihi_sim:
             loihi_sim.run(simtime)
 
     t = loihi_sim.trange()
@@ -223,7 +231,7 @@ def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
         probe = nengo.Probe(output, synapse=0.1)
 
     simtime = 0.6
-    with Simulator(model) as sim:
+    with Simulator(model, hardware_options={"allocator": RoundRobin(n_chips=2)}) as sim:
         sim.run(simtime)
 
     t = sim.trange()
@@ -239,13 +247,15 @@ def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
         )
 
 
+# TODO: Revisit when we can blacklist boards
+@pytest.mark.xfail
 def test_pes_deterministic(request, Simulator, seed, allclose):
     """Ensure that learning output is the same between runs"""
     # Make a network with lots of objects, so dictionary order has an effect
     n_errors = 3
     targets = np.linspace(-0.8, 0.95, n_errors)
     with nengo.Network(seed=seed) as model:
-        pre_ea = nengo.networks.EnsembleArray(50, n_ensembles=n_errors)
+        pre_ea = nengo.networks.EnsembleArray(100, n_ensembles=n_errors)
         output = nengo.Node(size_in=n_errors)
 
         target = nengo.Node(targets)
@@ -268,7 +278,9 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
     simtime = 0.1
     sims = []
     for _ in range(n_sims):
-        with Simulator(model) as sim:
+        with Simulator(
+            model, hardware_options={"allocator": RoundRobin(n_chips=2)}
+        ) as sim:
             sim.run(simtime)
         sims.append(sim)
 
@@ -277,11 +289,21 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
         assert allclose(sim.data[probe], sim0.data[probe])
 
 
-def test_learning_seed(Simulator, seed):
+# TODO: Revisit when we can blacklist boards
+@pytest.mark.xfail
+def test_learning_seed(Simulator, request, seed):
+    def set_srun_options(options):
+        # TODO: the SRUN_OPTIONS environment variable will be read in a future
+        # version of NxSDK. Until that's released, this test is expected to fail.
+        os.environ["SRUN_OPTIONS"] = options
+
+    request.addfinalizer(lambda: set_srun_options(""))
+    set_srun_options("-p loihi -x ncl-ext-ghrd-02")
+
     n_per_dim = 120
     dims = 1
     tau = 0.005
-    simtime = 0.1
+    simtime = 0.2
     model, probes = pes_network(
         n_per_dim,
         dims,
@@ -291,13 +313,15 @@ def test_learning_seed(Simulator, seed):
         period=simtime / 2,
     )
 
-    with Simulator(model, seed=seed) as sim:
+    sim_args = dict(hardware_options={"allocator": RoundRobin(n_chips=2)})
+
+    with Simulator(model, seed=seed, **sim_args) as sim:
         sim.run(simtime)
 
-    with Simulator(model, seed=seed) as sim1:
+    with Simulator(model, seed=seed, **sim_args) as sim1:
         sim1.run(simtime)
 
-    with Simulator(model, seed=seed + 1) as sim2:
+    with Simulator(model, seed=seed + 1, **sim_args) as sim2:
         sim2.run(simtime)
 
     assert np.allclose(sim1.data[probes["post"]], sim.data[probes["post"]])

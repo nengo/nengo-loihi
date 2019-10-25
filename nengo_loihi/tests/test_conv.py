@@ -200,8 +200,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
-@pytest.mark.parametrize("hw_opts", [dict(), dict(allocator=RoundRobin(n_chips=2))])
-def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclose):
+def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
         y = x.reshape((-1, x.shape[-1]))
@@ -219,9 +218,6 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
         pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     target = request.config.getoption("--target")
-    if target != "loihi" and len(hw_opts) > 0:
-        plt.saveas = None
-        pytest.skip("Hardware options only available on hardware")
 
     pop_type = 32
 
@@ -328,7 +324,9 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 
     n_steps = int(pres_time / dt)
     if target == "loihi":
-        with HardwareInterface(model, use_snips=False, seed=seed, **hw_opts) as sim:
+        with HardwareInterface(
+            model, use_snips=False, seed=seed, allocator=RoundRobin(n_chips=2),
+        ) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
     else:
@@ -454,8 +452,9 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
         sim_emu.run(pres_time)
     emu_out = sim_emu.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    hw_opts = dict(snip_max_spikes_per_step=800)
-    with Simulator(model, hardware_options=hw_opts) as sim_loihi:
+    with Simulator(
+        model, hardware_options={"snip_max_spikes_per_step": 800}
+    ) as sim_loihi:
         sim_loihi.run(pres_time)
     sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape)
 
@@ -567,15 +566,27 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("precompute", [False, True])
-@pytest.mark.parametrize("channels_last, pop_type", [(False, 32), (True, 16)])
+@pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
-    channels_last, pop_type, precompute, Simulator, rng, seed, plt, allclose
+    channels_last, pop_type, precompute, Simulator, request, rng, seed, plt, allclose,
 ):
     """Run a convolutional network with two layers on the chip.
 
     Checks that network with block splitting on the target matches one without
     on the emulator.
     """
+    # TODO: This case fails in NxSDK 0.9.0 but will be fixed in the next version.
+    # Remove this check once the next version is released.
+    if pop_type == 32:
+        pytest.skip("Pop32 multichip test requires latest NxSDK")
+
+    def set_partition(partition):
+        os.environ["PARTITION"] = partition
+
+    request.addfinalizer(lambda: set_partition(""))
+    # multichip pop_type = 16 works only on nahuku32 board currently
+    if pop_type == 16:
+        set_partition("nahuku32")
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
@@ -695,10 +706,28 @@ def test_conv_deepnet(
         sim_emu.run(pres_time)
         emu_out = (sim_emu.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
-    hw_opts = dict(snip_max_spikes_per_step=800)
-    with Simulator(net, precompute=precompute, hardware_options=hw_opts) as sim_loihi:
-        sim_loihi.run(pres_time)
-        sim_out = (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
+    # TODO: Remove the if condition when configurable timeout parameter
+    # is available in nxsdk
+    if (
+        pop_type == 32
+        or os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
+    ):
+        with Simulator(
+            net,
+            precompute=precompute,
+            hardware_options={
+                "allocator": RoundRobin(n_chips=2),
+                "snip_max_spikes_per_step": 800,
+            },
+        ) as sim_loihi:
+            sim_loihi.run(pres_time)
+            sim_out = (
+                (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
+            )
+    elif nengo_loihi.version.dev is None:
+        pytest.fail("Pop16 multichip test failed since Nahuku32 is unavailable")
+    else:
+        pytest.skip("Pop16 multichip test skipped since Nahuku32 is unavailable")
 
     out_max = ref_out.max()
     ref_out = ref_out / out_max

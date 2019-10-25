@@ -149,6 +149,7 @@ def test_round_robin_allocator_over():
         assert len(chip.cores[0].blocks) == 1
 
 
+@pytest.mark.slow
 @pytest.mark.target_loihi
 def test_deterministic_network_allocation(Simulator, seed):
     # test that we get the same simulations results across allocators.

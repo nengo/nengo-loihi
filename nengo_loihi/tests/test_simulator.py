@@ -2,7 +2,7 @@ import inspect
 import re
 
 import nengo
-from nengo.exceptions import BuildError, ReadonlyError, SimulationError, ValidationError
+from nengo.exceptions import BuildError, ReadonlyError, ValidationError
 import numpy as np
 import pytest
 
@@ -12,7 +12,6 @@ from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
-from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.inputs import SpikeInput
 from nengo_loihi.probe import LoihiProbe
 from nengo_loihi.simulator import Timers
@@ -370,24 +369,6 @@ class TestRunSteps:
             assert sim._runner.run_steps.__name__.endswith("_only")
             assert sim.data[out_p].shape[0] == sim.trange().shape[0]
             assert np.all(sim.data[out_p][-1] > 100)
-
-
-@pytest.mark.target_loihi
-def test_snips_round_robin_unsupported(Simulator):
-    with nengo.Network() as model:
-        # input is required otherwise precompute will be
-        # automatically overwritten to True (and then no snips)
-        u = nengo.Node(0)
-        x = nengo.Ensemble(1, 1)
-        nengo.Connection(u, x)
-
-    with pytest.raises(SimulationError, match="snips are not supported"):
-        with Simulator(
-            model,
-            precompute=False,
-            hardware_options={"allocator": RoundRobin(n_chips=8)},
-        ):
-            pass
 
 
 def test_progressbar_values(Simulator):

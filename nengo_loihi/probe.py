@@ -55,8 +55,6 @@ class LoihiProbe:
     ):
         self.key = key
         self.synapse = synapse
-        self.use_snip = False
-        self.snip_info = None
 
         iterable_target = is_iterable(target)
         self.target = (

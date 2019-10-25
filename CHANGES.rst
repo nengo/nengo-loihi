@@ -67,6 +67,9 @@ Release history
 - Modules for discretizing and validating models have been moved to the
   ``builder`` directory.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- It is now possible to use multi-chip allocators with all models,
+  including those that cannot be precomputed.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 **Fixed**
 
@@ -83,6 +86,9 @@ Release history
 - We now ignore TensorFlow and NengoDL if an incompatible version is installed
   rather than exiting with an exception.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- We now shut down the connection to the board more reliably, which should
+  reduce the number of cases in which a model hangs indefinitely.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

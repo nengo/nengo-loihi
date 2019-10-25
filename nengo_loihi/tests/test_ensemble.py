@@ -155,7 +155,7 @@ def test_nonloihi_neuron_error(Simulator):
     with nengo.Network() as net:
         nengo.Ensemble(5, 1, neuron_type=nengo.neurons.Sigmoid(tau_ref=0.005))
 
-    with pytest.raises(BuildError, match="cannot be simulated"):
+    with pytest.raises(BuildError, match="type 'Sigmoid' cannot be simulated"):
         with Simulator(net):
             pass
 

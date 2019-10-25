@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "nengo_learn.h"
+#include "{{ header_file }}"
 
 int guard_learn(runState *s) {
     return 1;
@@ -30,20 +30,20 @@ int guard_learn(runState *s) {
 void nengo_learn(runState *s) {
     int offset = 1;
     int error;
-    {{ obfs.int_type }} n_errors = s->{{ obfs.data }} [0];
+    {{ obfs.int_type }} n_errors = s->{{ obfs.s_data }} [0];
     {{ obfs.int_type }} compartment_idx;
     {{ obfs.int_type }} core;
     {{ obfs.int_type }} n_vals;
     {{ obfs.core_class }} *neuron;
 
     for (int error_index=0; error_index < n_errors; error_index++) {
-        core = s->{{ obfs.data }}[offset];
-        n_vals = s->{{ obfs.data }}[offset+1];
+        core = s->{{ obfs.s_data }}[offset];
+        n_vals = s->{{ obfs.s_data }}[offset+1];
 
         neuron = {{ obfs.neuron }}(({{ obfs.id_class }}){.id = core});
 
         for (int i = 0; i < n_vals; i++) {
-            error = (signed char)s->{{ obfs.data }}[offset + 2 + i];
+            error = (signed char)s->{{ obfs.s_data }}[offset + 2 + i];
             compartment_idx = i;
 
             if (error > 0) {

@@ -98,25 +98,44 @@ def test_builder_poptype_errors():
         build_board(board)
 
 
-def test_host_socket_recv_bytes():
-    host_socket = hardware_interface.HostSocket()
+def test_host_snip_recv_bytes():
+    host_snip = hardware_interface.HostSnip(None)
 
-    # We bypass the host_socket.connect method and connect manually
+    # We bypass the host_snip.connect method and connect manually
     host_address = "127.0.0.1"  # Standard loopback interface address
 
     # Configure socket to send data to itself
-    host_socket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.socket.bind((host_address, host_socket.port))
-    host_socket.socket.connect((host_address, host_socket.port))
-
-    n_recv = 1024 * 2
-    n_send = 1536  # 1024+512, so the host receives one packet and one partial packet
+    host_snip.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    host_snip.socket.bind((host_address, host_snip.port))
+    host_snip.socket.connect((host_address, host_snip.port))
 
     # Generate random data to send
-    data = np.random.randint(0, 8192) * np.ones(n_send, dtype=np.int32)
-    host_socket.send_all(data)
-    with pytest.raises(AssertionError, match="less than expected"):
-        host_socket.recv_bytes(n_recv)
+    data = np.random.randint(0, 8192, size=1100, dtype=np.int32)
+
+    # Correctly receive data in two chunks
+    # Note that chunks are 4096 bytes at the smallest (HostSnip.recv_size)
+    host_snip.send_all(data)
+    received = host_snip.recv_bytes(1024 * 4)
+    assert np.all(received == data[:1024])
+    rest = 1100 - 1024
+    received = host_snip.recv_bytes(rest * 4)
+    assert np.all(received == data[-rest:])
+
+    # Send too little data
+    host_snip.send_all(data)
+    with pytest.raises(RuntimeError, match="less than expected"):
+        host_snip.recv_bytes(1536 * 4)
+
+    # Send shutdown signal at the end
+    data[-1] = -1
+    host_snip.send_all(data)
+    with pytest.raises(RuntimeError, match="shutdown signal from chip"):
+        # With proper amount received
+        host_snip.recv_bytes(1100 * 4)
+    host_snip.send_all(data)
+    with pytest.raises(RuntimeError, match="shutdown signal from chip"):
+        # With early stop
+        host_snip.recv_bytes(2048 * 4)
 
 
 @pytest.mark.target_loihi
@@ -155,40 +174,3 @@ def test_snip_input_count(Simulator, seed, plt):
     with Simulator(model, precompute=False) as sim:
         with pytest.warns(UserWarning, match="Too many spikes"):
             sim.run(0.01)
-
-
-@pytest.mark.target_loihi
-def test_find_learning_core_id():
-    # This is mostly just a test for the ValueError, since it was uncovered
-    allocator = OneToOne()
-
-    model = Model()
-
-    for _ in range(9):
-        block = LoihiBlock(1)
-        block.compartment.configure_lif()
-        model.add_block(block)
-
-        synapse = Synapse(1)
-        synapse.set_weights([[1]])
-        block.add_synapse(synapse)
-
-    good_synapse = Synapse(n_axons=1)
-    good_synapse.set_weights([[1]])
-    good_core_idx = 3
-    good_core_id = 392
-    list(model.blocks)[good_core_idx].add_synapse(good_synapse)
-
-    bad_synapse = Synapse(n_axons=1)
-    bad_synapse.set_weights([[1]])
-
-    discretize_model(model)
-
-    interface = hardware_interface.HardwareInterface(model, use_snips=False)
-    interface.board = allocator(model)
-
-    interface.board.chips[0].cores[good_core_idx].learning_coreid = good_core_id
-    assert interface._find_learning_core_id(good_synapse) == good_core_id
-
-    with pytest.raises(ValueError, match="Could not find core ID"):
-        interface._find_learning_core_id(bad_synapse)
