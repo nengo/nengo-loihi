@@ -516,10 +516,16 @@ class Simulator:
             def loihi_bidirectional_with_host(steps):
                 loihi.run_steps(steps, blocking=False)
                 time0 = timeit.default_timer()
-                for _ in range(steps):
-                    host.step()
+
+                # Run the first host step so there is info to send to the chip,
+                # then run subsequent host steps simultaneously with the chip
+                host.step()
+                for i in range(steps):
                     self._host2chip(loihi)
+                    if i + 1 < steps:
+                        host.step()
                     self._chip2host(loihi)
+
                 time1 = timeit.default_timer()
                 self.timers["snips"] += time1 - time0
 
