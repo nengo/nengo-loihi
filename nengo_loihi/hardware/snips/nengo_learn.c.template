@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "nengo_learn.h"
+#include "{{ header_file }}"
 
 int guard_learn(runState *s) {
     return 1;

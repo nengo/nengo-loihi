@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "nengo_io.h"
+#include "{{ header_file }}"
 
 #define DEBUG 0
 #define N_OUTPUTS {{ n_outputs }}
@@ -33,8 +33,8 @@ void nengo_io(runState *s) {
     {{ obfs.core_class }} *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
 {% endfor %}
 
-    int in_channel = {{ obfs.get_channel }}("nengo_io_h2c");
-    int out_channel = {{ obfs.get_channel }}("nengo_io_c2h");
+    int in_channel = {{ obfs.get_channel }}("{{ input_channel }}");
+    int out_channel = {{ obfs.get_channel }}("{{ output_channel }}");
 
     {{ obfs.int_type }} n_spikes;  // input spike count
     {{ obfs.int_type }} i_spike;  // input spike position
@@ -80,7 +80,7 @@ void nengo_io(runState *s) {
     for (i_spike = 0; i_spike < n_spikes; i_spike++) {
         // read a new packet if necessary
         if (buffer_pos + SPIKE_SIZE > buffer_len) {
-            if (buffer_len - buffer_pos > 0) {
+            if (buffer_pos < buffer_len) {
                 // part of a spike remains at end of buffer
 #if SPIKE_SIZE == 2
                 buffer[0] = buffer[buffer_pos];

@@ -15,10 +15,10 @@
 
 #define DEBUG 0
 
-#define N_OUTPUTS {{ n_outputs }}
-#define N_OUTPUT_PACKETS {{ n_output_packets }}
-#define BUFFER_SIZE {{ host_buffer_size }}
+#define BUFFER_SIZE {{ buffer_size }}
 #define PACKET_SIZE {{ packet_size }}  // size of a packet, in int32s
+#define READ_SIZE {{ read_size }}  // max bytes to read at a time, in int32s
+#define WRITE_PACKETS {{ write_packets }}  // max packets to write at a time
 
 #define SERVER_PORT htons({{ server_port }})
 
@@ -30,8 +30,17 @@ inline T ceil_div(T a, T b) {
     return (a / b) + (a % b != 0);
 }
 
-const char input_channel[] = "{{ input_channel }}";
-const char output_channel[] = "{{ output_channel }}";
+const char *input_channels[N_CHIPS] = {
+{% for x in input_channels %}
+  "{{ x }}"{{ "," if loop.index < loop.length else "" }}
+{% endfor %}
+};
+const char *output_channels[N_CHIPS] = {
+{% for x in output_channels %}
+  "{{ x }}"{{ "," if loop.index < loop.length else "" }}
+{% endfor %}
+};
+const int output_packets[N_CHIPS] = { {{ output_packets }} };
 
 class NengoHostProcess : public ConcurrentHostSnip {
     int32_t buffer[BUFFER_SIZE];
@@ -82,68 +91,113 @@ class NengoHostProcess : public ConcurrentHostSnip {
 #if DEBUG > 1
             std::cout << "Host: Preparing to read socket" << std::endl;
 #endif
-            ssize_t n_read = recv(client_socket, buffer, 4*PACKET_SIZE, 0);
+            ssize_t n_read = recv(client_socket, buffer, 4*READ_SIZE, 0);
+            int buffer_len = n_read / 4;
+            int buffer_pos = 0;
             if (buffer[0] < 0) {
                 std::cout << "Host received shutdown signal: " << buffer[0] << std::endl;
                 goto cleanup;
             }
 #if DEBUG > 0
-            std::cout << "Host: Read " << n_read << " bytes" << std::endl;
+            std::cout << "Read " << n_read << " bytes" << std::endl;
 #endif
 
-            while (n_read > 0) {
-#if DEBUG > 1
-                std::cout << "Input buffer: [";
-                for (int i = 0; i < ceil_div(n_read, 4); i++) {
-                    std::cout << buffer[i] << ", ";
-                }
-                std::cout << "]" << std::endl;
+            // process header
+            if (n_read < 4 * N_CHIPS) {
+                std::cout << "Could not read full message header" << std::endl;
+                goto cleanup;
+            }
+            int32_t msg_size = N_CHIPS;
+            for (int i_chip = 0; i_chip < N_CHIPS; i_chip++) {
+                chip_sizes[i_chip] = buffer[i_chip];
+            }
+
+            int i_chip = 0;  // index of current chip to send packets to
+            int remaining_size = chip_sizes[i_chip];  // size remaining to send to current chip
+            while (i_chip < N_CHIPS) {
+                if (buffer_pos + PACKET_SIZE > buffer_len) {
+                    if (buffer_pos < buffer_len) {
+                        memcpy(buffer, &buffer[buffer_pos], buffer_len - buffer_pos);
+                        buffer_len -= buffer_pos;
+                    } else {
+                        buffer_len = 0;
+                    }
+
+                    // subsequent reads are non-blocking, so we just read what's there
+                    n_read = recv(client_socket, &buffer[buffer_len], 4*READ_SIZE, MSG_DONTWAIT);
+                    buffer_len += n_read / 4;
+                    buffer_pos = 0;
+#if DEBUG > 0
+                    std::cout << "Read " << n_read << " bytes" << std::endl;
 #endif
+                }
+
                 if (n_read % 4 != 0) {
                     std::cout << "Did not read full int32s from socket: n_read="
                               << n_read << std::endl;
                     goto cleanup;
                 }
 
-                // write packet to chip
-                writeChannel(input_channel, buffer, 1);
-
-                // subsequent reads are non-blocking, so we just read what's there
-                n_read = recv(client_socket, buffer, 4*PACKET_SIZE, MSG_DONTWAIT);
-#if DEBUG > 0
-                std::cout << "Read " << n_read << " bytes" << std::endl;
+#if DEBUG > 1
+                std::cout << "Send buffer: [";
+                for (int i = 0; i < PACKET_SIZE; i++) {
+                    std::cout << buffer[buffer_pos + i] << ", ";
+                }
+                std::cout << "]" << std::endl;
 #endif
+                // write packet to chip
+                writeChannel(input_channels[i_chip], &buffer[buffer_pos], 1);
+                remaining_size -= PACKET_SIZE;
+
+                if (remaining_size <= 0) {
+                    buffer_pos += PACKET_SIZE + remaining_size;
+                    i_chip++;
+                    remaining_size = chip_sizes[i_chip];
+                } else {
+                    buffer_pos += PACKET_SIZE;
+                }
             }
 
             // wait until chip has written output
-            while (!end_of_execution && !probeChannel(output_channel)) {
+            while (!end_of_execution && !probeChannel(output_channels)) {
                 usleep(100);
             }
             if (end_of_execution) {
                 break;
             }
 
-            // read chip output
-            readChannel(output_channel, buffer, N_OUTPUT_PACKETS);
+            i_chip = 0;
+            buffer_len = 0;
+            int buffer_packets = 0;  // buffer len in packets
+            while (i_chip < N_CHIPS) {
+                // read chip output
+                n_packets = min(output_packets[chip_idx], WRITE_PACKETS - buffer_packets);
+                readChannel(output_channels[i_chip], &buffer[buffer_len], n_packets);
+                buffer_len += n_packets * PACKET_SIZE * 4;
+                buffer_packets += n_packets;
 
-            // write output to superhost socket
-            const size_t write_len = N_OUTPUTS;
-            const size_t write_bytes = write_len * sizeof(int32_t);
-            size_t n_write = write(client_socket, buffer, write_bytes);
+                if (buffer_packets == WRITE_PACKETS || i_chip == N_CHIPS - 1) {
+                    // write output to superhost socket
+                    const size_t write_bytes = buffer_len * sizeof(int32_t);
+                    size_t n_write = write(client_socket, buffer, write_bytes);
 #if DEBUG > 0
-            std::cout << "Sent " << n_write << " bytes" << std::endl;
+                    std::cout << "Sent " << n_write << " bytes" << std::endl;
 #endif
-            if (n_write != write_bytes) {
-                std::cout << "Failed write to socket (tried " << write_bytes
-                          << ", wrote " << n_write << " bytes)" << std::endl;
-                goto cleanup;
+                    if (n_write != write_bytes) {
+                        std::cout << "Failed write to socket (tried " << write_bytes
+                                  << ", wrote " << n_write << " bytes)" << std::endl;
+                        goto cleanup;
+                    }
+                }
             }
         }
 
 cleanup:
-        // make sure chip gets shutdown signal
+        // make sure chips get shutdown signal
         buffer[0] = -1;
-        writeChannel(input_channel, buffer, 1);
+        for (int i = 0; i < N_CHIPS; i++) {
+            writeChannel(input_channels[i], buffer, 1);
+        }
     }
 };
 

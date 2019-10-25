@@ -15,8 +15,8 @@ import PIL as pil
 this_dir = os.path.dirname(os.path.realpath(__file__))
 
 image_shape = nengo.transforms.ChannelShape((64, 64, 1), channels_last=True)
-#image_shape = nengo.transforms.ChannelShape((32, 32, 1), channels_last=True)
-#image_shape = nengo.transforms.ChannelShape((16, 16, 1), channels_last=True)
+# image_shape = nengo.transforms.ChannelShape((32, 32, 1), channels_last=True)
+# image_shape = nengo.transforms.ChannelShape((16, 16, 1), channels_last=True)
 
 n_dim = 5
 dt = 0.001
@@ -109,9 +109,7 @@ with nengo.Network(seed=0) as net:
     nengo.Connection(u, enc.neurons, transform=transform0, label="u-enc")
 
     transform = nengo.Convolution(
-        n_filters=n_filters,
-        input_shape=transform0.output_shape,
-        init=kernel / enc_rate
+        n_filters=n_filters, input_shape=transform0.output_shape, init=kernel / enc_rate
     )
     a = nengo.Ensemble(
         transform.output_shape.size,
@@ -123,7 +121,7 @@ with nengo.Network(seed=0) as net:
     )
     net.config[a].split_full_shape = transform.output_shape.shape
     net.config[a].split_shape = (16, 16, 2)
-    #net.config[a].split_shape = (16, 16, 4)
+    # net.config[a].split_shape = (16, 16, 4)
     nengo.Connection(enc.neurons, a.neurons, transform=transform, label="enc-a")
     output_shape = transform.output_shape
 
@@ -140,11 +138,11 @@ def ind_string(inds):
 
 
 sim_params = dict(
-    #target="sim",
-    #target="loihi",
+    # target="sim",
+    # target="loihi",
     dismantle=True,
     precompute=False,
-    #hardware_options=dict(snip_max_spikes_per_step=4000),
+    # hardware_options=dict(snip_max_spikes_per_step=4000),
     hardware_options=dict(snip_max_spikes_per_step=8000),
 )
 
@@ -170,7 +168,7 @@ with nengo_loihi.Simulator(net, dt=dt, **sim_params) as sim:
 
     # sim.run(1.0)
     sim.run(0.2)
-    #sim.run(0.05)
+    # sim.run(0.05)
     print("Ran in %0.1f ms/step" % (sim.wall_time / sim.n_steps * 1000))
 
 nt = len(sim.trange())

@@ -574,10 +574,10 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         elif synapse.pop_type in (16, 32):
             n_blocks = len(core.blocks)
             assert n_blocks == 0 or (n_blocks == 1 and block is core.blocks[0])
-            assert len(block.probes) == 0, (
-                "Probing a block with population axons mixes population and "
-                "discrete axons for compartments, which is not supported."
-            )
+            # assert len(block.probes) == 0, (
+            #    "Probing a block with population axons mixes population and "
+            #    "discrete axons for compartments, which is not supported."
+            # )
 
             # pop_id is a unique index for the population. Must be the same for
             # all axons going to the same target synmap (with different atoms
@@ -616,7 +616,7 @@ def build_probe(nxsdk_board, board, probe):
 
     if probe.use_snip:
         assert probe.snip_info is None
-        probe.snip_info = dict(core_id=[], compartment_idxs=[], key=key)
+        probe.snip_info = dict(chip_id=[], core_id=[], compartment_idxs=[], key=key)
     else:
         assert probe not in board.probe_map
         board.probe_map[probe] = []
@@ -631,6 +631,7 @@ def build_probe(nxsdk_board, board, probe):
 
         r = compartment_idxs[probe.slices[k]]
         if probe.use_snip:
+            probe.snip_info["chip_idx"].append(chip_idx)
             probe.snip_info["core_id"].append(d_get(nxsdk_core, b"aWQ="))
             probe.snip_info["compartment_idxs"].append(r)
         else:

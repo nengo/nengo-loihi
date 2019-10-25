@@ -292,18 +292,26 @@ class Simulator:
                 continue
             assert probe.sample_every is None, "probe.sample_every not implemented"
             assert "loihi" not in self.sims or "emulator" not in self.sims
+
             loihi_probe = self.model.objs[probe]["out"]
             if "loihi" in self.sims:
                 data = self.sims["loihi"].get_probe_output(loihi_probe)
+                # TODO: Remove this once the timing issue is fixed
+                del self._probe_outputs[probe][:]
+                self._probe_outputs[probe].extend(data)
+                assert len(self._probe_outputs[probe]) == self.n_steps - 1, (
+                    len(self._probe_outputs[probe]),
+                    self.n_steps - 1,
+                )
             elif "emulator" in self.sims:
                 data = self.sims["emulator"].get_probe_output(loihi_probe)
-            # TODO: stop recomputing this all the time
-            del self._probe_outputs[probe][:]
-            self._probe_outputs[probe].extend(data)
-            assert len(self._probe_outputs[probe]) == self.n_steps, (
-                len(self._probe_outputs[probe]),
-                self.n_steps,
-            )
+                # TODO: stop recomputing this all the time
+                del self._probe_outputs[probe][:]
+                self._probe_outputs[probe].extend(data)
+                assert len(self._probe_outputs[probe]) == self.n_steps, (
+                    len(self._probe_outputs[probe]),
+                    self.n_steps,
+                )
 
     def _probe_step_time(self):
         self._time = self._n_steps * self.dt
@@ -563,6 +571,10 @@ class Simulator:
         """
         if self.closed:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
+
+        # TODO: Remove this once last step msg reading is sorted
+        if self.target == "loihi":
+            self.sims["loihi"].steps = steps
 
         self._make_run_steps()
 

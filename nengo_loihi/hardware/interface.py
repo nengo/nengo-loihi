@@ -46,8 +46,8 @@ class HardwareInterface:
     seed : int, optional (Default: None)
         A seed for stochastic operations.
     snip_max_spikes_per_step : int
-        The maximum number of spikes that can be sent to the chip in one
-        timestep if ``.use_snips`` is True.
+        The maximum number of spikes that can be sent to each chip in one timestep
+        if ``.use_snips`` is True.
     allocator : Allocator, optional (Default: ``OneToOne()``)
         Callable object that allocates the board's devices to given models.
         Defaults to one block and one input per core on a single chip.
@@ -56,6 +56,7 @@ class HardwareInterface:
     min_nxsdk_version = LooseVersion("0.8.7")
     max_nxsdk_version = LooseVersion("0.9.0")
     channel_packet_size = 64  # size of channel packets in int32s
+    snip_output_header_len = 1
 
     def __init__(
         self,
@@ -65,15 +66,8 @@ class HardwareInterface:
         snip_max_spikes_per_step=50,
         allocator=OneToOne(),
     ):
-        if isinstance(allocator, RoundRobin) and use_snips:
-            raise SimulationError(
-                "snips are not supported for the " "RoundRobin allocator"
-            )
-
         self.closed = False
         self.nxsdk_board = None
-        self.nengo_io_h2c = None  # IO snip host-to-chip channel
-        self.nengo_io_c2h = None  # IO snip chip-to-host channel
         self.host_socket = None  # IO snip superhost (this) <-> host socket
         self.host_socket_connected = False
         self.host_socket_port = None
@@ -86,8 +80,6 @@ class HardwareInterface:
         self.model = model
         self.use_snips = use_snips
         self.seed = seed
-        # Maximum number of spikes that can be sent through
-        # the nengo_io_h2c channel on one timestep.
         self.snip_max_spikes_per_step = snip_max_spikes_per_step
         self.allocator = allocator
 
@@ -153,7 +145,7 @@ class HardwareInterface:
 
         # --- create snips
         if self.use_snips:
-            self.create_io_snip()
+            self.create_snips()
 
     def run_steps(self, steps, blocking=True):
         if not self.is_built:
@@ -252,7 +244,7 @@ class HardwareInterface:
     def _chip2host_snips(self, probes_receivers):
         assert self.host_socket_connected
 
-        expected_bytes = 4 * self.nengo_io_c2h_count
+        expected_bytes = 4 * self.snip_io_c2h_count
         n_waits = 0  # number of times we've had to wait for more data
 
         recv_size = 4096  # python docs recommend small power of 2, e.g. 4096
@@ -277,33 +269,45 @@ class HardwareInterface:
             expected_bytes,
         )
 
-        data = np.frombuffer(data, dtype=np.int32)
-        time_step, data = data[0], data[1:]
-        snip_range = self.nengo_io_snip_range
+        raw_data = np.frombuffer(data, dtype=np.int32)
+        del data
+
+        # create views into data for different chips
+        time_steps = []
+        chip_data = []
+        i = 0
+        for info in self.chip_snip_info:
+            data = raw_data[i : i + info["n_outputs"]]
+            assert len(chip_data[-1]) == info["n_outputs"]
+            time_step, data = data[0], data[1:]
+            time_steps.append(time_step)
+            chip_data.append(data)
+            i += self.channel_packet_size * info["n_output_packets"]
+
+        assert all(time_steps == time_steps[0]), "Chips are out of sync!"
 
         for probe in self._snip_probe_data:
             assert probe.use_snip
 
             outputs = []
-            for r, n_packed_spikes in snip_range[probe]:
+            for chip_idx, data_slice, n_packed_spikes in self.snip_range[probe]:
+                data = chip_data[chip_idx][data_slice]
                 if n_packed_spikes > 0:
-                    packed32 = data[r]
-                    packed8 = packed32.view("uint8")
+                    packed8 = data.view("uint8")
                     unpacked = np.unpackbits(packed8)
                     unpacked = unpacked.reshape((-1, 8))[:, ::-1].ravel()
                     unpacked = unpacked[:n_packed_spikes]
                     outputs.append(unpacked)
                 else:
-                    outputs.append(data[r])
+                    outputs.append(data)
 
             assert all(x.ndim == 1 for x in outputs)
-
             x = self._get_weighted_probe(probe, outputs)
 
             receiver = probes_receivers.get(probe, None)
             if receiver is not None:
                 # chip->host
-                receiver.receive(self.model.dt * time_step, x)
+                receiver.receive(self.model.dt * time_steps[chip_idx], x)
             else:
                 # onchip probes
                 self._snip_probe_data[probe].append(x)
@@ -327,41 +331,43 @@ class HardwareInterface:
 
     def _host2chip_snips(self, loihi_spikes, loihi_errors):
         assert self.host_socket_connected
+        assert len(loihi_errors) == 0, "Not yet implemented"
 
-        max_spikes = self.snip_max_spikes_per_step
-        if len(loihi_spikes) > max_spikes:
-            warnings.warn(
-                "Too many spikes (%d) sent in one timestep. Increase the "
-                "value of `snip_max_spikes_per_step` (currently set to %d). "
-                "See\n  https://www.nengo.ai/nengo-loihi/configuration.html\n"
-                "for details." % (len(loihi_spikes), max_spikes)
-            )
-            loihi_spikes = loihi_spikes[:max_spikes]
+        chip_idxs = range(self.board.n_chips)
+        chip_msgs = []
+        for chip_idx in chip_idxs:
+            chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
+            chip_spikes = loihi_spikes[loihi_spikes["chip_id"] == chip_id]
 
-        msg = [len(loihi_spikes)]
-        msg.extend(SpikePacker.pack(loihi_spikes))
+            max_spikes = self.snip_max_spikes_per_step
+            if len(chip_spikes) > max_spikes:
+                warnings.warn(
+                    "Too many spikes (%d) sent in one timestep. Increase the "
+                    "value of `snip_max_spikes_per_step` (currently set to %d). "
+                    "See\n  https://www.nengo.ai/nengo-loihi/configuration.html\n"
+                    "for details." % (len(chip_spikes), max_spikes)
+                )
+                chip_spikes = chip_spikes[:max_spikes]
 
-        assert len(loihi_errors) == self.nengo_io_h2c_errors
-        for error in loihi_errors:
-            msg.extend(error)
+            chip_msg = [len(chip_spikes)]
+            chip_msg.extend(SpikePacker.pack(chip_spikes))
 
+            # assert len(chip_errors) == self.snip_io_h2c_errors[chip_idx]
+            # for error in chip_errors:
+            #     chip_msg.extend(error)
+
+            chip_msgs.append(chip_msg)
+
+        msg = [len(chip_msg) for chip_msg in chip_msgs]
+        for chip_msg in chip_msgs:
+            msg.extend(chip_msg)
+
+        # encode message to bytes and send to host
         msg_bytes = struct.pack("%di" % len(msg), *msg)
         i_sent = 0
         while i_sent < len(msg_bytes):
             n_sent = self.host_socket.send(msg_bytes[i_sent:])
             i_sent += n_sent
-
-    def _find_learning_core_id(self, synapse):
-        # TODO: make multi-chip when we add multi-chip snips
-        for core in self.board.chips[0].cores:
-            for block in core.blocks:
-                if synapse in block.synapses:
-                    assert (
-                        len(core.blocks) == 1
-                    ), "Learning not implemented with multiple blocks per core"
-                    return core.learning_coreid
-
-        raise ValueError("Could not find core ID for synapse %r" % synapse)
 
     def host2chip(self, spikes, errors):
         loihi_spikes = collections.OrderedDict()
@@ -369,14 +375,13 @@ class HardwareInterface:
             loihi_spike_input = self.nxsdk_board.spike_inputs[spike_input]
             loihi_spikes.setdefault(t, []).extend(loihi_spike_input.spikes_to_loihi(s))
 
+        assert (
+            self.use_snips or len(loihi_errors) == 0
+        ), "Learning only supported with snips (`precompute=False`)"
         error_info = []
         error_vecs = []
         for synapse, t, e in errors:
-            core_id = self.error_chip_map.get(synapse, None)
-            if core_id is None:
-                core_id = self._find_learning_core_id(synapse)
-                self.error_chip_map[synapse] = core_id
-
+            core_id = self.error_chip_map[synapse]
             error_info.append([core_id, len(e)])
             error_vecs.append(e)
 
@@ -401,7 +406,6 @@ class HardwareInterface:
                 loihi_spikes = []
             return self._host2chip_snips(loihi_spikes, loihi_errors)
         else:
-            assert len(loihi_errors) == 0
             return self._host2chip_spikegen(loihi_spikes)
 
     def wait_for_completion(self):
@@ -495,9 +499,18 @@ class HardwareInterface:
 
         return self._filter_probe(probe, data)
 
-    def create_io_snip(self):
-        # snips must be created before connecting
-        assert not self.is_connected(), "still connected"
+    def create_snips(self):
+        assert not self.is_connected(), "Board must be disconnected to create snips"
+
+        n_chips = self.board.n_chips
+        chip_idxs = list(range(n_chips))
+        chip_snip_info = [{} for _ in range(n_chips)]
+
+        self.snip_io = {}  # chip snip processes for IO snips
+        self.snip_io_h2c_errors = {}
+        self.snip_io_snip_range = {}
+        self.nengo_learn = {}  # chip snip processes for learn snips
+        self.host_snip = None  # host snip process
 
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
         env = jinja2.Environment(
@@ -505,203 +518,148 @@ class HardwareInterface:
             loader=jinja2.FileSystemLoader(snips_dir),
             keep_trailing_newline=True,
         )
+        self.tmp_snip_dir = tempfile.TemporaryDirectory()
 
-        # --- generate custom code
-        # Determine which cores have learning
-        n_errors = 0
-        total_error_len = 0
-        max_error_len = 0
-        assert len(self.board.chips) == 1, "Learning not implemented for multiple chips"
-        for core in self.board.chips[0].cores:  # TODO: don't assume 1 chip
-            if core.learning_coreid:
-                error_len = core.blocks[0].n_neurons // 2
-                max_error_len = max(error_len, max_error_len)
+        # --- determine required information for learning
+        assert len(self.error_chip_map) == 0
+        self.snip_io_h2c_errors = [None] * n_chips
+
+        for chip_idx, chip in enumerate(self.board.chips):
+            n_errors = 0
+            total_error_len = 0
+            # max_error_len = 0
+            for core in chip.cores:
+                if core.learning_coreid is None:
+                    continue
+
+                assert (
+                    len(core.blocks) == 1
+                ), "Learning not implemented with multiple blocks per core"
+                block = core.blocks[0]
+                error_len = block.n_neurons // 2
+                # max_error_len = max(error_len, max_error_len)
                 n_errors += 1
                 total_error_len += 2 + error_len
 
-        output_offset = 1  # first output is timestamp
-        i_output = 0
-        probes = []
-        cores = set()
+                for synapse in block.synapses:
+                    self.error_chip_map[synapse] = core.learning_coreid
+
+            cinfo = chip_snip_info[chip_idx]
+            cinfo["n_errors"] = n_errors
+            cinfo["total_error_len"] = total_error_len
+            # cinfo["max_error_len"] = max_error_len
+            self.snip_io_h2c_errors[chip_idx] = n_errors
+
+        # --- determine required information for receiving outputs
+        output_offset = self.snip_output_header_len  # first output is timestamp
         # TODO: should snip_range be stored on the probe?
         snip_range = {}
+
+        for info in chip_snip_info:
+            info["cores"] = set()
+            info["probes"] = []
+            info["i_output"] = 0
+
         for probe in self._iter_probes():
-            if probe.use_snip:
-                info = probe.snip_info
-                assert info["key"] in ("u", "v", "spike")
+            if not probe.use_snip:
+                continue
 
-                snip_range[probe] = []
-                for block, core_id, compartment_idxs in zip(
-                    probe.targets, info["core_id"], info["compartment_idxs"]
-                ):
-                    key = info["key"]
-                    if info["key"] == "spike":
-                        refract_delay = block.compartment.refract_delay[0]
-                        assert np.all(block.compartment.refract_delay == refract_delay)
-                        key = refract_delay * d(b"MTI4", int)
+            pinfo = probe.snip_info
+            assert pinfo["key"] in ("u", "v", "spike")
 
-                    cores.add(core_id)
-                    n_comps = len(compartment_idxs)
-                    comp0 = compartment_idxs[0]
-                    comp_diff = np.diff(compartment_idxs)
-                    comp_step = comp_diff[0]
-                    is_ranged_comps = np.all(comp_diff == comp_step)
-                    is_packed_spikes = is_ranged_comps and (info["key"] == "spike")
-                    n_packed_spikes = n_comps if is_packed_spikes else 0
+            snip_range[probe] = []
+            for block, chip_idx, core_id, compartment_idxs in zip(
+                probe.targets,
+                pinfo["chip_idx"],
+                pinfo["core_id"],
+                pinfo["compartment_idxs"],
+            ):
+                cinfo = chip_snip_info[chip_idx]
+                cinfo["cores"].add(core_id)
+                i_output = cinfo["i_output"]
 
-                    output_len = ceil_div(n_comps, 32) if is_packed_spikes else n_comps
-                    output_slice = slice(i_output, i_output + output_len)
-                    snip_range[probe].append((output_slice, n_packed_spikes))
+                key = pinfo["key"]
+                if pinfo["key"] == "spike":
+                    refract_delay = block.compartment.refract_delay[0]
+                    assert np.all(block.compartment.refract_delay == refract_delay)
+                    key = refract_delay * d(b"MTI4", int)
 
-                    if is_ranged_comps:
-                        probes.append(
-                            (
-                                output_offset + i_output,
-                                key,
-                                core_id,
-                                comp0,
-                                comp_step,
-                                n_comps,
-                            )
+                n_comps = len(compartment_idxs)
+                comp0 = compartment_idxs[0]
+                comp_diff = np.diff(compartment_idxs)
+                comp_step = comp_diff[0]
+                is_ranged_comps = np.all(comp_diff == comp_step)
+                is_packed_spikes = is_ranged_comps and (pinfo["key"] == "spike")
+                n_packed_spikes = n_comps if is_packed_spikes else 0
+
+                output_len = ceil_div(n_comps, 32) if is_packed_spikes else n_comps
+                output_slice = slice(i_output, i_output + output_len)
+                snip_range[probe].append((chip_idx, output_slice, n_packed_spikes))
+
+                offset = output_offset + i_output
+                if is_ranged_comps:
+                    cinfo["probes"].append(
+                        (offset, key, core_id, comp0, comp_step, n_comps)
+                    )
+                else:
+                    for i, comp in enumerate(compartment_idxs):
+                        chip_snip_info[chip_idx]["probes"].append(
+                            (offset + i, key, core_id, comp, 0, 1)
                         )
-                        i_output += output_len
-                    else:
-                        for comp in compartment_idxs:
-                            probes.append(
-                                (output_offset + i_output, key, core_id, comp, 0, 1)
-                            )
-                            i_output += 1
+                cinfo["i_output"] += output_len
 
-        n_outputs = output_offset + i_output
+        # number of outputs (in ints and packets) for each chip
+        for info in chip_snip_info:
+            info["n_outputs"] = output_offset + info["i_output"]
+            info["n_output_packets"] = ceil_div(
+                info["n_outputs"], self.channel_packet_size
+            )
 
-        # obfuscated strings used in templates
-        obfs = dict(
-            core_class=d(b"TmV1cm9uQ29yZQ=="),
-            id_class=d(b"Q29yZUlk"),
-            get_channel=d(b"Z2V0Q2hhbm5lbElE"),
-            int_type=d(b"aW50MzJfdA=="),
-            spike_size=d(b"Mg=="),
-            error_info_size=d(b"Mg==", int),
-            step=d(b"dGltZV9zdGVw"),
-            read=d(b"cmVhZENoYW5uZWw="),
-            write=d(b"d3JpdGVDaGFubmVs"),
-            spike_shift=d(b"MTY="),
-            spike_mask=d(b"MHgwMDAwRkZGRg=="),
-            do_axon_type_0=d(b"bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=="),
-            do_axon_type_16=d(b"bnhfc2VuZF9wb3AxNl9zcGlrZQ=="),
-            do_axon_type_32=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
-            data=d(b"dXNlckRhdGE="),
-            state=d(b"Y3hfc3RhdGU="),
-            neuron=d(b"TkVVUk9OX1BUUg=="),
-            # pylint: disable=line-too-long
-            pos_pes_cfg=d(
-                b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDEKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAwCiAgICAgICAgICAgICAgICAgICAgfTs="
-            ),
-            # pylint: disable=line-too-long
-            neg_pes_cfg=d(
-                b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDAKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAxCiAgICAgICAgICAgICAgICAgICAgfTs="
-            ),
+        # total number of outputs expected back from the host (including packet padding)
+        self.snip_io_c2h_count = self.channel_packet_size * sum(
+            info["n_output_packets"] for info in chip_snip_info
         )
 
-        n_output_packets = ceil_div(n_outputs, self.channel_packet_size)
+        self.chip_snip_info = chip_snip_info
+        self.snip_range = snip_range
 
-        # --- write c file using template
-        template = env.get_template("nengo_io.c.template")
-        self.tmp_snip_dir = tempfile.TemporaryDirectory()
-        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_io.c")
-        logger.debug(
-            "Creating %s with %d outputs, %d error, %d cores, %d probes",
-            c_path,
-            n_outputs,
-            n_errors,
-            len(cores),
-            len(probes),
-        )
-        chip_buffer_size = roundup(
-            max(
-                n_outputs,  # currently, buffer needs to hold all outputs at once
-                self.channel_packet_size
-                + max(SpikePacker.size, obfs["error_info_size"]),
-            ),
-            self.channel_packet_size,
-        )
+        # --- create host process (for faster communication via sockets)
+        input_channels = ["nengo_io_h2c_chip_%d" % chip_idx for chip_idx in chip_idxs]
+        output_channels = ["nengo_io_c2h_chip_%d" % chip_idx for chip_idx in chip_idxs]
+
+        socket_port = np.random.randint(50000, 60000)
+
+        read_size = roundup(1024, self.channel_packet_size)
+        write_packets = ceil_div(read_size, self.channel_packet_size)
+        write_size = write_packets * self.channel_packet_size
+        # double buffer size, just so we can do a full extra read/write if we need to
+        buffer_size = 2 * roundup(max(read_size, write_size), self.channel_packet_size)
+
+        template = env.get_template("nengo_host.cc.template")
+        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_host.cc")
         code = template.render(
-            n_outputs=n_outputs,
-            n_output_packets=n_output_packets,
-            n_errors=n_errors,
-            max_error_len=max_error_len,
-            buffer_size=chip_buffer_size,
+            buffer_size=buffer_size,
             packet_size=self.channel_packet_size,
-            cores=cores,
-            probes=probes,
-            obfs=obfs,
+            read_size=read_size,
+            write_packets=write_packets,
+            output_packets=", ".join(
+                "%d" % info["n_output_packets"] for info in chip_snip_info
+            ),
+            server_port=socket_port,
+            input_channels=input_channels,
+            output_channels=output_channels,
+            obfs=snip_obfs,
         )
         with open(c_path, "w") as f:
             f.write(code)
 
-        template = env.get_template("nengo_learn.c.template")
-        code = template.render(obfs=obfs)
-        with open(os.path.join(snips_dir, "nengo_learn.c"), "w") as f:
-            f.write(code)
-
-        # --- create chip processes
-        logger.debug("Creating nengo_io chip process")
-        nengo_io = d_func(
-            self.nxsdk_board,
-            b"Y3JlYXRlU25pcA==",
-            kwargs={
-                b"bmFtZQ==": "nengo_io",
-                b"Y0ZpbGVQYXRo": c_path,
-                b"aW5jbHVkZURpcg==": snips_dir,
-                b"ZnVuY05hbWU=": "nengo_io",
-                b"Z3VhcmROYW1l": "guard_io",
-                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfTUdNVA=="),
-            },
-        )
-        logger.debug("Creating nengo_learn chip process")
-        c_path = os.path.join(self.tmp_snip_dir.name, "nengo_learn.c")
-        shutil.copyfile(os.path.join(snips_dir, "nengo_learn.c"), c_path)
-        d_func(
-            self.nxsdk_board,
-            b"Y3JlYXRlU25pcA==",
-            kwargs={
-                b"bmFtZQ==": "nengo_learn",
-                b"Y0ZpbGVQYXRo": os.path.join(snips_dir, "nengo_learn.c"),
-                b"aW5jbHVkZURpcg==": snips_dir,
-                b"ZnVuY05hbWU=": "nengo_learn",
-                b"Z3VhcmROYW1l": "guard_learn",
-                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfUFJFTEVBUk5fTUdNVA=="),
-            },
-        )
-
-        # --- create host process (for faster communication via sockets)
-        host_socket_port = np.random.randint(50000, 60000)
-
-        max_inputs = n_errors + self.snip_max_spikes_per_step * SpikePacker.size
-        host_buffer_size = roundup(max(max_inputs, n_outputs), self.channel_packet_size)
-
-        host_template = env.get_template("nengo_host.cc.template")
-        host_path = os.path.join(self.tmp_snip_dir.name, "nengo_host.cc")
-        host_code = host_template.render(
-            host_buffer_size=host_buffer_size,
-            n_outputs=n_outputs,
-            n_output_packets=n_output_packets,
-            server_port=host_socket_port,
-            input_channel="nengo_io_h2c",
-            output_channel="nengo_io_c2h",
-            packet_size=self.channel_packet_size,
-            obfs=obfs,
-        )
-        with open(host_path, "w") as f:
-            f.write(host_code)
-
         # make process
-        host_process = d_func(
+        self.host_snip = d_func(
             self.nxsdk_board,
             b"Y3JlYXRlU25pcA==",
             kwargs={
                 b"cGhhc2U=": SnipPhase.HOST_CONCURRENT_EXECUTION,
-                b"Y3BwRmlsZQ==": host_path,
+                b"Y3BwRmlsZQ==": c_path,
             },
         )
 
@@ -710,15 +668,125 @@ class HardwareInterface:
         self.host_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
         self.host_socket_port = host_socket_port
 
+        # --- create chip processes
+        for chip_idx in chip_idxs:
+            self.create_chip_snip(
+                chip_idx,
+                env,
+                input_channels[chip_idx],
+                output_channels[chip_idx],
+                chip_snip_info[chip_idx],
+            )
+
+    def create_chip_snip(self, chip_idx, env, input_channel, output_channel, info):
+        chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
+        include_dir = self.tmp_snip_dir.name
+        src_dir = self.tmp_snip_dir.name
+
+        # --- create IO snip
+        c_filename = "nengo_io_chip_%d.c" % chip_idx
+        h_filename = "nengo_io_chip_%d.h" % chip_idx
+        c_path = os.path.join(src_dir, c_filename)
+        h_path = os.path.join(include_dir, h_filename)
+
+        template = env.get_template("nengo_io.c.template")
+        logger.debug(
+            "Creating %s with %d outputs, %d error, %d cores, %d probes",
+            c_path,
+            info["n_outputs"],
+            info["n_errors"],
+            len(info["cores"]),
+            len(info["probes"]),
+        )
+        chip_buffer_size = roundup(
+            max(
+                info["n_outputs"],  # currently, buffer needs to hold all outputs
+                self.channel_packet_size
+                + max(SpikePacker.size, snip_obfs["error_info_size"]),
+            ),
+            self.channel_packet_size,
+        )
+        code = template.render(
+            header_file=h_filename,
+            n_outputs=info["n_outputs"],
+            n_output_packets=info["n_output_packets"],
+            n_errors=info["n_errors"],
+            buffer_size=chip_buffer_size,
+            packet_size=self.channel_packet_size,
+            cores=cores,
+            input_channel=input_channel,
+            output_channel=output_channel,
+            probes=chip_probes,
+            obfs=snip_obfs,
+        )
+        with open(c_path, "w") as f:
+            f.write(code)
+
+        # write header file using template
+        template = env.get_template("nengo_io.h.template")
+        code = template.render()
+        with open(h_path, "w") as f:
+            f.write(code)
+
+        # create SNIP process
+        logger.debug("Creating nengo_io chip %d process" % chip_idx)
+        self.nengo_io[chip_idx] = d_func(
+            self.nxsdk_board,
+            b"Y3JlYXRlU25pcA==",
+            kwargs={
+                b"bmFtZQ==": "nengo_io_chip" + str(chip_id),
+                b"Y0ZpbGVQYXRo": c_path,
+                b"aW5jbHVkZURpcg==": include_dir,
+                b"ZnVuY05hbWU=": "nengo_io",
+                b"Z3VhcmROYW1l": "guard_io",
+                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfTUdNVA=="),
+                b"Y2hpcElk": chip_id,
+            },
+        )
+
+        # --- create learning snip
+        h_filename = "nengo_learn_chip_%d.h" % chip_idx
+        c_filename = "nengo_learn_chip_%d.c" % chip_idx
+        c_path = os.path.join(src_dir, c_filename)
+        h_path = os.path.join(include_dir, h_filename)
+
+        # write c file using template
+        template = env.get_template("nengo_learn.c.template")
+        code = template.render(header_file=h_filename, obfs=snip_obfs)
+        with open(c_path, "w") as f:
+            f.write(code)
+
+        # write header file using template
+        template = env.get_template("nengo_learn.h.template")
+        code = template.render()
+        with open(h_path, "w") as f:
+            f.write(code)
+
+        # create SNIP process
+        logger.debug("Creating nengo_learn chip %d process" % chip_idx)
+        self.nengo_learn[chip_idx] = d_func(
+            self.nxsdk_board,
+            b"Y3JlYXRlU25pcA==",
+            kwargs={
+                b"bmFtZQ==": "nengo_learn",
+                b"Y0ZpbGVQYXRo": c_path,
+                b"aW5jbHVkZURpcg==": include_dir,
+                b"ZnVuY05hbWU=": "nengo_learn",
+                b"Z3VhcmROYW1l": "guard_learn",
+                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfUFJFTEVBUk5fTUdNVA=="),
+                b"Y2hpcElk": chip_id,
+            },
+        )
+
         # --- create channels
         input_channel_size = (
-            1  # first int stores number of spikes
+            self.out_snip_head_len  # first int stores number of spikes
             + self.snip_max_spikes_per_step * SpikePacker.size
-            + total_error_len
+            + info["total_error_len"]
         )
-        logger.debug("Creating nengo_io_h2c channel (%d)" % input_channel_size)
-        self.nengo_io_h2c = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_h2c",  # channel name
+        logger.debug("Creating %s channel (%d)" % (input_channel, size))
+        self.nengo_io_h2c[chip_idx] = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+            str.encode(input_channel),  # channel name
             **{
                 # channel size (in elements)
                 d(b"bnVtRWxlbWVudHM="): input_channel_size,
@@ -728,9 +796,9 @@ class HardwareInterface:
                 d(b"c2xhY2s="): 16,
             },
         )
-        logger.debug("Creating nengo_io_c2h channel (%d)" % n_outputs)
-        self.nengo_io_c2h = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            b"nengo_io_c2h",  # channel name
+        logger.debug("Creating %s channel (%d)" % (output_channel, n_outputs))
+        self.nengo_io_c2h[chip_idx] = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+            str.encode(output_channel),  # channel name
             **{
                 # channel size (in elements)
                 d(b"bnVtRWxlbWVudHM="): n_outputs,
@@ -740,11 +808,12 @@ class HardwareInterface:
                 d(b"c2xhY2s="): 16,
             },
         )
-        d_get(self.nengo_io_h2c, b"Y29ubmVjdA==")(host_process, nengo_io)
-        d_get(self.nengo_io_c2h, b"Y29ubmVjdA==")(nengo_io, host_process)
-        self.nengo_io_h2c_errors = n_errors
-        self.nengo_io_c2h_count = n_outputs
-        self.nengo_io_snip_range = snip_range
+        d_get(self.nengo_io_h2c[chip_idx], b"Y29ubmVjdA==")(
+            self.host_snip, nengo_io[chip_idx]
+        )
+        d_get(self.nengo_io_c2h[chip_idx], b"Y29ubmVjdA==")(
+            nengo_io[chip_idx], self.host_snip
+        )
 
 
 class SpikePacker:
@@ -772,7 +841,9 @@ class SpikePacker:
         if len(spikes) == 0:
             return []
 
-        assert np.all(spikes["chip_id"] == 0), "Multiple chips not supported"
+        assert np.all(
+            spikes["chip_id"] == spikes["chip_id"][0]
+        ), "All spikes must go to the same chip"
         assert np.all(spikes["core_id"] < 1024)
         assert np.all(spikes["axon_id"] < 4096)
         assert np.all(spikes["axon_type"] <= 32)
@@ -786,3 +857,33 @@ class SpikePacker:
                 np.left_shift(axon_type, 16) + spikes["atom"],
             ]
         ).T.ravel()
+
+
+# obfuscated strings used in SNIP templates
+snip_obfs = dict(
+    core_class=d(b"TmV1cm9uQ29yZQ=="),
+    id_class=d(b"Q29yZUlk"),
+    get_channel=d(b"Z2V0Q2hhbm5lbElE"),
+    int_type=d(b"aW50MzJfdA=="),
+    spike_size=d(b"Mg=="),
+    error_info_size=d(b"Mg==", int),
+    step=d(b"dGltZV9zdGVw"),
+    read=d(b"cmVhZENoYW5uZWw="),
+    write=d(b"d3JpdGVDaGFubmVs"),
+    spike_shift=d(b"MTY="),
+    spike_mask=d(b"MHgwMDAwRkZGRg=="),
+    do_axon_type_0=d(b"bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=="),
+    do_axon_type_16=d(b"bnhfc2VuZF9wb3AxNl9zcGlrZQ=="),
+    do_axon_type_32=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
+    data=d(b"dXNlckRhdGE="),
+    state=d(b"Y3hfc3RhdGU="),
+    neuron=d(b"TkVVUk9OX1BUUg=="),
+    # pylint: disable=line-too-long
+    pos_pes_cfg=d(
+        b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDEKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAwCiAgICAgICAgICAgICAgICAgICAgfTs="
+    ),
+    # pylint: disable=line-too-long
+    neg_pes_cfg=d(
+        b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDAKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAxCiAgICAgICAgICAgICAgICAgICAgfTs="
+    ),
+)
