@@ -83,6 +83,13 @@ def build_ensemble(model, ens):
     if ens.normalize_encoders:
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
 
+    if np.any(np.isnan(encoders)):
+        raise BuildError(
+            "NaNs detected in %r encoders. This usually means that you had zero-length "
+            "encoders that were normalized, resulting in NaNs. Ensure all encoders "
+            "have non-zero length, or set `normalize_encoders=False`." % ens
+        )
+
     # Build the neurons
     gain, bias, max_rates, intercepts = get_gain_bias(ens, rng, model.intercept_limit)
 

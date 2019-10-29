@@ -29,6 +29,8 @@ Release history
   (`#226 <https://github.com/nengo/nengo-loihi/pull/226>`__)
 - Connections now support ``Sparse`` transforms.
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
+- A more informative error message is raised if any encoders contain NaNs.
+  (`#251 <https://github.com/nengo/nengo-loihi/pull/251>`__)
 
 **Changed**
 
