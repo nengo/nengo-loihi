@@ -309,7 +309,9 @@ class HardwareInterface:
             for core in self.board.chips[0].cores:
                 for block in core.blocks:
                     if synapse in block.synapses:
-                        # TODO: assumes one block per core
+                        assert (
+                            len(core.blocks) == 1
+                        ), "Learning not implemented with multiple blocks per core"
                         coreid = core.learning_coreid
                         break
 
