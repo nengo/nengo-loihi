@@ -43,6 +43,12 @@ Release history
   TensorFlow version to 2.0).
   (`#259 <https://github.com/nengo/nengo-loihi/pull/259>`__)
 
+**Fixed**
+
+- Fixed a bug in which ``scipy`` was not imported properly in some situations.
+  (`#252 <https://github.com/nengo/nengo-loihi/issues/252>`__,
+  `#258 <https://github.com/nengo/nengo-loihi/pull/258>`__)
+
 0.8.0 (June 23, 2019)
 =====================
 

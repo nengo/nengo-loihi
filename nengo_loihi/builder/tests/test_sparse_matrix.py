@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import scipy
+import scipy.sparse
 
 from nengo_loihi.builder.sparse_matrix import (
     expand_matrix,
