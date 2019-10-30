@@ -29,7 +29,11 @@ def read(*filenames, **kwargs):
 root = os.path.dirname(os.path.realpath(__file__))
 version = runpy.run_path(os.path.join(root, "nengo_loihi", "version.py"))["version"]
 
-install_req = ["jinja2", "nengo>=2.8.0", "scipy>=1.2.1"]
+install_req = [
+    "jinja2",
+    "nengo>=2.8.0",
+    "scipy>=1.2.1",
+]
 docs_req = [
     "abr_control",
     "jupyter",
@@ -76,8 +80,8 @@ setup(
         "tests": tests_req,
     },
     python_requires=">=3.4",
-    entry_points={"nengo.backends": ["loihi = nengo_loihi:Simulator"]},
-    package_data={"nengo_loihi": ["nengo_loihi/snips/*"]},
+    entry_points={"nengo.backends": ["loihi = nengo_loihi:Simulator",],},
+    package_data={"nengo_loihi": ["nengo_loihi/snips/*",],},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Framework :: Nengo",

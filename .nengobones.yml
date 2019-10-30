@@ -437,7 +437,7 @@ docs_conf_py:
   analytics_id: UA-41658423-2
 
 travis_yml:
-  python: 3.5.2
+  python: 3.6
   global_vars:
     NENGO_VERSION: nengo[tests]
     NENGO_DL_VERSION: nengo-dl
@@ -452,6 +452,7 @@ travis_yml:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
         NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
     - script: hardware
+      python: 3.5.2  # nxsdk requires 3.5.2
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
         NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
@@ -472,7 +473,7 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - jupyter
-      - numpy
+      - numpy>=1.14  # avoid the default-installed 1.13 on TravisCI
     coverage: true
     nengo_tests: true
   - template: static
