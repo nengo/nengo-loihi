@@ -3,7 +3,7 @@ import logging
 
 import nengo
 import numpy as np
-import scipy
+import scipy.sparse
 
 logger = logging.getLogger(__name__)
 
