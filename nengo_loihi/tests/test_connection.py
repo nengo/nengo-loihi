@@ -3,7 +3,7 @@ from nengo.exceptions import BuildError
 from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
-import scipy
+import scipy.sparse
 
 from nengo_loihi.builder import connection
 from nengo_loihi.compat import nengo_transforms
