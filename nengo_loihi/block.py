@@ -3,7 +3,7 @@ import warnings
 from nengo.exceptions import BuildError
 
 import numpy as np
-import scipy
+import scipy.sparse
 
 from nengo_loihi.nxsdk_obfuscation import d
 
