@@ -302,23 +302,23 @@ class Axon:
 
         Parameters
         ----------
-        axon_id : int
+        axon_idx : int
             The index of the axon within the targeted Synapse object.
         atom : int, optional (Default: 0)
             An index into the target Synapse weights. This allows spikes
             targeting a particular axon to use different weights.
         """
 
-        __slots__ = ["axon_id", "atom"]
+        __slots__ = ["axon_idx", "atom"]
 
-        def __init__(self, axon_id, atom=0):
-            self.axon_id = axon_id
+        def __init__(self, axon_idx, atom=0):
+            self.axon_idx = axon_idx
             self.atom = atom
 
         def __repr__(self):
-            return "%s(axon_id=%d, atom=%d)" % (
+            return "%s(axon_idx=%d, atom=%d)" % (
                 type(self).__name__,
-                self.axon_id,
+                self.axon_idx,
                 self.atom,
             )
 
