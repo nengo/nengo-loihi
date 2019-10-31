@@ -19,6 +19,7 @@ from nengo_loihi.discretize import scale_pes_errors
 from nengo_loihi.hardware.allocators import OneToOne, RoundRobin
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
+from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.validate import validate_model
@@ -329,24 +330,12 @@ class NoSnips:
             self.sent_steps += increment
 
     def host2chip(self, loihi_spikes):
+        nxsdk_spike_generator = self.spike_generator
         tmax = -1
         for t, spikes in loihi_spikes.items():
             assert t >= tmax, "Spikes must be in order"
             tmax = t
-
-            for spike in spikes:
-                assert spike["axon_type"] == 0, "Spikegen cannot send pop spikes"
-                assert spike["atom"] == 0, "Spikegen does not support atom"
-                d_func(
-                    self.spike_generator,
-                    b"YWRkU3Bpa2U=",
-                    kwargs={
-                        b"dGltZQ==": t,
-                        b"Y2hpcElk": spike["chip_id"],
-                        b"Y29yZUlk": spike["core_id"],
-                        b"YXhvbklk": spike["axon_id"],
-                    },
-                )
+            LoihiSpikeInput.add_spikes_to_generator(t, spikes, nxsdk_spike_generator)
 
 
 class Snips:
@@ -368,10 +357,9 @@ class Snips:
         write=d(b"d3JpdGVDaGFubmVs"),
         spike_shift=d(b"MTY="),
         spike_mask=d(b"MHgwMDAwRkZGRg=="),
-        axon_type_0=d(b"MA=="),
         do_axon_type_0=d(b"bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=="),
-        axon_type_1=d(b"MzI="),
-        do_axon_type_1=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
+        do_axon_type_16=d(b"bnhfc2VuZF9wb3AxNl9zcGlrZQ=="),
+        do_axon_type_32=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
         data=d(b"dXNlckRhdGE="),
         state=d(b"Y3hfc3RhdGU="),
         neuron=d(b"TkVVUk9OX1BUUg=="),
@@ -749,9 +737,11 @@ class SpikePacker:
         assert np.all(spikes["axon_type"] <= 32)
         assert np.all(spikes["atom"] < 1024)
 
+        axon_type = spikes["axon_type"]
+        axon_type[axon_type == 16] += spikes["atom_bits_extra"][axon_type == 16]
         return np.array(
             [
                 np.left_shift(spikes["core_id"], 16) + spikes["axon_id"],
-                np.left_shift(spikes["axon_type"], 16) + spikes["atom"],
+                np.left_shift(axon_type, 16) + spikes["atom"],
             ]
         ).T.ravel()
