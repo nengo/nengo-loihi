@@ -452,7 +452,10 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
         assert n_atoms <= 2 ** atom_bits
 
         if base is None:
-            # this is a dummy axon with no weights, so set n_compartments to 0
+            # This is a dummy axon with no weights. We set `n_compartments = 0`,
+            # but with population axons it appears the axon can still have an effect.
+            # So we also make sure not to connect into it with incoming axons. However,
+            # we still build the axon here so that our indexing is not thrown off.
             synapse_ptr = 0
             n_compartments = 0
             base = 0
@@ -560,6 +563,9 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         taxon_id = int(tsyn_idxs[taxon_idx])
         atom = int(spike.atom)
         n_atoms = synapse.axon_populations(taxon_idx)
+        base = synapse.axon_compartment_base(taxon_idx)
+        if base is None:
+            continue  # this connects to a dummy axon, so do not build
 
         if synapse.pop_type == 0:  # discrete
             assert atom == 0
