@@ -260,20 +260,30 @@ class LoihiSpikeInput:
         for axon in spike_input.axons:
             axon_type = axon.pop_type
             assert axon_type in (0, 32), "Only discrete and pop32 supported"
-            tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(axon.target)
+            synapse = axon.target
+            tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(synapse)
             tchip = d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx]
             tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
-                if spike is not None:
-                    taxon_idx = int(spike.axon_id)
-                    taxon_id = int(tsyn_ids[taxon_idx])
-                    self.axon_map.setdefault(input_idx, []).append(
-                        np.array(
-                            (-1, axon_type, tchip.id, tcore.id, taxon_id, spike.atom),
-                            dtype=self.spike_dtype,
-                        )
+                if spike is None:
+                    # This should not happen, because input slices happen when connecting
+                    # into the spike input. However, if this arises we just skip it.
+                    continue  # pragma: no cover
+
+                self.axon_map.setdefault(input_idx, [])
+                taxon_idx = int(spike.axon_id)
+                taxon_id = int(tsyn_ids[taxon_idx])
+                base = synapse.axon_compartment_base(taxon_idx)
+                if base is None:
+                    continue  # this goes to a dummy axon, so do not connect
+
+                self.axon_map[input_idx].append(
+                    np.array(
+                        (-1, axon_type, tchip.id, tcore.id, taxon_id, spike.atom),
+                        dtype=self.spike_dtype,
                     )
+                )
 
     def spikes_to_loihi(self, input_idxs):
         """Map spike input indices to axons targeting chip locations.
