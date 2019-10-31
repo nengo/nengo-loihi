@@ -930,6 +930,72 @@ def test_conv_overlap_input(Simulator, plt):
     assert np.allclose(y1, y_ref[1:], atol=0.02, rtol=0.1)
 
 
+@pytest.mark.target_loihi
+@pytest.mark.parametrize("precompute", [False])
+def test_population_dummy_axons(precompute, Simulator, rng):
+    """On the chip, dummy axons were still having an effect. Check this is fixed."""
+
+    # 6 x 6 input will have one extra pixel at edge with 3 x 3 kernel and stride 2
+    input_shape = nengo_transforms.ChannelShape((1, 6, 6), channels_last=False)
+
+    def conv_layer(x, *args, activation=True, label=None, **kwargs):
+        conv = nengo.Convolution(*args, **kwargs, channels_last=False)
+        layer = nengo.Ensemble(conv.output_shape.size, 1, label=label)
+        nengo.Connection(x, layer.neurons, transform=conv)
+        return layer, conv
+
+    max_rate = 100
+    amp = 1 / max_rate
+
+    n_filters = 4
+    X = rng.uniform(0.2, 1, size=input_shape.shape)
+    kernel = rng.uniform(0.2, 1, size=(3, 3, 1, n_filters))
+
+    with nengo.Network(seed=0) as net:
+        nengo_loihi.add_params(net)
+        net.config[nengo.Ensemble].neuron_type = nengo.SpikingRectifiedLinear(
+            amplitude=amp
+        )
+        net.config[nengo.Ensemble].max_rates = nengo.dists.Choice([max_rate])
+        net.config[nengo.Ensemble].intercepts = nengo.dists.Choice([0])
+        net.config[nengo.Connection].synapse = 0.005
+
+        inp = nengo.Node(X.ravel())
+
+        # first layer is off-chip to translate the inputs into spikes
+        layer0, conv0 = conv_layer(
+            inp,
+            n_filters=1,
+            input_shape=input_shape,
+            kernel_size=(1, 1),
+            init=np.ones((1, 1, 1, 1)),
+            label="layer0",
+        )
+        net.config[layer0.neurons.ensemble].on_chip = False
+
+        layer1, conv1 = conv_layer(
+            layer0.neurons,
+            n_filters=n_filters,
+            input_shape=conv0.output_shape,
+            kernel_size=(3, 3),
+            strides=(2, 2),
+            init=kernel,
+            label="layer1",
+        )
+
+        probe = nengo.Probe(layer1.neurons)
+
+    sim_time = 0.1
+    with nengo_loihi.Simulator(net, target="sim") as emulator:
+        emulator.run(sim_time)
+
+    with nengo_loihi.Simulator(net, target="loihi", precompute=precompute) as loihi:
+        loihi.run(sim_time)
+
+    assert np.all(emulator.data[probe].sum(axis=0) > 0)
+    assert np.array_equal(loihi.data[probe], emulator.data[probe])
+
+
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_gain(Simulator):
     with nengo.Network() as net:
