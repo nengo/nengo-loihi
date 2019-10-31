@@ -506,12 +506,12 @@ class SynapseState(IterableState):
             qb = input[:, s_slice]
 
             for spike in self.spikes_in[synapse]:
-                base = synapse.axon_compartment_base(spike.axon_id)
+                base = synapse.axon_compartment_base(spike.axon_idx)
                 if base is None:
                     continue
 
                 weights, indices = synapse.axon_weights_indices(
-                    spike.axon_id, atom=spike.atom
+                    spike.axon_idx, atom=spike.atom
                 )
                 qb[0, base + indices] += weights
 
@@ -539,9 +539,9 @@ class SynapseState(IterableState):
             trace_spikes = self.trace_spikes.get(synapse, None)
             if trace_spikes is not None:
                 for spike in self.spikes_in[synapse]:
-                    if spike.axon_id in trace_spikes:
+                    if spike.axon_idx in trace_spikes:
                         self.error("Synaptic trace spikes lost")
-                    trace_spikes.add(spike.axon_id)
+                    trace_spikes.add(spike.axon_idx)
 
             trace = self.traces.get(synapse, None)
             if trace is not None and t % synapse.train_epoch == 0:

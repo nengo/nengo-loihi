@@ -43,8 +43,8 @@ def test_strings():
     axon = Axon(2, label="myAxon")
     assert str(axon) == "Axon(myAxon)"
 
-    spike = Axon.Spike(axon_id=7, atom=2)
-    assert str(spike) == "Spike(axon_id=7, atom=2)"
+    spike = Axon.Spike(axon_idx=7, atom=2)
+    assert str(spike) == "Spike(axon_idx=7, atom=2)"
 
 
 # TODO: Only targeting sim due to bug with negative cx_base on Loihi
