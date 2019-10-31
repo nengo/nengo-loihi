@@ -1082,25 +1082,34 @@ def test_conv_overlap_input(Simulator, plt):
 
 
 @pytest.mark.target_loihi
-@pytest.mark.parametrize("precompute", [False])
-def test_population_dummy_axons(precompute, Simulator, rng):
+@pytest.mark.parametrize("precompute", [True, False])
+@pytest.mark.parametrize("pop_type", [16, 32])
+@pytest.mark.parametrize("channels_last", [True, False])
+def test_population_axons(precompute, pop_type, channels_last, Simulator, rng):
     """On the chip, dummy axons were still having an effect. Check this is fixed."""
 
-    # 6 x 6 input will have one extra pixel at edge with 3 x 3 kernel and stride 2
-    input_shape = nengo_transforms.ChannelShape((1, 6, 6), channels_last=False)
-
-    def conv_layer(x, *args, activation=True, label=None, **kwargs):
-        conv = nengo.Convolution(*args, **kwargs, channels_last=False)
+    def conv_layer(x, *args, label=None, **kwargs):
+        conv = nengo.Convolution(*args, **kwargs)
         layer = nengo.Ensemble(conv.output_shape.size, 1, label=label)
-        nengo.Connection(x, layer.neurons, transform=conv)
-        return layer, conv
+        conn = nengo.Connection(x, layer.neurons, transform=conv)
+        return layer, conv, conn
+
+    if pop_type == 16 and not channels_last:
+        pytest.skip("pop16 axons not compatible with single-compartment shifts")
 
     max_rate = 100
     amp = 1 / max_rate
 
-    n_filters = 4
+    n_filters0 = 4
+    n_filters1 = 4
+    # 6 x 6 input will have one unused pixel at edge with 3 x 3 kernel and stride 2
+    input_shape = (6, 6, 1) if channels_last else (1, 6, 6)
+    input_shape = nengo_transforms.ChannelShape(
+        input_shape, channels_last=channels_last
+    )
     X = rng.uniform(0.2, 1, size=input_shape.shape)
-    kernel = rng.uniform(0.2, 1, size=(3, 3, 1, n_filters))
+    kernel0 = rng.uniform(0.2, 1, size=(1, 1, 1, n_filters0))
+    kernel1 = rng.uniform(0.2, 1, size=(3, 3, n_filters0, n_filters1))
 
     with nengo.Network(seed=0) as net:
         nengo_loihi.add_params(net)
@@ -1114,25 +1123,28 @@ def test_population_dummy_axons(precompute, Simulator, rng):
         inp = nengo.Node(X.ravel())
 
         # first layer is off-chip to translate the inputs into spikes
-        layer0, conv0 = conv_layer(
+        layer0, conv0, _ = conv_layer(
             inp,
-            n_filters=1,
+            n_filters=n_filters0,
             input_shape=input_shape,
+            channels_last=channels_last,
             kernel_size=(1, 1),
-            init=np.ones((1, 1, 1, 1)),
+            init=kernel0,
             label="layer0",
         )
-        net.config[layer0.neurons.ensemble].on_chip = False
+        net.config[layer0].on_chip = False
 
-        layer1, conv1 = conv_layer(
+        layer1, conv1, conn1 = conv_layer(
             layer0.neurons,
-            n_filters=n_filters,
+            n_filters=n_filters1,
             input_shape=conv0.output_shape,
+            channels_last=channels_last,
             kernel_size=(3, 3),
             strides=(2, 2),
-            init=kernel,
+            init=kernel1,
             label="layer1",
         )
+        net.config[conn1].pop_type = pop_type
 
         probe = nengo.Probe(layer1.neurons)
 

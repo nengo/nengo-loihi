@@ -379,26 +379,16 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
     nxsdk_board.spike_inputs[spike_input] = loihi_input
 
     # add any pre-existing spikes to spikegen
+    nxsdk_spike_generator = nxsdk_board.global_spike_generator
     for t in spike_input.spike_times():
         assert (
-            nxsdk_board.global_spike_generator is not None
+            nxsdk_spike_generator is not None
         ), "Cannot add pre-existing spikes when using SNIPs (no spike generator)"
 
         spikes = spike_input.spike_idxs(t)
+
         for spike in loihi_input.spikes_to_loihi(spikes):
-            assert (
-                spike["atom"] == 0
-            ), "Cannot send population spikes through spike generator"
-            d_func(
-                nxsdk_board.global_spike_generator,
-                b"YWRkU3Bpa2U=",
-                kwargs={
-                    b"dGltZQ==": t,
-                    b"Y2hpcElk": spike["chip_id"],
-                    b"Y29yZUlk": spike["core_id"],
-                    b"YXhvbklk": spike["axon_id"],
-                },
-            )
+            loihi_input.add_spike_to_generator(t, spike, nxsdk_spike_generator)
 
 
 def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C901

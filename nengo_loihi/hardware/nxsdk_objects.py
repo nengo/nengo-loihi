@@ -3,7 +3,7 @@ import collections
 import numpy as np
 
 from nengo_loihi.block import Config
-from nengo_loihi.nxsdk_obfuscation import d, d_get
+from nengo_loihi.nxsdk_obfuscation import d, d_get, d_func
 
 
 MAX_COMPARTMENT_CFGS = d(b"MzI=", int)
@@ -217,6 +217,7 @@ class LoihiSpikeInput:
     #   axon_id : The actual ID of the target axon on the board.
     #   atom : The population index (atom), used if this axon sends population
     #       spikes (i.e. axon_type != 0).
+    #   atom_bits_extra : The number of extra bits used for the atom (pop16 axons only).
     spike_dtype = np.dtype(
         [
             ("t", np.int32),
@@ -225,8 +226,31 @@ class LoihiSpikeInput:
             ("core_id", np.int32),
             ("axon_id", np.int32),
             ("atom", np.int32),
+            ("atom_bits_extra", np.int32),
         ]
     )
+
+    @classmethod
+    def add_spike_to_generator(cls, t, spike, basic_spike_generator):
+        kwargs = {
+            b"dGltZQ==": t,
+            b"Y2hpcElk": spike["chip_id"],
+            b"Y29yZUlk": spike["core_id"],
+            b"YXhvbklk": spike["axon_id"],
+        }
+
+        if spike["axon_type"] == 0:
+            assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
+            add_spike = b"YWRkU3Bpa2U="
+        else:
+            kwargs[b"c3JjQXRvbQ=="] = spike["atom"]
+            if spike["axon_type"] == 16:
+                kwargs[b"YXRvbUJpdHM="] = spike["atom_bits_extra"]
+                add_spike = b"YWRkUG9wMTZTcGlrZQ=="
+            elif spike["axon_type"] == 32:
+                add_spike = b"YWRkUG9wMzJTcGlrZQ=="
+
+        d_func(basic_spike_generator, add_spike, kwargs=kwargs)
 
     def __init__(self):
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
@@ -247,9 +271,8 @@ class LoihiSpikeInput:
         assert len(self.axon_map) == 0
         input_idxs = np.arange(spike_input.n_neurons)
         for axon in spike_input.axons:
-            axon_type = axon.pop_type
-            assert axon_type in (0, 32), "Only discrete and pop32 supported"
             synapse = axon.target
+            atom_bits_extra = synapse.atom_bits_extra()
             tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(synapse)
             tchip = d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx]
             tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
@@ -267,7 +290,15 @@ class LoihiSpikeInput:
 
                 self.axon_map[input_idx].append(
                     np.array(
-                        (-1, axon_type, tchip.id, tcore.id, taxon_id, spike.atom),
+                        (
+                            -1,
+                            axon.pop_type,
+                            tchip.id,
+                            tcore.id,
+                            taxon_id,
+                            spike.atom,
+                            atom_bits_extra,
+                        ),
                         dtype=self.spike_dtype,
                     )
                 )
