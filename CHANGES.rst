@@ -55,6 +55,8 @@ Release history
 - Fixed an issue in which ignored axons were still having an effect in
   convolutional networks where not all input pixels are used in the output.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Fixed an issue that prevented population spikes to be sent to the chip when
+  ``precompute=True``. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

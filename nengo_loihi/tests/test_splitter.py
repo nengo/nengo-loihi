@@ -3,7 +3,6 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.splitter import Split
 
@@ -123,23 +122,6 @@ def test_precompute_host_to_learning_rule_unsupported():
         nengo.Connection(pre, post, learning_rule_type=nengo.PES())
 
     with pytest.raises(BuildError, match="learning rules"):
-        Split(net, precompute=True)
-
-
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-def test_precompute_with_convolution_unsupported():
-    with nengo.Network() as net:
-        stim = nengo.Node([0, 0])
-        ens = nengo.Ensemble(10, 2)
-        nengo.Connection(
-            stim,
-            ens,
-            transform=nengo_transforms.Convolution(
-                n_filters=2, input_shape=(1, 2, 1), kernel_size=(1, 2), strides=(1, 1)
-            ),
-        )
-
-    with pytest.raises(BuildError, match="convolutional connections"):
         Split(net, precompute=True)
 
 
