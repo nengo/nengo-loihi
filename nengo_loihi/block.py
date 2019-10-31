@@ -569,21 +569,31 @@ class Synapse:
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
 
     def atom_bits(self):
+        """Number of bits needed to represent the atom for incoming spikes."""
         max_populations = max(w.shape[0] for w in self.weights)
         return int(np.ceil(np.log2(max_populations)))
 
     def atom_bits_extra(self):
-        atom_bits = self.atom_bits()
-        assert atom_bits <= d(b"OQ==", int), "Too many atom bits"
-        return max(atom_bits - d(b"NQ==", int), 0)
+        """Number of extra bits needed for the atom for incoming pop16 spikes."""
+        if self.pop_type == 16:
+            atom_bits = self.atom_bits()
+            assert atom_bits <= d(b"OQ==", int), "Too many atom bits"
+            return max(atom_bits - d(b"NQ==", int), 0)
+        else:
+            return 0  # meaningless if pop_type != 16
 
     def axon_bits(self):
+        """Number of bits available to represent the target axon on incoming spikes."""
         if self.pop_type == 16:
             return d(b"MTA=", int) - self.atom_bits_extra()
         else:
             return d(b"MTI=", int)
 
     def axon_compartment_base(self, axon_idx):
+        """Offset for compartment indices for a particular axon.
+
+        A return value of ``None`` indicates the axon is unused.
+        """
         if self.axon_compartment_bases is None:
             return 0
         base = self.axon_compartment_bases[axon_idx]
@@ -592,10 +602,12 @@ class Synapse:
         return base if base >= 0 else None
 
     def axon_populations(self, axon_idx):
+        """Number of populations (atom values) for a particular axon."""
         weight_idx = self.axon_weight_idx(axon_idx)
         return self.weights[weight_idx].shape[0]
 
     def axon_weight_idx(self, axon_idx):
+        """Index of weights in weight array for a particular axon."""
         return (
             self.axon_to_weight_map[axon_idx]
             if self.axon_to_weight_map is not None
@@ -603,20 +615,24 @@ class Synapse:
         )
 
     def axon_weights_indices(self, axon_idx, atom=0):
+        """The weights and indices for a particular axon (and atom, if applicable)."""
         weight_idx = self.axon_weight_idx(axon_idx)
         w = self.weights[weight_idx]
         i = self.indices[weight_idx]
         return w[atom, :], i[atom, :]
 
     def bits(self):
+        """The total number of bits used by all weights in this Synapse."""
         return sum(self.synapse_cfg.bits_per_axon(w.size) for w in self.weights)
 
     def format(self, **kwargs):
+        """Modify the SynapseConfig format of this Synapse."""
         if self.synapse_cfg is None:
             self.synapse_cfg = SynapseConfig()
         self.synapse_cfg.set(**kwargs)
 
     def idx_bits(self):
+        """The number of index bits required for each weight entry."""
         bits = int(np.ceil(np.log2(self.max_ind() + 1)))
         assert (
             bits <= SynapseConfig.INDEX_BITS_MAP[-1]
@@ -625,12 +641,18 @@ class Synapse:
         return bits
 
     def idxs_per_synapse(self):
+        """The number of axon indices (slots) required for each incoming axon."""
         return d(b"Mg==", int) if self.learning else d(b"MQ==", int)
 
     def max_abs_weight(self):
+        """The maximum absolute value of all the weights in this Synapse."""
         return max(np.abs(w).max() if w.size > 0 else -np.inf for w in self.weights)
 
     def max_ind(self):
+        """The maximum compartment index in weight memory.
+
+        Does not include ``axon_compartment_base``.
+        """
         return max(i.max() if len(i) > 0 else -1 for i in self.indices)
 
     def _set_weights_indices(self, weights, indices=None):
@@ -660,6 +682,7 @@ class Synapse:
         self.indices = indices
 
     def set_weights(self, weights):
+        """Set dense or sparse weights on this Synapse."""
         if isinstance(weights, scipy.sparse.spmatrix):
             csr = weights.tocsr()
             weights_by_row, idxs_by_row = [], []
@@ -689,6 +712,7 @@ class Synapse:
     def set_learning(
         self, learning_rate=1.0, tracing_tau=2, tracing_mag=1.0, wgt_exp=4
     ):
+        """Set the learning parameters for this Synapse."""
         assert tracing_tau == int(tracing_tau), "tracing_tau must be integer"
 
         self.learning = True
@@ -707,6 +731,7 @@ class Synapse:
     def set_population_weights(
         self, weights, indices, axon_to_weight_map, compartment_bases, pop_type=None
     ):
+        """Set population weights on this Synapse."""
         self._set_weights_indices(weights, indices)
         self.axon_to_weight_map = axon_to_weight_map
         self.axon_compartment_bases = compartment_bases

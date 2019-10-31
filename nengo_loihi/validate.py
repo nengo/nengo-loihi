@@ -83,7 +83,11 @@ def validate_synapse(synapse):
         )
     if synapse.pop_type == 16:
         if synapse.axon_compartment_bases is not None:
-            assert all(b % d(b"NA==", int) == 0 for b in synapse.axon_compartment_bases)
+            assert all(
+                b % d(b"NA==", int) == 0
+                for b in synapse.axon_compartment_bases
+                if b >= 0
+            )
 
 
 def validate_synapse_cfg(synapse_cfg):
