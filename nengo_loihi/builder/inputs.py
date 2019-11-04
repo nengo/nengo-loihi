@@ -25,18 +25,14 @@ class HostReceiveNode(Node):
 
     def __init__(self, dimensions, label=Default):
         self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
         super(HostReceiveNode, self).__init__(
             self.update, size_in=0, size_out=dimensions, label=label
         )
 
     def update(self, t):
-        while (
-            len(self.queue) > self.queue_index + 1
-            and self.queue[self.queue_index][0] < t
-        ):
-            self.queue_index += 1
-        return self.queue[self.queue_index][1]
+        t1, x = self.queue[-1]
+        assert t >= t1
+        return x
 
     def receive(self, t, x):
         self.queue.append((t, x))
