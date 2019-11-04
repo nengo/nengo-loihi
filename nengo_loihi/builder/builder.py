@@ -165,6 +165,7 @@ class Model:
         self.chip2host_params = {}
         self.chip2host_receivers = OrderedDict()
         self.host2chip_senders = OrderedDict()
+        self.host2chip_pes_senders = OrderedDict()
         self.needs_sender = {}
 
     def __getstate__(self):

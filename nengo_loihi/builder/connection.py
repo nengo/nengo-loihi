@@ -308,8 +308,7 @@ def build_host_to_learning_rule(model, conn):
         label=conn.label,
         add_to_container=False,
     )
-    pes_target = model.needs_sender[conn.post_obj]
-    model.host2chip_senders[send] = pes_target
+    model.host2chip_pes_senders[send] = model.needs_sender[conn.post_obj]
     _inherit_seed(host, pre2send, model, conn)
     host.build(pre2send)
 
