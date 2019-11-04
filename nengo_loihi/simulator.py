@@ -371,36 +371,103 @@ class Simulator:
         self.run_steps(1)
 
     def _collect_receiver_info(self):
-        spikes = []
-        errors = OrderedDict()
-        for sender, receiver in self.model.host2chip_senders.items():
-            receiver.clear()
-            for t, x in sender.queue:
-                receiver.receive(t, x)
-            del sender.queue[:]
+        if not hasattr(self, "_error_synapse_map"):
+            self._error_synapse_map = {}
+            for _, receiver in self.model.host2chip_senders.items():
+                probe = receiver.error_target
+                if probe is None:
+                    continue
 
-            for spike_input, t, spike_idxs in receiver.collect_spikes():
-                ti = round(t / self.model.dt)
-                spikes.append((spike_input, ti, spike_idxs))
-
-            for probe, t, e in receiver.collect_errors():
                 conn = self.model.probe_conns[probe]
                 synapse = self.model.objs[conn]["decoders"]
                 assert synapse.learning
+                if probe in self._error_synapse_map:
+                    assert self._error_synapse_map[probe] is synapse
+                else:
+                    self._error_synapse_map[probe] = synapse
+
+            self.timers["collect_recv"] = 0
+            self.timers["collect_spike"] = 0
+            self.timers["collect_error"] = 0
+            self.timers["collect_end"] = 0
+
+        spikes = []
+        errors = OrderedDict()
+        for sender, receiver in self.model.host2chip_senders.items():
+            timer = timeit.default_timer()
+            receiver.clear()
+            for t, x in sender.queue:
+                receiver.receive(t, x)
+            sender.queue.clear()
+            self.timers["collect_recv"] += timeit.default_timer() - timer
+
+            timer = timeit.default_timer()
+            spike_input = receiver.spike_input
+            for t, spike_idxs in receiver.collect_spikes():
+                ti = round(t / self.model.dt)
+                spikes.append((spike_input, ti, spike_idxs))
+            self.timers["collect_spike"] += timeit.default_timer() - timer
+
+            timer = timeit.default_timer()
+            probe = receiver.error_target
+            synapse = self._error_synapse_map.get(probe, None)
+            for t, e in receiver.collect_errors():
                 ti = round(t / self.model.dt)
                 errors_ti = errors.setdefault(ti, OrderedDict())
                 if synapse in errors_ti:
                     errors_ti[synapse] += e
                 else:
                     errors_ti[synapse] = e.copy()
+            self.timers["collect_error"] += timeit.default_timer() - timer
 
+        timer = timeit.default_timer()
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
         ]
+        self.timers["collect_end"] += timeit.default_timer() - timer
+        return spikes, errors
+
+    def _collect_receiver_info1(self):
+        spikes = []
+        errors = OrderedDict()
+        tf = None
+        ti = None
+        for sender, receiver in self.model.host2chip_senders.items():
+            assert receiver.spike_input is None or receiver.error_target is None
+            assert len(sender.queue) == 1
+            t, x = sender.queue.pop()
+            if tf is None:
+                tf = t
+                ti = round(t / self.model.dt)
+            else:
+                assert t == tf
+
+            spike_target = receiver.spike_input
+            if spike_target is not None:
+                spike_idxs = x.nonzero()[0]
+                spikes.append((spike_target, ti, spike_idxs))
+
+            error_target = receiver.error_target
+            if error_target is not None:
+                conn = self.model.probe_conns[error_target]
+                synapse = self.model.objs[conn]["decoders"]
+                assert synapse.learning
+
+                if synapse in errors:
+                    errors[synapse] += x
+                else:
+                    errors[synapse] = x.copy()
+
+        if len(errors) > 0:
+            assert ti is not None
+            errors = [(synapse, ti, e) for synapse, e in errors.items()]
+        else:
+            errors = []
+
         return spikes, errors
 
     def _host2chip(self, sim):
-        spikes, errors = self._collect_receiver_info()
+        spikes, errors = self._collect_receiver_info1()
         sim.host2chip(spikes, errors)
 
     def _chip2host(self, sim):

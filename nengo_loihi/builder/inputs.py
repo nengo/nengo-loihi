@@ -48,6 +48,7 @@ class ChipReceiveNode(Node):
     def __init__(self, dimensions, size_out, label=Default):
         self.raw_dimensions = dimensions
         self.spikes = []
+        self.error_target = None
         self.spike_input = None  # set by builder
         super(ChipReceiveNode, self).__init__(
             self.update, size_in=0, size_out=size_out, label=label
@@ -68,9 +69,7 @@ class ChipReceiveNode(Node):
         return ()
 
     def collect_spikes(self):
-        assert self.spike_input is not None
-        for t, x in self.spikes:
-            yield (self.spike_input, t, x)
+        return self.spikes
 
 
 class ChipReceiveNeurons(ChipReceiveNode):
@@ -83,8 +82,9 @@ class ChipReceiveNeurons(ChipReceiveNode):
 
 class PESModulatoryTarget:
     def __init__(self, target):
-        self.target = target
         self.errors = OrderedDict()
+        self.error_target = target
+        self.spike_input = None
 
     def clear(self):
         self.errors.clear()
@@ -97,8 +97,7 @@ class PESModulatoryTarget:
             self.errors[t] = np.array(x)
 
     def collect_errors(self):
-        for t, x in self.errors.items():
-            yield (self.target, t, x)
+        return self.errors.items()
 
     def collect_spikes(self):
         return ()
