@@ -7,11 +7,13 @@ import numpy as np
 class HostSendNode(Node):
     """For sending host->chip messages"""
 
-    def __init__(self, dimensions, label=Default):
+    def __init__(self, dimensions, label=Default, check_output=False):
         self.queue = []
         super(HostSendNode, self).__init__(
             self.update, size_in=dimensions, size_out=0, label=label
         )
+        if hasattr(self, "check_output"):
+            self.check_output = check_output
 
     def update(self, t, x):
         assert len(self.queue) == 0 or t > self.queue[-1][0]
@@ -21,12 +23,14 @@ class HostSendNode(Node):
 class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
-    def __init__(self, dimensions, label=Default):
+    def __init__(self, dimensions, label=Default, check_output=False):
         self.queue = [(0, np.zeros(dimensions))]
         self.queue_index = 0
         super(HostReceiveNode, self).__init__(
             self.update, size_in=0, size_out=dimensions, label=label
         )
+        if hasattr(self, "check_output"):
+            self.check_output = check_output
 
     def update(self, t):
         while (
