@@ -373,26 +373,34 @@ class Simulator:
         spikes = []
         errors = OrderedDict()
         for sender, receiver in self.model.host2chip_senders.items():
-            receiver.clear()
-            for t, x in sender.queue:
-                receiver.receive(t, x)
-            del sender.queue[:]
+            spike_target = receiver.spike_target
+            error_target = receiver.error_target
+            if error_target is not None:
+                conn = self.model.probe_conns[error_target]
+                error_synapse = self.model.objs[conn]["decoders"]
+                assert error_synapse.learning
+            else:
+                error_synapse = None
 
-            if hasattr(receiver, "collect_spikes"):
-                for spike_input, t, spike_idxs in receiver.collect_spikes():
-                    ti = round(t / self.model.dt)
-                    spikes.append((spike_input, ti, spike_idxs))
-            if hasattr(receiver, "collect_errors"):
-                for probe, t, e in receiver.collect_errors():
-                    conn = self.model.probe_conns[probe]
-                    synapse = self.model.objs[conn]["decoders"]
-                    assert synapse.learning
-                    ti = round(t / self.model.dt)
-                    errors_ti = errors.setdefault(ti, OrderedDict())
-                    if synapse in errors_ti:
-                        errors_ti[synapse] += e
+            for t, x in sender.queue:
+                ti = round(t / self.model.dt)
+
+                if spike_target is not None:
+                    spike_idxs = x.nonzero()[0]
+                    spikes.append((spike_target, ti, spike_idxs))
+
+                if error_synapse is not None:
+                    errors_ti = errors.get(ti, None)
+                    if errors_ti is None:
+                        errors_ti = OrderedDict()
+                        errors[ti] = errors_ti
+
+                    if error_synapse in errors_ti:
+                        errors_ti[error_synapse] += x
                     else:
-                        errors_ti[synapse] = e.copy()
+                        errors_ti[error_synapse] = x.copy()
+
+            sender.queue.clear()
 
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
