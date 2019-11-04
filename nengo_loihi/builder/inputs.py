@@ -64,6 +64,9 @@ class ChipReceiveNode(Node):
     def update(self, t):
         raise SimulationError("ChipReceiveNodes should not be run")
 
+    def collect_errors(self):
+        return ()
+
     def collect_spikes(self):
         assert self.spike_input is not None
         for t, x in self.spikes:
@@ -96,3 +99,6 @@ class PESModulatoryTarget:
     def collect_errors(self):
         for t, x in self.errors.items():
             yield (self.target, t, x)
+
+    def collect_spikes(self):
+        return ()

@@ -379,21 +379,20 @@ class Simulator:
                 receiver.receive(t, x)
             del sender.queue[:]
 
-            if hasattr(receiver, "collect_spikes"):
-                for spike_input, t, spike_idxs in receiver.collect_spikes():
-                    ti = round(t / self.model.dt)
-                    spikes.append((spike_input, ti, spike_idxs))
-            if hasattr(receiver, "collect_errors"):
-                for probe, t, e in receiver.collect_errors():
-                    conn = self.model.probe_conns[probe]
-                    synapse = self.model.objs[conn]["decoders"]
-                    assert synapse.learning
-                    ti = round(t / self.model.dt)
-                    errors_ti = errors.setdefault(ti, OrderedDict())
-                    if synapse in errors_ti:
-                        errors_ti[synapse] += e
-                    else:
-                        errors_ti[synapse] = e.copy()
+            for spike_input, t, spike_idxs in receiver.collect_spikes():
+                ti = round(t / self.model.dt)
+                spikes.append((spike_input, ti, spike_idxs))
+
+            for probe, t, e in receiver.collect_errors():
+                conn = self.model.probe_conns[probe]
+                synapse = self.model.objs[conn]["decoders"]
+                assert synapse.learning
+                ti = round(t / self.model.dt)
+                errors_ti = errors.setdefault(ti, OrderedDict())
+                if synapse in errors_ti:
+                    errors_ti[synapse] += e
+                else:
+                    errors_ti[synapse] = e.copy()
 
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
