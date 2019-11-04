@@ -163,11 +163,11 @@ class HardwareInterface:
         self.connect()  # returns immediately if already connected
         d_get(self.nxsdk_board, b"cnVu")(steps, **{d(b"YVN5bmM="): not blocking})
 
-        # pause to allow host snip to start and listen for connection
-        time.sleep(0.1)
-
         # connect to host socket
         if self.host_socket is not None and not self.host_socket_connected:
+            # pause to allow host snip to start and listen for connection
+            time.sleep(0.1)
+
             host_address = self.nxsdk_board.executor._host_coordinator.hostAddr
             print(
                 "Connecting to host socket at (%s, %s)"
