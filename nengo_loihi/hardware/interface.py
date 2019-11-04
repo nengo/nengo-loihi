@@ -77,6 +77,7 @@ class HardwareInterface:
         self.host_socket = None  # IO snip superhost (this) <-> host socket
         self.host_socket_connected = False
         self.host_socket_port = None
+        self.error_chip_map = {}  # maps synapses to chip locations for errors
         self._probe_filters = {}
         self._probe_filter_pos = {}
         self._snip_probe_data = collections.OrderedDict()
@@ -303,24 +304,38 @@ class HardwareInterface:
             spike_input = self.nxsdk_board.spike_inputs[spike_input]
             loihi_spikes.extend(spike_input.spikes_to_loihi(t, s))
 
-        loihi_errors = []
+        error_info = []
+        error_vecs = []
         for synapse, t, e in errors:
-            coreid = None
-            for core in self.board.chips[0].cores:
-                for block in core.blocks:
-                    if synapse in block.synapses:
-                        assert (
-                            len(core.blocks) == 1
-                        ), "Learning not implemented with multiple blocks per core"
-                        coreid = core.learning_coreid
+            core_id = self.error_chip_map.get(synapse, None)
+            if core_id is None:
+                for core in self.board.chips[0].cores:
+                    for block in core.blocks:
+                        if synapse in block.synapses:
+                            assert (
+                                len(core.blocks) == 1
+                            ), "Learning not implemented with multiple blocks per core"
+                            core_id = core.learning_coreid
+                            break
+
+                    if core_id is not None:
                         break
 
-                if coreid is not None:
-                    break
+                assert core_id is not None
+                self.error_chip_map[synapse] = core_id
 
-            assert coreid is not None
-            e = scale_pes_errors(e, scale=self.pes_error_scale)
-            loihi_errors.append([coreid, len(e)] + e.tolist())
+            error_info.append([core_id, len(e)])
+            error_vecs.append(e)
+
+        loihi_errors = []
+        if len(error_vecs) > 0:
+            error_vecs = np.concatenate(error_vecs)
+            error_vecs = scale_pes_errors(error_vecs, scale=self.pes_error_scale)
+
+            i = 0
+            for core_id, e_len in error_info:
+                loihi_errors.append([core_id, e_len] + error_vecs[i:i + e_len].tolist())
+                i += e_len
 
         if self.use_snips:
             return self._host2chip_snips(loihi_spikes, loihi_errors)
