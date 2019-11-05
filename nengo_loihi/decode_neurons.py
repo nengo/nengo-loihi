@@ -1,4 +1,4 @@
-import nengo
+from nengo import Ensemble, SpikingRectifiedLinear
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Synapse
@@ -50,13 +50,15 @@ class DecodeNeurons:
         """
         raise NotImplementedError()
 
-    def get_ensemble(self, dim):
+    def get_ensemble(self, dim, add_to_container=True):
         """Get a Nengo Ensemble for implementing neurons on the host.
 
         Parameters
         ----------
         dim : int
             Number of dimensions to be represented by these neurons.
+        add_to_container : bool, optional (Default: True)
+            Whether to add the ensemble to the currently active network.
 
         Returns
         -------
@@ -122,12 +124,15 @@ class OnOffDecodeNeurons(DecodeNeurons):
         Max firing rate of each neuron. By default, this is chosen so that
         the sum of all repeated neuron rates is ``1. / dt``, and thus as a
         group the neurons average one spike per timestep.
+    is_input : bool (Default: False)
+        Whether these decode neurons are being used to provide input.
     """
 
-    def __init__(self, pairs_per_dim=1, dt=0.001, rate=None):
+    def __init__(self, pairs_per_dim=1, dt=0.001, rate=None, is_input=False):
         super(OnOffDecodeNeurons, self).__init__(dt=dt)
 
         self.pairs_per_dim = pairs_per_dim
+        self.is_input = is_input
 
         self.rate = 1.0 / (self.dt * self.pairs_per_dim) if rate is None else rate
         self.scale = 1.0 / (self.dt * self.rate * self.pairs_per_dim)
@@ -167,8 +172,8 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
         return block, syn
 
-    def get_ensemble(self, dim):
-        if self.pairs_per_dim != 1:
+    def get_ensemble(self, dim, add_to_container=True):
+        if self.is_input and self.pairs_per_dim != 1:
             # To support this, we need to figure out how to deal with the
             # `post_inds` that map neurons to axons. Either we can do this
             # on the host, in which case we'd have inputs going to the chip
@@ -180,16 +185,15 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
         n_neurons = 2 * dim * self.pairs_per_dim
         encoders = np.vstack([np.eye(dim), -np.eye(dim)] * self.pairs_per_dim)
-        ens = nengo.Ensemble(
+        return Ensemble(
             n_neurons,
             dim,
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=SpikingRectifiedLinear(),
             encoders=encoders,
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),
-            add_to_container=False,
+            add_to_container=add_to_container,
         )
-        return ens
 
     def get_post_encoders(self, encoders):
         encoders = encoders * self.scale

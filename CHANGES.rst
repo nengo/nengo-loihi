@@ -34,6 +34,9 @@ Release history
 - The ``precompute`` argument of ``Simulator`` now defaults to ``None``
   and will be automatically set to ``True`` if the model can be precomputed.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- Added the ``add_to_container`` argument to ``DecodeNeurons.get_ensemble``,
+  which makes it easier to add a decode neurons ensemble to a network.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 **Fixed**
 

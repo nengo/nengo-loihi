@@ -146,7 +146,7 @@ class Model:
         # and maybe we don't want double filtering if connection has a filter
 
         self.decode_neurons = Preset10DecodeNeurons(dt=dt)
-        self.node_neurons = OnOffDecodeNeurons(dt=dt)
+        self.node_neurons = OnOffDecodeNeurons(dt=dt, is_input=True)
 
         # voltage threshold for non-spiking neurons (i.e. voltage decoders)
         self.vth_nonspiking = 10
