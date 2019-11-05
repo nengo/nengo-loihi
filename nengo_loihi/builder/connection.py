@@ -185,7 +185,7 @@ def build_host_to_chip(model, conn):
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
-    ens = model.node_neurons.get_ensemble(dim)
+    ens = model.node_neurons.get_ensemble(dim, is_input=True, add_to_container=False)
     ens.label = None if conn.label is None else "%s_ens" % conn.label
     _inherit_seed(host, ens, model, conn)
     host.build(ens)
