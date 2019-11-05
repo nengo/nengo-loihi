@@ -167,8 +167,8 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
         return block, syn
 
-    def get_ensemble(self, dim):
-        if self.pairs_per_dim != 1:
+    def get_ensemble(self, dim, is_input=False, **ens_kwargs):
+        if is_input and self.pairs_per_dim != 1:
             # To support this, we need to figure out how to deal with the
             # `post_inds` that map neurons to axons. Either we can do this
             # on the host, in which case we'd have inputs going to the chip
@@ -187,7 +187,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
             encoders=encoders,
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),
-            add_to_container=False,
+            **ens_kwargs,
         )
         return ens
 
