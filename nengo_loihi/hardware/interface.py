@@ -258,18 +258,22 @@ class HardwareInterface:
 
     def _host2chip_spikegen(self, loihi_spikes):
         # sort all spikes because spikegen needs them in temporal order
-        loihi_spikes = sorted(loihi_spikes, key=lambda s: s.time)
+        if len(loihi_spikes) == 0:
+            return
+
+        loihi_spikes.sort(order="t")
+
+        assert np.all(loihi_spikes["axon_type"] == 0), "Spikegen cannot send pop spikes"
+        assert np.all(loihi_spikes["atom"] == 0), "Spikegen does not support atom"
         for spike in loihi_spikes:
-            assert spike.axon.axon_type == 0, "Spikegen cannot send pop spikes"
-            assert spike.axon.atom == 0, "Spikegen does not support atom"
             d_func(
                 self.nxsdk_board.global_spike_generator,
                 b"YWRkU3Bpa2U=",
                 kwargs={
-                    b"dGltZQ==": spike.time,
-                    b"Y2hpcElk": spike.axon.chip_id,
-                    b"Y29yZUlk": spike.axon.core_id,
-                    b"YXhvbklk": spike.axon.axon_id,
+                    b"dGltZQ==": spike["t"],
+                    b"Y2hpcElk": spike["chip_id"],
+                    b"Y29yZUlk": spike["core_id"],
+                    b"YXhvbklk": spike["axon_id"],
                 },
             )
 
@@ -284,13 +288,11 @@ class HardwareInterface:
                 "See\n  https://www.nengo.ai/nengo-loihi/configuration.html\n"
                 "for details." % (len(loihi_spikes), max_spikes)
             )
-            del loihi_spikes[max_spikes:]
+            loihi_spikes = loihi_spikes[:max_spikes]
 
         msg = [len(loihi_spikes)]
-        assert len(loihi_spikes) <= self.snip_max_spikes_per_step
-        for spike in loihi_spikes:
-            assert spike.axon.chip_id == 0
-            msg.extend(SpikePacker.pack(spike))
+        msg.extend(SpikePacker.pack(loihi_spikes))
+
         assert len(loihi_errors) == self.nengo_io_h2c_errors
         for error in loihi_errors:
             msg.extend(error)
@@ -316,8 +318,9 @@ class HardwareInterface:
     def host2chip(self, spikes, errors):
         loihi_spikes = []
         for spike_input, t, s in spikes:
-            spike_input = self.nxsdk_board.spike_inputs[spike_input]
-            loihi_spikes.extend(spike_input.spikes_to_loihi(t, s))
+            loihi_spike_input = self.nxsdk_board.spike_inputs[spike_input]
+            loihi_spikes.append(loihi_spike_input.spikes_to_loihi(t, s))
+        loihi_spikes = np.hstack(loihi_spikes) if len(loihi_spikes) > 0 else []
 
         error_info = []
         error_vecs = []
@@ -525,7 +528,7 @@ class HardwareInterface:
             max(
                 n_outputs,  # currently, buffer needs to hold all outputs at once
                 self.channel_packet_size
-                + max(SpikePacker.size(), obfs["error_info_size"]),
+                + max(SpikePacker.size, obfs["error_info_size"]),
             ),
             self.channel_packet_size,
         )
@@ -581,7 +584,7 @@ class HardwareInterface:
         # --- create host process (for faster communication via sockets)
         host_socket_port = np.random.randint(50000, 60000)
 
-        max_inputs = n_errors + self.snip_max_spikes_per_step * SpikePacker.size()
+        max_inputs = n_errors + self.snip_max_spikes_per_step * SpikePacker.size
         host_buffer_size = roundup(max(max_inputs, n_outputs), self.channel_packet_size)
 
         host_template = env.get_template("nengo_host.cc.template")
@@ -616,7 +619,7 @@ class HardwareInterface:
         # --- create channels
         input_channel_size = (
             1  # first int stores number of spikes
-            + self.snip_max_spikes_per_step * SpikePacker.size()
+            + self.snip_max_spikes_per_step * SpikePacker.size
             + total_error_len
         )
         logger.debug("Creating nengo_io_h2c channel (%d)" % input_channel_size)
@@ -650,39 +653,34 @@ class SpikePacker:
     Currently represents a spike as two int32s.
     """
 
-    @classmethod
-    def size(cls):
-        """The number of int32s used to represent one spike."""
-        size = len(cls.pack(None))
-        assert size == 2  # must match nengo_io.c.template
-        return size
+    size = 2  # must match nengo_io.c.template
 
     @classmethod
-    def pack(cls, spike):
+    def pack(cls, spikes):
         """Pack the spike into a tuple of 32-bit integers.
 
         Parameters
         ----------
-        spike : LoihiSpikeInput.LoihiSpike
-            The spike to pack.
+        spike : structured ndarray of spikes
+            The spikes to pack.
 
         Returns
         -------
         packed_spike : tuple of int
-            A tuple of length ``size`` to represent this spike.
+            A tuple of length ``size * n_spikes`` to represent this spike.
         """
-        chip_id = int(spike.axon.chip_id if spike is not None else 0)
-        core_id = int(spike.axon.core_id if spike is not None else 0)
-        axon_id = int(spike.axon.axon_id if spike is not None else 0)
-        axon_type = int(spike.axon.axon_type if spike is not None else 0)
-        atom = int(spike.axon.atom if spike is not None else 0)
-        assert chip_id == 0, "Multiple chips not supported"
-        assert 0 <= core_id < 1024
-        assert 0 <= axon_id < 4096
-        assert 0 <= axon_type <= 32
-        assert 0 <= atom < 1024
+        if len(spikes) == 0:
+            return []
 
-        return (
-            int(np.left_shift(core_id, 16)) + axon_id,
-            int(np.left_shift(axon_type, 16) + atom),
-        )
+        assert np.all(spikes["chip_id"] == 0), "Multiple chips not supported"
+        assert np.all(spikes["core_id"] < 1024)
+        assert np.all(spikes["axon_id"] < 4096)
+        assert np.all(spikes["axon_type"] <= 32)
+        assert np.all(spikes["atom"] < 1024)
+
+        return np.array(
+            [
+                np.left_shift(spikes["core_id"], 16) + spikes["axon_id"],
+                np.left_shift(spikes["axon_type"], 16) + spikes["atom"],
+            ]
+        ).T.ravel()
