@@ -18,9 +18,9 @@ NengoSimulator = lambda net: nengo.Simulator(net)
 
 Simulator = LoihiSimulator
 
-funnel_input = True
+funnel_input = False
 funnel_output = True
-learning = True
+learning = False
 profile = False
 #profile = True
 
@@ -32,10 +32,14 @@ n_input = 10
 n_output = 5
 
 #n_neurons = 10
+#n_neurons = 100
 n_neurons = 400
 #n_neurons = 1000
+
 #n_ensembles = 1
+#n_ensembles = 3
 n_ensembles = 20
+
 #pes_learning_rate = 5e-9
 pes_learning_rate = 5e-6
 #pes_learning_rate = 5e-4
