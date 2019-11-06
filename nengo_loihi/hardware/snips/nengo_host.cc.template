@@ -12,10 +12,12 @@
 
 #include "nxsdkhost.h"
 
+#define DEBUG 0
+
 #define N_OUTPUTS {{ n_outputs }}
 #define N_OUTPUT_PACKETS {{ n_output_packets }}
 #define BUFFER_SIZE {{ host_buffer_size }}
-#define PACKET_SIZE {{ packet_size }}
+#define PACKET_SIZE {{ packet_size }}  // size of a packet, in int32s
 
 #define SERVER_PORT htons({{ server_port }})
 
@@ -70,48 +72,44 @@ class NengoHostProcess : public ConcurrentHostSnip {
 
     void run(std::atomic_bool& end_of_execution) override {
         // --- loop to transmit data from superhost to chip and vice versa
-        int step_counter = -1;
-
         while (!end_of_execution) {
-            // Wait until host sends number of run steps
-            while (!end_of_execution && step_counter <= 0) {
-                ssize_t n_read0 = recv(client_socket, buffer, sizeof(int32_t), MSG_DONTWAIT);
-                if (n_read0 == 4) {
-                    step_counter = buffer[0];
-                    if (step_counter > 0) {
-                        std::cout << "Host running " << step_counter << " steps" << std::endl;
-                    }
-                    break;
-                } else if (n_read0 > 0) {
-                    std::cout << "Host received unexpected number of bytes ("
-                              << n_read0 << ")" << std::endl;
-                    return;
-                } else {
-                    usleep(100);
-                }
-            }
-            if (end_of_execution) {
-                break;
-            } else if (step_counter <= 0) {
-                break;
-            }
-
-            // read messages from superhost socket
-            // we make sure BUFFER_SIZE is large enough for any message
-            // TODO: read in blocks of e.g 4096 bytes (small power of 2) for speed
-            size_t n_read = read(client_socket, buffer, BUFFER_SIZE * sizeof(int32_t));
-            if (n_read % sizeof(int32_t) != 0) {
-                std::cout << "Did not read full int32s from socket" << std::endl;
-                break;
-            }
+            // read packets from superhost socket
+            // first read is blocking, so we wait for packets
+#if DEBUG
+            std::cout << "Host: Preparing to read socket" << std::endl;
+#endif
+            ssize_t n_read = recv(client_socket, buffer, 4*PACKET_SIZE, 0);
             if (buffer[0] < 0) {
                 std::cout << "Host received shutdown signal: " << buffer[0] << std::endl;
-                break;
+                goto cleanup;
             }
+#if DEBUG
+            std::cout << "Host: Read " << n_read << "bytes" << std::endl;
+#endif
 
-            // write packets to chip (PACKET_SIZE == sizeof(int32_t))
-            size_t n_packets = ceil_div<size_t>(n_read, 4*PACKET_SIZE);
-            writeChannel(input_channel, buffer, n_packets);
+            while (n_read > 0) {
+#if DEBUG
+                std::cout << "Input buffer: [";
+                for (int i = 0; i < ceil_div(n_read, 4); i++) {
+                    std::cout << buffer[i] << ", ";
+                }
+                std::cout << "]" << std::endl;
+#endif
+                if (n_read % 4 != 0) {
+                    std::cout << "Did not read full int32s from socket: n_read="
+                              << n_read << std::endl;
+                    goto cleanup;
+                }
+
+                // write packet to chip
+                writeChannel(input_channel, buffer, 1);
+
+                // subsequent reads are non-blocking, so we just read what's there
+                n_read = recv(client_socket, buffer, 4*PACKET_SIZE, MSG_DONTWAIT);
+#if DEBUG
+                std::cout << "Read " << n_read << "bytes" << std::endl;
+#endif
+            }
 
             // wait until chip has written output
             while (!end_of_execution && !probeChannel(output_channel)) {
@@ -131,18 +129,14 @@ class NengoHostProcess : public ConcurrentHostSnip {
             if (n_write != write_bytes) {
                 std::cout << "Failed write to socket (tried " << write_bytes
                           << ", wrote " << n_write << " bytes)" << std::endl;
-                break;;
+                goto cleanup;
             }
-
-            // next timestep
-            step_counter--;
         }
 
-        if (step_counter != 0) {
-            // make sure chip gets shutdown signal
-            buffer[0] = (step_counter > 0) ? -1 : step_counter;
-            writeChannel(input_channel, buffer, 1);
-        }
+cleanup:
+        // make sure chip gets shutdown signal
+        buffer[0] = -1;
+        writeChannel(input_channel, buffer, 1);
     }
 };
 
