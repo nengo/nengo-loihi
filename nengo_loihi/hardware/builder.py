@@ -385,18 +385,18 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
         ), "Cannot add pre-existing spikes when using SNIPs (no spike generator)"
 
         spikes = spike_input.spike_idxs(t)
-        for spike in loihi_input.spikes_to_loihi(t, spikes):
+        for spike in loihi_input.spikes_to_loihi(spikes):
             assert (
-                spike.axon.atom == 0
+                spike["atom"] == 0
             ), "Cannot send population spikes through spike generator"
             d_func(
                 nxsdk_board.global_spike_generator,
                 b"YWRkU3Bpa2U=",
                 kwargs={
-                    b"dGltZQ==": spike.time,
-                    b"Y2hpcElk": spike.axon.chip_id,
-                    b"Y29yZUlk": spike.axon.core_id,
-                    b"YXhvbklk": spike.axon.axon_id,
+                    b"dGltZQ==": t,
+                    b"Y2hpcElk": spike["chip_id"],
+                    b"Y29yZUlk": spike["core_id"],
+                    b"YXhvbklk": spike["axon_id"],
                 },
             )
 

@@ -204,74 +204,32 @@ class LoihiSpikeInput:
 
     Attributes
     ----------
-    axon_map : {int: LoihiAxon}
+    axon_map : {int: ndarray(dtype=spike_dtype)}
         Map from axon indices in the SpikeInput to LoihiAxons targeting
         particular locations on the chip.
     """
 
-    class LoihiAxon:
-        """Represents an axon going to the chip.
-
-        Parameters
-        ----------
-        axon_type : int
-            The population type of axon. 0 for discrete, 16 for pop16,
-            and 32 for pop32.
-        chip_id : int
-            The actual ID of the target chip on the board.
-        core_id : int
-            The actual ID of the target core on the board.
-        axon_id : int
-            The actual ID of the target axon on the board.
-        atom : int
-            The population index (atom), used if this axon sends population
-            spikes (i.e. axon_type != 0).
-        """
-
-        __slots__ = ["axon_type", "chip_id", "core_id", "axon_id", "atom"]
-
-        def __init__(self, axon_type, chip_id, core_id, axon_id, atom=0):
-            # TODO: obfuscate axon_type, or atom?
-            assert axon_type in (0, 16, 32)
-            self.axon_type = axon_type
-            self.chip_id = chip_id
-            self.core_id = core_id
-            self.axon_id = axon_id
-            self.atom = atom
-
-        def _slots_str(self):
-            return ", ".join("%s=%s" % (s, getattr(self, s)) for s in self.__slots__)
-
-        def __repr__(self):
-            return "%s(%s)" % (type(self).__name__, self._slots_str())
-
-    class LoihiSpike:
-        """Represents a spike going to the chip.
-
-        Parameters
-        ----------
-        time : int
-            The timestep at which the spike should be sent to the chip.
-        axon : LoihiSpikeInput.LoihiAxon
-            The axon information to target the spike to a particular chip axon.
-        """
-
-        __slots__ = ["time", "axon"]
-
-        def __init__(self, time, axon):
-            self.time = time
-            self.axon = axon
-
-        def __repr__(self):
-            return "%s(time=%s, %s)" % (
-                type(self).__name__,
-                self.time,
-                self.axon._slots_str(),
-            )
+    # spike_dtype is a numpy datatype to represent a Loihi axon or spike.
+    #   t : The timestep at which to send the spike to the chip (unused for axons)
+    #   axon_type : The population type of axon. discrete = 0, pop16 = 16, pop32 = 32.
+    #   chip_id : The actual ID of the target chip on the board.
+    #   core_id : The actual ID of the target core on the board.
+    #   axon_id : The actual ID of the target axon on the board.
+    #   atom : The population index (atom), used if this axon sends population
+    #       spikes (i.e. axon_type != 0).
+    spike_dtype = np.dtype(
+        [
+            ("t", np.int32),
+            ("axon_type", np.int32),
+            ("chip_id", np.int32),
+            ("core_id", np.int32),
+            ("axon_id", np.int32),
+            ("atom", np.int32),
+        ]
+    )
 
     def __init__(self):
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
-        self.sent_count = 0
 
     def set_axons(self, board, nxsdk_board, spike_input):
         """Initialize the axon map for this object.
@@ -300,33 +258,26 @@ class LoihiSpikeInput:
                     taxon_idx = int(spike.axon_id)
                     taxon_id = int(tsyn_ids[taxon_idx])
                     self.axon_map.setdefault(input_idx, []).append(
-                        self.LoihiAxon(
-                            axon_type=axon_type,
-                            chip_id=tchip.id,
-                            core_id=tcore.id,
-                            axon_id=taxon_id,
-                            atom=spike.atom,
+                        np.array(
+                            (-1, axon_type, tchip.id, tcore.id, taxon_id, spike.atom),
+                            dtype=self.spike_dtype,
                         )
                     )
 
-    def spikes_to_loihi(self, t, input_idxs):
-        """Map spike input indices to spikes for the chip.
+    def spikes_to_loihi(self, input_idxs):
+        """Map spike input indices to axons targeting chip locations.
 
         Parameters
         ----------
-        t : int
-            Current timestep.
         input_idxs : list of int
             Indices of positions in the SpikeInput that are currently spiking.
 
         Returns
         -------
-        spikes : generator of LoihiSpike
-            Spikes targeting physical locations on the chip.
+        axons : generator of ndarray(dtype=spike_dtype)
+            Axons targeting physical locations on the chip.
         """
-        for input_idx in input_idxs:
-            for axon in self.axon_map[input_idx]:
-                yield self.LoihiSpike(time=t, axon=axon)
+        return (axon for i in input_idxs for axon in self.axon_map[i])
 
 
 class CompartmentConfig(Config):
