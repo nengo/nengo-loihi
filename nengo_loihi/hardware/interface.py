@@ -180,10 +180,6 @@ class HardwareInterface:
             self.host_socket.connect((host_address, self.host_socket_port))
             self.host_socket_connected = True
 
-        if self.host_socket is not None:
-            # send number of steps to host process
-            self.host_socket.send(struct.pack("i", steps))
-
     def _chip2host_monitor(self, probes_receivers):
         increment = None
         for probe, receiver in probes_receivers.items():
@@ -217,7 +213,16 @@ class HardwareInterface:
             self._chip2host_sent_steps += increment
 
     def _chip2host_snips(self, probes_receivers):
-        data = self.host_socket.recv(4 * self.nengo_io_c2h_count)
+        assert self.host_socket_connected
+
+        recv_size = 4096  # python docs recommend small power of 2, e.g. 4096
+        received = self.host_socket.recv(recv_size)  # blocking recv call
+        data = received
+        while len(received) == recv_size:
+            received = self.host_socket.recv(recv_size, flags=socket.MSG_DONTWAIT)
+            data += received
+        assert len(data) == 4 * self.nengo_io_c2h_count
+
         data = np.frombuffer(data, dtype=np.int32)
         time_step, data = data[0], data[1:]
         snip_range = self.nengo_io_snip_range
@@ -294,14 +299,11 @@ class HardwareInterface:
         for error in loihi_errors:
             msg.extend(error)
 
-        i = 0
-        send_size = 1024
-        while i < len(msg):
-            msg_i = msg[i : i + send_size]
-            msg_bytes = struct.pack("%di" % len(msg_i), *msg_i)
-            bytes_sent = self.host_socket.send(msg_bytes)
-            assert bytes_sent == len(msg_bytes), "Host socket send failed"
-            i += len(msg_i)
+        msg_bytes = struct.pack("%di" % len(msg), *msg)
+        i_sent = 0
+        while i_sent < len(msg_bytes):
+            n_sent = self.host_socket.send(msg_bytes[i_sent:])
+            i_sent += n_sent
 
     def host2chip(self, spikes, errors):
         loihi_spikes = []
@@ -594,7 +596,6 @@ class HardwareInterface:
         )
 
         # connect to host socket
-        print("Making superhost socket")
         self.host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host_socket_port = host_socket_port
 

@@ -92,6 +92,10 @@ void nengo_io(runState *s) {
             {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
             buffer_len += PACKET_SIZE;
             buffer_pos = 0;
+
+#if DEBUG
+            printf("Read packet. Buffer len: %d\n", buffer_len);
+#endif
         }
 
         spike = &buffer[buffer_pos];
