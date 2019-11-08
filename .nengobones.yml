@@ -435,6 +435,8 @@ docs_conf_py:
   nengo_logo: nengo-loihi-full-light.svg
   nengo_logo_color: "#127bc1"
   analytics_id: UA-41658423-2
+  doctest_setup:
+    - import nengo
 
 travis_yml:
   python: 3.5.2
