@@ -421,6 +421,9 @@ setup_cfg:
       # sparse transforms not supported
       test_transforms.py::test_sparse[*:
         sparse transforms not supported
+      # neuron advanced indexing not yet supported
+      test_connection.py::test_neuron_advanced_indexing:
+        neuron advanced indexing not yet supported
 
       # dtype not supported
       test_simulator.py::test_dtype[*:
@@ -445,7 +448,6 @@ travis_yml:
   jobs:
     - stage: basic
       script: emulator
-      test_args: -p nengo.tests.options --simulator nengo_loihi.Simulator --ref-simulator nengo_loihi.Simulator --neurons nengo.LIF,nengo.SpikingRectifiedLinear
     - script: static
     - stage: advanced
       script: emulator

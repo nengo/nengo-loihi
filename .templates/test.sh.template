@@ -1,8 +1,0 @@
-{% extends "templates/test.sh.template" %}
-
-{% block before_script %}
-    if [[ "$NENGO_VERSION" != "git+"* ]]; then
-        exe pip uninstall -y "pytest-plt"
-        exe pip install "matplotlib==2.1.2"
-    fi
-{% endblock %}

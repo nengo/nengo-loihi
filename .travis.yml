@@ -26,7 +26,6 @@ jobs:
   -
     env:
       SCRIPT="emulator"
-      TEST_ARGS="-p nengo.tests.options --simulator nengo_loihi.Simulator --ref-simulator nengo_loihi.Simulator --neurons nengo.LIF,nengo.SpikingRectifiedLinear"
     stage: basic
   -
     env:

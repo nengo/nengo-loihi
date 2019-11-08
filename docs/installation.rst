@@ -18,7 +18,7 @@ Nengo Loihi's requirements.
 If anything goes wrong during this process,
 it is likely related to installing NumPy.
 Follow `our NumPy install instructions
-<https://www.nengo.ai/nengo/getting_started.html#installing-numpy>`_,
+<https://www.nengo.ai/nengo/getting-started.html#installing-numpy>`_,
 then try again.
 
 INRC/Superhost

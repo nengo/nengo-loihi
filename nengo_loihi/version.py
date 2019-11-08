@@ -43,5 +43,5 @@ minimum_nengo_version = info2string(minimum_nengo_version_info)
 
 # newest nengo version we are compatible with (set to latest released nengo
 # version when releasing this repository)
-latest_nengo_version_info = (3, 0, 0)
+latest_nengo_version_info = (3, 0, 1)
 latest_nengo_version = info2string(latest_nengo_version_info)

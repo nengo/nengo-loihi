@@ -3,11 +3,10 @@ import logging
 import warnings
 
 from nengo.exceptions import SimulationError, ValidationError
-from nengo.utils.compat import is_array, is_number
 import numpy as np
 
 from nengo_loihi.block import Probe
-from nengo_loihi.compat import make_process_step
+from nengo_loihi.compat import is_array, is_number, make_process_step
 from nengo_loihi.discretize import (
     decay_int,
     LEARN_FRAC,
