@@ -289,27 +289,22 @@ def rate_nengo_dl_net(
 )
 def test_nengo_dl_neuron_grads(neuron_type, plt):
     tf = pytest.importorskip("tensorflow")
-    gradient_checker = pytest.importorskip("tensorflow.python.ops").gradient_checker
 
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
-    with nengo_dl.Simulator(net, dt=net.dt) as sim:
-        sim.run_steps(
-            1,
-            input_feeds={net.stim: net.x[None, None, :]},
-            extra_feeds={sim.tensor_graph.signals.training: True},
-        )
-        y = sim.data[net.probe][0]
+
+    with tf.keras.backend.learning_phase_scope(1):
+        with nengo_dl.Simulator(net, dt=net.dt) as sim:
+            sim.run_steps(1, data={net.stim: net.x[None, None, :]})
+            y = sim.data[net.probe][0]
 
     # --- compute spiking rates
     n_spike_steps = 1000
     x_spikes = net.x + np.zeros((1, n_spike_steps, 1), dtype=net.x.dtype)
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
         sim.run_steps(
-            n_spike_steps,
-            input_feeds={net.stim: x_spikes},
-            extra_feeds={sim.tensor_graph.signals.training: False},
+            n_spike_steps, data={net.stim: x_spikes},
         )
         y_spikes = sim.data[net.probe]
         y_spikerate = y_spikes.mean(axis=0)
@@ -327,42 +322,14 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
         )
 
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
-        n_steps = sim.unroll
-        assert n_steps == 1
+        assert sim.unroll == 1
+        # note: not actually checking gradients, just using this to get the
+        # gradients
+        analytic = sim.check_gradients(inputs=[net.x[None, None, :]], atol=1e10)[
+            net.probe
+        ]["analytic"][0]
 
-        inp = sim.tensor_graph.input_ph[net.stim]
-        inp_shape = inp.get_shape().as_list()
-        inp_shape = [n_steps if s is None else s for s in inp_shape]
-        inp_data = np.zeros(inp_shape) + net.x[None, :, None]
-
-        out = sim.tensor_graph.probe_arrays[net.probe] + 0
-        out_shape = out.get_shape().as_list()
-        out_shape = [n_steps if s is None else s for s in out_shape]
-
-        data = {
-            n: np.zeros((sim.minibatch_size, n_steps, n.size_out))
-            for n in sim.tensor_graph.invariant_inputs
-        }
-        data.update(
-            {
-                p: np.zeros((sim.minibatch_size, n_steps, p.size_in))
-                for p in sim.tensor_graph.target_phs
-            }
-        )
-        feed = sim._fill_feed(n_steps, data, training=True)
-
-        with tf.variable_scope(tf.get_variable_scope()) as scope:
-            dx, dy = gradient_checker._compute_dx_and_dy(inp, out, out_shape)
-            sim.sess.run(
-                tf.variables_initializer(scope.get_collection("gradient_vars"))
-            )
-
-        with sim.sess.as_default():
-            analytic = gradient_checker._compute_theoretical_jacobian(
-                inp, inp_shape, inp_data, dy, out_shape, dx, extra_feed_dict=feed
-            )
-
-        dy = np.array(np.diag(analytic))
+        dy = np.diagonal(analytic.copy())
 
     dx = net.x[1] - net.x[0]
     dy_est = np.diff(nengo.synapses.Alpha(10).filtfilt(rates["ref"], dt=1)) / dx
@@ -401,18 +368,20 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
     ],
 )
 def test_nengo_dl_noise(neuron_type, seed, plt):
+    tf = pytest.importorskip("tensorflow")
+
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
     n_noise = 1000  # number of noise samples per x point
 
-    with nengo_dl.Simulator(net, dt=net.dt, minibatch_size=n_noise, seed=seed) as sim:
-        input_data = {net.stim: np.tile(net.x[None, None, :], (n_noise, 1, 1))}
-        sim.step(
-            input_feeds=input_data,
-            extra_feeds={sim.tensor_graph.signals.training: True},
-        )
-        y = sim.data[net.probe][:, 0, :]
+    with tf.keras.backend.learning_phase_scope(1):
+        with nengo_dl.Simulator(
+            net, dt=net.dt, minibatch_size=n_noise, seed=seed
+        ) as sim:
+            input_data = {net.stim: np.tile(net.x[None, None, :], (n_noise, 1, 1))}
+            sim.step(data=input_data)
+            y = sim.data[net.probe][:, 0, :]
 
     ymean = y.mean(axis=0)
     y25 = np.percentile(y, 25, axis=0)

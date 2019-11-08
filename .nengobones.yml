@@ -42,7 +42,7 @@ setup_py:
     - matplotlib>=2.0
     - nbsphinx
     - nbconvert
-    - nengo-dl>=2.1.1
+    - nengo-dl  # TODO: add >=3.0 when released
     - nengo-extras
     - nengo_sphinx_theme>=0.7
     - numpydoc>=0.6
@@ -448,6 +448,9 @@ travis_yml:
   jobs:
     - stage: basic
       script: emulator
+      env:
+        # TODO: remove this when NengoDL 3.0 is released
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
     - script: static
     - stage: advanced
       script: emulator

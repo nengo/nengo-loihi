@@ -25,6 +25,7 @@ jobs:
   include:
   -
     env:
+      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       SCRIPT="emulator"
     stage: basic
   -
