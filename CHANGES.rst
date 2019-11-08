@@ -39,6 +39,9 @@ Release history
   (`#226 <https://github.com/nengo/nengo-loihi/pull/226>`__)
 - The ``scipy`` package is now required to run Nengo Loihi.
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
+- Increased minimum NengoDL version to 3.0 (and this transitively increases the minimum
+  TensorFlow version to 2.0).
+  (`#259 <https://github.com/nengo/nengo-loihi/pull/259>`__)
 
 0.8.0 (June 23, 2019)
 =====================

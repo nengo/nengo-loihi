@@ -17,6 +17,7 @@ if HAS_DL:
     import nengo_dl
     import nengo_dl.neuron_builders
     import tensorflow as tf
+    from tensorflow.python.keras.utils import tf_utils
 else:
     # Empty classes so that we can define the subclasses even though
     # we will never use them, as they are only used in the `install`
@@ -118,11 +119,11 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
             [
-                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
                 for model, op in zip(self.noise_models, ops)
             ]
         )
-        self.tau_s = signals.constant(tau_s, dtype=self.dtype)
+        self.tau_s = tf.constant(tau_s, dtype=self.dtype)
 
     def generate(self, period, tau_rc=None):
         d = tau_rc - self.tau_s
@@ -145,7 +146,7 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
             [
-                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
                 for model, op in zip(self.noise_models, ops)
             ]
         )
@@ -267,14 +268,13 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
         else:
             rate_out = self._rate_step(J, signals.dt)
 
-            spikes, voltage, refractory = tf.cond(
-                signals.training,
+            spikes, voltage, refractory = tf_utils.smart_cond(
+                self.config.training,
                 lambda: (rate_out, voltage, refractory),
                 lambda: (spike_out, spike_voltage, spike_ref),
             )
 
         signals.scatter(self.output_data, spikes)
-        signals.mark_gather(self.J_data)
         signals.scatter(self.refractory_data, refractory)
         signals.scatter(self.voltage_data, voltage)
 
@@ -296,7 +296,7 @@ class LoihiSpikingRectifiedLinearBuilder(
         )
 
         self.zeros = tf.zeros(
-            self.J_data.shape + (signals.minibatch_size,), signals.dtype
+            (signals.minibatch_size,) + self.J_data.shape, signals.dtype
         )
 
         self.epsilon = tf.constant(1e-15, dtype=signals.dtype)
@@ -348,8 +348,8 @@ class LoihiSpikingRectifiedLinearBuilder(
         else:
             rate_out = self._rate_step(J, signals.dt)
 
-            out, voltage = tf.cond(
-                signals.training,
+            out, voltage = tf_utils.smart_cond(
+                self.config.training,
                 lambda: (rate_out, voltage),
                 lambda: (spike_out, spike_voltage),
             )
