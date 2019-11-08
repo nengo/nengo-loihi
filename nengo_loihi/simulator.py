@@ -5,13 +5,12 @@ import warnings
 
 import nengo
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
-from nengo.simulator import ProbeDict as NengoProbeDict
 import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
-from nengo_loihi.compat import seed_network
+from nengo_loihi.compat import NengoSimulationData, seed_network
 import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
@@ -185,7 +184,7 @@ class Simulator:
             self.precompute = True
 
         self._probe_outputs = self.model.params
-        self.data = ProbeDict(self._probe_outputs)
+        self.data = SimulationData(self._probe_outputs)
         for sim in self.sims.values():
             self.data.add_fallback(sim.data)
 
@@ -576,7 +575,7 @@ class Simulator:
         return self.dt * steps[steps % period < 1]
 
 
-class ProbeDict(NengoProbeDict):
+class SimulationData(NengoSimulationData):
     """Map from Probe -> ndarray
 
     This is more like a view on the dict that the simulator manipulates.
@@ -586,11 +585,11 @@ class ProbeDict(NengoProbeDict):
     """
 
     def __init__(self, raw):
-        super(ProbeDict, self).__init__(raw=raw)
+        super(SimulationData, self).__init__(raw=raw)
         self.fallbacks = []
 
     def add_fallback(self, fallback):
-        assert isinstance(fallback, NengoProbeDict)
+        assert isinstance(fallback, NengoSimulationData)
         self.fallbacks.append(fallback)
 
     def __getitem__(self, key):

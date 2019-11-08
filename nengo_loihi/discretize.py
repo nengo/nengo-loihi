@@ -2,10 +2,10 @@ import logging
 import warnings
 
 from nengo.exceptions import BuildError
-from nengo.utils.compat import is_iterable
 import numpy as np
 
 from nengo_loihi.block import SynapseConfig
+from nengo_loihi.compat import is_iterable
 from nengo_loihi.nxsdk_obfuscation import d
 
 VTH_MAN_MAX = d(b"MTMxMDcx", int)

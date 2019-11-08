@@ -1,4 +1,4 @@
-from nengo.utils.compat import is_integer
+from nengo_loihi.compat import is_integer
 
 
 class LoihiInput:
