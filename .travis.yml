@@ -19,7 +19,7 @@ env:
     - COV_CORE_DATAFILE=.coverage.eager
     - BRANCH_NAME="${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}"
     - NENGO_VERSION="nengo[tests]"
-    - NENGO_DL_VERSION="nengo-dl"
+    - NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git@learning-phase"
 
 jobs:
   include:
@@ -34,19 +34,19 @@ jobs:
   -
     env:
       NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
-      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
+      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl"
       SCRIPT="emulator"
     stage: advanced
   -
     env:
       NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
-      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
+      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl"
       NXSDK_VERSION="0.8.5"
       SCRIPT="hardware"
   -
     env:
       NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
-      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
+      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl"
       SCRIPT="docs"
     addons:
       apt:

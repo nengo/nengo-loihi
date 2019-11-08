@@ -441,7 +441,7 @@ travis_yml:
   python: 3.5.2
   global_vars:
     NENGO_VERSION: nengo[tests]
-    NENGO_DL_VERSION: nengo-dl
+    NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase
   jobs:
     - stage: basic
       script: emulator
@@ -451,16 +451,16 @@ travis_yml:
       script: emulator
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
     - script: hardware
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
         NXSDK_VERSION: 0.8.5
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
   pypi_user: tbekolay
   deploy_dists:
     - sdist
