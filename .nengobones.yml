@@ -474,6 +474,7 @@ ci_scripts:
       - $NENGO_DL_VERSION
       - jupyter
       - numpy
+      - git+https://github.com/nengo/nengo-extras@fix-compat
     coverage: true
     nengo_tests: true
   - template: static
@@ -492,6 +493,7 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - cython
+      - git+https://github.com/nengo/nengo-extras@fix-compat
   - template: deploy
 
 codecov_yml: {}

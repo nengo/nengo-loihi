@@ -15,6 +15,7 @@
 
         echo "$ ({{ host }}) Installing {{ pkg }}"
         pip install $NENGO_DL_VERSION jupyter
+        pip install git+https://github.com/nengo/nengo-extras@fix-compat
         pip install -e .[tests]
         pip install $NENGO_VERSION --upgrade
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
