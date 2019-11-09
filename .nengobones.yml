@@ -42,7 +42,7 @@ setup_py:
     - matplotlib>=2.0
     - nbsphinx
     - nbconvert
-    - nengo-dl>=3.0
+    - nengo-dl
     - nengo-extras
     - nengo_sphinx_theme>=0.7
     - numpydoc>=0.6
