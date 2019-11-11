@@ -15,7 +15,7 @@ class HostSendNode(Node):
 
     def update(self, t, x):
         assert len(self.queue) == 0 or t > self.queue[-1][0]
-        self.queue.append((t, x))
+        self.queue.append((t, x.copy()))
 
 
 class HostReceiveNode(Node):
@@ -37,6 +37,7 @@ class HostReceiveNode(Node):
         return self.queue[self.queue_index][1]
 
     def receive(self, t, x):
+        # we assume that x will not be mutated (i.e. we do not need to copy)
         self.queue.append((t, x))
 
 
