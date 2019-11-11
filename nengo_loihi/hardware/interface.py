@@ -202,7 +202,7 @@ class HardwareInterface:
 
                 for j in range(len(x)):
                     receiver.receive(
-                        self.model.dt * (self._chip2host_sent_steps + j + 2), x[j]
+                        self.model.dt * (self._chip2host_sent_steps + j + 1), x[j]
                     )
 
         if increment is not None:

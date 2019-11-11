@@ -1,3 +1,5 @@
+import collections
+
 from nengo import Node
 from nengo.exceptions import SimulationError
 from nengo.params import Default
@@ -22,19 +24,18 @@ class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
     def __init__(self, dimensions, label=Default, check_output=False):
-        self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
+        self.queue = collections.deque()
         super(HostReceiveNode, self).__init__(
             self.update, size_in=0, size_out=dimensions, label=label
         )
 
     def update(self, t):
-        while (
-            len(self.queue) > self.queue_index + 1
-            and self.queue[self.queue_index][0] < t
-        ):
-            self.queue_index += 1
-        return self.queue[self.queue_index][1]
+        if t <= 0:
+            return np.zeros(self.size_out)
+
+        t1, x = self.queue.popleft()
+        assert abs(t - t1) < 1e-8
+        return x
 
     def receive(self, t, x):
         # we assume that x will not be mutated (i.e. we do not need to copy)

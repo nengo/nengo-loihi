@@ -637,7 +637,7 @@ class ProbeState:
             if probe.weights is not None:
                 x = np.dot(x, probe.weights)
             for j, xx in enumerate(x):
-                receiver.receive(self.dt * (already_sent + j + 2), xx)
+                receiver.receive(self.dt * (already_sent + j + 1), xx)
         return len(x)
 
     def update(self, t, compartment):
