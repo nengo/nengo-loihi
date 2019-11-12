@@ -236,7 +236,8 @@ def build_chip_to_host(model, conn):
         label=None if conn.label is None else "%s_receive" % conn.label,
         add_to_container=False,
     )
-    host.config[receive].check_output = False
+    if "check_output" in host.config[receive]._clsparams._extra_params:
+        host.config[receive].check_output = False
     host.build(receive)
 
     receive2post = Connection(
