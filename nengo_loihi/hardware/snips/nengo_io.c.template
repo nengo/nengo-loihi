@@ -173,7 +173,7 @@ void nengo_io(runState *s) {
         }
     }
 
-    buffer[0] = s->{{ obfs.step }} - 1;  // zero-based time step
+    buffer[0] = s->{{ obfs.step }};  // one-based time step
 {% for n_out, core, compartment, key in probes %}
 {% if key == 'u' %}
     buffer[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].U;

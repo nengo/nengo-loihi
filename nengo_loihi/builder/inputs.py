@@ -30,11 +30,11 @@ class HostReceiveNode(Node):
         )
 
     def update(self, t):
-        if t <= 0:
+        if len(self.queue) == 0:  # will happen if host updates before chip
             return np.zeros(self.size_out)
 
         t1, x = self.queue.popleft()
-        assert abs(t - t1) < 1e-8
+        assert t1 >= t, "Must retreive chip->host messages in order"
         return x
 
     def receive(self, t, x):

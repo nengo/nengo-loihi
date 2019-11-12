@@ -633,11 +633,13 @@ class ProbeState:
         """
         x = self.outputs[probe][already_sent:]
 
+        # add 1 because node `t` is one ahead, and 1 to use this value on next timestep
+        step0 = already_sent + 2
         if len(x) > 0:
             if probe.weights is not None:
                 x = np.dot(x, probe.weights)
             for j, xx in enumerate(x):
-                receiver.receive(self.dt * (already_sent + j + 1), xx)
+                receiver.receive(self.dt * (step0 + j), xx)
         return len(x)
 
     def update(self, t, compartment):

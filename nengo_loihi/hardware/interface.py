@@ -177,6 +177,8 @@ class HardwareInterface:
             self.host_socket_connected = True
 
     def _chip2host_monitor(self, probes_receivers):
+        # add 1 because node `t` is one ahead, and 1 to use this value on next timestep
+        step0 = self._chip2host_sent_steps + 2
         increment = None
         for probe, receiver in probes_receivers.items():
             assert not probe.use_snip
@@ -201,9 +203,7 @@ class HardwareInterface:
                     x = np.dot(x, probe.weights)
 
                 for j in range(len(x)):
-                    receiver.receive(
-                        self.model.dt * (self._chip2host_sent_steps + j + 1), x[j]
-                    )
+                    receiver.receive(self.model.dt * (step0 + j), x[j])
 
         if increment is not None:
             self._chip2host_sent_steps += increment
