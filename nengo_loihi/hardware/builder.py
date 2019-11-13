@@ -22,7 +22,7 @@ from nengo_loihi.inputs import SpikeInput
 logger = logging.getLogger(__name__)
 
 
-def build_board(board, seed=None):
+def build_board(board, use_snips=False, seed=None):
     n_chips = board.n_chips
     n_cores_per_chip = board.n_cores_per_chip
     n_synapses_per_core = board.n_synapses_per_core
@@ -32,7 +32,7 @@ def build_board(board, seed=None):
 
     # add our own attribute for storing our spike generator
     assert not hasattr(nxsdk_board, "global_spike_generator")
-    nxsdk_board.global_spike_generator = SpikeGen(nxsdk_board)
+    nxsdk_board.global_spike_generator = None if use_snips else SpikeGen(nxsdk_board)
 
     # custom attr for storing SpikeInputs (filled in build_input)
     assert not hasattr(nxsdk_board, "spike_inputs")
@@ -50,9 +50,9 @@ def build_board(board, seed=None):
 
 
 def build_chip(nxsdk_chip, chip, seed=None):
-    assert len(chip.cores) == len(d_get(nxsdk_chip, b"bjJDb3Jlcw=="))
+    assert len(chip.cores) == len(d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA=="))
     rng = np.random.RandomState(seed)
-    for core, nxsdk_core in zip(chip.cores, d_get(nxsdk_chip, b"bjJDb3Jlcw==")):
+    for core, nxsdk_core in zip(chip.cores, d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA==")):
         logger.debug("Building core %s", core)
         seed = rng.randint(npext.maxint)
         build_core(nxsdk_core, core, seed=seed)
@@ -380,6 +380,10 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
 
     # add any pre-existing spikes to spikegen
     for t in spike_input.spike_times():
+        assert (
+            nxsdk_board.global_spike_generator is not None
+        ), "Cannot add pre-existing spikes when using SNIPs (no spike generator)"
+
         spikes = spike_input.spike_idxs(t)
         for spike in loihi_input.spikes_to_loihi(t, spikes):
             assert (
@@ -539,7 +543,7 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     nxsdk_board = d_get(nxsdk_core, b"cGFyZW50", b"cGFyZW50")
     tchip_id = d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"aWQ=")
     tcore_id = d_get(
-        d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"bjJDb3Jlcw==")[
+        d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"bjJDb3Jlc0FzTGlzdA==")[
             tcore_idx
         ],
         b"aWQ=",

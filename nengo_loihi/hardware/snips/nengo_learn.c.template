@@ -38,9 +38,11 @@ void nengo_learn(runState *s) {
     for (int error_index=0; error_index < n_errors; error_index++) {
         core = s->{{ obfs.data }} [offset];
         n_vals = s->{{ obfs.data }} [offset+1];
+
+        neuron = {{ obfs.neuron }}(({{ obfs.id_class }}) {.id=core});
+
         for (int i=0; i < n_vals; i++) {
             error = (signed char) s->{{ obfs.data }} [offset+2+i];
-            neuron = {{ obfs.neuron }}(({{ obfs.id_class }}) {.id=core});
             compartment_idx = i;
 
             if (error > 0) {

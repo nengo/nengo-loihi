@@ -4,16 +4,31 @@
 
 #define DEBUG 0
 #define N_OUTPUTS {{ n_outputs }}
+#define N_OUTPUT_PACKETS {{ n_output_packets }}
 #define N_ERRORS {{ n_errors }}
-#define MAX_ERROR_LEN {{ max_error_len }}
+#define BUFFER_SIZE {{ buffer_size }}
+#define PACKET_SIZE {{ packet_size }}
 #define SPIKE_SIZE {{ obfs.spike_size }}
 #define ERROR_INFO_SIZE {{ obfs.error_info_size }}
 
+int is_shutdown = 0;  // if true, we've been asked to shut down
+
+inline int min(int a, int b) {
+    return (a < b) ? a : b;
+}
+
 int guard_io(runState *s) {
-    return 1;
+    return !is_shutdown;
 }
 
 void nengo_io(runState *s) {
+#if SPIKE_SIZE != 2
+    // SPIKE_SIZE != 2 will require a number of changes to this function.
+    // Search for SPIKE_SIZE == 2 precompiler directives.
+    printf("SPIKE_SIZE == 2 assertion failed\n");
+    return;
+#endif
+
 {% for core in cores %}
     {{ obfs.core_class }} *core{{ core }} = NEURON_PTR((CoreId){ .id={{ core }} });
 {% endfor %}
@@ -24,12 +39,18 @@ void nengo_io(runState *s) {
     {{ obfs.int_type }} axon_type;
     {{ obfs.int_type }} axon_id;
     {{ obfs.int_type }} atom;
-    {{ obfs.int_type }} count[1];
-    {{ obfs.int_type }} spike[SPIKE_SIZE];
-    {{ obfs.int_type }} error_info[ERROR_INFO_SIZE];
-    {{ obfs.int_type }} error_data[MAX_ERROR_LEN];
-    {{ obfs.int_type }} error_index;
-    {{ obfs.int_type }} output[N_OUTPUTS];
+    {{ obfs.int_type }} n_spikes;  // input spike count
+    {{ obfs.int_type }} i_spike;  // input spike position
+    {{ obfs.int_type }} *spike;
+
+    {{ obfs.int_type }} error_index;  // index into error stored in shared data
+    {{ obfs.int_type }} i_error = 0;  // index of error block
+    {{ obfs.int_type }} j_error = 0;  // index of error in error block
+    {{ obfs.int_type }} n_errors = -1;  // number of errors in error block
+
+    {{ obfs.int_type }} buffer[BUFFER_SIZE];
+    {{ obfs.int_type }} buffer_pos;  // current read position in buffer
+    {{ obfs.int_type }} buffer_len;  // current length of info in buffer
 
     if (in_channel == -1 || out_channel == -1) {
         printf("Got an invalid channel ID\n");
@@ -40,24 +61,59 @@ void nengo_io(runState *s) {
         printf("time %d\n", s->{{ obfs.step }});
     }
 
-    {{ obfs.read }}(in_channel, count, 1);
-    if (DEBUG) {
-        printf("count %d\n", count[0]);
+    // read first packet
+    {{ obfs.read }}(in_channel, buffer, 1);
+    buffer_len = PACKET_SIZE;
+    n_spikes = buffer[0];
+    buffer_pos = 1;
+    if (n_spikes < 0) {
+        printf("Chip received shutdown signal: %d\n", n_spikes);
+        is_shutdown = 1;
+        return;
     }
+#if DEBUG
+    printf("num input spikes: %d\n", n_spikes);
+#endif
 
-    for (int i=0; i < count[0]; i++) {
-        {{ obfs.read }}(in_channel, spike, SPIKE_SIZE);
-        if (DEBUG) {
-            printf("send spike %d.%d\n", spike[0], spike[1]);
+    for (i_spike = 0; i_spike < n_spikes; i_spike++) {
+        // read a new packet if necessary
+        if (buffer_pos + SPIKE_SIZE > buffer_len) {
+            if (buffer_len - buffer_pos > 0) {
+                // part of a spike remains at end of buffer
+#if SPIKE_SIZE == 2
+                buffer[0] = buffer[buffer_pos];
+                buffer_len = 1;
+#endif
+            } else {
+                buffer_len = 0;
+            }
+
+            // read next packet
+            {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
+            buffer_len += PACKET_SIZE;
+            buffer_pos = 0;
+
+#if DEBUG
+            printf("Read packet. Buffer len: %d\n", buffer_len);
+#endif
         }
+
+        spike = &buffer[buffer_pos];
+        buffer_pos += SPIKE_SIZE;
+#if DEBUG
+        printf("send spike %d.%d\n", spike[0], spike[1]);
+#endif
+
+#if SPIKE_SIZE == 2
         core_id = ({{ obfs.id_class }}) { .id=(spike[0] >> {{ obfs.spike_shift }}) };
         axon_id = spike[0] & {{ obfs.spike_mask }};
         axon_type = spike[1] >> {{ obfs.spike_shift }};
         atom = spike[1] & {{ obfs.spike_mask }};
-        if (DEBUG) {
-            printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
-                   core_id.id, axon_id, axon_type, atom);
-        }
+#endif
+#if DEBUG
+        printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
+               core_id.id, axon_id, axon_type, atom);
+#endif
         if (axon_type == {{ obfs.axon_type_0 }}) {
             {{ obfs.do_axon_type_0 }}(s->{{ obfs.step }}, core_id, axon_id);
         } else if (axon_type == {{ obfs.axon_type_1 }}) {
@@ -71,25 +127,60 @@ void nengo_io(runState *s) {
     // Communicate with learning snip
     s->{{ obfs.data }}[0] = N_ERRORS;
     error_index = 1;
-    for (int i=0; i < N_ERRORS; i++) {
-        {{ obfs.read }}(in_channel, error_info, ERROR_INFO_SIZE);
-        {{ obfs.read }}(in_channel, error_data, error_info[1]);
-        s->{{ obfs.data }}[error_index] = error_info[0];
-        s->{{ obfs.data }}[error_index + 1] = error_info[1];
-        for (int j=0; j < error_info[1]; j++) {
-            s->{{ obfs.data }}[error_index + ERROR_INFO_SIZE + j] = error_data[j];
+    i_error = 0;
+    j_error = 0;
+    n_errors = -1;
+
+    while (i_error < N_ERRORS || j_error < n_errors) {
+        // read from channel
+        if (buffer_pos + ((n_errors < 0) ? ERROR_INFO_SIZE : 1) > buffer_len) {
+            if (buffer_pos < buffer_len) {
+                // part of the error info remains at end of buffer
+#if ERROR_INFO_SIZE == 2
+                buffer[0] = buffer[buffer_pos];
+                buffer_len = 1;
+#endif
+            } else {
+                buffer_len = 0;
+            }
+
+            // read next packet
+            {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
+            buffer_len += PACKET_SIZE;
+            buffer_pos = 0;
         }
-        error_index += ERROR_INFO_SIZE + error_info[1];
+
+        if (n_errors < 0) {
+            // move to next error block
+{% for j in range(obfs.error_info_size) %}
+            s->{{ obfs.data }}[error_index + {{ j }}] = buffer[buffer_pos + {{ j }}];
+{% endfor %}
+            n_errors = buffer[buffer_pos + 1];
+            j_error = 0;
+            error_index += ERROR_INFO_SIZE;
+            buffer_pos += ERROR_INFO_SIZE;
+        } else {
+            // read next error
+            s->{{ obfs.data }}[error_index] = buffer[buffer_pos];
+            j_error++;
+            error_index++;
+            buffer_pos++;
+        }
+
+        if (j_error == n_errors) {
+            i_error++;
+            n_errors = -1;
+        }
     }
 
-    output[0] = s->{{ obfs.step }};
+    buffer[0] = s->{{ obfs.step }};  // one-based time step
 {% for n_out, core, compartment, key in probes %}
 {% if key == 'u' %}
-    output[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].U;
+    buffer[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].U;
 {% elif key in ('v', 'spike') %}
-    output[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].V;
+    buffer[{{ n_out }}] = core{{ core }}->{{ obfs.state }}[{{ compartment }}].V;
 {% endif %}
 {% endfor %}
 
-    {{ obfs.write }}(out_channel, output, N_OUTPUTS);
+    {{ obfs.write }}(out_channel, buffer, N_OUTPUT_PACKETS);
 }

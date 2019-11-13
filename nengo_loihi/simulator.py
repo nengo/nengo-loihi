@@ -1,22 +1,20 @@
 from collections import OrderedDict
 import logging
-import traceback
+import timeit
 import warnings
 
 import nengo
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
-from nengo.simulator import ProbeDict as NengoProbeDict
 import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
-from nengo_loihi.compat import seed_network
+from nengo_loihi.compat import NengoSimulationData, seed_network
 import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
-from nengo_loihi.nxsdk_obfuscation import d_func
 from nengo_loihi.splitter import Split
 
 logger = logging.getLogger(__name__)
@@ -97,7 +95,7 @@ class Simulator:
         dt=0.001,
         seed=None,
         model=None,
-        precompute=False,
+        precompute=None,
         target=None,
         progress_bar=None,
         remove_passthrough=True,
@@ -105,7 +103,6 @@ class Simulator:
     ):
         # initialize values used in __del__ and close() first
         self.closed = True
-        self.precompute = precompute
         self.network = network
         self.sims = OrderedDict()
         self._run_steps = None
@@ -139,7 +136,9 @@ class Simulator:
 
         # determine how to split the host into one, two or three models
         self.model.split = Split(
-            network, precompute=precompute, remove_passthrough=remove_passthrough
+            network,
+            precompute=False if precompute is None else precompute,
+            remove_passthrough=remove_passthrough,
         )
 
         # Build the network into the model
@@ -154,8 +153,24 @@ class Simulator:
             self.model.seeded[conn] = False
             self.model.build(conn)
 
-        if len(self.model.host_pre.params):
-            assert precompute
+        # Create host_pre and host simulators if necessary
+        self.precompute = precompute
+        if precompute is None:
+            # If there is no host then all objects must be on the chip,
+            # which is precomputable in the sense that
+            # no communication has to happen with the host.
+            self.precompute = len(self.model.host.params) == 0
+        elif len(self.model.host_pre.params) == 0 and precompute:
+            warnings.warn(
+                "No precomputable objects. Setting precompute=True has no effect."
+            )
+        elif len(self.model.host.params) == 0 and not precompute:
+            warnings.warn(
+                "Model is pre-computable. Setting precompute=False may slow execution."
+            )
+
+        if len(self.model.host_pre.params) > 0:
+            assert self.precompute
             self.sims["host_pre"] = nengo.Simulator(
                 network=None,
                 dt=self.dt,
@@ -163,12 +178,8 @@ class Simulator:
                 progress_bar=False,
                 optimize=False,
             )
-        elif precompute:
-            warnings.warn(
-                "No precomputable objects. Setting " "precompute=True has no effect."
-            )
 
-        if len(self.model.host.params):
+        if len(self.model.host.params) > 0:
             self.sims["host"] = nengo.Simulator(
                 network=None,
                 dt=self.dt,
@@ -176,16 +187,9 @@ class Simulator:
                 progress_bar=False,
                 optimize=False,
             )
-        elif not precompute:
-            # If there is no host and precompute=False, then all objects
-            # must be on the chip, which is precomputable in the sense that
-            # no communication has to happen with the host.
-            # We could warn about this, but we want to avoid people having
-            # to specify `precompute` unless they absolutely have to.
-            self.precompute = True
 
         self._probe_outputs = self.model.params
-        self.data = ProbeDict(self._probe_outputs)
+        self.data = SimulationData(self._probe_outputs)
         for sim in self.sims.values():
             self.data.add_fallback(sim.data)
 
@@ -316,6 +320,7 @@ class Simulator:
 
         self._n_steps = 0
         self._time = 0
+        self.timers = dict(steps=0.0)
 
         # clear probe data
         for probe in self.model.probes:
@@ -368,26 +373,34 @@ class Simulator:
         spikes = []
         errors = OrderedDict()
         for sender, receiver in self.model.host2chip_senders.items():
-            receiver.clear()
-            for t, x in sender.queue:
-                receiver.receive(t, x)
-            del sender.queue[:]
+            spike_target = receiver.spike_target
+            error_target = receiver.error_target
+            if error_target is not None:
+                conn = self.model.probe_conns[error_target]
+                error_synapse = self.model.objs[conn]["decoders"]
+                assert error_synapse.learning
+            else:
+                error_synapse = None
 
-            if hasattr(receiver, "collect_spikes"):
-                for spike_input, t, spike_idxs in receiver.collect_spikes():
-                    ti = round(t / self.model.dt)
-                    spikes.append((spike_input, ti, spike_idxs))
-            if hasattr(receiver, "collect_errors"):
-                for probe, t, e in receiver.collect_errors():
-                    conn = self.model.probe_conns[probe]
-                    synapse = self.model.objs[conn]["decoders"]
-                    assert synapse.learning
-                    ti = round(t / self.model.dt)
-                    errors_ti = errors.setdefault(ti, OrderedDict())
-                    if synapse in errors_ti:
-                        errors_ti[synapse] += e
+            for t, x in sender.queue:
+                ti = round(t / self.model.dt)
+
+                if spike_target is not None:
+                    spike_idxs = x.nonzero()[0]
+                    spikes.append((spike_target, ti, spike_idxs))
+
+                if error_synapse is not None:
+                    errors_ti = errors.get(ti, None)
+                    if errors_ti is None:
+                        errors_ti = OrderedDict()
+                        errors[ti] = errors_ti
+
+                    if error_synapse in errors_ti:
+                        errors_ti[error_synapse] += x
                     else:
-                        errors_ti[synapse] = e.copy()
+                        errors_ti[error_synapse] = x.copy()
+
+            sender.queue.clear()
 
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()
@@ -465,7 +478,7 @@ class Simulator:
 
             self._run_steps = emu_bidirectional_with_host
 
-    def _make_loihi_run_steps(self):
+    def _make_loihi_run_steps(self):  # noqa: C901
         host_pre = self.sims.get("host_pre", None)
         loihi = self.sims["loihi"]
         host = self.sims.get("host", None)
@@ -505,13 +518,24 @@ class Simulator:
 
         else:
             assert host is not None, "Model is precomputable"
+            self.timers["snips"] = 0
 
             def loihi_bidirectional_with_host(steps):
                 loihi.run_steps(steps, blocking=False)
-                for _ in range(steps):
-                    host.step()
+                time0 = timeit.default_timer()
+
+                # Run the first host step so there is info to send to the chip,
+                # then run subsequent host steps simultaneously with the chip
+                host.step()
+                for i in range(steps):
                     self._host2chip(loihi)
+                    if i + 1 < steps:
+                        host.step()
                     self._chip2host(loihi)
+
+                time1 = timeit.default_timer()
+                self.timers["snips"] += time1 - time0
+
                 logger.info("Waiting for run_steps to complete...")
                 loihi.wait_for_completion()
                 logger.info("run_steps completed")
@@ -530,31 +554,14 @@ class Simulator:
             raise SimulatorClosed("Simulator cannot run because it is closed.")
 
         self._make_run_steps()
-        try:
-            self._run_steps(steps)
-        except Exception:
-            if "loihi" in self.sims and self.sims["loihi"].use_snips:
-                # Need to write to board, otherwise it will wait indefinitely
-                h2c = self.sims["loihi"].nengo_io_h2c
-                c2h = self.sims["loihi"].nengo_io_c2h
 
-                print(traceback.format_exc())
-                print("\nAttempting to end simulation...")
+        if "loihi" in self.sims:
+            self.sims["loihi"].connect()  # connect outside timing loop
 
-                for _ in range(steps):
-                    h2c.write(h2c.numElements, [0] * h2c.numElements)
-                    c2h.read(c2h.numElements)
-                self.sims["loihi"].wait_for_completion()
-                d_func(
-                    self.sims["loihi"].nxsdk_board,
-                    b"bnhEcml2ZXI=",
-                    b"c3RvcEV4ZWN1dGlvbg==",
-                )
-                d_func(
-                    self.sims["loihi"].nxsdk_board, b"bnhEcml2ZXI=", b"c3RvcERyaXZlcg=="
-                )
-            raise
+        time0 = timeit.default_timer()
+        self._run_steps(steps)
 
+        self.timers["steps"] += timeit.default_timer() - time0
         self._n_steps += steps
         logger.info("Finished running for %d steps", steps)
         self._probe()
@@ -576,7 +583,7 @@ class Simulator:
         return self.dt * steps[steps % period < 1]
 
 
-class ProbeDict(NengoProbeDict):
+class SimulationData(NengoSimulationData):
     """Map from Probe -> ndarray
 
     This is more like a view on the dict that the simulator manipulates.
@@ -586,11 +593,11 @@ class ProbeDict(NengoProbeDict):
     """
 
     def __init__(self, raw):
-        super(ProbeDict, self).__init__(raw=raw)
+        super(SimulationData, self).__init__(raw=raw)
         self.fallbacks = []
 
     def add_fallback(self, fallback):
-        assert isinstance(fallback, NengoProbeDict)
+        assert isinstance(fallback, NengoSimulationData)
         self.fallbacks.append(fallback)
 
     def __getitem__(self, key):

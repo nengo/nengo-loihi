@@ -14,7 +14,7 @@ def discretize_tau_rc(tau_rc, dt):
     dt : float
         The simulator time step.
     """
-    lib = tf if HAS_TF and isinstance(tau_rc, tf.Tensor) else np
+    lib = tf.math if HAS_TF and isinstance(tau_rc, tf.Tensor) else np
 
     decay_rc = -(lib.expm1(-dt / tau_rc))
     decay_rc = lib.round(decay_rc * (2 ** 12 - 1)) / (2 ** 12 - 1)
@@ -31,7 +31,7 @@ def discretize_tau_ref(tau_ref, dt):
     dt : float
         The simulator time step.
     """
-    lib = tf if HAS_TF and isinstance(tau_ref, tf.Tensor) else np
+    lib = tf.math if HAS_TF and isinstance(tau_ref, tf.Tensor) else np
 
     return dt * lib.round(tau_ref / dt)
 

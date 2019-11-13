@@ -113,11 +113,13 @@ class Model:
             label="%s:host_pre, dt=%f" % (label, dt),
             decoder_cache=NoDecoderCache(),
         )
+        self.host_pre.config = Network.default_config()  # used internally
         self.host = NengoModel(
             dt=float(dt),
             label="%s:host, dt=%f" % (label, dt),
             decoder_cache=NoDecoderCache(),
         )
+        self.host.config = Network.default_config()  # used internally
 
         # Objects created by the model for simulation on Loihi
         self.inputs = OrderedDict()

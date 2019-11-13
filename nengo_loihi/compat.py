@@ -3,7 +3,7 @@ import logging
 
 import nengo
 import numpy as np
-import scipy
+import scipy.sparse
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
     from nengo.builder.network import seed_network
     from nengo.builder.transforms import multiply
+    from nengo.simulator import SimulationData as NengoSimulationData
     import nengo.transforms as nengo_transforms
+    from nengo.utils.numpy import is_array, is_integer, is_iterable, is_number
+    from nengo.utils.testing import signals_allclose
 
     def conn_solver(solver, activities, targets, rng):
         return solver(activities, targets, rng=rng)
@@ -36,6 +39,9 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
 
 else:
     from nengo.builder.connection import multiply
+    from nengo.simulator import ProbeDict as NengoSimulationData
+    from nengo.utils.compat import is_array, is_integer, is_iterable, is_number
+    from nengo.utils.testing import allclose as signals_allclose
 
     nengo_transforms = None
     from nengo.dists import get_samples as _get_samples

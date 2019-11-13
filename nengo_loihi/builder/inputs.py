@@ -1,4 +1,4 @@
-from collections import OrderedDict
+import collections
 
 from nengo import Node
 from nengo.exceptions import SimulationError
@@ -9,7 +9,7 @@ import numpy as np
 class HostSendNode(Node):
     """For sending host->chip messages"""
 
-    def __init__(self, dimensions, label=Default):
+    def __init__(self, dimensions, label=Default, check_output=False):
         self.queue = []
         super(HostSendNode, self).__init__(
             self.update, size_in=dimensions, size_out=0, label=label
@@ -17,57 +17,69 @@ class HostSendNode(Node):
 
     def update(self, t, x):
         assert len(self.queue) == 0 or t > self.queue[-1][0]
-        self.queue.append((t, x))
+        self.queue.append((t, x.copy()))
 
 
 class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
-    def __init__(self, dimensions, label=Default):
-        self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
+    def __init__(self, dimensions, label=Default, check_output=False):
+        self.queue = collections.deque()
         super(HostReceiveNode, self).__init__(
             self.update, size_in=0, size_out=dimensions, label=label
         )
 
     def update(self, t):
-        while (
-            len(self.queue) > self.queue_index + 1
-            and self.queue[self.queue_index][0] < t
-        ):
-            self.queue_index += 1
-        return self.queue[self.queue_index][1]
+        if len(self.queue) == 0:  # will happen if host updates before chip
+            return np.zeros(self.size_out)
+
+        t0, x0 = self.queue[0]
+        if abs(t - t0) < 1e-8:
+            self.queue.popleft()
+            return x0
+        else:
+            assert t < t0, "Must retrieve chip->host messages in order"
+            return np.zeros(self.size_out)
 
     def receive(self, t, x):
+        # we assume that x will not be mutated (i.e. we do not need to copy)
         self.queue.append((t, x))
 
 
-class ChipReceiveNode(Node):
-    """For receiving host->chip messages"""
+class ChipReceiver:
+    """Abstract interface for objects that receive spikes or errors to send to the chip.
+
+    These objects are used in ``Simulator._collect_receiver_info``, where the output
+    from the corresponding sender can be routed to the correct target.
+
+    Attributes
+    ----------
+    error_target : nengo.Probe
+        Probe on the output of the learning connection. This can then be used to look
+        up the synapse for weight adjustment.
+    spike_target : SpikeInput
+        Spike input that will inject the spikes from the sender onto the chip.
+    """
+
+    def __init__(self):
+        self.error_target = None
+        self.spike_target = None
+
+
+class ChipReceiveNode(Node, ChipReceiver):
+    """Represents chip end-point for host->chip encoded connections.
+
+    This Node does not do anything, other than act as a placeholder in ``Connection``s.
+    """
 
     def __init__(self, dimensions, size_out, label=Default):
         self.raw_dimensions = dimensions
-        self.spikes = []
-        self.spike_input = None  # set by builder
         super(ChipReceiveNode, self).__init__(
             self.update, size_in=0, size_out=size_out, label=label
         )
 
-    def clear(self):
-        self.spikes.clear()
-
-    def receive(self, t, x):
-        assert len(self.spikes) == 0 or t > self.spikes[-1][0]
-        assert x.ndim == 1
-        self.spikes.append((t, x.nonzero()[0]))
-
     def update(self, t):
         raise SimulationError("ChipReceiveNodes should not be run")
-
-    def collect_spikes(self):
-        assert self.spike_input is not None
-        for t, x in self.spikes:
-            yield (self.spike_input, t, x)
 
 
 class ChipReceiveNeurons(ChipReceiveNode):
@@ -78,21 +90,13 @@ class ChipReceiveNeurons(ChipReceiveNode):
         super(ChipReceiveNeurons, self).__init__(dimensions, dimensions, label=label)
 
 
-class PESModulatoryTarget:
+class PESModulatoryTarget(ChipReceiver):
+    """Represents chip end-point for host->chip messages.
+
+    This Node does not do anything, other than act as a placeholder in ``Connection``s.
+    All the action happens in
+    """
+
     def __init__(self, target):
-        self.target = target
-        self.errors = OrderedDict()
-
-    def clear(self):
-        self.errors.clear()
-
-    def receive(self, t, x):
-        assert len(self.errors) == 0 or t >= next(reversed(self.errors))
-        if t in self.errors:
-            self.errors[t] += x
-        else:
-            self.errors[t] = np.array(x)
-
-    def collect_errors(self):
-        for t, x in self.errors.items():
-            yield (self.target, t, x)
+        super(PESModulatoryTarget, self).__init__()
+        self.error_target = target

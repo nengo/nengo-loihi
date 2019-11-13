@@ -15,7 +15,7 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
 import numpy as np
-import scipy
+import scipy.sparse
 
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder.builder import Builder
@@ -185,7 +185,7 @@ def build_host_to_chip(model, conn):
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
-    ens = model.node_neurons.get_ensemble(dim)
+    ens = model.node_neurons.get_ensemble(dim, is_input=True, add_to_container=False)
     ens.label = None if conn.label is None else "%s_ens" % conn.label
     _inherit_seed(host, ens, model, conn)
     host.build(ens)
@@ -236,6 +236,8 @@ def build_chip_to_host(model, conn):
         label=None if conn.label is None else "%s_receive" % conn.label,
         add_to_container=False,
     )
+    if "check_output" in host.config[receive]._clsparams._extra_params:
+        host.config[receive].check_output = False
     host.build(receive)
 
     receive2post = Connection(

@@ -19,6 +19,17 @@ Release history
    - Removed
    - Fixed
 
+0.10.0 (unreleased)
+===================
+
+**Added**
+- Nengo Loihi now supports NxSDK version 0.9.0.
+  (`#255 <https://github.com/nengo/nengo-loihi/pull/255>`__)
+
+**Changed**
+- Nengo Loihi now requires minimum NxSDK version 0.8.7.
+  (`#234 <https://github.com/nengo/nengo-loihi/pull/234>`__)
+
 0.9.0 (unreleased)
 ==================
 
@@ -39,6 +50,9 @@ Release history
   (`#226 <https://github.com/nengo/nengo-loihi/pull/226>`__)
 - The ``scipy`` package is now required to run Nengo Loihi.
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
+- Increased minimum NengoDL version to 3.0 (and this transitively increases the minimum
+  TensorFlow version to 2.0).
+  (`#259 <https://github.com/nengo/nengo-loihi/pull/259>`__)
 
 0.8.0 (June 23, 2019)
 =====================

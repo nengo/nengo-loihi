@@ -42,7 +42,7 @@ setup_py:
     - matplotlib>=2.0
     - nbsphinx
     - nbconvert
-    - nengo-dl>=2.1.1
+    - nengo-dl
     - nengo-extras
     - nengo_sphinx_theme>=0.7
     - numpydoc>=0.6
@@ -57,7 +57,6 @@ setup_py:
     - pytest-rng>=1.0.0
     - pytest-xdist<1.28.0
     - matplotlib>=2.0
-    - tensorflow<1.14
   classifiers:
     - "Development Status :: 3 - Alpha"
     - "Framework :: Nengo"
@@ -435,12 +434,14 @@ docs_conf_py:
   nengo_logo: nengo-loihi-full-light.svg
   nengo_logo_color: "#127bc1"
   analytics_id: UA-41658423-2
+  doctest_setup:
+    - import nengo
 
 travis_yml:
-  python: 3.5.2
+  python: 3.6
   global_vars:
     NENGO_VERSION: nengo[tests]
-    NENGO_DL_VERSION: nengo-dl
+    NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase
   jobs:
     - stage: basic
       script: emulator
@@ -450,16 +451,17 @@ travis_yml:
       script: emulator
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
     - script: hardware
+      python: 3.5.2  # nxsdk requires 3.5.2
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
-        NXSDK_VERSION: 0.8.5
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
+        NXSDK_VERSION: 0.9
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
+        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git@learning-phase#egg=nengo-dl
   pypi_user: tbekolay
   deploy_dists:
     - sdist
@@ -472,7 +474,8 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - jupyter
-      - numpy
+      - numpy>=1.14  # avoid the default-installed 1.13 on TravisCI
+      - git+https://github.com/nengo/nengo-extras@fix-compat
     coverage: true
     nengo_tests: true
   - template: static
@@ -491,6 +494,7 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - cython
+      - git+https://github.com/nengo/nengo-extras@fix-compat
   - template: deploy
 
 codecov_yml: {}

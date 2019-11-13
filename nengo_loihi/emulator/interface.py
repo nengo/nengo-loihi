@@ -3,11 +3,10 @@ import logging
 import warnings
 
 from nengo.exceptions import SimulationError, ValidationError
-from nengo.utils.compat import is_array, is_number
 import numpy as np
 
 from nengo_loihi.block import Probe
-from nengo_loihi.compat import make_process_step
+from nengo_loihi.compat import is_array, is_number, make_process_step
 from nengo_loihi.discretize import (
     decay_int,
     LEARN_FRAC,
@@ -634,11 +633,13 @@ class ProbeState:
         """
         x = self.outputs[probe][already_sent:]
 
+        # add 1 because node `t` is one ahead, and 1 to use this value on next timestep
+        step0 = already_sent + 2
         if len(x) > 0:
             if probe.weights is not None:
                 x = np.dot(x, probe.weights)
             for j, xx in enumerate(x):
-                receiver.receive(self.dt * (already_sent + j + 2), xx)
+                receiver.receive(self.dt * (step0 + j), xx)
         return len(x)
 
     def update(self, t, compartment):
