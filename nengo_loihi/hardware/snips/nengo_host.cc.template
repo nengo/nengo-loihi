@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
@@ -44,6 +45,9 @@ class NengoHostProcess : public ConcurrentHostSnip {
         // connect in as the client
         server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
+        int disable_delay = 1;
+        setsockopt(server_socket, SOL_TCP, TCP_NODELAY, &disable_delay, sizeof(disable_delay));
+
         sockaddr_in server_address;
         server_address.sin_family = AF_INET;
         server_address.sin_port = SERVER_PORT;
@@ -75,7 +79,7 @@ class NengoHostProcess : public ConcurrentHostSnip {
         while (!end_of_execution) {
             // read packets from superhost socket
             // first read is blocking, so we wait for packets
-#if DEBUG
+#if DEBUG > 1
             std::cout << "Host: Preparing to read socket" << std::endl;
 #endif
             ssize_t n_read = recv(client_socket, buffer, 4*PACKET_SIZE, 0);
@@ -83,12 +87,12 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 std::cout << "Host received shutdown signal: " << buffer[0] << std::endl;
                 goto cleanup;
             }
-#if DEBUG
-            std::cout << "Host: Read " << n_read << "bytes" << std::endl;
+#if DEBUG > 0
+            std::cout << "Host: Read " << n_read << " bytes" << std::endl;
 #endif
 
             while (n_read > 0) {
-#if DEBUG
+#if DEBUG > 1
                 std::cout << "Input buffer: [";
                 for (int i = 0; i < ceil_div(n_read, 4); i++) {
                     std::cout << buffer[i] << ", ";
@@ -106,8 +110,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
 
                 // subsequent reads are non-blocking, so we just read what's there
                 n_read = recv(client_socket, buffer, 4*PACKET_SIZE, MSG_DONTWAIT);
-#if DEBUG
-                std::cout << "Read " << n_read << "bytes" << std::endl;
+#if DEBUG > 0
+                std::cout << "Read " << n_read << " bytes" << std::endl;
 #endif
             }
 
@@ -126,6 +130,9 @@ class NengoHostProcess : public ConcurrentHostSnip {
             const size_t write_len = N_OUTPUTS;
             const size_t write_bytes = write_len * sizeof(int32_t);
             size_t n_write = write(client_socket, buffer, write_bytes);
+#if DEBUG > 0
+            std::cout << "Sent " << n_write << " bytes" << std::endl;
+#endif
             if (n_write != write_bytes) {
                 std::cout << "Failed write to socket (tried " << write_bytes
                           << ", wrote " << n_write << " bytes)" << std::endl;

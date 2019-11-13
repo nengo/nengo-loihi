@@ -215,13 +215,26 @@ class HardwareInterface:
     def _chip2host_snips(self, probes_receivers):
         assert self.host_socket_connected
 
+        expected_bytes = 4 * self.nengo_io_c2h_count
+        n_waits = 0  # number of times we've had to wait for more data
+
         recv_size = 4096  # python docs recommend small power of 2, e.g. 4096
         received = self.host_socket.recv(recv_size)  # blocking recv call
         data = received
-        while len(received) == recv_size:
-            received = self.host_socket.recv(recv_size, flags=socket.MSG_DONTWAIT)
-            data += received
-        assert len(data) == 4 * self.nengo_io_c2h_count
+        while len(data) < expected_bytes and n_waits < 10:
+            if len(received) != recv_size:
+                # We did not get all the data we expected. Wait before trying again.
+                time.sleep(0.001)
+                n_waits += 1
+
+            received = self.host_socket.recv(recv_size, socket.MSG_DONTWAIT)
+            if len(received) > 0:
+                data += received
+
+        assert len(data) == expected_bytes, "Received (%d) less than expected (%d)" % (
+            len(data),
+            expected_bytes,
+        )
 
         data = np.frombuffer(data, dtype=np.int32)
         time_step, data = data[0], data[1:]
@@ -597,6 +610,7 @@ class HardwareInterface:
 
         # connect to host socket
         self.host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.host_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
         self.host_socket_port = host_socket_port
 
         # --- create channels
