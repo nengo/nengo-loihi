@@ -245,20 +245,21 @@ class LoihiSpikeInput:
         atom_bits_extra = d(b"YXRvbUJpdHM=")
 
         for spike in spikes:
+            axon_type = int(spike["axon_type"])
             kwargs = {
                 time: t,
                 chip_id: spike["chip_id"],
                 core_id: spike["core_id"],
                 axon_id: spike["axon_id"],
             }
-            if spike["axon_type"] == 0:
+            if axon_type == 0:
                 assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
             else:
                 kwargs[atom] = spike["atom"]
-                if spike["axon_type"] == 16:
+                if axon_type == 16:
                     kwargs[atom_bits_extra] = spike["atom_bits_extra"]
 
-            methods[spike["axon_type"]](**kwargs)
+            methods[axon_type](**kwargs)
 
     def __init__(self):
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
