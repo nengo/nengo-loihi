@@ -174,37 +174,46 @@ class HardwareInterface:
         assert len(outputs) == len(probe.targets)
 
         weighted_outputs = []
+        weighted_probe = np.shape(probe.weights[0]) is not ()
+        assert all(
+            weighted_probe == (np.shape(probe.weights[k]) is not ())
+            for k in range(len(outputs))
+        )
         for k, output in enumerate(outputs):
             output = np.asarray(output)  # , dtype=np.float32)
             if probe.weights[k] is not None:
                 output = output.dot(probe.weights[k])
             weighted_outputs.append(output)
 
-        nt = weighted_outputs[0].shape[0] if weighted_outputs[0].ndim == 2 else None
-        nc = sum(x.shape[-1] for x in weighted_outputs)
-        assert all(
-            x.shape[0] == nt if x.ndim == 2 else x.ndim == 1 for x in weighted_outputs
-        )
-
-        result = (
-            np.hstack(weighted_outputs)
-            if nt is None
-            else np.column_stack(weighted_outputs)
-        )
-        if probe.reindexing is not None:
-            result = result[..., probe.reindexing]
-
-        if nt is None and result.ndim == 2:
-            assert result.shape[0] == 1, "nt: %s, nc: %s, result.shape: %s" % (
-                nt,
-                nc,
-                result.shape,
+        if weighted_probe:
+            result = np.sum(weighted_outputs, axis=0)
+        else:
+            nt = weighted_outputs[0].shape[0] if weighted_outputs[0].ndim == 2 else None
+            nc = sum(x.shape[-1] for x in weighted_outputs)
+            assert all(
+                x.shape[0] == nt if x.ndim == 2 else x.ndim == 1
+                for x in weighted_outputs
             )
-            result.shape = (-1,)
 
-        assert (
-            nt is None and result.shape == (nc,) or result.shape == (nt, nc)
-        ), "nt: %s, nc: %s, result.shape: %s" % (nt, nc, result.shape)
+            result = (
+                np.hstack(weighted_outputs)
+                if nt is None
+                else np.column_stack(weighted_outputs)
+            )
+            if probe.reindexing is not None:
+                result = result[..., probe.reindexing]
+
+            if nt is None and result.ndim == 2:
+                assert result.shape[0] == 1, "nt: %s, nc: %s, result.shape: %s" % (
+                    nt,
+                    nc,
+                    result.shape,
+                )
+                result.shape = (-1,)
+
+            assert (
+                nt is None and result.shape == (nc,) or result.shape == (nt, nc)
+            ), "nt: %s, nc: %s, result.shape: %s" % (nt, nc, result.shape)
 
         return result
 

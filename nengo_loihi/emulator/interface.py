@@ -630,6 +630,12 @@ class ProbeState:
         block_slices = self.probes[probe]
         assert all(len(output) == len(block_slices) for output in outputs)
 
+        weighted_probe = np.shape(probe.weights[0]) is not ()
+        assert all(
+            weighted_probe == (np.shape(probe.weights[k]) is not ())
+            for k in range(len(block_slices))
+        )
+
         weighted_outputs = []
         for k in range(len(block_slices)):
             output = np.asarray([output[k] for output in outputs], dtype=np.float32)
@@ -638,10 +644,13 @@ class ProbeState:
                 output = output.dot(weights)
             weighted_outputs.append(output)
 
-        outputs = np.hstack(weighted_outputs)
-        if probe.reindexing is not None:
-            outputs = outputs[:, probe.reindexing]
-        assert outputs.shape == (nt, sum(o.shape[-1] for o in weighted_outputs))
+        if weighted_probe:
+            outputs = np.sum(weighted_outputs, axis=0)
+        else:
+            outputs = np.hstack(weighted_outputs)
+            if probe.reindexing is not None:
+                outputs = outputs[:, probe.reindexing]
+            assert outputs.shape == (nt, sum(o.shape[-1] for o in weighted_outputs))
         return outputs
 
     def __getitem__(self, probe):
