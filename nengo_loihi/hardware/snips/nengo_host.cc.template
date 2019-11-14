@@ -106,6 +106,10 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 std::cout << "Host received shutdown signal: " << buffer[0] << std::endl;
                 goto cleanup;
             }
+            if (n_read % 4 != 0) {
+                std::cout << "Read split an element: n_read=" << n_read << std::endl;
+                goto cleanup;
+            }
 #if DEBUG > 0
             std::cout << "Read " << n_read << " bytes" << std::endl;
 #endif
@@ -129,39 +133,40 @@ class NengoHostProcess : public ConcurrentHostSnip {
             int remaining_size = chip_sizes[i_chip];  // size remaining to send to current chip
             int i_wait = 0;  // number of times we've had to wait
             while (i_chip < N_CHIPS) {
-                if (buffer_pos + min(PACKET_SIZE, remaining_size) > buffer_len) {
+                int required_size = min(PACKET_SIZE, remaining_size);
+                if (buffer_pos + required_size > buffer_len) {
                     if (buffer_pos < buffer_len) {
-                        memcpy(buffer, &buffer[buffer_pos], buffer_len - buffer_pos);
+#if DEBUG > 1
+                        std::cout << "Copying: " << buffer_len - buffer_pos << std::endl;
+#endif
+                        memcpy(buffer, &buffer[buffer_pos], 4 * (buffer_len - buffer_pos));
                         buffer_len -= buffer_pos;
                     } else {
                         buffer_len = 0;
                     }
+                    buffer_pos = 0;
 
                     // subsequent reads are non-blocking, so we just read what's there
-                    while (1) {
+                    while (buffer_len < required_size) {
                         if (i_wait > 100) {
                             std::cout << "Waited too long for socket read" << std::endl;
                             goto cleanup;
                         }
                         n_read = recv(client_socket, &buffer[buffer_len], 4*READ_SIZE, MSG_DONTWAIT);
                         if (n_read > 0) {
-                            break;
+                            if (n_read % 4 != 0) {
+                                std::cout << "Read split an element: n_read=" << n_read << std::endl;
+                                goto cleanup;
+                            }
+#if DEBUG > 0
+                            std::cout << "Read " << n_read << " bytes" << std::endl;
+#endif
+                            buffer_len += n_read / 4;
                         } else {
                             i_wait++;
                             usleep(100);
                         }
                     }
-                    buffer_len += n_read / 4;
-                    buffer_pos = 0;
-#if DEBUG > 0
-                    std::cout << "Read " << n_read << " bytes" << std::endl;
-#endif
-                }
-
-                if (n_read % 4 != 0) {
-                    std::cout << "Did not read full int32s from socket: n_read="
-                              << n_read << std::endl;
-                    goto cleanup;
                 }
 
 #if DEBUG > 1
@@ -174,6 +179,9 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 // write packet to chip
                 writeChannel(input_channels[i_chip], &buffer[buffer_pos], 1);
                 remaining_size -= PACKET_SIZE;
+#if DEBUG > 1
+                std::cout << "Remaining size " << remaining_size << std::endl;
+#endif
 
                 if (remaining_size <= 0) {
                     buffer_pos += PACKET_SIZE + remaining_size;

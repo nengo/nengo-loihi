@@ -73,7 +73,7 @@ void nengo_io(runState *s) {
         is_shutdown = 1;
         return;
     }
-#if DEBUG
+#if DEBUG > 0
     printf("num input spikes: %d\n", n_spikes);
 #endif
 
@@ -95,14 +95,14 @@ void nengo_io(runState *s) {
             buffer_len += PACKET_SIZE;
             buffer_pos = 0;
 
-#if DEBUG
+#if DEBUG > 1
             printf("Read packet. Buffer len: %d\n", buffer_len);
 #endif
         }
 
         spike = &buffer[buffer_pos];
         buffer_pos += SPIKE_SIZE;
-#if DEBUG
+#if DEBUG > 2
         printf("send spike %d.%d\n", spike[0], spike[1]);
 #endif
 
@@ -112,7 +112,7 @@ void nengo_io(runState *s) {
         axon_type = spike[1] >> {{ obfs.spike_shift }};
         atom = spike[1] & {{ obfs.spike_mask }};
 #endif
-#if DEBUG
+#if DEBUG > 2
         printf("send spike core=%d, axon=%d, type=%d atom=%d\n",
                core_id.id, axon_id, axon_type, atom);
 #endif
@@ -124,7 +124,7 @@ void nengo_io(runState *s) {
             atom_bits = axon_type - 16;
             {{ obfs.do_axon_type_16 }}(s->{{ obfs.step }}, core_id, axon_id, atom, atom_bits);
         } else {
-            printf("Got invalid axon_type: %d\n", axon_type);
+            printf("Got invalid axon_type: %d (%d.%d)\n", axon_type, spike[0], spike[1]);
             return;
         }
     }
