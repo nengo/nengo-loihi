@@ -46,6 +46,10 @@ def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
 
 
 def _inherit_config(dest_model, dest_obj, src_model, src_obj):
+    if src_model.config is None:
+        return
+
+    assert dest_model.config is not None, "Destination model must have a config"
     src_params = src_model.config[src_obj]  # InstanceParams object for source
     filled_params = [
         attr
