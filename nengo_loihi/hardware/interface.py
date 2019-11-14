@@ -285,9 +285,7 @@ class HardwareInterface:
         for t, spikes in loihi_spikes.items():
             assert t >= tmax, "Spikes must be in order"
             tmax = t
-
-            for spike in spikes:
-                LoihiSpikeInput.add_spike_to_generator(t, spike, nxsdk_spike_generator)
+            LoihiSpikeInput.add_spike_to_generator(t, spikes, nxsdk_spike_generator)
 
     def _host2chip_snips(self, loihi_spikes, loihi_errors):
         assert self.host_socket_connected

@@ -386,9 +386,8 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
         ), "Cannot add pre-existing spikes when using SNIPs (no spike generator)"
 
         spikes = spike_input.spike_idxs(t)
-
-        for spike in loihi_input.spikes_to_loihi(spikes):
-            loihi_input.add_spike_to_generator(t, spike, nxsdk_spike_generator)
+        loihi_spikes = loihi_input.spikes_to_loihi(spikes)
+        loihi_input.add_spikes_to_generator(t, loihi_spikes, nxsdk_spike_generator)
 
 
 def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C901

@@ -3,7 +3,7 @@ import collections
 import numpy as np
 
 from nengo_loihi.block import Config
-from nengo_loihi.nxsdk_obfuscation import d, d_get, d_func
+from nengo_loihi.nxsdk_obfuscation import d, d_get
 
 
 MAX_COMPARTMENT_CFGS = d(b"MzI=", int)
@@ -231,26 +231,34 @@ class LoihiSpikeInput:
     )
 
     @classmethod
-    def add_spike_to_generator(cls, t, spike, basic_spike_generator):
-        kwargs = {
-            b"dGltZQ==": t,
-            b"Y2hpcElk": spike["chip_id"],
-            b"Y29yZUlk": spike["core_id"],
-            b"YXhvbklk": spike["axon_id"],
+    def add_spikes_to_generator(cls, t, spikes, basic_spike_generator):
+        methods = {
+            0: getattr(basic_spike_generator, d(b"YWRkU3Bpa2U=")),
+            16: getattr(basic_spike_generator, d(b"YWRkUG9wMTZTcGlrZQ==")),
+            32: getattr(basic_spike_generator, d(b"YWRkUG9wMzJTcGlrZQ==")),
         }
+        time = d(b"dGltZQ==")
+        chip_id = d(b"Y2hpcElk")
+        core_id = d(b"Y29yZUlk")
+        axon_id = d(b"YXhvbklk")
+        atom = d(b"c3JjQXRvbQ==")
+        atom_bits_extra = d(b"YXRvbUJpdHM=")
 
-        if spike["axon_type"] == 0:
-            assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
-            add_spike = b"YWRkU3Bpa2U="
-        else:
-            kwargs[b"c3JjQXRvbQ=="] = spike["atom"]
-            if spike["axon_type"] == 16:
-                kwargs[b"YXRvbUJpdHM="] = spike["atom_bits_extra"]
-                add_spike = b"YWRkUG9wMTZTcGlrZQ=="
-            elif spike["axon_type"] == 32:
-                add_spike = b"YWRkUG9wMzJTcGlrZQ=="
+        for spike in spikes:
+            kwargs = {
+                time: t,
+                chip_id: spike["chip_id"],
+                core_id: spike["core_id"],
+                axon_id: spike["axon_id"],
+            }
+            if spike["axon_type"] == 0:
+                assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
+            else:
+                kwargs[atom] = spike["atom"]
+                if spike["axon_type"] == 16:
+                    kwargs[atom_bits_extra] = spike["atom_bits_extra"]
 
-        d_func(basic_spike_generator, add_spike, kwargs=kwargs)
+            methods[spike["axon_type"]](**kwargs)
 
     def __init__(self):
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
