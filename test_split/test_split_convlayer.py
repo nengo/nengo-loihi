@@ -169,7 +169,7 @@ with nengo_loihi.Simulator(net, dt=dt, **sim_params) as sim:
     # sim.run(1.0)
     sim.run(0.2)
     # sim.run(0.05)
-    print("Ran in %0.1f ms/step" % (sim.wall_time / sim.n_steps * 1000))
+    print("Ran in %0.1f ms/step" % (sim.timers["snips"] / sim.n_steps * 1000))
 
 nt = len(sim.trange())
 
