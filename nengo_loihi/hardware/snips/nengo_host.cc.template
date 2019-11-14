@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>  // memcpy
 #include <iostream>
-#include <string>
 #include <unistd.h>  // usleep
 
 #include <sys/types.h>
@@ -15,6 +15,7 @@
 
 #define DEBUG 0
 
+#define N_CHIPS {{ n_chips }}
 #define BUFFER_SIZE {{ buffer_size }}
 #define PACKET_SIZE {{ packet_size }}  // size of a packet, in int32s
 #define READ_SIZE {{ read_size }}  // max bytes to read at a time, in int32s
@@ -28,6 +29,11 @@ namespace nengo_host {
 template <class T>
 inline T ceil_div(T a, T b) {
     return (a / b) + (a % b != 0);
+}
+
+template <class T>
+inline T min(T a, T b) {
+    return (a < b) ? a : b;
 }
 
 const char *input_channels[N_CHIPS] = {
@@ -84,6 +90,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
     }
 
     void run(std::atomic_bool& end_of_execution) override {
+        int32_t chip_sizes[N_CHIPS];  // number of inputs to each chip
+
         // --- loop to transmit data from superhost to chip and vice versa
         while (!end_of_execution) {
             // read packets from superhost socket
@@ -107,15 +115,21 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 std::cout << "Could not read full message header" << std::endl;
                 goto cleanup;
             }
-            int32_t msg_size = N_CHIPS;
-            for (int i_chip = 0; i_chip < N_CHIPS; i_chip++) {
-                chip_sizes[i_chip] = buffer[i_chip];
+            memcpy(chip_sizes, buffer, 4 * N_CHIPS);
+            buffer_pos += N_CHIPS;
+#if DEBUG > 0
+            std::cout << "Chip sizes: ";
+            for (int i = 0; i < N_CHIPS; i++) {
+                std::cout << chip_sizes[i] << ", ";
             }
+            std::cout << std::endl;
+#endif
 
             int i_chip = 0;  // index of current chip to send packets to
             int remaining_size = chip_sizes[i_chip];  // size remaining to send to current chip
+            int i_wait = 0;  // number of times we've had to wait
             while (i_chip < N_CHIPS) {
-                if (buffer_pos + PACKET_SIZE > buffer_len) {
+                if (buffer_pos + min(PACKET_SIZE, remaining_size) > buffer_len) {
                     if (buffer_pos < buffer_len) {
                         memcpy(buffer, &buffer[buffer_pos], buffer_len - buffer_pos);
                         buffer_len -= buffer_pos;
@@ -124,7 +138,19 @@ class NengoHostProcess : public ConcurrentHostSnip {
                     }
 
                     // subsequent reads are non-blocking, so we just read what's there
-                    n_read = recv(client_socket, &buffer[buffer_len], 4*READ_SIZE, MSG_DONTWAIT);
+                    while (1) {
+                        if (i_wait > 100) {
+                            std::cout << "Waited too long for socket read" << std::endl;
+                            goto cleanup;
+                        }
+                        n_read = recv(client_socket, &buffer[buffer_len], 4*READ_SIZE, MSG_DONTWAIT);
+                        if (n_read > 0) {
+                            break;
+                        } else {
+                            i_wait++;
+                            usleep(100);
+                        }
+                    }
                     buffer_len += n_read / 4;
                     buffer_pos = 0;
 #if DEBUG > 0
@@ -140,7 +166,7 @@ class NengoHostProcess : public ConcurrentHostSnip {
 
 #if DEBUG > 1
                 std::cout << "Send buffer: [";
-                for (int i = 0; i < PACKET_SIZE; i++) {
+                for (int i = 0; i < min(PACKET_SIZE, remaining_size); i++) {
                     std::cout << buffer[buffer_pos + i] << ", ";
                 }
                 std::cout << "]" << std::endl;
@@ -152,14 +178,27 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 if (remaining_size <= 0) {
                     buffer_pos += PACKET_SIZE + remaining_size;
                     i_chip++;
-                    remaining_size = chip_sizes[i_chip];
+                    if (i_chip < N_CHIPS) {
+                        remaining_size = chip_sizes[i_chip];
+                    }
                 } else {
                     buffer_pos += PACKET_SIZE;
                 }
             }
 
-            // wait until chip has written output
-            while (!end_of_execution && !probeChannel(output_channels)) {
+            // wait until all chip have written output (no channels empty)
+            bool any_channel_empty = 1;
+            while (!end_of_execution) {
+                any_channel_empty = 0;
+                for (int i = 0; i < N_CHIPS; i++) {
+                    if (!probeChannel(output_channels[i])) {
+                        any_channel_empty = 1;
+                        break;
+                    }
+                }
+                if (!any_channel_empty) {
+                    break;
+                }
                 usleep(100);
             }
             if (end_of_execution) {
@@ -169,14 +208,26 @@ class NengoHostProcess : public ConcurrentHostSnip {
             i_chip = 0;
             buffer_len = 0;
             int buffer_packets = 0;  // buffer len in packets
+            remaining_size = output_packets[i_chip];  // number of remaining packets
             while (i_chip < N_CHIPS) {
                 // read chip output
-                n_packets = min(output_packets[chip_idx], WRITE_PACKETS - buffer_packets);
+                int n_packets = min(remaining_size, WRITE_PACKETS - buffer_packets);
                 readChannel(output_channels[i_chip], &buffer[buffer_len], n_packets);
-                buffer_len += n_packets * PACKET_SIZE * 4;
+#if DEBUG > 0
+                std::cout << "Got " << n_packets << " packet from chip " << i_chip << std::endl;
+#endif
+                buffer_len += n_packets * PACKET_SIZE;
                 buffer_packets += n_packets;
+                remaining_size -= n_packets;
 
-                if (buffer_packets == WRITE_PACKETS || i_chip == N_CHIPS - 1) {
+                if (remaining_size <= 0) {
+                    i_chip++;
+                    if (i_chip < N_CHIPS) {
+                        remaining_size = output_packets[i_chip];
+                    }
+                }
+
+                if (buffer_packets == WRITE_PACKETS || i_chip == N_CHIPS) {
                     // write output to superhost socket
                     const size_t write_bytes = buffer_len * sizeof(int32_t);
                     size_t n_write = write(client_socket, buffer, write_bytes);

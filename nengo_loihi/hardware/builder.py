@@ -616,7 +616,7 @@ def build_probe(nxsdk_board, board, probe):
 
     if probe.use_snip:
         assert probe.snip_info is None
-        probe.snip_info = dict(chip_id=[], core_id=[], compartment_idxs=[], key=key)
+        probe.snip_info = dict(chip_idx=[], core_id=[], compartment_idxs=[], key=key)
     else:
         assert probe not in board.probe_map
         board.probe_map[probe] = []

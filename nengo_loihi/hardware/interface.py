@@ -244,7 +244,7 @@ class HardwareInterface:
     def _chip2host_snips(self, probes_receivers):
         assert self.host_socket_connected
 
-        expected_bytes = 4 * self.snip_io_c2h_count
+        expected_bytes = 4 * self.io_snip_c2h_count
         n_waits = 0  # number of times we've had to wait for more data
 
         recv_size = 4096  # python docs recommend small power of 2, e.g. 4096
@@ -278,7 +278,7 @@ class HardwareInterface:
         i = 0
         for info in self.chip_snip_info:
             data = raw_data[i : i + info["n_outputs"]]
-            assert len(chip_data[-1]) == info["n_outputs"]
+            assert len(data) == info["n_outputs"]
             time_step, data = data[0], data[1:]
             time_steps.append(time_step)
             chip_data.append(data)
@@ -337,7 +337,7 @@ class HardwareInterface:
         chip_msgs = []
         for chip_idx in chip_idxs:
             chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
-            chip_spikes = loihi_spikes[loihi_spikes["chip_id"] == chip_id]
+            chip_spikes = loihi_spikes[loihi_spikes["chip_id"] == chip_id] if len(loihi_spikes) > 0 else []
 
             max_spikes = self.snip_max_spikes_per_step
             if len(chip_spikes) > max_spikes:
@@ -352,7 +352,7 @@ class HardwareInterface:
             chip_msg = [len(chip_spikes)]
             chip_msg.extend(SpikePacker.pack(chip_spikes))
 
-            # assert len(chip_errors) == self.snip_io_h2c_errors[chip_idx]
+            # assert len(chip_errors) == self.io_snip_h2c_errors[chip_idx]
             # for error in chip_errors:
             #     chip_msg.extend(error)
 
@@ -376,7 +376,7 @@ class HardwareInterface:
             loihi_spikes.setdefault(t, []).extend(loihi_spike_input.spikes_to_loihi(s))
 
         assert (
-            self.use_snips or len(loihi_errors) == 0
+            self.use_snips or len(errors) == 0
         ), "Learning only supported with snips (`precompute=False`)"
         error_info = []
         error_vecs = []
@@ -506,11 +506,11 @@ class HardwareInterface:
         chip_idxs = list(range(n_chips))
         chip_snip_info = [{} for _ in range(n_chips)]
 
-        self.snip_io = {}  # chip snip processes for IO snips
-        self.snip_io_h2c_errors = {}
-        self.snip_io_snip_range = {}
-        self.nengo_learn = {}  # chip snip processes for learn snips
         self.host_snip = None  # host snip process
+        self.io_snip = {}  # chip snip processes for IO snips
+        self.io_snip_h2c_errors = {}
+        self.io_snip_snip_range = {}
+        self.learn_snip = {}  # chip snip processes for learn snips
 
         snips_dir = os.path.join(os.path.dirname(__file__), "snips")
         env = jinja2.Environment(
@@ -522,7 +522,7 @@ class HardwareInterface:
 
         # --- determine required information for learning
         assert len(self.error_chip_map) == 0
-        self.snip_io_h2c_errors = [None] * n_chips
+        self.io_snip_h2c_errors = [None] * n_chips
 
         for chip_idx, chip in enumerate(self.board.chips):
             n_errors = 0
@@ -548,7 +548,7 @@ class HardwareInterface:
             cinfo["n_errors"] = n_errors
             cinfo["total_error_len"] = total_error_len
             # cinfo["max_error_len"] = max_error_len
-            self.snip_io_h2c_errors[chip_idx] = n_errors
+            self.io_snip_h2c_errors[chip_idx] = n_errors
 
         # --- determine required information for receiving outputs
         output_offset = self.snip_output_header_len  # first output is timestamp
@@ -616,7 +616,7 @@ class HardwareInterface:
             )
 
         # total number of outputs expected back from the host (including packet padding)
-        self.snip_io_c2h_count = self.channel_packet_size * sum(
+        self.io_snip_c2h_count = self.channel_packet_size * sum(
             info["n_output_packets"] for info in chip_snip_info
         )
 
@@ -638,6 +638,7 @@ class HardwareInterface:
         template = env.get_template("nengo_host.cc.template")
         c_path = os.path.join(self.tmp_snip_dir.name, "nengo_host.cc")
         code = template.render(
+            n_chips=n_chips,
             buffer_size=buffer_size,
             packet_size=self.channel_packet_size,
             read_size=read_size,
@@ -666,7 +667,7 @@ class HardwareInterface:
         # connect to host socket
         self.host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-        self.host_socket_port = host_socket_port
+        self.host_socket_port = socket_port
 
         # --- create chip processes
         for chip_idx in chip_idxs:
@@ -678,7 +679,7 @@ class HardwareInterface:
                 chip_snip_info[chip_idx],
             )
 
-    def create_chip_snip(self, chip_idx, env, input_channel, output_channel, info):
+    def create_chip_snip(self, chip_idx, env, input_channel_name, output_channel_name, info):
         chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
         include_dir = self.tmp_snip_dir.name
         src_dir = self.tmp_snip_dir.name
@@ -713,10 +714,10 @@ class HardwareInterface:
             n_errors=info["n_errors"],
             buffer_size=chip_buffer_size,
             packet_size=self.channel_packet_size,
-            cores=cores,
-            input_channel=input_channel,
-            output_channel=output_channel,
-            probes=chip_probes,
+            input_channel=input_channel_name,
+            output_channel=output_channel_name,
+            cores=info["cores"],
+            probes=info["probes"],
             obfs=snip_obfs,
         )
         with open(c_path, "w") as f:
@@ -730,7 +731,7 @@ class HardwareInterface:
 
         # create SNIP process
         logger.debug("Creating nengo_io chip %d process" % chip_idx)
-        self.nengo_io[chip_idx] = d_func(
+        self.io_snip[chip_idx] = d_func(
             self.nxsdk_board,
             b"Y3JlYXRlU25pcA==",
             kwargs={
@@ -764,7 +765,7 @@ class HardwareInterface:
 
         # create SNIP process
         logger.debug("Creating nengo_learn chip %d process" % chip_idx)
-        self.nengo_learn[chip_idx] = d_func(
+        self.learn_snip[chip_idx] = d_func(
             self.nxsdk_board,
             b"Y3JlYXRlU25pcA==",
             kwargs={
@@ -780,13 +781,13 @@ class HardwareInterface:
 
         # --- create channels
         input_channel_size = (
-            self.out_snip_head_len  # first int stores number of spikes
+            self.snip_output_header_len  # first int stores number of spikes
             + self.snip_max_spikes_per_step * SpikePacker.size
             + info["total_error_len"]
         )
-        logger.debug("Creating %s channel (%d)" % (input_channel, size))
-        self.nengo_io_h2c[chip_idx] = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            str.encode(input_channel),  # channel name
+        logger.debug("Creating %s channel (%d)" % (input_channel_name, input_channel_size))
+        input_channel = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+            str.encode(input_channel_name),
             **{
                 # channel size (in elements)
                 d(b"bnVtRWxlbWVudHM="): input_channel_size,
@@ -796,23 +797,23 @@ class HardwareInterface:
                 d(b"c2xhY2s="): 16,
             },
         )
-        logger.debug("Creating %s channel (%d)" % (output_channel, n_outputs))
-        self.nengo_io_c2h[chip_idx] = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
-            str.encode(output_channel),  # channel name
+        logger.debug("Creating %s channel (%d)" % (output_channel_name, info["n_outputs"]))
+        output_channel = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+            str.encode(output_channel_name),
             **{
                 # channel size (in elements)
-                d(b"bnVtRWxlbWVudHM="): n_outputs,
+                d(b"bnVtRWxlbWVudHM="): info["n_outputs"],
                 # size of one packet (in bytes)
                 d(b"bWVzc2FnZVNpemU="): 4 * self.channel_packet_size,
                 # size of send/receive buffer on chip/host (in packets)
                 d(b"c2xhY2s="): 16,
             },
         )
-        d_get(self.nengo_io_h2c[chip_idx], b"Y29ubmVjdA==")(
-            self.host_snip, nengo_io[chip_idx]
+        d_get(input_channel, b"Y29ubmVjdA==")(
+            self.host_snip, self.io_snip[chip_idx]
         )
-        d_get(self.nengo_io_c2h[chip_idx], b"Y29ubmVjdA==")(
-            nengo_io[chip_idx], self.host_snip
+        d_get(output_channel, b"Y29ubmVjdA==")(
+            self.io_snip[chip_idx], self.host_snip
         )
 
 
