@@ -343,10 +343,15 @@ class HardwareInterface:
         assert len(loihi_errors) == 0, "Not yet implemented"
 
         chip_idxs = range(self.board.n_chips)
-        chip_msgs = []
+        # first `n_chips` elements of `msg` record number of elements going to each chip
+        msg = [0 for _ in chip_idxs]
         for chip_idx in chip_idxs:
             chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
-            chip_spikes = loihi_spikes[loihi_spikes["chip_id"] == chip_id] if len(loihi_spikes) > 0 else []
+            chip_spikes = (
+                loihi_spikes[loihi_spikes["chip_id"] == chip_id]
+                if len(loihi_spikes) > 0
+                else []
+            )
 
             max_spikes = self.snip_max_spikes_per_step
             if len(chip_spikes) > max_spikes:
@@ -358,18 +363,15 @@ class HardwareInterface:
                 )
                 chip_spikes = chip_spikes[:max_spikes]
 
-            chip_msg = [len(chip_spikes)]
-            chip_msg.extend(SpikePacker.pack(chip_spikes))
+            msg_len0 = len(msg)
+            msg.append(len(chip_spikes))
+            msg.extend(SpikePacker.pack(chip_spikes))
 
             # assert len(chip_errors) == self.io_snip_h2c_errors[chip_idx]
             # for error in chip_errors:
             #     chip_msg.extend(error)
 
-            chip_msgs.append(chip_msg)
-
-        msg = [len(chip_msg) for chip_msg in chip_msgs]
-        for chip_msg in chip_msgs:
-            msg.extend(chip_msg)
+            msg[chip_idx] = len(msg) - msg_len0
 
         # encode message to bytes and send to host
         msg_bytes = struct.pack("%di" % len(msg), *msg)
@@ -688,7 +690,9 @@ class HardwareInterface:
                 chip_snip_info[chip_idx],
             )
 
-    def create_chip_snip(self, chip_idx, env, input_channel_name, output_channel_name, info):
+    def create_chip_snip(
+        self, chip_idx, env, input_channel_name, output_channel_name, info
+    ):
         chip_id = d_get(d_get(self.nxsdk_board, b"bjJDaGlwcw==")[chip_idx], b"aWQ=")
         include_dir = self.tmp_snip_dir.name
         src_dir = self.tmp_snip_dir.name
@@ -794,7 +798,9 @@ class HardwareInterface:
             + self.snip_max_spikes_per_step * SpikePacker.size
             + info["total_error_len"]
         )
-        logger.debug("Creating %s channel (%d)" % (input_channel_name, input_channel_size))
+        logger.debug(
+            "Creating %s channel (%d)" % (input_channel_name, input_channel_size)
+        )
         input_channel = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
             str.encode(input_channel_name),
             **{
@@ -806,7 +812,9 @@ class HardwareInterface:
                 d(b"c2xhY2s="): 16,
             },
         )
-        logger.debug("Creating %s channel (%d)" % (output_channel_name, info["n_outputs"]))
+        logger.debug(
+            "Creating %s channel (%d)" % (output_channel_name, info["n_outputs"])
+        )
         output_channel = d_get(self.nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
             str.encode(output_channel_name),
             **{
@@ -818,12 +826,8 @@ class HardwareInterface:
                 d(b"c2xhY2s="): 16,
             },
         )
-        d_get(input_channel, b"Y29ubmVjdA==")(
-            self.host_snip, self.io_snip[chip_idx]
-        )
-        d_get(output_channel, b"Y29ubmVjdA==")(
-            self.io_snip[chip_idx], self.host_snip
-        )
+        d_get(input_channel, b"Y29ubmVjdA==")(self.host_snip, self.io_snip[chip_idx])
+        d_get(output_channel, b"Y29ubmVjdA==")(self.io_snip[chip_idx], self.host_snip)
 
 
 class SpikePacker:
