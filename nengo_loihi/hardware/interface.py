@@ -883,6 +883,7 @@ snip_obfs = dict(
     error_info_size=d(b"Mg==", int),
     s_data=d(b"dXNlckRhdGE="),
     s_step=d(b"dGltZV9zdGVw"),
+    s_n_steps=d(b"dG90YWxfc3RlcHM="),
     read=d(b"cmVhZENoYW5uZWw="),
     write=d(b"d3JpdGVDaGFubmVs"),
     spike_shift=d(b"MTY="),

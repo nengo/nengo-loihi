@@ -209,4 +209,21 @@ void nengo_io(runState *s) {
 {% endfor %}
 
     {{ obfs.write }}(out_channel, buffer, N_OUTPUT_PACKETS);
+
+    if (s->{{ obfs.s_n_steps }} > 0 && s->{{ obfs.s_step }} >= s->{{ obfs.s_n_steps }}) {
+        // Do nonsense computations to waste time. This will make sure Chip 0 doesn't
+        // finish early, and thus the channels stay open. If there are still hangs
+        // at the end of simulation on some platforms, try increasing the wait time
+        // (number of loop iterations). Also, the print statement appears necessary
+        // so that the compiler doesn't just optimize this out.
+        int sum = 0;
+        for (int i = 0; i < 3000000; i++) {
+            if (i % 2 == 0) {
+                sum += (i*i) % 10;
+            } else {
+                sum -= (i*i) % 10;
+            }
+        }
+        printf("Waited to exit (nonsense sum %d)\n", sum);
+    }
 }
