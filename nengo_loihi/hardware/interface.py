@@ -881,7 +881,8 @@ snip_obfs = dict(
     int_type=d(b"aW50MzJfdA=="),
     spike_size=d(b"Mg=="),
     error_info_size=d(b"Mg==", int),
-    step=d(b"dGltZV9zdGVw"),
+    s_data=d(b"dXNlckRhdGE="),
+    s_step=d(b"dGltZV9zdGVw"),
     read=d(b"cmVhZENoYW5uZWw="),
     write=d(b"d3JpdGVDaGFubmVs"),
     spike_shift=d(b"MTY="),
@@ -889,7 +890,6 @@ snip_obfs = dict(
     do_axon_type_0=d(b"bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=="),
     do_axon_type_16=d(b"bnhfc2VuZF9wb3AxNl9zcGlrZQ=="),
     do_axon_type_32=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
-    data=d(b"dXNlckRhdGE="),
     comp_state=d(b"Y3hfc3RhdGU="),
     neuron=d(b"TkVVUk9OX1BUUg=="),
     # pylint: disable=line-too-long
