@@ -22,6 +22,10 @@ from nengo_loihi.inputs import SpikeInput
 logger = logging.getLogger(__name__)
 
 
+def ceil_div(a, b):
+    return -((-a) // b)
+
+
 def build_board(board, use_snips=False, seed=None):
     n_chips = board.n_chips
     n_cores_per_chip = board.n_cores_per_chip
@@ -316,13 +320,13 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
     for inp, compartment_idxs in core.iterate_inputs():
         build_input(nxsdk_core, core, inp, compartment_idxs)
 
-    logger.debug("- Configuring n_updates=%d", n_compartments // 4 + 1)
+    logger.debug("- Configuring n_updates=%d", ceil_div(n_compartments, 4))
     d_func(
         nxsdk_core,
         b"bnVtVXBkYXRlcw==",
         b"Y29uZmlndXJl",
         kwargs={
-            b"bnVtVXBkYXRlcw==": n_compartments // 4 + 1,
+            b"bnVtVXBkYXRlcw==": ceil_div(n_compartments, 4),
             b"bnVtU3RkcA==": num_stdp,
         },
     )
