@@ -231,6 +231,13 @@ class NengoHostProcess : public ConcurrentHostSnip {
 #if DEBUG > 0
                 std::cout << "Got " << n_packets << " packet from chip " << i_chip << std::endl;
 #endif
+                if (remaining_size == output_packets[i_chip]) {
+                    // this is the first read from this chip. Check if it's had an error.
+                    if (buffer[buffer_len] < 0) {
+                        std::cout << "Chip " << i_chip << " sent shutdown signal." << std::endl;
+                        goto cleanup;
+                    }
+                }
                 buffer_len += n_packets * PACKET_SIZE;
                 buffer_packets += n_packets;
                 remaining_size -= n_packets;
@@ -261,11 +268,18 @@ class NengoHostProcess : public ConcurrentHostSnip {
         }
 
 cleanup:
-        // make sure chips get shutdown signal
-        buffer[0] = -1;
+        for (int i = 0; i < BUFFER_SIZE; i++) {
+            buffer[i] = -1;
+        }
+
+        // make sure all chips get shutdown signal
         for (int i = 0; i < N_CHIPS; i++) {
             writeChannel(input_channels[i], buffer, 1);
         }
+
+        // make sure superhost knows we're shutting down
+        ssize_t n_write = write(client_socket, buffer, 4*BUFFER_SIZE);
+        std::cout << "Wrote superhost shutdown signal: " << n_write << " bytes" << std::endl;
     }
 };
 

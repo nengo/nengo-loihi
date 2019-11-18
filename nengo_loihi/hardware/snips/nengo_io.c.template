@@ -26,7 +26,7 @@ void nengo_io(runState *s) {
     // SPIKE_SIZE != 2 will require a number of changes to this function.
     // Search for SPIKE_SIZE == 2 precompiler directives.
     printf("SPIKE_SIZE == 2 assertion failed\n");
-    return;
+    goto shutdown;
 #endif
 
 {% for core in cores %}
@@ -56,7 +56,7 @@ void nengo_io(runState *s) {
 
     if (in_channel == -1 || out_channel == -1) {
         printf("Got an invalid channel ID\n");
-        return;
+        goto shutdown;
     }
 
     if (s->{{ obfs.s_step }} % 100 == 0) {
@@ -70,8 +70,7 @@ void nengo_io(runState *s) {
     buffer_pos = 1;
     if (n_spikes < 0) {
         printf("Chip received shutdown signal: %d\n", n_spikes);
-        is_shutdown = 1;
-        return;
+        goto shutdown;
     }
 #if DEBUG > 0
     printf("num input spikes: %d\n", n_spikes);
@@ -124,7 +123,7 @@ void nengo_io(runState *s) {
             {{ obfs.do_axon_type_16 }}(s->{{ obfs.s_step }}, core_id, axon_id, atom, atom_bits);
         } else {
             printf("Got invalid axon_type: %d (%d.%d)\n", axon_type, spike[0], spike[1]);
-            return;
+            goto shutdown;
         }
     }
 
@@ -230,5 +229,12 @@ void nengo_io(runState *s) {
             }
         }
         printf("Waited to exit (nonsense sum %d)\n", sum);
+    }
+
+    if (is_shutdown) {
+shutdown:
+        is_shutdown = 1;  // we likely got here via goto
+        buffer[0] = -1;
+        {{ obfs.write }}(out_channel, buffer, 1);
     }
 }

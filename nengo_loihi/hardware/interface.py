@@ -258,6 +258,9 @@ class HardwareInterface:
 
         recv_size = 4096  # python docs recommend small power of 2, e.g. 4096
         received = self.host_socket.recv(recv_size)  # blocking recv call
+        if np.frombuffer(received[:4], dtype=np.int32) < 0:
+            raise RuntimeError("Received shutdown signal from chip")
+
         data = received
         while len(data) < expected_bytes and n_waits < 10:
             if len(received) != recv_size:
@@ -293,6 +296,8 @@ class HardwareInterface:
             chip_data.append(data)
             i += self.channel_packet_size * info["n_output_packets"]
 
+        if any(ts < 0 for ts in time_steps):
+            raise RuntimeError("Received shutdown signal from chip")
         assert all(ts == time_steps[0] for ts in time_steps), "Chips are out of sync!"
 
         for probe in self._snip_probe_data:
