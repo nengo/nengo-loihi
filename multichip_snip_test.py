@@ -150,20 +150,32 @@ with nengo.Network(seed=0) as net:
 probe_name = "layer4"
 
 sim_args = dict(dt=dt, precompute=False, dismantle=True,)
-hardware_options = {"allocator": GreedyChip(n_chips=2, cores_per_chip=126)}
+#hardware_options = {"allocator": GreedyChip(n_chips=2, cores_per_chip=126)}
+hardware_options = dict(
+    snip_max_spikes_per_step=10000,
+    #allocator=GreedyChip(n_chips=2, cores_per_chip=126),
+    allocator=RoundRobin(n_chips=2),
+)
+
+# --- Run in emulator
 emu_val = {}
-with nengo_loihi.Simulator(net, target="sim", **sim_args) as sim_emu:
-    # run the simulation on Loihi
-    sim_emu.run(n_presentations * presentation_time)
+#with nengo_loihi.Simulator(net, target="sim", **sim_args) as sim_emu:
+#    # run the simulation on Loihi
+#    sim_emu.run(n_presentations * presentation_time)
+#
+#    # check classification error
+#    step = int(presentation_time / dt)
+#    # emu_val['layer1'] = sim_emu.data[layer1][0:presentation_steps-1]
+#    # emu_val['layer3'] = sim_emu.data[layer3][0:presentation_steps-1]
+#    emu_val["layer4"] = sim_emu.data[layer4][0 : presentation_steps - 1]
+#    # emu_val['layer5'] = sim_emu.data[layer5][0:presentation_steps-1]
+#    # emu_val['layer6'] = sim_emu.data[layer6][0:presentation_steps-1]
 
-    # check classification error
-    step = int(presentation_time / dt)
-    # emu_val['layer1'] = sim_emu.data[layer1][0:presentation_steps-1]
-    # emu_val['layer3'] = sim_emu.data[layer3][0:presentation_steps-1]
-    emu_val["layer4"] = sim_emu.data[layer4][0 : presentation_steps - 1]
-    # emu_val['layer5'] = sim_emu.data[layer5][0:presentation_steps-1]
-    # emu_val['layer6'] = sim_emu.data[layer6][0:presentation_steps-1]
+if probe_name in emu_val:
+    emu_output = emu_val[probe_name]
+    np.savetxt("emu_" + probe_name + ".txt", emu_output, fmt="%.2f")
 
+# --- Run on Loihi
 loihi_val = {}
 with nengo_loihi.Simulator(
     net, target="loihi", hardware_options=hardware_options, **sim_args
@@ -202,10 +214,12 @@ for layer in sorted(list(emu_val)):
     plt.savefig(str(layer) + ".pdf")
     plt.close()
 
-emu_output = emu_val[probe_name]
-loihi_output = loihi_val[probe_name]
+if probe_name in loihi_val:
+    loihi_output = loihi_val[probe_name]
+    np.savetxt("loihi_" + probe_name + ".txt", loihi_output, fmt="%.2f")
+
 
 print("Difference between emu and loihi %f" % np.sum(np.abs(emu_output - loihi_output)))
-np.savetxt("emu_" + probe_name + ".txt", emu_output, fmt="%.2f")
+
 np.savetxt("loihi_" + probe_name + ".txt", loihi_output, fmt="%.2f")
 np.savetxt("diff_" + probe_name + ".txt", np.abs(emu_output - loihi_output), fmt="%.2f")
