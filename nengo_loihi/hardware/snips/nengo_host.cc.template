@@ -196,7 +196,13 @@ class NengoHostProcess : public ConcurrentHostSnip {
 
             // wait until all chip have written output (no channels empty)
             bool any_channel_empty = 1;
+            i_wait = 0;
             while (!end_of_execution) {
+                if (i_wait > 100000) {  // wait 10 seconds at most
+                    std::cout << "Chip not responding. Ending simulation" << std::endl;
+                    goto cleanup;
+                }
+
                 any_channel_empty = 0;
                 for (int i = 0; i < N_CHIPS; i++) {
                     if (!probeChannel(output_channels[i])) {
@@ -208,6 +214,7 @@ class NengoHostProcess : public ConcurrentHostSnip {
                     break;
                 }
                 usleep(100);
+                i_wait++;
             }
             if (end_of_execution) {
                 break;
@@ -239,6 +246,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
                     // write output to superhost socket
                     const size_t write_bytes = buffer_len * sizeof(int32_t);
                     size_t n_write = write(client_socket, buffer, write_bytes);
+                    buffer_len = 0;
+                    buffer_packets = 0;
 #if DEBUG > 0
                     std::cout << "Sent " << n_write << " bytes" << std::endl;
 #endif

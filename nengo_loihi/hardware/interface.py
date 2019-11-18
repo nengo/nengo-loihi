@@ -293,7 +293,7 @@ class HardwareInterface:
             chip_data.append(data)
             i += self.channel_packet_size * info["n_output_packets"]
 
-        assert all(time_steps == time_steps[0]), "Chips are out of sync!"
+        assert all(ts == time_steps[0] for ts in time_steps), "Chips are out of sync!"
 
         for probe in self._snip_probe_data:
             assert probe.use_snip

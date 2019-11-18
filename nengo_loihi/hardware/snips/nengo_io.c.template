@@ -94,9 +94,8 @@ void nengo_io(runState *s) {
             {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
             buffer_len += PACKET_SIZE;
             buffer_pos = 0;
-
 #if DEBUG > 1
-            printf("Read packet. Buffer len: %d\n", buffer_len);
+            printf("Read (spike) packet. Buffer len: %d\n", buffer_len);
 #endif
         }
 
@@ -153,6 +152,9 @@ void nengo_io(runState *s) {
             {{ obfs.read }}(in_channel, &buffer[buffer_len], 1);
             buffer_len += PACKET_SIZE;
             buffer_pos = 0;
+#if DEBUG > 1
+            printf("Read (error) packet. Buffer len: %d\n", buffer_len);
+#endif
         }
 
         if (n_errors < 0) {
@@ -208,6 +210,9 @@ void nengo_io(runState *s) {
 {% endif %}
 {% endfor %}
 
+#if DEBUG > 0
+    printf("Sending %d packets: %d\n", N_OUTPUT_PACKETS, probeChannel(out_channel));
+#endif
     {{ obfs.write }}(out_channel, buffer, N_OUTPUT_PACKETS);
 
     if (s->{{ obfs.s_n_steps }} > 0 && s->{{ obfs.s_step }} >= s->{{ obfs.s_n_steps }}) {
