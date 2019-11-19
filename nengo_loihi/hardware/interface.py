@@ -227,9 +227,13 @@ class HardwareInterface:
                 time.sleep(0.001)
                 n_waits += 1
 
-            received = self.host_socket.recv(recv_size, socket.MSG_DONTWAIT)
-            if len(received) > 0:
-                data += received
+            try:
+                received = self.host_socket.recv(recv_size, socket.MSG_DONTWAIT)
+                if len(received) > 0:
+                    data += received
+            except BlockingIOError:
+                # No data was available. Hopefully it will be there after we wait.
+                received = []
 
         assert len(data) == expected_bytes, "Received (%d) less than expected (%d)" % (
             len(data),
