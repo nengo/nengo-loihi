@@ -414,7 +414,7 @@ class HardwareInterface:
             self.nxsdk_board, b"ZXhlY3V0b3I=", b"aGFzU3RhcnRlZA=="
         )
 
-    def connect(self, attempts=10):
+    def connect(self, attempts=3):
         if self.nxsdk_board is None:
             raise SimulationError("Must build model before running")
 
@@ -422,17 +422,21 @@ class HardwareInterface:
             return
 
         logger.info("Connecting to Loihi, max attempts: %d", attempts)
+        last_exception = None
         for i in range(attempts):
             try:
                 d_func(self.nxsdk_board, b"c3RhcnQ=")
                 if self.is_connected():
                     break
             except Exception as e:
+                last_exception = e
                 logger.warning("Connection error: %s", e)
                 time.sleep(1)
                 logger.info("Retrying, attempt %d", i + 1)
         else:
-            raise SimulationError("Could not connect to the board")
+            raise SimulationError("Board connection error%s" % (
+                ": %s" % last_exception if last_exception is not None else ""
+            ))
 
     def close(self):
         if self.host_socket is not None and self.host_socket_connected:
