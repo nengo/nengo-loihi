@@ -54,6 +54,8 @@ Release history
   and ``LoihiInput`` classes, which are conceptually very similar.
   It has also been moved from ``nengo_loihi.block`` to ``nengo_loihi.probe``.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- We now raise a more informative error if connecting to Loihi hardware fails.
+  (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 
 **Fixed**
 

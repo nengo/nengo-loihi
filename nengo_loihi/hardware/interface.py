@@ -54,7 +54,7 @@ class HardwareInterface:
         Defaults to one block and one input per core on a single chip.
     """
 
-    connection_retries = 10
+    connection_retries = 3
     min_nxsdk_version = LooseVersion("0.8.7")
     max_nxsdk_version = LooseVersion("0.9.0")
 
@@ -175,17 +175,22 @@ class HardwareInterface:
         """Connects to the board."""
 
         logger.info("Connecting to Loihi, max attempts: %d", self.connection_retries)
+        last_exception = None
         for i in range(self.connection_retries):
             try:
                 d_func(self.nxsdk_board, b"c3RhcnQ=")
                 if self.connected:
                     break
             except Exception as e:
+                last_exception = e
                 logger.warning("Connection error: %s", e)
                 time.sleep(1)
                 logger.info("Retrying, attempt %d", i + 1)
         else:
-            raise SimulationError("Could not connect to the board")
+            raise SimulationError(
+                "Board connection error%s"
+                % (": %s" % last_exception if last_exception is not None else "")
+            )
 
     def get_probe_output(self, probe):
         assert isinstance(probe, LoihiProbe)

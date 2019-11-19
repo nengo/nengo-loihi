@@ -139,7 +139,7 @@ def test_interface_connection_errors(Simulator, monkeypatch):
 
     monkeypatch.setattr(NxsdkBoard, d(b"c3RhcnQ="), start)
 
-    with pytest.raises(SimulationError, match="[Cc]ould not connect"):
+    with pytest.raises(SimulationError, match="Mock failure to connect"):
         with Simulator(net):
             pass
 
