@@ -461,8 +461,6 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
 
     with Simulator(model, dt=dt) as sim_loihi:
-        if "loihi" in sim_loihi.sims:
-            sim_loihi.sims["loihi"].snip_max_spikes_per_step = 800
         sim_loihi.run(pres_time)
     sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape)
 

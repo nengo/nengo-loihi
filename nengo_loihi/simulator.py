@@ -545,7 +545,10 @@ class Simulator:
         self._make_run_steps()
 
         if "loihi" in self.sims:
-            self.sims["loihi"].connect()  # connect outside timing loop
+            # build and connect outside timing loop
+            if not self.sims["loihi"].is_built:
+                self.sims["loihi"].build()
+            self.sims["loihi"].connect()
 
         time0 = timeit.default_timer()
         try:

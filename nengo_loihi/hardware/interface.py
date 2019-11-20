@@ -81,8 +81,6 @@ class HardwareInterface:
         # clear cached content from SpikeProbe class attribute
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
-        self.build()
-
     def __enter__(self):
         return self
 
@@ -108,13 +106,14 @@ class HardwareInterface:
                 "%s" % (version, cls.max_nxsdk_version)
             )
 
-    def _iter_blocks(self):
-        return iter(self.model.blocks)
-
     def _iter_probes(self):
-        for block in self._iter_blocks():
+        for block in self.model.blocks:
             for probe in block.probes:
                 yield probe
+
+    @property
+    def is_built(self):
+        return self.nxsdk_board is not None
 
     def build(self):
         assert self.nxsdk_board is None, "Cannot rebuild model"

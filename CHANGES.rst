@@ -28,6 +28,11 @@ Release history
   simulator to be forced to use ``precompute=False`` (mostly for testing). Also added
   better detection for when ``precompute=True`` can be used.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- ``Simulator`` now includes a ``.timers`` dictionary that records the wall time
+  taken by particular parts of the simulation. Currently, the main timer available is
+  ``"steps"``, which reports the amount of time taken to run the simulation steps
+  (not including connection time).
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
