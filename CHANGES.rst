@@ -19,8 +19,8 @@ Release history
    - Removed
    - Fixed
 
-0.9.0 (unreleased)
-==================
+0.9.0 (November 20, 2019)
+=========================
 
 **Added**
 
@@ -41,6 +41,8 @@ Release history
   (`#240 <https://github.com/nengo/nengo-loihi/pull/240>`__)
 - Increased minimum NengoDL version to 3.0 (and this transitively increases the minimum
   TensorFlow version to 2.0).
+  (`#259 <https://github.com/nengo/nengo-loihi/pull/259>`__)
+- Nengo Loihi is now compatible with Nengo version 3.0.0.
   (`#259 <https://github.com/nengo/nengo-loihi/pull/259>`__)
 
 **Fixed**
