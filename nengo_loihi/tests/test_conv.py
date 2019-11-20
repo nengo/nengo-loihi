@@ -577,7 +577,8 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("pop_type", [32, 16])
-def test_conv_deepnet(pop_type, Simulator, rng, seed, plt, allclose):
+@pytest.mark.parametrize("precompute", [False, True])
+def test_conv_deepnet(pop_type, precompute, Simulator, rng, seed, plt, allclose):
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
     ):
@@ -686,7 +687,7 @@ def test_conv_deepnet(pop_type, Simulator, rng, seed, plt, allclose):
         ref_out = (sim_nengo.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
     hw_opts = dict(snip_max_spikes_per_step=800)
-    with Simulator(net, precompute=False, hardware_options=hw_opts) as sim_loihi:
+    with Simulator(net, precompute=precompute, hardware_options=hw_opts) as sim_loihi:
         block1 = sim_loihi.model.objs[layer1]["out"]
         n_axons1 = sum(axon.axon_slots() for axon in block1.axons)
         n_inputs1 = np.prod(conv1.output_shape.spatial_shape)
