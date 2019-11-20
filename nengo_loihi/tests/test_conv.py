@@ -358,10 +358,6 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, allclose):
-    if channels_last:
-        plt.saveas = None
-        pytest.xfail("Blocked by CxBase cannot be > 256 bug")
-
     # load data
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
