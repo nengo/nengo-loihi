@@ -2,7 +2,7 @@ import os
 import pickle
 
 import nengo
-from nengo.dists import Uniform
+from nengo.dists import Choice, Uniform
 from nengo.exceptions import ValidationError
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
@@ -576,124 +576,128 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-@pytest.mark.parametrize("pop_type", (32, 16))
-def test_conv_poptype(pop_type, Simulator, rng, seed, plt, allclose):
+@pytest.mark.parametrize("pop_type", [32, 16])
+def test_conv_deepnet(pop_type, Simulator, rng, seed, plt, allclose):
+    def conv_layer(
+        x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
+    ):
+        conn_args = {} if conn_args is None else conn_args
+
+        if array_init is not None:
+            assert all(a not in conv_args for a in ("init", "kernel_size", "n_filters"))
+            assert array_init.ndim == 4
+            conv_args["init"] = array_init
+            conv_args["kernel_size"] = array_init.shape[:2]
+            assert array_init.shape[2] == input_shape.n_channels
+            conv_args["n_filters"] = array_init.shape[3]
+
+        conv = nengo.Convolution(input_shape=input_shape, **conv_args)
+
+        # add an ensemble to implement the activation function
+        layer = nengo.Ensemble(conv.output_shape.size, 1, label=label)
+
+        # connect up the input object to the new layer
+        conn = nengo.Connection(x, layer.neurons, transform=conv)
+
+        return layer, conv, conn
+
     channels_last = True
     channels = 1
-    n_filters = 8
+    n_filters0 = 1
+    n_filters1 = 4
+    n_filters2 = 4
     # load data
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
 
-    test_x = test10[0][0].reshape(28, 28)
-    test_x = 1.999 * test_x - 0.999  # range (-1, 1)
+    test_x = test10[0][0].reshape(28, 28)  # range (0, 1)
     input_shape = nengo_transforms.ChannelShape(
         (test_x.shape + (channels,)) if channels_last else ((channels,) + test_x.shape),
         channels_last=channels_last,
     )
 
-    filters_inter = Gabor(freq=Uniform(0.5, 1)).generate(n_filters, (4, 4), rng=rng)
-    filters_inter = filters_inter[None, :, :, :]  # single channel
-    filters_inter = np.transpose(filters_inter, (2, 3, 0, 1))
-    filters_out = Gabor(freq=Uniform(0.5, 1)).generate(1, (8, 8), rng=rng)
-    filters_out = filters_out[None, :, :, :]  # single channel
-    tau_rc = 0.02
-    tau_ref = 0.002
+    filters0 = np.ones((1, 1, channels, n_filters0))
+
+    # use Gabor filters for first layer
+    filters1 = Gabor(
+        freq=Uniform(0.5, 1), sigma_x=Choice([0.9]), sigma_y=Choice([0.9])
+    ).generate(n_filters1, (7, 7), rng=rng)
+    assert n_filters0 == 1
+    filters1 = filters1[None, :, :, :]  # single channel
+    filters1 = np.transpose(filters1, (2, 3, 0, 1))  # rows, cols, in_chan, out_chan
+
+    # use random combinations of first-layer channels in 1x1 convolution
+    filters2 = rng.uniform(-0.2, 1, size=(n_filters1, n_filters2)).clip(0, None)
+    filters2 *= 2 / filters2.sum(axis=0, keepdims=True)  # each filter sums to 2
+    filters2 = filters2[None, None, :, :]  # rows, cols, in_chan, out_chan
+
     tau_s = 0.001
-    dt = 0.001
+    max_rate = 100
+    amp = 1 / max_rate
 
-    neuron_type = LoihiLIF(tau_rc=tau_rc, tau_ref=tau_ref)
+    # use Loihi neuron type so Nengo sim mimics Loihi neuron effects
+    neuron_type = LoihiSpikingRectifiedLinear(amplitude=amp)
 
-    pres_time = 1.0
+    pres_time = 0.2
 
-    with nengo.Network(seed=seed) as model:
-        gain, bias = neuron_type.gain_bias(max_rates=200, intercepts=0)
-        gain = gain * 0.01
+    with nengo.Network(seed=seed) as net:
+        nengo_loihi.add_params(net)
 
-        nengo_loihi.add_params(model)
+        net.config[nengo.Ensemble].neuron_type = neuron_type
+        net.config[nengo.Ensemble].max_rates = Choice([max_rate])
+        net.config[nengo.Ensemble].intercepts = Choice([0])
+        net.config[nengo.Connection].synapse = tau_s
 
         u = nengo.Node(test_x.ravel(), label="u")
 
-        a = nengo.Ensemble(
-            input_shape.size,
-            1,
-            neuron_type=LoihiSpikingRectifiedLinear(),
-            max_rates=nengo.dists.Choice([40 / channels]),
-            intercepts=nengo.dists.Choice([0]),
-            label="a",
-        )
-        model.config[a].on_chip = False
-
-        conn = nengo.Connection(u, a.neurons, transform=1, synapse=None)
-
-        conv2d_transform_i = nengo_transforms.Convolution(
-            n_filters,
-            input_shape,
-            strides=(2, 2),
-            kernel_size=(4, 4),
-            channels_last=channels_last,
-            init=filters_inter,
-        )
-        output_shape = conv2d_transform_i.output_shape
-
-        b = nengo.Ensemble(
-            output_shape.size,
-            1,
-            neuron_type=LoihiSpikingRectifiedLinear(),
-            label="b",
-            gain=nengo.dists.Choice([gain[0]]),
-            bias=nengo.dists.Choice([bias[0]]),
-        )
-        conn = nengo.Connection(
-            a.neurons, b.neurons, synapse=tau_s, transform=conv2d_transform_i
-        )
-
-        conv2d_transform_o = nengo_transforms.Convolution(
-            n_filters,
-            output_shape,
+        layer0, conv0, conn0 = conv_layer(
+            u,
+            input_shape=input_shape,
+            array_init=filters0,
             strides=(1, 1),
-            kernel_size=(1, 1),
-            channels_last=channels_last,
-            init=filters_out,
+            label="layer0",
+            conn_args=dict(synapse=None),
         )
-        output_shape = conv2d_transform_o.output_shape
+        net.config[layer0].on_chip = False
 
-        c = nengo.Ensemble(
-            output_shape.size,
-            1,
-            neuron_type=neuron_type,
-            gain=nengo.dists.Choice([gain[0]]),
-            bias=nengo.dists.Choice([bias[0]]),
-            label="c",
+        layer1, conv1, conn1 = conv_layer(
+            layer0.neurons,
+            input_shape=conv0.output_shape,
+            array_init=filters1,
+            strides=(2, 2),
+            label="layer1",
         )
-        conn = nengo.Connection(
-            b.neurons, c.neurons, synapse=tau_s, transform=conv2d_transform_o
+        net.config[conn1].pop_type = pop_type
+
+        layer2, conv2, conn2 = conv_layer(
+            layer1.neurons,
+            input_shape=conv1.output_shape,
+            array_init=filters2,
+            strides=(1, 1),
+            label="layer2",
         )
-        model.config[conn].pop_type = pop_type
-        bp = nengo.Probe(c.neurons)
+        net.config[conn2].pop_type = pop_type
 
-    with nengo.Simulator(model, dt=dt, optimize=False) as sim:
-        sim.run(pres_time)
-    ref_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
+        output_p = nengo.Probe(layer2.neurons)
+        output_shape = conv2.output_shape
 
-    with nengo_loihi.Simulator(model, dt=dt, target="simreal") as sim_real:
-        for block in sim_real.model.blocks:
-            n_axons = sum(axon.axon_slots() for axon in block.axons)
-            if str(block.label) == '<Ensemble "b">':
-                if pop_type == 16:
-                    assert n_axons == 169
-                elif pop_type == 32:
-                    assert n_axons == 338
-        sim_real.run(pres_time)
-    real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
+    with nengo.Simulator(net, optimize=False) as sim_nengo:
+        sim_nengo.run(pres_time)
+        ref_out = (sim_nengo.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
-    with Simulator(model, dt=dt) as sim_loihi:
-        if "loihi" in sim_loihi.sims:
-            sim_loihi.sims["loihi"].snip_max_spikes_per_step = 800
+    hw_opts = dict(snip_max_spikes_per_step=800)
+    with Simulator(net, precompute=False, hardware_options=hw_opts) as sim_loihi:
+        block1 = sim_loihi.model.objs[layer1]["out"]
+        n_axons1 = sum(axon.axon_slots() for axon in block1.axons)
+        n_inputs1 = np.prod(conv1.output_shape.spatial_shape)
+        assert n_axons1 == (2 if pop_type == 32 else 1) * n_inputs1
+
         sim_loihi.run(pres_time)
-    sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape)
+        sim_out = (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
-    out_max = max(ref_out.max(), sim_out.max())
+    out_max = ref_out.max()
+    ref_out = ref_out / out_max
+    sim_out = sim_out / out_max
 
     # --- plot results
     rows = 2
@@ -703,20 +707,23 @@ def test_conv_poptype(pop_type, Simulator, rng, seed, plt, allclose):
     imshow(test_x, vmin=0, vmax=1, ax=ax)
 
     ax = plt.subplot(rows, cols, 2)
-    tile(np.transpose(filters_inter[0], (2, 0, 1)), cols=8, ax=ax)
+    tile(np.transpose(filters1, (2, 3, 0, 1))[0], rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 3)
-    plt.hist(ref_out.ravel(), bins=31)
-    plt.hist(sim_out.ravel(), bins=31)
+    assert filters2.shape[:2] == (1, 1)
+    filters12 = filters1.dot(filters2[0, 0])
+    tile(np.transpose(filters12, (2, 3, 0, 1))[0], rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 4)
-    tile(np.transpose(ref_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
+    plt.hist((ref_out.ravel(), sim_out.ravel()), bins=21)
+
+    ax = plt.subplot(rows, cols, 5)
+    tile(np.transpose(ref_out, (2, 0, 1)), rows=2, cols=2, grid=True, ax=ax)
 
     ax = plt.subplot(rows, cols, 6)
-    tile(np.transpose(sim_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
+    tile(np.transpose(sim_out, (2, 0, 1)), rows=2, cols=2, grid=True, ax=ax)
 
-    assert allclose(real_out, ref_out, atol=1, rtol=1e-3)
-    assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
+    assert allclose(sim_out, ref_out, atol=0.15, rtol=1e-3)
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
