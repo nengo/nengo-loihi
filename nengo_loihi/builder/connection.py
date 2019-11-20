@@ -769,11 +769,11 @@ def build_conv2d_connection(model, conn):
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
     assert isinstance(conn.transform, nengo_transforms.Convolution)
 
-    weights = conn.transform.sample(rng=rng)
+    kernel = conn.transform.sample(rng=rng)
     input_shape = conn.transform.input_shape
 
     # Account for nengo spike height of 1/dt
-    weights = weights / model.dt
+    kernel = kernel / model.dt
 
     if isinstance(conn.pre_obj, ChipReceiveNeurons):
         neuron_type = conn.pre_obj.neuron_type
@@ -781,7 +781,7 @@ def build_conv2d_connection(model, conn):
         neuron_type = conn.pre_obj.ensemble.neuron_type
 
     if neuron_type is not None and hasattr(neuron_type, "amplitude"):
-        weights = weights * neuron_type.amplitude
+        kernel = kernel * neuron_type.amplitude
 
     # --- post
     assert isinstance(conn.post_obj, Neurons)
@@ -789,7 +789,7 @@ def build_conv2d_connection(model, conn):
 
     gain = model.params[conn.post_obj.ensemble].gain
     if not np.all(gain == gain[0]):
-        # Cannot fold gains into weights, result would not be convolutional.
+        # Cannot fold gains into kernel, result would not be convolutional.
         # Therefore, Loihi does not support this if we want to share weights.
         raise ValidationError(
             "All neurons targeted by a Convolution connection must "
@@ -797,11 +797,11 @@ def build_conv2d_connection(model, conn):
             "gain",
             obj=conn.post_obj.ensemble,
         )
-    weights = weights * gain[0]
+    kernel = kernel * gain[0]
 
     pop_type = model.config[conn].pop_type
     new_transform = copy.copy(conn.transform)
-    type(new_transform).init.data[new_transform] = weights
+    type(new_transform).init.data[new_transform] = kernel
     weights, indices, axon_to_weight_map, offsets = conv2d_loihi_weights(new_transform)
 
     synapse = Synapse(np.prod(input_shape.spatial_shape), label="conv2d_weights")
@@ -824,5 +824,5 @@ def build_conv2d_connection(model, conn):
     post_obj.compartment.configure_filter(tau_s, dt=model.dt)
 
     model.params[conn] = BuiltConnection(
-        eval_points=None, solver_info=None, transform=None, weights=weights
+        eval_points=None, solver_info=None, transform=None, weights=kernel
     )
