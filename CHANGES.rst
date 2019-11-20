@@ -47,6 +47,9 @@ Release history
 - Added the ``add_to_container`` argument to ``DecodeNeurons.get_ensemble``,
   which makes it easier to add a decode neurons ensemble to a network.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- ``Convolution`` transforms with ``channels_last=True`` now work with outputs
+  up to 1024 neurons.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Fixed**
 

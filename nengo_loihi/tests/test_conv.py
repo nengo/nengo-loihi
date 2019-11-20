@@ -13,7 +13,7 @@ import scipy.signal
 import nengo_loihi
 from nengo_loihi.block import Axon, LoihiBlock, Probe, Synapse
 from nengo_loihi.builder import Model
-from nengo_loihi.compat import HAS_DL, nengo_dl, nengo_transforms
+from nengo_loihi.compat import nengo_transforms
 from nengo_loihi import conv
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
@@ -358,10 +358,6 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, allclose):
-    if channels_last:
-        plt.saveas = None
-        pytest.xfail("Blocked by CxBase cannot be > 256 bug")
-
     # load data
     with open(os.path.join(test_dir, "mnist10.pkl"), "rb") as f:
         test10 = pickle.load(f)
@@ -443,21 +439,13 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
         bp = nengo.Probe(b.neurons)
 
-    with nengo.Simulator(model, optimize=False) as sim:
-        sim.run(pres_time)
-    ref_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
+    with nengo.Simulator(model, optimize=False) as sim_nengo:
+        sim_nengo.run(pres_time)
+    ref_out = sim_nengo.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    # Currently, non-gpu TensorFlow does not support channels first in conv
-    use_nengo_dl = HAS_DL and channels_last
-    ndl_out = np.zeros_like(ref_out)
-    if use_nengo_dl:
-        with nengo_dl.Simulator(model) as sim_dl:
-            sim_dl.run(pres_time)
-        ndl_out = sim_dl.data[bp].mean(axis=0).reshape(output_shape.shape)
-
-    with nengo_loihi.Simulator(model, target="simreal") as sim_real:
-        sim_real.run(pres_time)
-    real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
+    with Simulator(model, target="simreal") as sim_emu:
+        sim_emu.run(pres_time)
+    emu_out = sim_emu.data[bp].mean(axis=0).reshape(output_shape.shape)
 
     hw_opts = dict(snip_max_spikes_per_step=800)
     with Simulator(model, hardware_options=hw_opts) as sim_loihi:
@@ -466,11 +454,10 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
     if not output_shape.channels_last:
         ref_out = np.transpose(ref_out, (1, 2, 0))
-        ndl_out = np.transpose(ndl_out, (1, 2, 0))
-        real_out = np.transpose(real_out, (1, 2, 0))
+        emu_out = np.transpose(emu_out, (1, 2, 0))
         sim_out = np.transpose(sim_out, (1, 2, 0))
 
-    out_max = max(ref_out.max(), sim_out.max())
+    out_max = max(ref_out.max(), emu_out.max(), sim_out.max())
 
     # --- plot results
     rows = 2
@@ -490,14 +477,12 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     tile(np.transpose(ref_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
     ax = plt.subplot(rows, cols, 5)
-    tile(np.transpose(ndl_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
+    tile(np.transpose(emu_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
     ax = plt.subplot(rows, cols, 6)
     tile(np.transpose(sim_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    if use_nengo_dl:
-        assert allclose(ndl_out, ref_out, atol=1e-5, rtol=1e-5)
-    assert allclose(real_out, ref_out, atol=1, rtol=1e-3)
+    assert allclose(emu_out, ref_out, atol=1, rtol=1e-3)
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
