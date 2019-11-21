@@ -444,14 +444,6 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
         sim.run(pres_time)
     ref_out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    # Currently, non-gpu TensorFlow does not support channels first in conv
-    use_nengo_dl = HAS_DL and channels_last
-    ndl_out = np.zeros_like(ref_out)
-    if use_nengo_dl:
-        with nengo_dl.Simulator(model, dt=dt) as sim_dl:
-            sim_dl.run(pres_time)
-        ndl_out = sim_dl.data[bp].mean(axis=0).reshape(output_shape.shape)
-
     with nengo_loihi.Simulator(model, dt=dt, target="simreal") as sim_real:
         sim_real.run(pres_time)
     real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
@@ -462,7 +454,6 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
     if not output_shape.channels_last:
         ref_out = np.transpose(ref_out, (1, 2, 0))
-        ndl_out = np.transpose(ndl_out, (1, 2, 0))
         real_out = np.transpose(real_out, (1, 2, 0))
         sim_out = np.transpose(sim_out, (1, 2, 0))
 
@@ -485,14 +476,9 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     ax = plt.subplot(rows, cols, 4)
     tile(np.transpose(ref_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    ax = plt.subplot(rows, cols, 5)
-    tile(np.transpose(ndl_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
-
     ax = plt.subplot(rows, cols, 6)
     tile(np.transpose(sim_out, (2, 0, 1)), vmin=0, vmax=out_max, cols=8, ax=ax)
 
-    if use_nengo_dl:
-        assert allclose(ndl_out, ref_out, atol=1e-5, rtol=1e-5)
     assert allclose(real_out, ref_out, atol=1, rtol=1e-3)
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
