@@ -1,0 +1,614 @@
+
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Index &#8212; Nengo Loihi 0.9.0 docs</title>
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+  
+<script type="text/javascript" src="_static/underscore.js"></script>
+  
+  
+<script type="text/javascript" src="_static/doctools.js"></script>
+  
+  
+<script type="text/javascript" src="_static/language_data.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+  
+<script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+  
+<script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo Core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">Nengo GUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">Nengo DL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">Nengo FPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">Nengo Loihi</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-mpi">Nengo MPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="Nengo Loihi"
+      />
+    </a>
+  </h3>
+  
+  <form class="px-5 pb-5 mb-0 mt-3 border-bottom">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../genindex.html">latest</option>
+        
+        
+          
+        <option selected>v0.9.0</option>
+          
+        
+          
+        <option value="../v0.8.0/genindex.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../v0.7.0/genindex.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+  <div class="p-5 toctree">
+    <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+  </div>
+<form class="p-5 my-0 border-top" action="search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form></div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ 
+</div>
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.add_params">add_params() (in module nengo_loihi)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.neurons.AlphaRCNoise">AlphaRCNoise (class in nengo_loihi.neurons)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Axon">Axon (class in nengo_loihi.block)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.block.Axon.Spike">Axon.Spike (class in nengo_loihi.block)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Axon.axon_slots">axon_slots() (nengo_loihi.block.Axon method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.emulator.interface.AxonState">AxonState (class in nengo_loihi.emulator.interface)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.interface.BlockInfo">BlockInfo (class in nengo_loihi.emulator.interface)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.builder.Builder">Builder (class in nengo_loihi.builder)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.Simulator.close">close() (nengo_loihi.Simulator method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Compartment">Compartment (class in nengo_loihi.block)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.emulator.interface.CompartmentState">CompartmentState (class in nengo_loihi.emulator.interface)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Compartment.configure_default_filter">configure_default_filter() (nengo_loihi.block.Compartment method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.block.Compartment.configure_filter">configure_filter() (nengo_loihi.block.Compartment method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Compartment.configure_lif">configure_lif() (nengo_loihi.block.Compartment method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Compartment.configure_nonspiking">configure_nonspiking() (nengo_loihi.block.Compartment method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Compartment.configure_relu">configure_relu() (nengo_loihi.block.Compartment method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.decode_neurons.DecodeNeurons">DecodeNeurons (class in nengo_loihi.decode_neurons)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.discretize.discretize_block">discretize_block() (in module nengo_loihi.discretize)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.discretize.discretize_compartment">discretize_compartment() (in module nengo_loihi.discretize)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.discretize.discretize_model">discretize_model() (in module nengo_loihi.discretize)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.discretize.discretize_synapse">discretize_synapse() (in module nengo_loihi.discretize)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.Simulator.dt">dt() (nengo_loihi.Simulator property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.EmulatorInterface">EmulatorInterface (class in nengo_loihi.emulator)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_block">get_block() (nengo_loihi.decode_neurons.DecodeNeurons method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.decode_neurons.NoisyDecodeNeurons.get_block">(nengo_loihi.decode_neurons.NoisyDecodeNeurons method)</a>
+</li>
+        <li><a href="api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_block">(nengo_loihi.decode_neurons.OnOffDecodeNeurons method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_ensemble">get_ensemble() (nengo_loihi.decode_neurons.DecodeNeurons method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_ensemble">(nengo_loihi.decode_neurons.OnOffDecodeNeurons method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_post_encoders">get_post_encoders() (nengo_loihi.decode_neurons.DecodeNeurons method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_encoders">(nengo_loihi.decode_neurons.OnOffDecodeNeurons method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#nengo_loihi.decode_neurons.DecodeNeurons.get_post_inds">get_post_inds() (nengo_loihi.decode_neurons.DecodeNeurons method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_inds">(nengo_loihi.decode_neurons.OnOffDecodeNeurons method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.hardware.HardwareInterface">HardwareInterface (class in nengo_loihi.hardware)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.builder.Model.host_model">host_model() (nengo_loihi.builder.Model method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.interface.IterableState">IterableState (class in nengo_loihi.emulator.interface)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.block.LoihiBlock">LoihiBlock (class in nengo_loihi.block)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.neurons.LoihiLIF">LoihiLIF (class in nengo_loihi.neurons)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear">LoihiSpikingRectifiedLinear (class in nengo_loihi.neurons)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.neurons.LowpassRCNoise">LowpassRCNoise (class in nengo_loihi.neurons)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.builder.Model">Model (class in nengo_loihi.builder)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.Simulator.n_steps">n_steps() (nengo_loihi.Simulator property)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.neurons.NeuronOutputNoise">NeuronOutputNoise (class in nengo_loihi.neurons)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.interface.NoiseState">NoiseState (class in nengo_loihi.emulator.interface)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.decode_neurons.NoisyDecodeNeurons">NoisyDecodeNeurons (class in nengo_loihi.decode_neurons)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.decode_neurons.OnOffDecodeNeurons">OnOffDecodeNeurons (class in nengo_loihi.decode_neurons)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.decode_neurons.Preset10DecodeNeurons">Preset10DecodeNeurons (class in nengo_loihi.decode_neurons)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.decode_neurons.Preset5DecodeNeurons">Preset5DecodeNeurons (class in nengo_loihi.decode_neurons)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.block.Probe">Probe (class in nengo_loihi.block)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.emulator.interface.ProbeState">ProbeState (class in nengo_loihi.emulator.interface)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.neurons.LoihiLIF.rates">rates() (nengo_loihi.neurons.LoihiLIF method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.rates">(nengo_loihi.neurons.LoihiSpikingRectifiedLinear method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#nengo_loihi.Simulator.reset">reset() (nengo_loihi.Simulator method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.Simulator.run">run() (nengo_loihi.Simulator method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.emulator.EmulatorInterface.run_steps">run_steps() (nengo_loihi.emulator.EmulatorInterface method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.Simulator.run_steps">(nengo_loihi.Simulator method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.interface.ProbeState.send">send() (nengo_loihi.emulator.interface.ProbeState method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Axon.set_compartment_axon_map">set_compartment_axon_map() (nengo_loihi.block.Axon method)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.set_defaults">set_defaults() (in module nengo_loihi)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.Simulator">Simulator (class in nengo_loihi)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.block.Axon.slots_per_axon">slots_per_axon() (nengo_loihi.block.Axon property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.emulator.EmulatorInterface.step">step() (nengo_loihi.emulator.EmulatorInterface method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.Simulator.step">(nengo_loihi.Simulator method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#nengo_loihi.neurons.LoihiLIF.step_math">step_math() (nengo_loihi.neurons.LoihiLIF method)</a>
+
+      <ul>
+        <li><a href="api.html#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.step_math">(nengo_loihi.neurons.LoihiSpikingRectifiedLinear method)</a>
+</li>
+      </ul></li>
+      <li><a href="api.html#nengo_loihi.block.Synapse">Synapse (class in nengo_loihi.block)</a>
+</li>
+      <li><a href="api.html#nengo_loihi.emulator.interface.SynapseState">SynapseState (class in nengo_loihi.emulator.interface)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.Simulator.time">time() (nengo_loihi.Simulator property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#nengo_loihi.Simulator.trange">trange() (nengo_loihi.Simulator method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>

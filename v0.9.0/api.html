@@ -1,0 +1,1809 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>API reference &#8212; Nengo Loihi 0.9.0 docs</title>
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+  
+<script type="text/javascript" src="_static/underscore.js"></script>
+  
+  
+<script type="text/javascript" src="_static/doctools.js"></script>
+  
+  
+<script type="text/javascript" src="_static/language_data.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+  
+<script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+  
+<script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tips and tricks" href="tips.html" />
+    <link rel="prev" title="Nonlinear adaptive control" href="examples/adaptive_motor_control.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo Core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">Nengo GUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">Nengo DL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">Nengo FPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">Nengo Loihi</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-mpi">Nengo MPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="Nengo Loihi"
+      />
+    </a>
+  </h3>
+  
+  <form class="px-5 pb-5 mb-0 mt-3 border-bottom">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../api.html">latest</option>
+        
+        
+          
+        <option selected>v0.9.0</option>
+          
+        
+          
+        <option value="../v0.8.0/api.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../v0.7.0/api.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+  <div class="p-5 toctree">
+    <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Example models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main">Main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#neurons">Neurons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#builder">Builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#decode-neurons">Decode neurons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#discretization">Discretization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#emulator">Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware">Hardware</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+  </div>
+<form class="p-5 my-0 border-top" action="search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form></div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+  <div class="section" id="api-reference">
+<h1>API reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="main">
+<h2>Main<a class="headerlink" href="#main" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.Simulator" title="nengo_loihi.Simulator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code></a>(network[, dt, seed, …])</p></td>
+<td><p>Nengo Loihi simulator for Loihi hardware and emulator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.add_params" title="nengo_loihi.add_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.add_params</span></code></a>(network)</p></td>
+<td><p>Add nengo_loihi config option to <em>network</em>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.set_defaults" title="nengo_loihi.set_defaults"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.set_defaults</span></code></a>()</p></td>
+<td><p>Modify Nengo’s default parameters for better performance with Loihi.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.Simulator">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.</code><code class="sig-name descname">Simulator</code><span class="sig-paren">(</span><em class="sig-param">network</em>, <em class="sig-param">dt=0.001</em>, <em class="sig-param">seed=None</em>, <em class="sig-param">model=None</em>, <em class="sig-param">precompute=False</em>, <em class="sig-param">target=None</em>, <em class="sig-param">progress_bar=None</em>, <em class="sig-param">remove_passthrough=True</em>, <em class="sig-param">hardware_options=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Nengo Loihi simulator for Loihi hardware and emulator.</p>
+<p>The simulator takes a <a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Network" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Network</span></code></a> and builds internal data structures
+to run the model defined by that network on Loihi emulator or hardware.
+Run the simulator with the <a class="reference internal" href="#nengo_loihi.Simulator.run" title="nengo_loihi.Simulator.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.run</span></code></a> method, and access probed data
+through the <code class="docutils literal notranslate"><span class="pre">data</span></code> attribute.</p>
+<p>Building and running the simulation allocates resources. To properly free
+these resources, call the <a class="reference internal" href="#nengo_loihi.Simulator.close" title="nengo_loihi.Simulator.close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.close</span></code></a> method. Alternatively,
+<a class="reference internal" href="#nengo_loihi.Simulator.close" title="nengo_loihi.Simulator.close"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.close</span></code></a> will automatically be called if you use
+<code class="docutils literal notranslate"><span class="pre">with</span></code> syntax:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">my_network</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">my_probe</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">data</span></code> attribute is still accessible even when a simulator
+has been closed. Running the simulator, however, will raise an error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>network</strong><span class="classifier">Network</span></dt><dd><p>A network object to be built and then simulated. If None,
+then the <em>model</em> parameter must be provided instead.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float, optional (Default: 0.001)</span></dt><dd><p>The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier">int, optional (Default: None)</span></dt><dd><p>A seed for all stochastic operators used in this simulator.
+Will be set to <code class="docutils literal notranslate"><span class="pre">network.seed</span> <span class="pre">+</span> <span class="pre">1</span></code> if not given.</p>
+</dd>
+<dt><strong>model</strong><span class="classifier">Model, optional (Default: None)</span></dt><dd><p>A <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> that contains build artifacts to be simulated.
+Usually the simulator will build this model for you; however, if you
+want to build the network manually, or you want to inject build
+artifacts in the model before building the network, then you can
+pass in a <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> instance.</p>
+</dd>
+<dt><strong>precompute</strong><span class="classifier">bool, optional (Default: False)</span></dt><dd><p>Whether model inputs should be precomputed to speed up simulation.
+When <em>precompute</em> is False, the simulator will be run one step
+at a time in order to use model outputs as inputs in other parts
+of the model.</p>
+</dd>
+<dt><strong>target</strong><span class="classifier">str, optional (Default: None)</span></dt><dd><p>Whether the simulator should target the emulator (<code class="docutils literal notranslate"><span class="pre">'sim'</span></code>) or
+Loihi hardware (<code class="docutils literal notranslate"><span class="pre">'loihi'</span></code>). If None, <em>target</em> will default to
+<code class="docutils literal notranslate"><span class="pre">'loihi'</span></code> if NxSDK is installed, and the emulator if it is not.</p>
+</dd>
+<dt><strong>hardware_options</strong><span class="classifier">dict, optional (Default: {})</span></dt><dd><p>Dictionary of additional configuration for the hardware.
+See <a class="reference internal" href="#nengo_loihi.hardware.HardwareInterface" title="nengo_loihi.hardware.HardwareInterface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hardware.HardwareInterface</span></code></a> for possible parameters.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>closed</strong><span class="classifier">bool</span></dt><dd><p>Whether the simulator has been closed.
+Once closed, it cannot be reopened.</p>
+</dd>
+<dt><strong>data</strong><span class="classifier">ProbeDict</span></dt><dd><p>The dictionary mapping from Nengo objects to the data associated
+with those objects. In particular, each <a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Probe" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Probe</span></code></a> maps to
+the data probed while running the simulation.</p>
+</dd>
+<dt><strong>model</strong><span class="classifier">Model</span></dt><dd><p>The <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> containing the data structures necessary for
+simulating the network.</p>
+</dd>
+<dt><strong>precompute</strong><span class="classifier">bool</span></dt><dd><p>Whether model inputs should be precomputed to speed up simulation.
+When <em>precompute</em> is False, the simulator will be run one step
+at a time in order to use model outputs as inputs in other parts
+of the model.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.Simulator.dt">
+<em class="property">property </em><code class="sig-name descname">dt</code><a class="headerlink" href="#nengo_loihi.Simulator.dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>(float) The step time of the simulator.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.n_steps">
+<em class="property">property </em><code class="sig-name descname">n_steps</code><a class="headerlink" href="#nengo_loihi.Simulator.n_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>(int) The current time step of the simulator.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.time">
+<em class="property">property </em><code class="sig-name descname">time</code><a class="headerlink" href="#nengo_loihi.Simulator.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>(float) The current time of the simulator.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the simulator.</p>
+<p>Any call to <a class="reference internal" href="#nengo_loihi.Simulator.run" title="nengo_loihi.Simulator.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.run</span></code></a>, <a class="reference internal" href="#nengo_loihi.Simulator.run_steps" title="nengo_loihi.Simulator.run_steps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.run_steps</span></code></a>,
+<a class="reference internal" href="#nengo_loihi.Simulator.step" title="nengo_loihi.Simulator.step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.step</span></code></a>, and <a class="reference internal" href="#nengo_loihi.Simulator.reset" title="nengo_loihi.Simulator.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator.reset</span></code></a> on a closed simulator raises
+a <code class="docutils literal notranslate"><span class="pre">SimulatorClosed</span></code> exception.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the simulator state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>seed</strong><span class="classifier">int, optional</span></dt><dd><p>A seed for all stochastic operators used in the simulator.
+This will change the random sequences generated for noise
+or inputs (e.g. from processes), but not the built objects
+(e.g. ensembles, connections).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">time_in_seconds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given length of time.</p>
+<p>If the given length of time is not a multiple of <code class="docutils literal notranslate"><span class="pre">dt</span></code>,
+it will be rounded to the nearest <code class="docutils literal notranslate"><span class="pre">dt</span></code>. For example, if <code class="docutils literal notranslate"><span class="pre">dt</span></code>
+is 0.001 and <code class="docutils literal notranslate"><span class="pre">run</span></code> is called with <code class="docutils literal notranslate"><span class="pre">time_in_seconds=0.0006</span></code>,
+the simulator will advance one timestep, resulting in the actual
+simulator time being 0.001.</p>
+<p>The given length of time must be positive. The simulator cannot
+be run backwards.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>time_in_seconds</strong><span class="classifier">float</span></dt><dd><p>Amount of time to run the simulation for. Must be positive.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Advance the simulator by 1 step (<code class="docutils literal notranslate"><span class="pre">dt</span></code> seconds).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.run_steps">
+<code class="sig-name descname">run_steps</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">steps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.run_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.run_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given number of <code class="docutils literal notranslate"><span class="pre">dt</span></code> steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>steps</strong><span class="classifier">int</span></dt><dd><p>Number of steps to run the simulation for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.Simulator.trange">
+<code class="sig-name descname">trange</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">sample_every=None</em>, <em class="sig-param">dt=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/simulator.html#Simulator.trange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.Simulator.trange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a vector of times matching probed data.</p>
+<p>Note that the range does not start at 0 as one might expect, but at
+the first timestep (i.e., <code class="docutils literal notranslate"><span class="pre">dt</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>sample_every</strong><span class="classifier">float, optional (Default: None)</span></dt><dd><p>The sampling period of the probe to create a range for.
+If None, a time value for every <code class="docutils literal notranslate"><span class="pre">dt</span></code> will be produced.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.add_params">
+<code class="sig-prename descclassname">nengo_loihi.</code><code class="sig-name descname">add_params</code><span class="sig-paren">(</span><em class="sig-param">network</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/config.html#add_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.add_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add nengo_loihi config option to <em>network</em>.</p>
+<p>The following options will be added:</p>
+<dl class="simple">
+<dt><a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Ensemble" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Ensemble</span></code></a></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">on_chip</span></code>: Whether the ensemble should be simulated
+on a Loihi chip. Marking specific ensembles for simulation
+off of a Loihi chip can help with debugging.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Network</span><span class="p">()</span> <span class="k">as</span> <span class="n">model</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">ens</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="c1"># By default, ens will be placed on a Loihi chip</span>
+<span class="gp">... </span>    <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens</span><span class="p">]</span><span class="o">.</span><span class="n">on_chip</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">... </span>    <span class="c1"># Now it will be simulated with Nengo</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.set_defaults">
+<code class="sig-prename descclassname">nengo_loihi.</code><code class="sig-name descname">set_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/config.html#set_defaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.set_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify Nengo’s default parameters for better performance with Loihi.</p>
+<p>The following defaults will be modified:</p>
+<dl class="simple">
+<dt><a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Ensemble" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Ensemble</span></code></a></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">max_rates</span></code>: Set to <code class="docutils literal notranslate"><span class="pre">Uniform(low=100,</span> <span class="pre">high=120)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">intercepts</span></code>: Set to <code class="docutils literal notranslate"><span class="pre">Uniform(low=-0.5,</span> <span class="pre">high=0.5)</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="neurons">
+<h2>Neurons<a class="headerlink" href="#neurons" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.neurons.LoihiLIF" title="nengo_loihi.neurons.LoihiLIF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.neurons.LoihiLIF</span></code></a>([tau_rc, …])</p></td>
+<td><p>Simulate LIF neurons as done by Loihi.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.neurons.LoihiSpikingRectifiedLinear" title="nengo_loihi.neurons.LoihiSpikingRectifiedLinear"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.neurons.LoihiSpikingRectifiedLinear</span></code></a>([…])</p></td>
+<td><p>Simulate spiking rectified linear neurons as done by Loihi.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.neurons.NeuronOutputNoise" title="nengo_loihi.neurons.NeuronOutputNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.neurons.NeuronOutputNoise</span></code></a></p></td>
+<td><p>Noise added to the output of a rate neuron.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.neurons.LowpassRCNoise" title="nengo_loihi.neurons.LowpassRCNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.neurons.LowpassRCNoise</span></code></a>(tau_s)</p></td>
+<td><p>Noise model combining Lowpass synapse and neuron membrane filters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.neurons.AlphaRCNoise" title="nengo_loihi.neurons.AlphaRCNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.neurons.AlphaRCNoise</span></code></a>(tau_s)</p></td>
+<td><p>Noise model combining Alpha synapse and neuron membrane filters.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.neurons.LoihiLIF">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.neurons.</code><code class="sig-name descname">LoihiLIF</code><span class="sig-paren">(</span><em class="sig-param">tau_rc=0.02</em>, <em class="sig-param">tau_ref=0.002</em>, <em class="sig-param">min_voltage=0</em>, <em class="sig-param">amplitude=1</em>, <em class="sig-param">nengo_dl_noise=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiLIF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiLIF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate LIF neurons as done by Loihi.</p>
+<p>On Loihi, the inter-spike interval has to be an integer. This causes
+aliasing the firing rates where a wide variety of inputs can produce the
+same output firing rate. This class reproduces this effect, as well as
+the discretization of some of the neuron parameters. It can be used in
+e.g. <code class="docutils literal notranslate"><span class="pre">nengo</span></code> or <code class="docutils literal notranslate"><span class="pre">nengo_dl</span></code> to reproduce these unique Loihi effects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>nengo_dl_noise</strong><span class="classifier">NeuronOutputNoise</span></dt><dd><p>Noise added to the rate-neuron output when training with this neuron
+type in <code class="docutils literal notranslate"><span class="pre">nengo_dl</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.neurons.LoihiLIF.rates">
+<code class="sig-name descname">rates</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">x</em>, <em class="sig-param">gain</em>, <em class="sig-param">bias</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiLIF.rates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiLIF.rates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Always use LIFRate to determine rates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.neurons.LoihiLIF.step_math">
+<code class="sig-name descname">step_math</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dt</em>, <em class="sig-param">J</em>, <em class="sig-param">spiked</em>, <em class="sig-param">voltage</em>, <em class="sig-param">refractory_time</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiLIF.step_math"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiLIF.step_math" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement the LIFRate nonlinearity.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.neurons.LoihiSpikingRectifiedLinear">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.neurons.</code><code class="sig-name descname">LoihiSpikingRectifiedLinear</code><span class="sig-paren">(</span><em class="sig-param">amplitude=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiSpikingRectifiedLinear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiSpikingRectifiedLinear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate spiking rectified linear neurons as done by Loihi.</p>
+<p>On Loihi, the inter-spike interval has to be an integer. This causes
+aliasing in the firing rates such that a wide variety of inputs produce the
+same output firing rate. This class reproduces this effect. It can be used
+in e.g. <code class="docutils literal notranslate"><span class="pre">nengo</span></code> or <code class="docutils literal notranslate"><span class="pre">nengo_dl</span></code> to reproduce these unique Loihi effects.</p>
+<dl class="method">
+<dt id="nengo_loihi.neurons.LoihiSpikingRectifiedLinear.rates">
+<code class="sig-name descname">rates</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">x</em>, <em class="sig-param">gain</em>, <em class="sig-param">bias</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiSpikingRectifiedLinear.rates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.rates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use RectifiedLinear to determine rates.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.neurons.LoihiSpikingRectifiedLinear.step_math">
+<code class="sig-name descname">step_math</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dt</em>, <em class="sig-param">J</em>, <em class="sig-param">spiked</em>, <em class="sig-param">voltage</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LoihiSpikingRectifiedLinear.step_math"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LoihiSpikingRectifiedLinear.step_math" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement the integrate and fire nonlinearity.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.neurons.NeuronOutputNoise">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.neurons.</code><code class="sig-name descname">NeuronOutputNoise</code><a class="reference internal" href="_modules/nengo_loihi/neurons.html#NeuronOutputNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.NeuronOutputNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Noise added to the output of a rate neuron.</p>
+<p>Often used when training deep networks with rate neurons for final
+implementation in spiking neurons to simulate the variability
+caused by spiking.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.neurons.LowpassRCNoise">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.neurons.</code><code class="sig-name descname">LowpassRCNoise</code><span class="sig-paren">(</span><em class="sig-param">tau_s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#LowpassRCNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.LowpassRCNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Noise model combining Lowpass synapse and neuron membrane filters.</p>
+<p>Samples “noise” (i.e. variability) from a regular spike train filtered
+by the following transfer function, where <span class="math notranslate nohighlight">\(\tau_{rc}\)</span> is the
+membrane time constant and <span class="math notranslate nohighlight">\(\tau_s\)</span> is the synapse time constant:</p>
+<div class="math notranslate nohighlight">
+\[H(s) = [(\tau_s s + 1) (\tau_{rc} s + 1)]^{-1}\]</div>
+<p>See <a class="reference internal" href="#rba4a14788ed3-1" id="id1">[1]</a> for background and derivations.</p>
+<p class="rubric">References</p>
+<dl class="citation">
+<dt class="label" id="rba4a14788ed3-1"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>E. Hunsberger (2018) “Spiking Deep Neural Networks: Engineered and
+Biological Approaches to Object Recognition.” PhD thesis. pp. 106–113.
+(<a class="reference external" href="http://compneuro.uwaterloo.ca/publications/hunsberger2018.html">http://compneuro.uwaterloo.ca/publications/hunsberger2018.html</a>)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_s</strong><span class="classifier">float</span></dt><dd><p>Time constant for Lowpass synaptic filter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.neurons.AlphaRCNoise">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.neurons.</code><code class="sig-name descname">AlphaRCNoise</code><span class="sig-paren">(</span><em class="sig-param">tau_s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/neurons.html#AlphaRCNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.neurons.AlphaRCNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Noise model combining Alpha synapse and neuron membrane filters.</p>
+<p>Samples “noise” (i.e. variability) from a regular spike train filtered
+by the following transfer function, where <span class="math notranslate nohighlight">\(\tau_{rc}\)</span> is the
+membrane time constant and <span class="math notranslate nohighlight">\(\tau_s\)</span> is the synapse time constant:</p>
+<div class="math notranslate nohighlight">
+\[H(s) = [(\tau_s s + 1)^2 (\tau_{rc} s + 1)]^{-1}\]</div>
+<p>See <a class="reference internal" href="#r285125d2ae1a-1" id="id3">[1]</a> for background and derivations.</p>
+<p class="rubric">References</p>
+<dl class="citation">
+<dt class="label" id="r285125d2ae1a-1"><span class="brackets"><a class="fn-backref" href="#id3">1</a></span></dt>
+<dd><p>E. Hunsberger (2018) “Spiking Deep Neural Networks: Engineered and
+Biological Approaches to Object Recognition.” PhD thesis. pp. 106–113.
+(<a class="reference external" href="http://compneuro.uwaterloo.ca/publications/hunsberger2018.html">http://compneuro.uwaterloo.ca/publications/hunsberger2018.html</a>)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_s</strong><span class="classifier">float</span></dt><dd><p>Time constant for Alpha synaptic filter.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="builder">
+<h2>Builder<a class="headerlink" href="#builder" title="Permalink to this headline">¶</a></h2>
+<p>The builder turns a Nengo network into a <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">builder.Model</span></code></a>
+appropriate for running on Loihi.
+This model is mainly composed of <a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a> objects,
+which map parts of the network to Loihi compartments, axons, and synapses.</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.builder.Model</span></code></a>([dt, label, builder])</p></td>
+<td><p>The data structure for the emulator/hardware simulator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.builder.Builder" title="nengo_loihi.builder.Builder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.builder.Builder</span></code></a></p></td>
+<td><p>Fills in the Loihi Model object based on the Nengo Network.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.block.LoihiBlock</span></code></a>(n_neurons[, label])</p></td>
+<td><p>Class holding Loihi objects that can be placed on the chip.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.block.Compartment" title="nengo_loihi.block.Compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.block.Compartment</span></code></a>(n_compartments)</p></td>
+<td><p>Stores information for configuring Loihi compartments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.block.Axon" title="nengo_loihi.block.Axon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.block.Axon</span></code></a>(n_axons[, label])</p></td>
+<td><p>A group of axons targeting a specific Synapse object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.block.Synapse" title="nengo_loihi.block.Synapse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.block.Synapse</span></code></a>(n_axons[, label])</p></td>
+<td><p>A group of Loihi synapses that share some properties.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.block.Probe" title="nengo_loihi.block.Probe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.block.Probe</span></code></a>([target, key, …])</p></td>
+<td><p>Record data from compartment states of a LoihiBlock.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.builder.Model">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.builder.</code><code class="sig-name descname">Model</code><span class="sig-paren">(</span><em class="sig-param">dt=0.001</em>, <em class="sig-param">label=None</em>, <em class="sig-param">builder=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/builder/builder.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>The data structure for the emulator/hardware simulator.</p>
+<p>Defines methods for adding inputs and blocks. Also handles build
+functions, and information associated with building the Nengo model.</p>
+<p>Some of the Model attributes can be modified before the build process
+to change how certain build functions work. Those attributes are listed
+first in the attributes section below. To change them, create an instance
+of <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> and pass it in to <a class="reference internal" href="#nengo_loihi.Simulator" title="nengo_loihi.Simulator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Simulator</span></code></a> along with your network:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">pes_error_scale</span> <span class="o">=</span> <span class="mf">50.</span>
+
+<span class="k">with</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">network</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dt</strong><span class="classifier">float, optional (Default: 0.001)</span></dt><dd><p>The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>label</strong><span class="classifier">str, optional (Default: None)</span></dt><dd><p>A name or description to differentiate models.</p>
+</dd>
+<dt><strong>builder</strong><span class="classifier">Builder, optional (Default: None)</span></dt><dd><p>A <a class="reference internal" href="#nengo_loihi.builder.Builder" title="nengo_loihi.builder.Builder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Builder</span></code></a> instance to keep track of build functions.
+If None, the default builder will be used.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Attributes</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>Build parameters</strong></dt><dd></dd>
+<dt><strong>decode_neurons</strong><span class="classifier">DecodeNeurons</span></dt><dd><p>Type of neurons used to facilitate decoded (NEF-style) connections.</p>
+</dd>
+<dt><strong>decode_tau</strong><span class="classifier">float</span></dt><dd><p>Time constant of lowpass synaptic filter used with decode neurons.</p>
+</dd>
+<dt><strong>intercept_limit</strong><span class="classifier">float</span></dt><dd><p>Limit for clipping intercepts, to avoid neurons with high gains.</p>
+</dd>
+<dt><strong>node_neurons</strong><span class="classifier">DecodeNeurons</span></dt><dd><p>Type of neurons used to convert real-valued node outputs to spikes
+for the chip.</p>
+</dd>
+<dt><strong>pes_error_scale</strong><span class="classifier">float</span></dt><dd><p>Scaling for PES errors, before rounding and clipping to -127..127.</p>
+</dd>
+<dt><strong>pes_wgt_exp</strong><span class="classifier">int</span></dt><dd><p>Learning weight exponent (base 2) for PES learning connections. This
+controls the maximum weight magnitude (where a larger exponent means
+larger potential weights, but lower weight resolution).</p>
+</dd>
+<dt><strong>vth_nonspiking</strong><span class="classifier">float</span></dt><dd><p>Voltage threshold for non-spiking neurons (i.e. voltage decoders).</p>
+</dd>
+<dt><strong>Internal attributes</strong></dt><dd></dd>
+<dt><strong>blocks</strong><span class="classifier">list of LoihiBlock</span></dt><dd><p>List of Loihi blocks simulated by this model.</p>
+</dd>
+<dt><strong>builder</strong><span class="classifier">Builder</span></dt><dd><p>The build functions used by this model.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>The length of a simulator timestep, in seconds.</p>
+</dd>
+<dt><strong>chip2host_params</strong><span class="classifier">dict</span></dt><dd><p>Mapping from Nengo objects to any additional parameters associated
+with those objects for use during the build process.</p>
+</dd>
+<dt><strong>inputs</strong><span class="classifier">list of LoihiInput</span></dt><dd><p>List of inputs to this model.</p>
+</dd>
+<dt><strong>label</strong><span class="classifier">str or None</span></dt><dd><p>A name or description to differentiate models.</p>
+</dd>
+<dt><strong>objs</strong><span class="classifier">dict</span></dt><dd><p>Dictionary mapping from Nengo objects to Nengo Loihi objects.</p>
+</dd>
+<dt><strong>params</strong><span class="classifier">dict</span></dt><dd><p>Mapping from objects to namedtuples containing parameters generated
+in the build process.</p>
+</dd>
+<dt><strong>probes</strong><span class="classifier">list</span></dt><dd><p>List of all probes. Probes must be added to this list in the build
+process, as this list is used by Simulator.</p>
+</dd>
+<dt><strong>seeded</strong><span class="classifier">dict</span></dt><dd><p>All objects are assigned a seed, whether the user defined the seed
+or it was automatically generated. ‘seeded’ keeps track of whether
+the seed is user-defined. We consider the seed to be user-defined
+if it was set directly on the object, or if a seed was set on the
+network in which the object resides, or if a seed was set on any
+ancestor network of the network in which the object resides.</p>
+</dd>
+<dt><strong>seeds</strong><span class="classifier">dict</span></dt><dd><p>Mapping from objects to the integer seed assigned to that object.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.builder.Model.host_model">
+<code class="sig-name descname">host_model</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/builder/builder.html#Model.host_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Model.host_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the Model corresponding to where obj should be built.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.builder.Builder">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.builder.</code><code class="sig-name descname">Builder</code><a class="reference internal" href="_modules/nengo_loihi/builder/builder.html#Builder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.builder.Builder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fills in the Loihi Model object based on the Nengo Network.</p>
+<p>We cannot use the Nengo builder as is because we make normal Nengo
+networks for host-to-chip and chip-to-host communication. To keep
+Nengo and Nengo Loihi builders separate, we make a blank subclass,
+which effectively copies the class.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.block.LoihiBlock">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.block.</code><code class="sig-name descname">LoihiBlock</code><span class="sig-paren">(</span><em class="sig-param">n_neurons</em>, <em class="sig-param">label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#LoihiBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.LoihiBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class holding Loihi objects that can be placed on the chip.</p>
+<p>This class can be thought of as a block of the Loihi board, and is how
+Nengo Loihi keeps track of how Loihi Neuron cores will be configured.
+Generally, the job of the build process is to convert Nengo objects
+(ensembles, connections, nodes, and probes) to LoihiBlocks, which
+will then be used by the <a class="reference internal" href="#nengo_loihi.emulator.EmulatorInterface" title="nengo_loihi.emulator.EmulatorInterface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmulatorInterface</span></code></a> or <a class="reference internal" href="#nengo_loihi.hardware.HardwareInterface" title="nengo_loihi.hardware.HardwareInterface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HardwareInterface</span></code></a>.</p>
+<p>Initially, parameters in a LoihiBlock are floating point values.
+The <a class="reference internal" href="#nengo_loihi.discretize.discretize_block" title="nengo_loihi.discretize.discretize_block"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize_block</span></code></a> function converts them to integer values inplace
+for use on Loihi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>axons</strong><span class="classifier">list of Axon</span></dt><dd><p>Axon objects outputting from the compartments in the block.</p>
+</dd>
+<dt><strong>compartment</strong><span class="classifier">Compartment</span></dt><dd><p>Compartment object representing all compartments in the block.</p>
+</dd>
+<dt><strong>n_neurons</strong><span class="classifier">int</span></dt><dd><p>The number of neurons in the block.</p>
+</dd>
+<dt><strong>named_synapses</strong><span class="classifier">dict {str: Synape}</span></dt><dd><p>Mapping from a name to a Synapse object.</p>
+</dd>
+<dt><strong>label</strong><span class="classifier">string</span></dt><dd><p>A label for the block (for debugging purposes).</p>
+</dd>
+<dt><strong>probes</strong><span class="classifier">list of Probe</span></dt><dd><p>Probes recording information from objects in the block.</p>
+</dd>
+<dt><strong>synapses</strong><span class="classifier">list of Synapse</span></dt><dd><p>Synapse objects projecting to compartments in the block.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.block.Compartment">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.block.</code><code class="sig-name descname">Compartment</code><span class="sig-paren">(</span><em class="sig-param">n_compartments</em>, <em class="sig-param">label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores information for configuring Loihi compartments.</p>
+<p>The information stored here will be associated with some block,
+and all compartments will share certain information.
+While compartments are usually thought of neurons, we use compartments
+to implement Nengo ensembles, nodes, and connection through special
+decode neurons.</p>
+<p>Before <a class="reference internal" href="#nengo_loihi.discretize.discretize_compartment" title="nengo_loihi.discretize.discretize_compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize_compartment</span></code></a> has been called, most attributes in
+this class are floating-point values. Calling <a class="reference internal" href="#nengo_loihi.discretize.discretize_compartment" title="nengo_loihi.discretize.discretize_compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize_compartment</span></code></a>
+converts them to integer values inplace for use on Loihi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>bias</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Compartment biases.</p>
+</dd>
+<dt><strong>enable_noise</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Whether to enable noise for each compartment.</p>
+</dd>
+<dt><strong>decay_u</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Input (synapse) decay constant for each compartment.</p>
+</dd>
+<dt><strong>decay_v</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Voltage decay constant for each compartment.</p>
+</dd>
+<dt><strong>label</strong><span class="classifier">string</span></dt><dd><p>A label for the block (for debugging purposes).</p>
+</dd>
+<dt><strong>n_compartments</strong><span class="classifier">int</span></dt><dd><p>The number of compartments in the block.</p>
+</dd>
+<dt><strong>noise_at_membrane</strong><span class="classifier">{0, 1}</span></dt><dd><p>Inject noise into current (0) or voltage (1).</p>
+</dd>
+<dt><strong>noise_exp</strong><span class="classifier">float or int</span></dt><dd><p>Exponent for noise generation. Floating point values are base 10
+in units of current or voltage. Integer values are in base 2.</p>
+</dd>
+<dt><strong>noise_offset</strong><span class="classifier">float or int</span></dt><dd><p>Offset for noise generation.</p>
+</dd>
+<dt><strong>refract_delay</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Compartment refractory delays, in time steps.</p>
+</dd>
+<dt><strong>scale_u</strong><span class="classifier">bool</span></dt><dd><p>Scale input (U) by decay_u so that the integral of U is
+the same before and after filtering.</p>
+</dd>
+<dt><strong>scale_v</strong><span class="classifier">bool</span></dt><dd><p>Scale voltage (V) by decay_v so that the integral of V is
+the same before and after filtering.</p>
+</dd>
+<dt><strong>tau_s</strong><span class="classifier">float or None</span></dt><dd><p>Time constant used to set decay_u. None if decay_u has not been set.</p>
+</dd>
+<dt><strong>vmax</strong><span class="classifier">float or int (range [2**9 - 1, 2**23 - 1])</span></dt><dd><p>Maximum voltage for all compartments, in the same units as <code class="docutils literal notranslate"><span class="pre">vth</span></code>.</p>
+</dd>
+<dt><strong>vmin</strong><span class="classifier">float or int (range [-2**23 + 1, 0])</span></dt><dd><p>Minimum voltage for all compartments, in the same units as <code class="docutils literal notranslate"><span class="pre">vth</span></code>.</p>
+</dd>
+<dt><strong>vth</strong><span class="classifier">(n,) ndarray</span></dt><dd><p>Compartment voltage thresholds.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.block.Compartment.configure_default_filter">
+<code class="sig-name descname">configure_default_filter</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">tau_s</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment.configure_default_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment.configure_default_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the default Lowpass synaptic input filter for compartments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_s</strong><span class="classifier">float</span></dt><dd><p><a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Lowpass" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Lowpass</span></code></a> synapse time constant for filtering.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Simulator time step.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Compartment.configure_filter">
+<code class="sig-name descname">configure_filter</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">tau_s</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment.configure_filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment.configure_filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set Lowpass synaptic input filter for compartments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_s</strong><span class="classifier">float</span></dt><dd><p><a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Lowpass" title="(in Nengo v3.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Lowpass</span></code></a> synapse time constant for filtering.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Simulator time step.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Compartment.configure_lif">
+<code class="sig-name descname">configure_lif</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">tau_rc=0.02</em>, <em class="sig-param">tau_ref=0.001</em>, <em class="sig-param">vth=1</em>, <em class="sig-param">dt=0.001</em>, <em class="sig-param">min_voltage=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment.configure_lif"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment.configure_lif" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure these compartments as individual LIF neurons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_rc</strong><span class="classifier">float</span></dt><dd><p>Membrane time constant (in seconds) of the neurons.</p>
+</dd>
+<dt><strong>tau_ref</strong><span class="classifier">float</span></dt><dd><p>Refractory period (in seconds) of the neurons.</p>
+</dd>
+<dt><strong>vth</strong><span class="classifier">float</span></dt><dd><p>Voltage firing threshold of the neurons.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Simulator time step length (in seconds).</p>
+</dd>
+<dt><strong>min_voltage</strong><span class="classifier">float</span></dt><dd><p>The minimum voltage for the neurons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Compartment.configure_nonspiking">
+<code class="sig-name descname">configure_nonspiking</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">tau_ref=0.0</em>, <em class="sig-param">vth=1</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment.configure_nonspiking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment.configure_nonspiking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure these compartments as individual non-spiking neurons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_ref</strong><span class="classifier">float</span></dt><dd><p>Refractory period (in seconds) of the neurons.</p>
+</dd>
+<dt><strong>vth</strong><span class="classifier">float</span></dt><dd><p>Voltage firing threshold of the neurons.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Simulator time step length (in seconds).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Compartment.configure_relu">
+<code class="sig-name descname">configure_relu</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">tau_ref=0.0</em>, <em class="sig-param">vth=1</em>, <em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Compartment.configure_relu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Compartment.configure_relu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure these compartments as individual Rectified Linear neurons.</p>
+<p>These are also known as non-leaky integrate-and-fire neurons. The
+voltage is the integral of the input current.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>tau_ref</strong><span class="classifier">float</span></dt><dd><p>Refractory period (in seconds) of the neurons.</p>
+</dd>
+<dt><strong>vth</strong><span class="classifier">float</span></dt><dd><p>Voltage firing threshold of the neurons.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Simulator time step length (in seconds).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.block.Axon">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.block.</code><code class="sig-name descname">Axon</code><span class="sig-paren">(</span><em class="sig-param">n_axons</em>, <em class="sig-param">label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Axon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Axon" title="Permalink to this definition">¶</a></dt>
+<dd><p>A group of axons targeting a specific Synapse object.</p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>compartment_atoms</strong><span class="classifier">list of length <code class="docutils literal notranslate"><span class="pre">block.n_neurons</span></code></span></dt><dd><p>Atom (weight index) associated with each block compartment.</p>
+</dd>
+<dt><strong>compartment_map</strong><span class="classifier">list of length <code class="docutils literal notranslate"><span class="pre">block.n_neurons</span></code></span></dt><dd><p>Index of the axon in <code class="docutils literal notranslate"><span class="pre">target</span></code> targeted by each block compartment.</p>
+</dd>
+<dt><strong>n_axons</strong><span class="classifier">int</span></dt><dd><p>The number of outgoing axons.</p>
+</dd>
+<dt><strong>target</strong><span class="classifier">Synapse</span></dt><dd><p>Target synapses for these axons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="class">
+<dt id="nengo_loihi.block.Axon.Spike">
+<em class="property">class </em><code class="sig-name descname">Spike</code><span class="sig-paren">(</span><em class="sig-param">axon_id</em>, <em class="sig-param">atom=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Axon.Spike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Axon.Spike" title="Permalink to this definition">¶</a></dt>
+<dd><p>A spike targeting a particular axon within a Synapse object.</p>
+<p>The Synapse target is implicit, given by the Axon object that
+creates this Spike.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>axon_id</strong><span class="classifier">int</span></dt><dd><p>The index of the axon within the targeted Synapse object.</p>
+</dd>
+<dt><strong>atom</strong><span class="classifier">int, optional (Default: 0)</span></dt><dd><p>An index into the target Synapse weights. This allows spikes
+targeting a particular axon to use different weights.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Axon.slots_per_axon">
+<em class="property">property </em><code class="sig-name descname">slots_per_axon</code><a class="headerlink" href="#nengo_loihi.block.Axon.slots_per_axon" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of axon_cfg slots occupied by each axon.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Axon.axon_slots">
+<code class="sig-name descname">axon_slots</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Axon.axon_slots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Axon.axon_slots" title="Permalink to this definition">¶</a></dt>
+<dd><p>The total number of axon_cfg slots used by all axons.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.block.Axon.set_compartment_axon_map">
+<code class="sig-name descname">set_compartment_axon_map</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">target_axons</em>, <em class="sig-param">atoms=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Axon.set_compartment_axon_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Axon.set_compartment_axon_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set mapping from compartments to axons in target.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>target_axons</strong><span class="classifier">array_like (<code class="docutils literal notranslate"><span class="pre">n_compartments</span></code>,)</span></dt><dd><p>Indices indicating which target axon each compartment maps to.
+If &lt; 0, the corresponding compartment will not be used with these
+axons.</p>
+</dd>
+<dt><strong>atoms</strong><span class="classifier">array_like (<code class="docutils literal notranslate"><span class="pre">n_compartments</span></code>,)</span></dt><dd><p>Atoms to use for each compartment. Use only if <code class="docutils literal notranslate"><span class="pre">pop_type</span> <span class="pre">!=</span> <span class="pre">0</span></code>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.block.Synapse">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.block.</code><code class="sig-name descname">Synapse</code><span class="sig-paren">(</span><em class="sig-param">n_axons</em>, <em class="sig-param">label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Synapse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Synapse" title="Permalink to this definition">¶</a></dt>
+<dd><p>A group of Loihi synapses that share some properties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>axon_compartment_bases</strong><span class="classifier">list or None</span></dt><dd><p>List providing base (compartment offset) for each input axon.</p>
+</dd>
+<dt><strong>axon_to_weight_map</strong><span class="classifier">dict or None</span></dt><dd><p>Map from input axon index to weight index, to allow weights to be
+re-used by axons. If None, the weight index for an input axon is the
+axon index.</p>
+</dd>
+<dt><strong>indices</strong><span class="classifier">(population, axon, compartment) ndarray</span></dt><dd><p>The synapse indices.</p>
+</dd>
+<dt><strong>learning</strong><span class="classifier">bool</span></dt><dd><p>Whether synaptic tracing and learning is enabled for these synapses.</p>
+</dd>
+<dt><strong>learning_rate</strong><span class="classifier">float</span></dt><dd><p>The learning rate.</p>
+</dd>
+<dt><strong>learning_wgt_exp</strong><span class="classifier">int</span></dt><dd><p>The weight exponent used on this connection if learning is enabled.</p>
+</dd>
+<dt><strong>n_axons</strong><span class="classifier">int</span></dt><dd><p>Number of input axons to this group of synapses.</p>
+</dd>
+<dt><strong>pop_type</strong><span class="classifier">int (0, 16, 32)</span></dt><dd><p>Whether these synapses are discrete (0), pop16, or pop32. This
+determines the type of axons these synapses can connect to.</p>
+</dd>
+<dt><strong>synapse_cfg</strong><span class="classifier">SynapseConfig</span></dt><dd><p>The synapse format object for these synapses.</p>
+</dd>
+<dt><strong>tracing_mag</strong><span class="classifier">float</span></dt><dd><p>Magnitude by which the learning trace is increased for each spike.</p>
+</dd>
+<dt><strong>tracing_tau</strong><span class="classifier">int</span></dt><dd><p>Decay time constant for the learning trace, in timesteps (not seconds).</p>
+</dd>
+<dt><strong>weights</strong><span class="classifier">(n_axons,) list of (n_populations, n_compartments) ndarray</span></dt><dd><p>The synapse weights. Organized as a list of arrays so each axon
+can have a different number of target compartments.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.block.Probe">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.block.</code><code class="sig-name descname">Probe</code><span class="sig-paren">(</span><em class="sig-param">target=None</em>, <em class="sig-param">key=None</em>, <em class="sig-param">slice=None</em>, <em class="sig-param">weights=None</em>, <em class="sig-param">synapse=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/block.html#Probe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.block.Probe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Record data from compartment states of a LoihiBlock.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>target</strong><span class="classifier">LoihiBlock</span></dt><dd><p>The block to record values from. Use <code class="docutils literal notranslate"><span class="pre">slice</span></code> to record from a subset
+of compartments.</p>
+</dd>
+<dt><strong>key</strong><span class="classifier">string (‘current’, ‘voltage’, ‘spiked’)</span></dt><dd><p>The compartment attribute to probe.</p>
+</dd>
+<dt><strong>slice</strong><span class="classifier">slice or list</span></dt><dd><p>Select a subset of the compartments in the block to record from.</p>
+</dd>
+<dt><strong>synapse</strong><span class="classifier">nengo.synapses.Synapse</span></dt><dd><p>A synapse to use for filtering the probe.</p>
+</dd>
+<dt><strong>weights</strong><span class="classifier">np.ndarray</span></dt><dd><p>A linear transformation to apply to the outputs.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="decode-neurons">
+<h2>Decode neurons<a class="headerlink" href="#decode-neurons" title="Permalink to this headline">¶</a></h2>
+<p>Decode neurons facilitate NEF-style connections on the chip.
+The type of decode neurons used by a model can be set on <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">builder.Model</span></code></a>.</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.decode_neurons.DecodeNeurons" title="nengo_loihi.decode_neurons.DecodeNeurons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.decode_neurons.DecodeNeurons</span></code></a>([dt])</p></td>
+<td><p>Defines parameters for a group of decode neurons.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons" title="nengo_loihi.decode_neurons.OnOffDecodeNeurons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.decode_neurons.OnOffDecodeNeurons</span></code></a>([…])</p></td>
+<td><p>One or more pairs of on/off neurons per dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.decode_neurons.NoisyDecodeNeurons" title="nengo_loihi.decode_neurons.NoisyDecodeNeurons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.decode_neurons.NoisyDecodeNeurons</span></code></a>(…)</p></td>
+<td><p>Uses multiple on/off neuron pairs per dimension, plus noise.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.decode_neurons.Preset5DecodeNeurons" title="nengo_loihi.decode_neurons.Preset5DecodeNeurons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.decode_neurons.Preset5DecodeNeurons</span></code></a>([…])</p></td>
+<td><p>Uses five heterogeneous on/off pairs with pre-set values per dimension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.decode_neurons.Preset10DecodeNeurons" title="nengo_loihi.decode_neurons.Preset10DecodeNeurons"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.decode_neurons.Preset10DecodeNeurons</span></code></a>([…])</p></td>
+<td><p>Uses ten heterogeneous on/off pairs with pre-set values per dimension.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.decode_neurons.DecodeNeurons">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.decode_neurons.</code><code class="sig-name descname">DecodeNeurons</code><span class="sig-paren">(</span><em class="sig-param">dt=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#DecodeNeurons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.DecodeNeurons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines parameters for a group of decode neurons.</p>
+<p>DecodeNeurons are used on the chip to facilitate NEF-style connections,
+where activities from a neural ensemble are first transformed into a
+decoded value (which is stored in the activities and synapses of the
+spiking decode neurons), before being passed on to another ensemble
+(via that ensemble’s encoders).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Time step used by the simulator.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.DecodeNeurons.get_block">
+<code class="sig-name descname">get_block</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">weights</em>, <em class="sig-param">block_label=None</em>, <em class="sig-param">syn_label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#DecodeNeurons.get_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.DecodeNeurons.get_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a LoihiBlock for implementing neurons on the chip.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>weights</strong><span class="classifier">(n, d) ndarray</span></dt><dd><p>Weights that project the <code class="docutils literal notranslate"><span class="pre">n</span></code> inputs to the <code class="docutils literal notranslate"><span class="pre">d</span></code> dimensions
+represented by these neurons. Typically, the inputs will be neurons
+belonging to an Ensemble, and these weights will be decoders.</p>
+</dd>
+<dt><strong>block_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the LoihiBlock.</p>
+</dd>
+<dt><strong>syn_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the Synapse.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>block</strong><span class="classifier">LoihiBlock</span></dt><dd><p>The neurons on the chip.</p>
+</dd>
+<dt><strong>syn</strong><span class="classifier">Synapse</span></dt><dd><p>The synapses connecting into the chip neurons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.DecodeNeurons.get_ensemble">
+<code class="sig-name descname">get_ensemble</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#DecodeNeurons.get_ensemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.DecodeNeurons.get_ensemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a Nengo Ensemble for implementing neurons on the host.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dim</strong><span class="classifier">int</span></dt><dd><p>Number of dimensions to be represented by these neurons.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>ens</strong><span class="classifier">Ensemble</span></dt><dd><p>An Ensemble for implementing these neurons in a Nengo network.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.DecodeNeurons.get_post_encoders">
+<code class="sig-name descname">get_post_encoders</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">encoders</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#DecodeNeurons.get_post_encoders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.DecodeNeurons.get_post_encoders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encoders for post population that these neurons connect in to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>encoders</strong><span class="classifier">(n, d) ndarray</span></dt><dd><p>Regular scaled encoders for the ensemble, which map the ensemble’s
+<code class="docutils literal notranslate"><span class="pre">d</span></code> input dimensions to its <code class="docutils literal notranslate"><span class="pre">n</span></code> neurons.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>decode_neuron_encoders</strong><span class="classifier">(?, n) ndarray</span></dt><dd><p>Encoders for mapping these neurons to the post-ensemble’s neurons.
+The number of rows depends on how <code class="docutils literal notranslate"><span class="pre">get_post_inds</span></code> is being used
+(i.e. there could be one row per neuron in this block, or there
+could be fewer rows with <code class="docutils literal notranslate"><span class="pre">get_post_inds</span></code> mapping multiple neurons
+to each row).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.DecodeNeurons.get_post_inds">
+<code class="sig-name descname">get_post_inds</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">inds</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#DecodeNeurons.get_post_inds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.DecodeNeurons.get_post_inds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indices for mapping neurons to post-encoder dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>inds</strong><span class="classifier">list of ints</span></dt><dd><p>Indices for mapping decode neuron dimensions to post-ensemble
+dimensions. Usually, this will be determined by a slice on the
+post ensemble in a connection (which maps the output of the
+transform/function to select dimensions on the post ensemble).</p>
+</dd>
+<dt><strong>d</strong><span class="classifier">int</span></dt><dd><p>Number of dimensions in the post-ensemble.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.decode_neurons.OnOffDecodeNeurons">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.decode_neurons.</code><code class="sig-name descname">OnOffDecodeNeurons</code><span class="sig-paren">(</span><em class="sig-param">pairs_per_dim=1</em>, <em class="sig-param">dt=0.001</em>, <em class="sig-param">rate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#OnOffDecodeNeurons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons" title="Permalink to this definition">¶</a></dt>
+<dd><p>One or more pairs of on/off neurons per dimension.</p>
+<p>In this class itself, all the pairs in a dimension are identical. It can
+still be advantageous to have more than one pair per dimension, though,
+since this can allow all neurons to have lower firing rates and thus
+act more linearly (due to period aliasing at high firing rates). Subclasses
+may use pairs that are not identical (by adding noise or heterogeneity).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pairs_per_dim</strong><span class="classifier">int</span></dt><dd><p>Number of repeated neurons per dimension. Currently, all DecodeNeuron
+classes use separate on/off neuron pairs for each dimension. This is
+the number of such pairs per dimension.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Time step used by the simulator.</p>
+</dd>
+<dt><strong>rate</strong><span class="classifier">float (Default: None)</span></dt><dd><p>Max firing rate of each neuron. By default, this is chosen so that
+the sum of all repeated neuron rates is <code class="docutils literal notranslate"><span class="pre">1.</span> <span class="pre">/</span> <span class="pre">dt</span></code>, and thus as a
+group the neurons average one spike per timestep.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_block">
+<code class="sig-name descname">get_block</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">weights</em>, <em class="sig-param">block_label=None</em>, <em class="sig-param">syn_label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#OnOffDecodeNeurons.get_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a LoihiBlock for implementing neurons on the chip.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>weights</strong><span class="classifier">(n, d) ndarray</span></dt><dd><p>Weights that project the <code class="docutils literal notranslate"><span class="pre">n</span></code> inputs to the <code class="docutils literal notranslate"><span class="pre">d</span></code> dimensions
+represented by these neurons. Typically, the inputs will be neurons
+belonging to an Ensemble, and these weights will be decoders.</p>
+</dd>
+<dt><strong>block_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the LoihiBlock.</p>
+</dd>
+<dt><strong>syn_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the Synapse.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>block</strong><span class="classifier">LoihiBlock</span></dt><dd><p>The neurons on the chip.</p>
+</dd>
+<dt><strong>syn</strong><span class="classifier">Synapse</span></dt><dd><p>The synapses connecting into the chip neurons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_ensemble">
+<code class="sig-name descname">get_ensemble</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">dim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#OnOffDecodeNeurons.get_ensemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_ensemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a Nengo Ensemble for implementing neurons on the host.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dim</strong><span class="classifier">int</span></dt><dd><p>Number of dimensions to be represented by these neurons.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>ens</strong><span class="classifier">Ensemble</span></dt><dd><p>An Ensemble for implementing these neurons in a Nengo network.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_encoders">
+<code class="sig-name descname">get_post_encoders</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">encoders</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#OnOffDecodeNeurons.get_post_encoders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_encoders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encoders for post population that these neurons connect in to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>encoders</strong><span class="classifier">(n, d) ndarray</span></dt><dd><p>Regular scaled encoders for the ensemble, which map the ensemble’s
+<code class="docutils literal notranslate"><span class="pre">d</span></code> input dimensions to its <code class="docutils literal notranslate"><span class="pre">n</span></code> neurons.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>decode_neuron_encoders</strong><span class="classifier">(?, n) ndarray</span></dt><dd><p>Encoders for mapping these neurons to the post-ensemble’s neurons.
+The number of rows depends on how <code class="docutils literal notranslate"><span class="pre">get_post_inds</span></code> is being used
+(i.e. there could be one row per neuron in this block, or there
+could be fewer rows with <code class="docutils literal notranslate"><span class="pre">get_post_inds</span></code> mapping multiple neurons
+to each row).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_inds">
+<code class="sig-name descname">get_post_inds</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">inds</em>, <em class="sig-param">d</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#OnOffDecodeNeurons.get_post_inds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.OnOffDecodeNeurons.get_post_inds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indices for mapping neurons to post-encoder dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>inds</strong><span class="classifier">list of ints</span></dt><dd><p>Indices for mapping decode neuron dimensions to post-ensemble
+dimensions. Usually, this will be determined by a slice on the
+post ensemble in a connection (which maps the output of the
+transform/function to select dimensions on the post ensemble).</p>
+</dd>
+<dt><strong>d</strong><span class="classifier">int</span></dt><dd><p>Number of dimensions in the post-ensemble.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.decode_neurons.NoisyDecodeNeurons">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.decode_neurons.</code><code class="sig-name descname">NoisyDecodeNeurons</code><span class="sig-paren">(</span><em class="sig-param">pairs_per_dim</em>, <em class="sig-param">dt=0.001</em>, <em class="sig-param">rate=None</em>, <em class="sig-param">noise_exp=-2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#NoisyDecodeNeurons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.NoisyDecodeNeurons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses multiple on/off neuron pairs per dimension, plus noise.</p>
+<p>The noise allows each on-off neuron pair to do something different. The
+population average is a better representation of the encoded value
+than can be achieved with a single on/off neuron pair (if the magnitude
+of the noise is correctly calibrated).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pairs_per_dim</strong><span class="classifier">int</span></dt><dd><p>Number of repeated neurons per dimension. Currently, all DecodeNeuron
+classes use separate on/off neuron pairs for each dimension. This is
+the number of such pairs per dimension.</p>
+</dd>
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Time step used by the simulator.</p>
+</dd>
+<dt><strong>rate</strong><span class="classifier">float (Default: None)</span></dt><dd><p>Max firing rate of each neuron. By default, this is chosen so that
+the sum of all repeated neuron rates is <code class="docutils literal notranslate"><span class="pre">1.</span> <span class="pre">/</span> <span class="pre">dt</span></code>, and thus as a
+group the neurons average one spike per timestep.</p>
+</dd>
+<dt><strong>noise_exp</strong><span class="classifier">float, optional (Default: -2.)</span></dt><dd><p>Base-10 exponent for noise added to neuron voltages.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.decode_neurons.NoisyDecodeNeurons.get_block">
+<code class="sig-name descname">get_block</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">weights</em>, <em class="sig-param">block_label=None</em>, <em class="sig-param">syn_label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#NoisyDecodeNeurons.get_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.NoisyDecodeNeurons.get_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a LoihiBlock for implementing neurons on the chip.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>weights</strong><span class="classifier">(n, d) ndarray</span></dt><dd><p>Weights that project the <code class="docutils literal notranslate"><span class="pre">n</span></code> inputs to the <code class="docutils literal notranslate"><span class="pre">d</span></code> dimensions
+represented by these neurons. Typically, the inputs will be neurons
+belonging to an Ensemble, and these weights will be decoders.</p>
+</dd>
+<dt><strong>block_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the LoihiBlock.</p>
+</dd>
+<dt><strong>syn_label</strong><span class="classifier">string (Default: None)</span></dt><dd><p>Optional label for the Synapse.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>block</strong><span class="classifier">LoihiBlock</span></dt><dd><p>The neurons on the chip.</p>
+</dd>
+<dt><strong>syn</strong><span class="classifier">Synapse</span></dt><dd><p>The synapses connecting into the chip neurons.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.decode_neurons.Preset5DecodeNeurons">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.decode_neurons.</code><code class="sig-name descname">Preset5DecodeNeurons</code><span class="sig-paren">(</span><em class="sig-param">dt=0.001</em>, <em class="sig-param">rate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#Preset5DecodeNeurons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.Preset5DecodeNeurons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses five heterogeneous on/off pairs with pre-set values per dimension.</p>
+<dl class="simple">
+<dt>The script for configuring these values can be found at:</dt><dd><p>nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.decode_neurons.Preset10DecodeNeurons">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.decode_neurons.</code><code class="sig-name descname">Preset10DecodeNeurons</code><span class="sig-paren">(</span><em class="sig-param">dt=0.001</em>, <em class="sig-param">rate=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/decode_neurons.html#Preset10DecodeNeurons"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.decode_neurons.Preset10DecodeNeurons" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses ten heterogeneous on/off pairs with pre-set values per dimension.</p>
+<dl class="simple">
+<dt>The script for configuring these values can be found at:</dt><dd><p>nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="discretization">
+<h2>Discretization<a class="headerlink" href="#discretization" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="nengo_loihi.discretize.discretize_model">
+<code class="sig-prename descclassname">nengo_loihi.discretize.</code><code class="sig-name descname">discretize_model</code><span class="sig-paren">(</span><em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/discretize.html#discretize_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.discretize.discretize_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize a <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> in-place.</p>
+<p>Turns a floating-point <a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a> into a discrete (integer) model
+appropriate for Loihi.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>model</strong><span class="classifier"><a class="reference internal" href="#nengo_loihi.builder.Model" title="nengo_loihi.builder.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a></span></dt><dd><p>The model to discretize.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.discretize.discretize_block">
+<code class="sig-prename descclassname">nengo_loihi.discretize.</code><code class="sig-name descname">discretize_block</code><span class="sig-paren">(</span><em class="sig-param">block</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/discretize.html#discretize_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.discretize.discretize_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize a <a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a> in-place.</p>
+<p>Turns a floating-point <a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a> into a discrete (integer)
+block appropriate for Loihi.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>block</strong><span class="classifier"><a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a></span></dt><dd><p>The block to discretize.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.discretize.discretize_compartment">
+<code class="sig-prename descclassname">nengo_loihi.discretize.</code><code class="sig-name descname">discretize_compartment</code><span class="sig-paren">(</span><em class="sig-param">comp</em>, <em class="sig-param">w_max</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/discretize.html#discretize_compartment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.discretize.discretize_compartment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize a <a class="reference internal" href="#nengo_loihi.block.Compartment" title="nengo_loihi.block.Compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Compartment</span></code></a> in-place.</p>
+<p>Turns a floating-point <a class="reference internal" href="#nengo_loihi.block.Compartment" title="nengo_loihi.block.Compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Compartment</span></code></a> into a discrete (integer)
+block appropriate for Loihi.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>comp</strong><span class="classifier"><a class="reference internal" href="#nengo_loihi.block.Compartment" title="nengo_loihi.block.Compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Compartment</span></code></a></span></dt><dd><p>The compartment to discretize.</p>
+</dd>
+<dt><strong>w_max</strong><span class="classifier">float</span></dt><dd><p>The largest connection weight in the <a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a> containing
+<code class="docutils literal notranslate"><span class="pre">comp</span></code>. Used to set several scaling factors.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="nengo_loihi.discretize.discretize_synapse">
+<code class="sig-prename descclassname">nengo_loihi.discretize.</code><code class="sig-name descname">discretize_synapse</code><span class="sig-paren">(</span><em class="sig-param">synapse</em>, <em class="sig-param">w_max</em>, <em class="sig-param">w_scale</em>, <em class="sig-param">w_exp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/discretize.html#discretize_synapse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.discretize.discretize_synapse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discretize a <a class="reference internal" href="#nengo_loihi.block.Synapse" title="nengo_loihi.block.Synapse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Synapse</span></code></a> in-place.</p>
+<p>Turns a floating-point <a class="reference internal" href="#nengo_loihi.block.Synapse" title="nengo_loihi.block.Synapse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Synapse</span></code></a> into a discrete (integer)
+block appropriate for Loihi.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>synapse</strong><span class="classifier"><a class="reference internal" href="#nengo_loihi.block.Synapse" title="nengo_loihi.block.Synapse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Synapse</span></code></a></span></dt><dd><p>The synapse to discretize.</p>
+</dd>
+<dt><strong>w_max</strong><span class="classifier">float</span></dt><dd><p>The largest connection weight in the <a class="reference internal" href="#nengo_loihi.block.LoihiBlock" title="nengo_loihi.block.LoihiBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoihiBlock</span></code></a> containing
+<code class="docutils literal notranslate"><span class="pre">synapse</span></code>. Used to scale weights appropriately.</p>
+</dd>
+<dt><strong>w_scale</strong><span class="classifier">float</span></dt><dd><p>Connection weight scaling factor. Usually computed by
+<a class="reference internal" href="#nengo_loihi.discretize.discretize_compartment" title="nengo_loihi.discretize.discretize_compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize_compartment</span></code></a>.</p>
+</dd>
+<dt><strong>w_exp</strong><span class="classifier">float</span></dt><dd><p>Exponent on the connection weight scaling factor. Usually computed by
+<a class="reference internal" href="#nengo_loihi.discretize.discretize_compartment" title="nengo_loihi.discretize.discretize_compartment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">discretize_compartment</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="emulator">
+<h2>Emulator<a class="headerlink" href="#emulator" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.emulator.EmulatorInterface" title="nengo_loihi.emulator.EmulatorInterface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.EmulatorInterface</span></code></a>(model)</p></td>
+<td><p>Software emulator for Loihi chip behaviour.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.BlockInfo" title="nengo_loihi.emulator.interface.BlockInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.BlockInfo</span></code></a>(blocks)</p></td>
+<td><p>Provide information about all the LoihiBlocks in the model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.IterableState" title="nengo_loihi.emulator.interface.IterableState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.IterableState</span></code></a>(…)</p></td>
+<td><p>Base class for aspects of the emulator state.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.CompartmentState" title="nengo_loihi.emulator.interface.CompartmentState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.CompartmentState</span></code></a>(…)</p></td>
+<td><p>State representing the Compartments of all blocks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.NoiseState" title="nengo_loihi.emulator.interface.NoiseState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.NoiseState</span></code></a>(…)</p></td>
+<td><p>State representing the noise parameters for all compartments.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.SynapseState" title="nengo_loihi.emulator.interface.SynapseState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.SynapseState</span></code></a>(…)</p></td>
+<td><p>State representing all synapses.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.AxonState" title="nengo_loihi.emulator.interface.AxonState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.AxonState</span></code></a>(…)</p></td>
+<td><p>State representing all (output) Axons.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nengo_loihi.emulator.interface.ProbeState" title="nengo_loihi.emulator.interface.ProbeState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.emulator.interface.ProbeState</span></code></a>(…)</p></td>
+<td><p>State representing all probes.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.emulator.EmulatorInterface">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.</code><code class="sig-name descname">EmulatorInterface</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#EmulatorInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.EmulatorInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Software emulator for Loihi chip behaviour.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>model</strong><span class="classifier">Model</span></dt><dd><p>Model specification that will be simulated.</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier">int, optional (Default: None)</span></dt><dd><p>A seed for all stochastic operations done in this simulator.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.emulator.EmulatorInterface.run_steps">
+<code class="sig-name descname">run_steps</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">steps</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#EmulatorInterface.run_steps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.EmulatorInterface.run_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulate for the given number of <code class="docutils literal notranslate"><span class="pre">dt</span></code> steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>steps</strong><span class="classifier">int</span></dt><dd><p>Number of steps to run the simulation for.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="nengo_loihi.emulator.EmulatorInterface.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#EmulatorInterface.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.EmulatorInterface.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Advance the simulation by 1 step (<code class="docutils literal notranslate"><span class="pre">dt</span></code> seconds).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.BlockInfo">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">BlockInfo</code><span class="sig-paren">(</span><em class="sig-param">blocks</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#BlockInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.BlockInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provide information about all the LoihiBlocks in the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dtype</strong><span class="classifier">dtype</span></dt><dd><p>Datatype of the blocks. Either <code class="docutils literal notranslate"><span class="pre">np.float32</span></code> if the blocks are not
+discretized or <code class="docutils literal notranslate"><span class="pre">np.int32</span></code> if they are. All blocks are the same.</p>
+</dd>
+<dt><strong>blocks</strong><span class="classifier">list of LoihiBlock</span></dt><dd><p>List of all the blocks in the model.</p>
+</dd>
+<dt><strong>n_compartments</strong><span class="classifier">int</span></dt><dd><p>Total number of compartments across all blocks.</p>
+</dd>
+<dt><strong>slices</strong><span class="classifier">dict of {LoihiBlock: slice}</span></dt><dd><p>Maps each block to a slice for that block’s compartments with
+respect to all compartments. Used to slice into any array storing
+data across all compartments.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.IterableState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">IterableState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em>, <em class="sig-param">block_key</em>, <em class="sig-param">strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#IterableState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.IterableState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for aspects of the emulator state.</p>
+<p>This class takes the name of a LoihiBlock attribute as the
+<code class="docutils literal notranslate"><span class="pre">block_key</span></code> and maps these objects to their parent blocks and slices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dtype</strong><span class="classifier">dtype</span></dt><dd><p>Datatype of the state elements (given by the BlockInfo datatype).</p>
+</dd>
+<dt><strong>block_map</strong><span class="classifier">dict of {item: block}</span></dt><dd><p>Maps an item (determined by <code class="docutils literal notranslate"><span class="pre">block_key</span></code>) to the block
+it belongs to.</p>
+</dd>
+<dt><strong>n_compartments</strong><span class="classifier">int</span></dt><dd><p>The total number of neuron compartments (given by BlockInfo).</p>
+</dd>
+<dt><strong>slices</strong><span class="classifier">dict of {item: slice}</span></dt><dd><p>Maps an item to the <code class="docutils literal notranslate"><span class="pre">block_info.slice</span></code> for the block
+it belongs to.</p>
+</dd>
+<dt><strong>strict</strong><span class="classifier">bool (Default: True)</span></dt><dd><p>Whether “undesired” chip effects (ex. overflow) raise errors (<code class="docutils literal notranslate"><span class="pre">True</span></code>)
+or whether they only raise warnings (<code class="docutils literal notranslate"><span class="pre">False</span></code>).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.CompartmentState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">CompartmentState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em>, <em class="sig-param">strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#CompartmentState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.CompartmentState" title="Permalink to this definition">¶</a></dt>
+<dd><p>State representing the Compartments of all blocks.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.NoiseState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">NoiseState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#NoiseState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.NoiseState" title="Permalink to this definition">¶</a></dt>
+<dd><p>State representing the noise parameters for all compartments.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.SynapseState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">SynapseState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em>, <em class="sig-param">pes_error_scale=1.0</em>, <em class="sig-param">strict=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#SynapseState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.SynapseState" title="Permalink to this definition">¶</a></dt>
+<dd><p>State representing all synapses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pes_error_scale</strong><span class="classifier">float</span></dt><dd><p>Scaling for the errors of PES learning rules.</p>
+</dd>
+<dt><strong>pes_errors</strong><span class="classifier">{Synapse: ndarray(n_neurons / 2)}</span></dt><dd><p>Maps synapse to PES learning rule errors for those synapses.</p>
+</dd>
+<dt><strong>spikes_in</strong><span class="classifier">{Synapse: list}</span></dt><dd><p>Maps synapse to a queue of input spikes targeting those synapses.</p>
+</dd>
+<dt><strong>traces</strong><span class="classifier">{Synapse: ndarray(Synapse.n_axons)}</span></dt><dd><p>Maps synapse to trace values for each of their axons.</p>
+</dd>
+<dt><strong>trace_spikes</strong><span class="classifier">{Synapse: set}</span></dt><dd><p>Maps synapse to a queue of input spikes waiting to be added to those
+synapse traces.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.AxonState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">AxonState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#AxonState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.AxonState" title="Permalink to this definition">¶</a></dt>
+<dd><p>State representing all (output) Axons.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="nengo_loihi.emulator.interface.ProbeState">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.emulator.interface.</code><code class="sig-name descname">ProbeState</code><span class="sig-paren">(</span><em class="sig-param">block_info</em>, <em class="sig-param">inputs</em>, <em class="sig-param">dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#ProbeState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.ProbeState" title="Permalink to this definition">¶</a></dt>
+<dd><p>State representing all probes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>dt</strong><span class="classifier">float</span></dt><dd><p>Time constant of the Emulator.</p>
+</dd>
+<dt><strong>filters</strong><span class="classifier">{nengo_loihi.Probe: function}</span></dt><dd><p>Maps Probes to the filtering function for that probe.</p>
+</dd>
+<dt><strong>filter_pos</strong><span class="classifier">{nengo_loihi.Probe: int}</span></dt><dd><p>Maps Probes to the position of their filter in the data.</p>
+</dd>
+<dt><strong>block_probes</strong><span class="classifier">{nengo_loihi.Probe: slice}</span></dt><dd><p>Maps Probes to the BlockInfo slice for the block they are probing.</p>
+</dd>
+<dt><strong>input_probes</strong><span class="classifier">{nengo_loihi.Probe: SpikeInput}</span></dt><dd><p>Maps Probes to the SpikeInput that they are probing.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="nengo_loihi.emulator.interface.ProbeState.send">
+<code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">probe</em>, <em class="sig-param">already_sent</em>, <em class="sig-param">receiver</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/emulator/interface.html#ProbeState.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.emulator.interface.ProbeState.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send probed data to the receiver node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>steps</strong><span class="classifier">int</span></dt><dd><p>The number of steps sent to the receiver.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="hardware">
+<h2>Hardware<a class="headerlink" href="#hardware" title="Permalink to this headline">¶</a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nengo_loihi.hardware.HardwareInterface" title="nengo_loihi.hardware.HardwareInterface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo_loihi.hardware.HardwareInterface</span></code></a>(model)</p></td>
+<td><p>Place a Model onto a Loihi board and run it.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="nengo_loihi.hardware.HardwareInterface">
+<em class="property">class </em><code class="sig-prename descclassname">nengo_loihi.hardware.</code><code class="sig-name descname">HardwareInterface</code><span class="sig-paren">(</span><em class="sig-param">model</em>, <em class="sig-param">use_snips=True</em>, <em class="sig-param">seed=None</em>, <em class="sig-param">snip_max_spikes_per_step=50</em>, <em class="sig-param">allocator=&lt;nengo_loihi.hardware.allocators.OneToOne object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/nengo_loihi/hardware/interface.html#HardwareInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#nengo_loihi.hardware.HardwareInterface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place a Model onto a Loihi board and run it.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>model</strong><span class="classifier">Model</span></dt><dd><p>Model specification that will be placed on the Loihi board.</p>
+</dd>
+<dt><strong>use_snips</strong><span class="classifier">boolean, optional (Default: True)</span></dt><dd><p>Whether to use snips (e.g., for <code class="docutils literal notranslate"><span class="pre">precompute=False</span></code>).</p>
+</dd>
+<dt><strong>seed</strong><span class="classifier">int, optional (Default: None)</span></dt><dd><p>A seed for stochastic operations.</p>
+</dd>
+<dt><strong>snip_max_spikes_per_step</strong><span class="classifier">int</span></dt><dd><p>The maximum number of spikes that can be sent to the chip in one
+timestep if <code class="docutils literal notranslate"><span class="pre">.use_snips</span></code> is True.</p>
+</dd>
+<dt><strong>allocator</strong><span class="classifier">Allocator, optional (Default: <code class="docutils literal notranslate"><span class="pre">OneToOne()</span></code>)</span></dt><dd><p>Callable object that allocates the board’s devices to given models.
+Defaults to one block and one input per core on a single chip.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>

@@ -1,0 +1,760 @@
+
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Board and host &#8212; Nengo Loihi 0.9.0 docs</title>
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-41658423-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-41658423-2');
+</script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+  
+  
+<script type="text/javascript" src="../_static/underscore.js"></script>
+  
+  
+<script type="text/javascript" src="../_static/doctools.js"></script>
+  
+  
+<script type="text/javascript" src="../_static/language_data.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+  
+<script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+  
+<script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Superhost" href="superhost.html" />
+    <link rel="prev" title="Hardware setup" href="index.html" />
+<link rel="stylesheet" type="text/css" href="../_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo Core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">Nengo GUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">Nengo DL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">Nengo SPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">Nengo Extras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">Nengo FPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">Nengo Loihi</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-ocl">Nengo OpenCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">Nengo SpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-mpi">Nengo MPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="../index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="Nengo Loihi"
+      />
+    </a>
+  </h3>
+  
+  <form class="px-5 pb-5 mb-0 mt-3 border-bottom">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../../setup/host-board.html">latest</option>
+        
+        
+          
+        <option selected>v0.9.0</option>
+          
+        
+          
+        <option value="../../v0.8.0/setup/host-board.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../../v0.7.0/setup/host-board.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+  <div class="p-5 toctree">
+    <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Example models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware setup</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Board and host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#wolf-mountain-meridian-hill">Wolf Mountain / Meridian Hill</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nahuku-golden-hardware-reference-design">Nahuku / Golden Hardware Reference Design</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-an-sd-card-image">Creating an SD card image</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="superhost.html">Superhost</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+<form class="p-5 my-0 border-top" action="../search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form></div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+  <div class="section" id="board-and-host">
+<h1>Board and host<a class="headerlink" href="#board-and-host" title="Permalink to this headline">¶</a></h1>
+<p>Two variants of the Loihi boards exist:
+a single-chip board codenamed “Wolf Mountain”
+and an eight-chip board codenamed “Nahuku.”</p>
+<p>Currently, both boards use an
+Altera ARRIA 10 SoC FPGA board
+as the host.
+The Wolf Mountain board is paired with
+an ARRIA 10 based on
+the “Meridian Hill” (MH) architecture.
+The Nahuku board is paired with
+an ARRIA 10 based on
+the “Golden Hardware Reference Design” (GHRD) architecture.</p>
+<p>The remainder of this page explains
+how to set up a host-board pair.
+We will use the terminology
+introduced in the <a class="reference internal" href="../overview.html"><span class="doc">Overview</span></a>
+(board, host, superhost).</p>
+<div class="section" id="wolf-mountain-meridian-hill">
+<h2>Wolf Mountain / Meridian Hill<a class="headerlink" href="#wolf-mountain-meridian-hill" title="Permalink to this headline">¶</a></h2>
+<p>The Wolf Mountain board comes pre-connected to its host SoC.
+They are both contained within a single plastic box.
+The images below show the enclosure
+as well as where ports can be found.</p>
+<div class="admonition-todo admonition" id="id1">
+<p class="admonition-title">Todo</p>
+<p>Add images</p>
+</div>
+<p>To set up the Wolf Mountain / Meridian Hill system:</p>
+<ol class="arabic simple">
+<li><p>Configure the power supply units.
+Two bench power supplies are needed to supply 5.3V and 12V respectively.
+The bench power supplies should be dialed
+to the right voltages <strong>before</strong> they are connected
+to the Loihi system.
+The bench power supplies should also be <strong>off</strong> before
+they are wired to the Loihi system.</p></li>
+<li><p>Connect the bench power supplies
+to the appropriate “5V” and “12V” ports on the box.
+Take care identifying the correct ports
+before connecting the bench power supplies.
+Do not plug the 12V power supply to the 5V port or vice versa!</p></li>
+<li><p>Connect the USB tty cable (USB-A male to USB-A male cable)
+to the “TTY” port on the Loihi box,
+and connect the other end of the cable to the superhost.</p></li>
+<li><p>Connect the Ethernet cable to the “eth” port on the Loihi box,
+and connect the other end of the cable to the superhost.</p></li>
+<li><p>If a microSD card is present in the microSD card slot,
+and it has not yet been set up (see <a class="reference external" href="#sd-card-image">below</a>),
+remove the microSD card from its slot.
+This is done by using a pair of tweezers to push the card in,
+and then releasing it (the card slot is spring loaded).
+Next, use the tweezers to grab on to and gently remove the card.</p></li>
+<li><p>If necessary, set up the microSD card as described
+<a class="reference external" href="#sd-card-image">below</a>.
+Then reinsert the microSD card into the microSD card slot.
+Be sure to push the card into the slot
+far enough to engage the spring-loaded latch.</p></li>
+<li><p>Turn on the bench power supplies (in any order)
+and check that the system boots properly.</p></li>
+</ol>
+</div>
+<div class="section" id="nahuku-golden-hardware-reference-design">
+<h2>Nahuku / Golden Hardware Reference Design<a class="headerlink" href="#nahuku-golden-hardware-reference-design" title="Permalink to this headline">¶</a></h2>
+<p>Useful links:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.intel.com/content/www/us/en/programmable/products/boards_and_kits/dev-kits/altera/arria-10-soc-development-kit.html">Altera ARRIA 10 SoC GHRD information</a></p></li>
+<li><p><a class="reference external" href="https://www.intel.com/content/dam/altera-www/global/en_US/support/boards-kits/arria10/soc/es2_files/A10-SoC-DK-UG_2.pdf">Altera ARRIA 10 SoC GHRD user guide</a></p></li>
+</ul>
+<p>The user guide is especially useful
+for reading status LEDs on the host
+(see section 5-3).
+The image below shows the location of components
+important to the Nahuku / GHRD Loihi system.</p>
+<a class="reference external image-reference" href="https://i.imgur.com/l5hsHM1.png"><img alt="https://i.imgur.com/l5hsHM1.png" src="https://i.imgur.com/l5hsHM1.png" style="width: 100%;" /></a>
+<p>To set up the Nahuku / GHRD system:</p>
+<ol class="arabic">
+<li><p>Install the two FPGA RAM modules on the host
+(see image above for where they should be installed).</p></li>
+<li><p>Connect the Nahuku board to the “Nahuku board connection” indicated above.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The pins in the connector can be quite fragile.
+Ensure that the two sides of the connectors are lined up
+before applying pressure to mate the two connectors.</p>
+</div>
+</li>
+<li><p>Connect the USB tty cable (microUSB male to USB-A male cable)
+to the “TTY” port on the host,
+and connect the other end of the cable to the superhost.</p></li>
+<li><p>Connect the Ethernet cable to the ethernet port on the host,
+and connect the other end to the superhost.</p></li>
+<li><p>If a microSD card is present in the microSD card slot,
+and it has not yet been set up (see <a class="reference external" href="#sd-card-image">below</a>),
+remove the microSD card from its slot.
+The card slot has a latch that is spring loaded.
+To remove the microSD card, push it into the card slot, then release.
+Once the microSD card is unlatched from the card slot,
+it can then be removed by sliding it out of the card slot.</p></li>
+<li><p>If necessary, set up the microSD card as described
+<a class="reference external" href="#sd-card-image">below</a>).
+Then reinsert the microSD card into the microSD card slot.
+Be sure to push the card into the slot
+far enough to engage the spring-loaded latch.</p></li>
+<li><p>Connect the power brick to the power port of the host.
+Plug the power brick into the wall socket.</p></li>
+<li><p>Turn on the power switch on the host
+and check that the system boots properly.</p></li>
+</ol>
+</div>
+<div class="section" id="creating-an-sd-card-image">
+<h2>Creating an SD card image<a class="headerlink" href="#creating-an-sd-card-image" title="Permalink to this headline">¶</a></h2>
+<p>The microSD card on the host
+contains its operating system.
+Creating an SD card image
+requires you to:</p>
+<ol class="arabic simple">
+<li><p>compile Ubuntu 16.04 for the ARM processor,</p></li>
+<li><p>add Loihi specific configuration files, and</p></li>
+<li><p>run a Python script to create the SD card image.</p></li>
+</ol>
+<p>Instructions for each step follow.</p>
+<div class="section" id="compiling-ubuntu">
+<h3>Compiling Ubuntu<a class="headerlink" href="#compiling-ubuntu" title="Permalink to this headline">¶</a></h3>
+<p>These steps are based on <a class="reference external" href="https://gnu-linux.org/building-ubuntu-rootfs-for-arm.html">this guide</a>.
+These steps should be performed on the superhost.
+You will need root access.</p>
+<p>For simplicity,
+begin these steps in a new empty directory
+on a partition with several GB of free space.</p>
+<p>Begin by switching to the root user.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo -s
+</pre></div>
+</div>
+<p>Then, as <code class="docutils literal notranslate"><span class="pre">root</span></code>:</p>
+<ol class="arabic">
+<li><p>Create and navigate to a new folder for storing Ubuntu files.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir ubuntu-rootfs
+<span class="nb">cd</span> ubuntu-rootfs
+</pre></div>
+</div>
+</li>
+<li><p>Download the latest Ubuntu 16.04 release compiled for ARM.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget http://cdimage.ubuntu.com/ubuntu-base/releases/16.04/release/ubuntu-base-16.04.4-base-armhf.tar.gz -o ubuntu-base.tar.gz
+</pre></div>
+</div>
+</li>
+<li><p>Untar the files from the downloaded tarball.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tar -xpf ubuntu-base.tar.gz
+</pre></div>
+</div>
+</li>
+<li><p>Install <code class="docutils literal notranslate"><span class="pre">qemu-user-static</span></code> and copy it to <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt install qemu-user-static
+cp /usr/bin/qemu-arm-static ./usr/bin/
+</pre></div>
+</div>
+</li>
+<li><p>Copy the superhost’s <code class="docutils literal notranslate"><span class="pre">/etc/resolv.conf</span></code> file to <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code>.
+This will allow us to access repositories on the internet in later steps.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp /etc/resolv.conf ./etc/resolv.conf
+</pre></div>
+</div>
+</li>
+<li><p>Return to the parent directory.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> ..
+</pre></div>
+</div>
+<p>If you do <code class="docutils literal notranslate"><span class="pre">ls</span></code>, you should see the <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code> directory
+that you were working on earlier.</p>
+</li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code> directory you set up
+contains operating system files.
+We will now use <code class="docutils literal notranslate"><span class="pre">chroot</span></code> to
+act as though we are using those files
+rather than the actual superhost OS.
+Note that we are still running as the <code class="docutils literal notranslate"><span class="pre">root</span></code> user.</p>
+<p>Begin by mounting system components and running <code class="docutils literal notranslate"><span class="pre">chroot</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mount -t proc /proc ./ubuntu-rootfs/proc
+mount -t sysfs /sys ./ubuntu-rootfs/sys
+mount -o <span class="nb">bind</span> /dev ./ubuntu-rootfs/dev
+mount -o <span class="nb">bind</span> /dev/pts ./ubuntu-rootfs/dev/pts
+chroot ./ubuntu-rootfs
+</pre></div>
+</div>
+<p>Then, within the <code class="docutils literal notranslate"><span class="pre">chroot</span></code> environment:</p>
+<ol class="arabic">
+<li><p>Update <code class="docutils literal notranslate"><span class="pre">apt</span></code> sources.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt update
+</pre></div>
+</div>
+</li>
+<li><p>Install a minimal set of general packages.
+Since you are in the <code class="docutils literal notranslate"><span class="pre">chroot</span></code> environment,
+these will be installed inside <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code>,
+not the superhost’s OS files.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt install --no-install-recommends <span class="se">\</span>
+    language-pack-en-base sudo ssh rsyslog <span class="se">\</span>
+    net-tools ethtool network-manager wireless-tools iputils-ping <span class="se">\</span>
+    lxde xfce4-power-manager <span class="se">\</span>
+    xinit xorg lightdm lightdm-gtk-greeter <span class="se">\</span>
+    alsa-utils gnome-mplayer bash-completion <span class="se">\</span>
+    lxtask htop python-gobject-2 python-gtk2 <span class="se">\</span>
+    synaptic resolvconf
+</pre></div>
+</div>
+</li>
+<li><p>Install packages needed to run Loihi models.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt install libffi6 python3-pip python3-dev fake-hwclock
+</pre></div>
+</div>
+</li>
+<li><p>Add a user to the OS, and give it admin privileges.</p>
+<p>We will call our user <code class="docutils literal notranslate"><span class="pre">abr-user</span></code>,
+but you can use a different name if desired.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>adduser abr-user
+addgroup abr-user adm <span class="o">&amp;&amp;</span> addgroup abr-user sudo
+</pre></div>
+</div>
+</li>
+<li><p>Set a unique hostname.</p>
+<p>We use <code class="docutils literal notranslate"><span class="pre">loihi-mh</span></code> for our Wolf Mountain / Meridian Hill system
+and <code class="docutils literal notranslate"><span class="pre">loihi-ghrd</span></code> for our Nahuku / GHRD system.
+If you have more than one of the same type of system,
+use a more detailed naming scheme.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span> <span class="s1">&#39;loihi-xxx&#39;</span> &gt; /etc/hostname
+</pre></div>
+</div>
+</li>
+<li><p>Add host entries.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span> <span class="s1">&#39;127.0.0.1 localhost&#39;</span> &gt;&gt; /etc/hosts
+<span class="nb">echo</span> <span class="s1">&#39;127.0.1.1 loihi-xxx&#39;</span> &gt;&gt; /etc/hosts
+</pre></div>
+</div>
+</li>
+<li><p>Assign a static IP to the board.</p>
+<p>Begin by opening <code class="docutils literal notranslate"><span class="pre">/etc/network/interfaces</span></code>
+your text editor of choice.
+If you are not sure, try</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nano /etc/network/interfaces
+</pre></div>
+</div>
+<p>Add the following text to the end of the <code class="docutils literal notranslate"><span class="pre">interfaces</span></code> file.
+Replace <code class="docutils literal notranslate"><span class="pre">&lt;address&gt;</span></code> with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">10.42.0.34</span></code> for Wolf Mountain / Meridian Hill systems</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">10.42.0.100</span></code> for Nahuku / GHRD systems</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address &lt;address&gt;
+    netmask 255.255.255.0
+    gateway 10.42.0.1
+
+dns-nameserver 10.42.0.1
+</pre></div>
+</div>
+</li>
+<li><p>Update DNS configuration based on the network connection.
+This will modify the <code class="docutils literal notranslate"><span class="pre">/etc/resolv.conf</span></code> we changed previously.</p>
+<p>When prompted, select “Yes” to the dialog box
+because we want to allow dynamic updates.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dpkg-reconfigure resolvconf
+</pre></div>
+</div>
+</li>
+<li><p>(Optional) Set up NFS.</p>
+<div class="admonition-todo admonition" id="id2">
+<p class="admonition-title">Todo</p>
+<p>Add instructions for setting up NFS.</p>
+</div>
+</li>
+</ol>
+<p>We can now exit the <code class="docutils literal notranslate"><span class="pre">chroot</span></code> environment</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">exit</span>
+</pre></div>
+</div>
+<p>And unmount the environment files</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>umount ubuntu-rootfs/proc
+umount ubuntu-rootfs/sys
+umount ubuntu-rootfs/dev/pts
+umount ubuntu-rootfs/dev
+</pre></div>
+</div>
+<p>But stay as the root user for the remaining steps.</p>
+</div>
+<div class="section" id="adding-loihi-specific-fpga-configuration-files">
+<h3>Adding Loihi-specific FPGA configuration files<a class="headerlink" href="#adding-loihi-specific-fpga-configuration-files" title="Permalink to this headline">¶</a></h3>
+<p>The Loihi specific configuration files
+can be obtained from Intel’s cloud server.
+Download all of the files below to the directory
+that contains the <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code> directory.</p>
+<p>As of August 2018,
+the latest files for the
+two Loihi boards are located in:</p>
+<ul class="simple">
+<li><p><em>Wolf Mountain</em>: <code class="docutils literal notranslate"><span class="pre">/nfs/ncl/ext/boot/mh_2018-07-04/</span></code></p></li>
+<li><p><em>Nahuku</em>: <code class="docutils literal notranslate"><span class="pre">/nfs/ncl/ext/boot/ghrd_2018-07-04/</span></code></p></li>
+</ul>
+<p>Download the following files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">zImage</span></code>: A linux kernel compiled for the host.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">u-boot.scr</span></code>: The <code class="docutils literal notranslate"><span class="pre">uboot</span></code> script for configuring the FPGA.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">socfpga.rbf</span></code>: The FPGA configuration file.</p></li>
+</ul>
+<p>and one of the following FPGA device tree blob files,
+depending on the system:</p>
+<ul class="simple">
+<li><p><em>Wolf Mountain</em>: <code class="docutils literal notranslate"><span class="pre">meridian_hill_fab1b.dtb</span></code></p></li>
+<li><p><em>Nahuku</em>: <code class="docutils literal notranslate"><span class="pre">socfpga_arria10_socdk.dtb</span></code></p></li>
+</ul>
+<p>Additionally, you need the u-boot preloader image,
+<code class="docutils literal notranslate"><span class="pre">uboot_w_dtb-mkpimage.bin</span></code>.
+The location of this file is also system dependent.</p>
+<ul class="simple">
+<li><p><em>Wolf Mountain</em>:
+Download <code class="docutils literal notranslate"><span class="pre">NxRuntime_01_05_17.tar.gz</span></code> from the Intel sharepoint site
+and extract it. <code class="docutils literal notranslate"><span class="pre">uboot_w_dtb-mkpimage.bin</span></code> is in the <code class="docutils literal notranslate"><span class="pre">board</span></code> folder.</p></li>
+<li><p><em>Nahuku</em>:
+Located in the <code class="docutils literal notranslate"><span class="pre">/nfs/ncl/ext/boot/ghrd_2018-05-17</span></code> folder
+on the Intel cloud server.</p></li>
+</ul>
+<p>Your folder should now contain the following files
+if you are setting up a Wolf Mountain system:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">meridian_hill_fab1b.dtb</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">socfpga.rbf</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">u-boot.scr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uboot_w_dtb-mkpimage.bin</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zImage</span></code></p></li>
+</ul>
+<p>And the following files
+if you are setting up a Nahuku system.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs/</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">socfpga.rbf</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">socfpga_arria10_socdk.dtb</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">u-boot.scr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uboot_w_dtb-mkpimage.bin</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">zImage</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="making-the-sd-card-image">
+<h3>Making the SD card image<a class="headerlink" href="#making-the-sd-card-image" title="Permalink to this headline">¶</a></h3>
+<p>The easiest way to make the SD card image
+is to use a Python script provided by RocketBoards.org.</p>
+<p>We assume in the following steps that you are
+in the directory containing <code class="docutils literal notranslate"><span class="pre">ubuntu-rootfs</span></code>
+and the Loihi FPGA files,
+and that you are still acting as the root user
+(if not, do <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">-s</span></code>).</p>
+<ol class="arabic">
+<li><p>Download the SD card image script.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget http://releases.rocketboards.org/release/2017.10/gsrd/tools/make_sdimage.py
+</pre></div>
+</div>
+</li>
+<li><p>Run the script with to create the SD card image.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Replace <code class="docutils literal notranslate"><span class="pre">&lt;device-dtb&gt;.dtb</span></code> below with the appropriate
+<code class="docutils literal notranslate"><span class="pre">*.dtb</span></code> file from the previous step.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python ./make_sdimage.py -f <span class="se">\</span>
+    -P uboot_w_dtb-mkpimage.bin,num<span class="o">=</span><span class="m">3</span>,format<span class="o">=</span>raw,size<span class="o">=</span>10M,type<span class="o">=</span>A2 <span class="se">\</span>
+    -P ubuntu-rootfs/*,num<span class="o">=</span><span class="m">2</span>,format<span class="o">=</span>ext3,size<span class="o">=</span>3000M <span class="se">\</span>
+    -P zImage,socfpga.rbf,&lt;device-dtb&gt;.dtb,u-boot.scr,num<span class="o">=</span><span class="m">1</span>,format<span class="o">=</span>vfat,size<span class="o">=</span>500M <span class="se">\</span>
+    -s 3550M <span class="se">\</span>
+    -n sdimage_small.img
+</pre></div>
+</div>
+<p>After running this command,
+you should have a <code class="docutils literal notranslate"><span class="pre">sdimage_small.img</span></code> in the current directory.</p>
+<p>This image file contains three partitions:</p>
+<ul class="simple">
+<li><p>Partition 1 (500 MB): contains the <code class="docutils literal notranslate"><span class="pre">/boot</span></code> partition,
+which contains <code class="docutils literal notranslate"><span class="pre">zImage</span></code>, <code class="docutils literal notranslate"><span class="pre">socfpga.rbf</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;device-dtb&gt;.dtb</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">u-boot.scr</span></code>.</p></li>
+<li><p>Partition 2 (3 GB): contains the Ubuntu OS file system.</p></li>
+<li><p>Partition 3 (10 MB): contains the u-boot preloader image.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The partition sizes should not be changed from the values above.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When making an SD card for the Nahuku system,
+the Python script may throw an error
+when finalizing the third partition.
+This error can be safely ignored.
+It occurs because the <code class="docutils literal notranslate"><span class="pre">uboot_w_dtb-mkpimage.bin</span></code> image
+for Nahuku is 1 byte larger than the 10 MB partition size.
+However, this does not seem to impact the functionality
+of the SD card image.</p>
+</div>
+</li>
+<li><p>Connect an SD card to the superhost.
+Determine the identifier assigned to it by Linux with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>lsblk
+</pre></div>
+</div>
+<p>You should be able to determine which device (e.g. <code class="docutils literal notranslate"><span class="pre">sdc</span></code>)
+is the SD card via the size and mountpoint.</p>
+</li>
+<li><p>Write the SD card image to the physical SD card.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Be sure to use the correct device
+in the <code class="docutils literal notranslate"><span class="pre">dd</span></code> command below.
+Using the wrong device will destroy
+existing data on that device.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>dd <span class="k">if</span><span class="o">=</span>sdimage_small.img <span class="p">|</span> pv -s 3550M <span class="p">|</span> dd <span class="nv">of</span><span class="o">=</span>/dev/&lt;device&gt;
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">&lt;device&gt;</span></code> is the device determined with <code class="docutils literal notranslate"><span class="pre">lsblk</span></code>.</p>
+</li>
+<li><p>Remove the SD card from the superhost
+and insert it into the host SD card slot.</p></li>
+</ol>
+</div>
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>
