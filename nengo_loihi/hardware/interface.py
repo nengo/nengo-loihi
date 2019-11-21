@@ -78,6 +78,8 @@ class HardwareInterface:
 
         self.check_nxsdk_version()
 
+        validate_model(self.model)
+
         # clear cached content from SpikeProbe class attribute
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
@@ -118,7 +120,6 @@ class HardwareInterface:
     def build(self):
         assert self.nxsdk_board is None, "Cannot rebuild model"
 
-        validate_model(self.model)
         self.pes_error_scale = getattr(self.model, "pes_error_scale", 1.0)
 
         if self.use_snips:
@@ -142,7 +143,12 @@ class HardwareInterface:
             self.create_io_snip()
 
     def run_steps(self, steps, blocking=True):
+        if not self.is_built:
+            self.build()
+
         self.connect()  # returns immediately if already connected
+
+        # start the board running the desired number of steps
         d_get(self.nxsdk_board, b"cnVu")(steps, **{d(b"YVN5bmM="): not blocking})
 
     def _chip2host_monitor(self, probes_receivers):

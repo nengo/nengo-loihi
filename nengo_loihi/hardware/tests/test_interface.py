@@ -101,10 +101,8 @@ def test_interface_connection_errors(Simulator):
 
     # test unbuilt model error
     with Simulator(net) as sim:
-        sim.sims["loihi"].nxsdk_board = None
-
         with pytest.raises(SimulationError, match="build.*before running"):
-            sim.step()
+            sim.sims["loihi"].connect()
 
     # test failed connection error
     def start(*args, **kwargs):
@@ -112,6 +110,7 @@ def test_interface_connection_errors(Simulator):
 
     with Simulator(net) as sim:
         interface = sim.sims["loihi"]
+        interface.build()
         d_set(interface.nxsdk_board, b"c3RhcnQ=", val=start)
 
         with pytest.raises(SimulationError, match="[Cc]ould not connect"):
