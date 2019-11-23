@@ -22,6 +22,8 @@ Release history
 0.10.0 (unreleased)
 ===================
 
+*Compatible with NxSDK 0.8.7 - 0.9.0*
+
 **Changed**
 
 - Nengo Loihi now requires NxSDK version 0.8.7 and supports NxSDK version 0.9.0.
@@ -29,6 +31,8 @@ Release history
 
 0.9.0 (November 20, 2019)
 =========================
+
+*Compatible with NxSDK 0.8.5*
 
 **Added**
 
@@ -62,6 +66,8 @@ Release history
 0.8.0 (June 23, 2019)
 =====================
 
+*Compatible with NxSDK 0.8.5*
+
 **Changed**
 
 - Nengo Loihi now requires NxSDK version 0.8.5.
@@ -69,6 +75,8 @@ Release history
 
 0.7.0 (June 21, 2019)
 =====================
+
+*Compatible with NxSDK 0.8.0 - 0.8.1*
 
 **Added**
 
@@ -122,6 +130,8 @@ Release history
 0.6.0 (February 22, 2019)
 =========================
 
+*Compatible with NxSDK 0.7.0 - 0.8.0*
+
 **Changed**
 
 - New Nengo transforms are supported, including ``nengo.Convolution``. Many of
@@ -160,6 +170,8 @@ Release history
 
 0.5.0 (February 12, 2019)
 =========================
+
+*Compatible with NxSDK 0.7.0 - 0.8.0*
 
 **Added**
 
@@ -222,6 +234,8 @@ Release history
 0.4.0 (December 6, 2018)
 ========================
 
+*Compatible with NxSDK 0.7.0*
+
 **Added**
 
 - Added version tracking to documentation.
@@ -245,6 +259,8 @@ Release history
 
 0.3.0 (September 28, 2018)
 ==========================
+
+*Compatible with NxSDK 0.7.0*
 
 **Added**
 

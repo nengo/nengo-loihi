@@ -72,11 +72,15 @@ for running Loihi models.
       Follow the prompts to set up Miniconda as desired.
 
 2. Create a new ``conda`` environment.
-   Note, you *must* use Python 3.5.2 when working with NxSDK.
+
+   .. warning:: You *must* use Python 3.5.2 when working with NxSDK.
+                Python 3.5.2 is not available in the default
+                ``conda`` channels, so you must pass
+                ``--channel conda-forge`` to the command below.
 
    .. code-block:: bash
 
-      conda create --name loihi python=3.5.2
+      conda create --channel conda-forge --name loihi python=3.5.2
 
 3. Activate your new environment.
 
@@ -105,25 +109,25 @@ for running Loihi models.
    .. note:: The location of NxSDK may have changed.
              Refer to Intel's documentation to be sure.
              The most recent release and NxSDK location
-             are current as of May 2019.
+             are current as of November, 2019.
 
    If you are logged into INRC:
 
    .. code-block:: bash
 
-      cp /nfs/ncl/releases/0.8.1/nxsdk-0.8.1.tar.gz .
+      cp /nfs/ncl/releases/0.9.0/nxsdk-0.9.0.tar.gz .
 
    If you are setting up a non-INRC superhost:
 
    .. code-block:: bash
 
-      scp <inrc-host>:/nfs/ncl/releases/0.8.1/nxsdk-0.8.1.tar.gz .
+      scp <inrc-host>:/nfs/ncl/releases/0.9.0/nxsdk-0.9.0.tar.gz .
 
 6. Install NxSDK.
 
    .. code-block:: bash
 
-      pip install nxsdk-0.8.1.tar.gz
+      pip install nxsdk-0.9.0.tar.gz
 
 7. Install Nengo Loihi.
 
