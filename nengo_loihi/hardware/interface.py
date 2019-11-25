@@ -231,7 +231,7 @@ class HardwareInterface:
                 received = self.host_socket.recv(recv_size, socket.MSG_DONTWAIT)
                 if len(received) > 0:
                     data += received
-            except BlockingIOError:
+            except BlockingIOError:  # pragma: no cover
                 # No data was available. Hopefully it will be there after we wait.
                 received = []
 
