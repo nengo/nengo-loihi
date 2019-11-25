@@ -191,7 +191,7 @@ def test_all_run_steps(Simulator):
         post = nengo.Ensemble(10, 1)
         nengo.Connection(pre, post)
 
-    # 1a. precompute=False, no host
+    # 1. precompute=None, no host, no host_pre
     with Simulator(net) as sim:
         sim.run(0.001)
     # Since no objects on host, we should be precomputing even if we did not
@@ -200,11 +200,16 @@ def test_all_run_steps(Simulator):
     assert inspect.ismethod(sim._run_steps)
     assert sim._run_steps.__name__ == "run_steps"
 
-    # 1b. precompute=True, no host, no host_pre
-    with pytest.warns(UserWarning) as record:
-        with Simulator(net, precompute=True) as sim:
+    # 1a. precompute=False, no host
+    with pytest.warns(UserWarning, match="Model is precomputable"):
+        with Simulator(net, precompute=False) as sim:
             sim.run(0.001)
-    assert any("No precomputable objects" in r.message.args[0] for r in record)
+    assert inspect.ismethod(sim._run_steps)
+    assert sim._run_steps.__name__ == "run_steps"
+
+    # 1b. precompute=True, no host, no host_pre
+    with Simulator(net, precompute=True) as sim:
+        sim.run(0.001)
     assert inspect.ismethod(sim._run_steps)
     assert sim._run_steps.__name__ == "run_steps"
 
@@ -214,9 +219,16 @@ def test_all_run_steps(Simulator):
         stim = nengo.Node(1)
         stim_conn = nengo.Connection(stim, pre)
 
-    # 2a. precompute=False, host
+    # 2. precompute=None, host
     with Simulator(net) as sim:
         sim.run(0.001)
+    assert sim.precompute
+    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
+
+    # 2a. precompute=False, host
+    with pytest.warns(UserWarning, match="Model is precomputable"):
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.001)
     assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
 
     # 2b. precompute=True, no host, host_pre
@@ -231,9 +243,16 @@ def test_all_run_steps(Simulator):
         nengo.Connection(post, out)
         nengo.Probe(out)  # probe to prevent `out` from being optimized away
 
-    # 3a. precompute=False, host (same as 2a)
+    # 3. precompute=None
     with Simulator(net) as sim:
         sim.run(0.001)
+    assert sim.precompute
+    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+
+    # 3a. precompute=False, host (same as 2a)
+    with pytest.warns(UserWarning, match="Model is precomputable"):
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.001)
     assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
 
     # 3b. precompute=True, host, host_pre
@@ -245,38 +264,44 @@ def test_all_run_steps(Simulator):
     net.nodes.remove(stim)
     net.connections.remove(stim_conn)
 
-    # 4a. precompute=False, host (same as 2a and 3a)
+    # 4. precompute=None
     with Simulator(net) as sim:
         sim.run(0.001)
+    assert sim.precompute
+    assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+
+    # 4a. precompute=False, host (same as 2a and 3a)
+    with pytest.warns(UserWarning, match="Model is precomputable"):
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.001)
     assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
 
     # 4b. precompute=True, host, no host_pre
-    with pytest.warns(UserWarning) as record:
-        with Simulator(net, precompute=True) as sim:
-            sim.run(0.001)
-    assert any("No precomputable objects" in r.message.args[0] for r in record)
+    with Simulator(net, precompute=True) as sim:
+        sim.run(0.001)
     assert sim._run_steps.__name__.endswith("_precomputed_host_only")
 
+    # Case 5: Add off-chip feedback to create non-precomputable model
+    with net:
+        feedback = nengo.Node(lambda t, x: x + t, size_in=1)
+        nengo.Connection(post, feedback)
+        nengo.Connection(feedback, pre)
 
-def test_no_precomputable(Simulator):
-    with nengo.Network() as net:
-        active_ens = nengo.Ensemble(10, 1, gain=np.ones(10) * 10, bias=np.ones(10) * 10)
-        out = nengo.Node(size_in=10)
-        nengo.Connection(active_ens.neurons, out)
-        out_p = nengo.Probe(out)
+    # 5. precompute=None
+    with Simulator(net) as sim:
+        sim.run(0.001)
+    assert not sim.precompute
+    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
 
-    with pytest.warns(UserWarning) as record:
+    # 5a. precompute=False, host (same as 2a, 3a, and 4a)
+    with Simulator(net, precompute=False) as sim:
+        sim.run(0.001)
+    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+    # 5b. precompute=True
+    with pytest.raises(BuildError):
         with Simulator(net, precompute=True) as sim:
-            sim.run(0.01)
-
-    assert sim._run_steps.__name__.endswith("precomputed_host_only")
-    # Should warn that no objects are precomputable
-    assert any("No precomputable objects" in r.message.args[0] for r in record)
-    # But still mark the sim as precomputable for speed reasons, because
-    # there are no inputs that depend on outputs in this case
-    assert sim.precompute
-    assert sim.data[out_p].shape[0] == sim.trange().shape[0]
-    assert np.all(sim.data[out_p][-1] > 100)
+            sim.run(0.001)
 
 
 def test_all_onchip(Simulator):
@@ -784,7 +809,11 @@ def test_simulator_passthrough(remove_passthrough, Simulator):
     with Simulator(model, remove_passthrough=remove_passthrough) as sim:
         pass
 
-    assert host_input in sim.model.host.params
+    # model is only precomputable if the passthrough has been removed
+    assert sim.precompute == remove_passthrough
+    host_pre_params = (sim.model.host_pre if sim.precompute else sim.model.host).params
+
+    assert host_input in host_pre_params
     assert probe_d in sim.model.host.params
 
     assert chip_x in sim.model.params
@@ -792,11 +821,11 @@ def test_simulator_passthrough(remove_passthrough, Simulator):
     assert probe_y in sim.model.params
 
     # Passthrough nodes are not removed on the host
-    assert host_a in sim.model.host.params
-    assert host_b in sim.model.host.params
+    assert host_a in host_pre_params
+    assert host_b in host_pre_params
     assert host_d in sim.model.host.params
-    assert conn_input_a in sim.model.host.params
-    assert conn_a_b in sim.model.host.params
+    assert conn_input_a in host_pre_params
+    assert conn_a_b in host_pre_params
 
     if remove_passthrough:
         assert remove_c not in sim.model.host.params

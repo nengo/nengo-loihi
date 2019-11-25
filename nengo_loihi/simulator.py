@@ -61,8 +61,8 @@ class Simulator:
         Whether model inputs should be precomputed to speed up simulation.
         When *precompute* is False, the simulator will be run one step
         at a time in order to use model outputs as inputs in other parts
-        of the model. By default, the simulator will choose ``True`` if it works for
-        your model, and ``False`` otherwise.
+        of the model. By default, the simulator will choose ``True`` if it
+        works for your model, and ``False`` otherwise.
     target : str, optional (Default: None)
         Whether the simulator should target the emulator (``'sim'``) or
         Loihi hardware (``'loihi'``). If None, *target* will default to
@@ -138,9 +138,7 @@ class Simulator:
 
         # determine how to split the host into one, two or three models
         self.model.split = Split(
-            network,
-            precompute=False if precompute is None else precompute,
-            remove_passthrough=remove_passthrough,
+            network, precompute=precompute, remove_passthrough=remove_passthrough,
         )
 
         # Build the network into the model
@@ -156,19 +154,11 @@ class Simulator:
             self.model.build(conn)
 
         # Create host_pre and host simulators if necessary
-        self.precompute = precompute
-        if precompute is None:
-            # If there is no host then all objects must be on the chip,
-            # which is precomputable in the sense that
-            # no communication has to happen with the host.
-            self.precompute = len(self.model.host.params) == 0
-        elif len(self.model.host_pre.params) == 0 and precompute:
+        self.precompute = self.model.split.precompute
+        assert precompute is None or precompute == self.precompute
+        if self.model.split.is_precomputable_model and not self.precompute:
             warnings.warn(
-                "No precomputable objects. Setting precompute=True has no effect."
-            )
-        elif len(self.model.host.params) == 0 and not precompute:
-            warnings.warn(
-                "Model is pre-computable. Setting precompute=False may slow execution."
+                "Model is precomputable. Setting precompute=False may slow execution."
             )
 
         if len(self.model.host_pre.params) > 0:
@@ -421,7 +411,7 @@ class Simulator:
         else:
             self._make_loihi_run_steps()
 
-    def _make_emu_run_steps(self):
+    def _make_emu_run_steps(self):  # noqa: C901
         host_pre = self.sims.get("host_pre", None)
         emulator = self.sims["emulator"]
         host = self.sims.get("host", None)
@@ -460,18 +450,23 @@ class Simulator:
                 self._run_steps = emulator.run_steps
 
         else:
-            assert host is not None, "Model is precomputable"
+            assert host_pre is None
 
-            def emu_bidirectional_with_host(steps):
-                for _ in range(steps):
-                    host.step()
-                    self._host2chip(emulator)
-                    emulator.step()
-                    self._chip2host(emulator)
+            if host is not None:
 
-            self._run_steps = emu_bidirectional_with_host
+                def emu_bidirectional_with_host(steps):
+                    for _ in range(steps):
+                        host.step()
+                        self._host2chip(emulator)
+                        emulator.step()
+                        self._chip2host(emulator)
 
-    def _make_loihi_run_steps(self):
+                self._run_steps = emu_bidirectional_with_host
+
+            else:
+                self._run_steps = emulator.run_steps
+
+    def _make_loihi_run_steps(self):  # noqa: C901
         host_pre = self.sims.get("host_pre", None)
         loihi = self.sims["loihi"]
         host = self.sims.get("host", None)
@@ -510,19 +505,24 @@ class Simulator:
                 self._run_steps = loihi.run_steps
 
         else:
-            assert host is not None, "Model is precomputable"
+            assert host_pre is None
 
-            def loihi_bidirectional_with_host(steps):
-                loihi.run_steps(steps, blocking=False)
-                for _ in range(steps):
-                    host.step()
-                    self._host2chip(loihi)
-                    self._chip2host(loihi)
-                logger.info("Waiting for run_steps to complete...")
-                loihi.wait_for_completion()
-                logger.info("run_steps completed")
+            if host is not None:
 
-            self._run_steps = loihi_bidirectional_with_host
+                def loihi_bidirectional_with_host(steps):
+                    loihi.run_steps(steps, blocking=False)
+                    for _ in range(steps):
+                        host.step()
+                        self._host2chip(loihi)
+                        self._chip2host(loihi)
+                    logger.info("Waiting for run_steps to complete...")
+                    loihi.wait_for_completion()
+                    logger.info("run_steps completed")
+
+                self._run_steps = loihi_bidirectional_with_host
+
+            else:
+                self._run_steps = loihi.run_steps
 
     def run_steps(self, steps):
         """Simulate for the given number of ``dt`` steps.

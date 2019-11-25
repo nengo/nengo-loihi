@@ -10,7 +10,7 @@ from nengo_loihi.passthrough import base_obj, is_passthrough, PassthroughSplit
 class Split:
     """Creates a set of directives to guide the builder."""
 
-    def __init__(self, network, precompute=False, remove_passthrough=True):
+    def __init__(self, network, precompute=None, remove_passthrough=True):
         self.network = network
 
         # subset of network: only nodes and ensembles;
@@ -21,6 +21,39 @@ class Split:
         # those running on the host are "seen - chip"
         self._chip_objects = set()
 
+        self._place_objects(network)
+        self.passthrough = self._passthrough_split(network, remove_passthrough)
+
+        # --- Split precomputable parts of host
+        # This is a subset of host, marking which are precomputable
+        is_precomputable_model = False
+        if precompute is None or not precompute:
+            try:
+                precomputable = self._preclosure()
+                is_precomputable_model = True
+            except BuildError:
+                precomputable = set()
+        else:  # precompute is True, so find precomputable part without catching errors
+            precomputable = self._preclosure()
+            is_precomputable_model = True
+
+        if precompute is None:
+            precompute = is_precomputable_model
+
+        self.is_precomputable_model = is_precomputable_model
+        self._host_precomputable_objects = precomputable if precompute else set()
+        self.precompute = precompute
+
+    def _passthrough_split(self, network, remove_passthrough):
+        if remove_passthrough:
+            # Mark passthrough nodes for removal
+            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
+            ignore = self._seen_objects - self._chip_objects - passthroughs
+            return PassthroughSplit(network, ignore)
+        else:
+            return PassthroughSplit(None)
+
+    def _place_objects(self, network):
         # Step 1. Place nodes on host
         self._seen_objects.update(network.all_nodes)
 
@@ -61,21 +94,6 @@ class Split:
                         "as on_chip." % (pre, conn)
                     )
                 self._chip_objects.remove(pre)
-
-        # Step 4. Mark passthrough nodes for removal
-        if remove_passthrough:
-            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
-            ignore = self._seen_objects - self._chip_objects - passthroughs
-            self.passthrough = PassthroughSplit(network, ignore)
-        else:
-            self.passthrough = PassthroughSplit(None)
-
-        # Step 5. Split precomputable parts of host
-        # This is a subset of host, marking which are precomputable
-        if precompute:
-            self._host_precomputable_objects = self._preclosure()
-        else:
-            self._host_precomputable_objects = set()
 
     def _preclosure(self):  # noqa: C901
         """Returns all objects that [in]directly send data to chip."""
