@@ -19,8 +19,8 @@ Release history
    - Removed
    - Fixed
 
-0.10.0 (unreleased)
-===================
+0.10.0 (November 25, 2019)
+==========================
 
 *Compatible with NxSDK 0.8.7 - 0.9.0*
 
