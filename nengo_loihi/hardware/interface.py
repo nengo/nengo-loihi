@@ -93,8 +93,6 @@ class HardwareInterface:
 
         self.check_nxsdk_version()
 
-        validate_model(self.model)
-
         # clear cached content from SpikeProbe class attribute
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
