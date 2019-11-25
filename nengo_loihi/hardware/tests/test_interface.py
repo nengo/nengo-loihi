@@ -127,3 +127,40 @@ def test_snip_input_count(Simulator, seed, plt):
     with Simulator(model) as sim:
         with pytest.warns(UserWarning, match="Too many spikes"):
             sim.run(0.01)
+
+
+@pytest.mark.target_loihi
+def test_find_learning_core_id():
+    # This is mostly just a test for the ValueError, since it was uncovered
+    allocator = OneToOne()
+
+    model = Model()
+
+    for _ in range(9):
+        block = LoihiBlock(1)
+        block.compartment.configure_lif()
+        model.add_block(block)
+
+        synapse = Synapse(1)
+        synapse.set_weights([[1]])
+        block.add_synapse(synapse)
+
+    good_synapse = Synapse(n_axons=1)
+    good_synapse.set_weights([[1]])
+    good_core_idx = 3
+    good_core_id = 392
+    list(model.blocks)[good_core_idx].add_synapse(good_synapse)
+
+    bad_synapse = Synapse(n_axons=1)
+    bad_synapse.set_weights([[1]])
+
+    discretize_model(model)
+
+    interface = hardware_interface.HardwareInterface(model, use_snips=False)
+    interface.board = allocator(model)
+
+    interface.board.chips[0].cores[good_core_idx].learning_coreid = good_core_id
+    assert interface._find_learning_core_id(good_synapse) == good_core_id
+
+    with pytest.raises(ValueError, match="Could not find core ID"):
+        interface._find_learning_core_id(bad_synapse)
