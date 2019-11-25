@@ -279,10 +279,6 @@ class HardwareInterface:
         )
 
     def _host2chip_spikegen(self, loihi_spikes):
-        # sort all spikes because spikegen needs them in temporal order
-        if len(loihi_spikes) == 0:
-            return
-
         tmax = -1
         for t, spikes in loihi_spikes.items():
             assert t >= tmax, "Spikes must be in order"
