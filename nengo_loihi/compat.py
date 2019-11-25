@@ -37,7 +37,7 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
         return process.make_step(shape_in, shape_out, dt, rng, state)
 
 
-else:
+else:  # pragma: no cover
     from nengo.builder.connection import multiply
     from nengo.simulator import ProbeDict as NengoSimulationData
     from nengo.utils.compat import is_array, is_integer, is_iterable, is_number
