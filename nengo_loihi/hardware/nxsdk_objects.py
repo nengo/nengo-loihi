@@ -300,8 +300,8 @@ class LoihiSpikeInput:
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
                 if spike is None:
-                    # This should not happen, because input slices happen when connecting
-                    # into the spike input. However, if this arises we just skip it.
+                    # This should not happen, because input slices happen when
+                    # connecting into the spike input. If it does, we just skip it.
                     continue  # pragma: no cover
 
                 self.axon_map.setdefault(input_idx, [])
