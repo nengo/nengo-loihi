@@ -31,6 +31,13 @@ Release history
 - Added a ``timers`` attribute to ``Simulator`` that tracks the wall time
   taken by various parts of the model, including build time and run time.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- The ``Connection`` config now has an option to use the pop16 axon format on Loihi,
+  for ``Convolution`` transforms, instead of the default pop32 format. This can allow
+  more axons to fit on the chip, with some restrictions (namely the ``Convolution``
+  transform must have ``channels_last=True`` and ``n_filters`` be a multiple of 4).
+  To enable this config option, call ``nengo_loihi.add_params`` on your network, then
+  set the ``pop_type`` config value to 16 for the connection.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Changed**
 
