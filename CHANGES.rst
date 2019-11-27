@@ -49,6 +49,13 @@ Release history
 - We no longer create a spike generator if we are communicating through Snips.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
+**Fixed**
+
+- Some input axons on the chip that were set to be ignored were still having an effect.
+  This is now fixed, providing proper behaviour for convolutional networks where not
+  all input pixels are used in the output (when using strided convolutions).
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+
 0.10.0 (November 25, 2019)
 ==========================
 
