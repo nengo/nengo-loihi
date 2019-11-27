@@ -38,6 +38,10 @@ Release history
   To enable this config option, call ``nengo_loihi.add_params`` on your network, then
   set the ``pop_type`` config value to 16 for the connection.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- The input spike generator now supports population spikes when ``precompute=True`` on
+  the ``Simulator``. This allows ``precompute=True`` to be used with convolutional
+  connections that go from the host to the chip.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Changed**
 
