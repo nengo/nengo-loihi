@@ -42,6 +42,9 @@ Release history
   the ``Simulator``. This allows ``precompute=True`` to be used with convolutional
   connections that go from the host to the chip.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- ``Convolution`` transforms with ``channels_last=True`` now work with larger outputs
+  (up to the full 1024 neurons allowed per core), by repeating weights up to four times.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Changed**
 
