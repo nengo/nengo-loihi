@@ -396,6 +396,27 @@ def build_input(nxsdk_core, core, spike_input, compartment_idxs):
 
 
 def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C901
+    # pre-decode some things for speed
+    nxsdk_synapses = d_get(nxsdk_core, b"c3luYXBzZXM=")
+    d_set_synapse = d(b"Y29uZmlndXJl")
+    d_compartment_idx = d(b"Q0lkeA==")
+    d_weight = d(b"V2d0")
+    d_synapse_cfg_idx = d(b"c3luRm10SWQ=")
+    d_is_learning = d(b"THJuRW4=")
+
+    nxsdk_synapse_map = d_get(nxsdk_core, b"c3luYXBzZU1hcA==")
+    d_synapse_ptr = d(b"c3luYXBzZVB0cg==")
+    d_synapse_len = d(b"c3luYXBzZUxlbg==")
+    d_pop_size = d(b"cG9wU2l6ZQ==")
+
+    max_compartment_offset = d(b"MjU2", int)
+    d_discrete_map = d(b"ZGlzY3JldGVNYXBFbnRyeQ==")
+    d_pop16_map = d(b"cG9wdWxhdGlvbjE2TWFwRW50cnk=")
+    d_pop32_map = d(b"cG9wdWxhdGlvbjMyTWFwRW50cnk=")
+    d_set_map = d(b"Y29uZmlndXJl")
+    d_compartment_offset = d(b"Y3hCYXNl")
+    d_atom_bits_extra = d(b"YXRvbUJpdHM=")
+
     axon_ids = core.synapse_axons[synapse]
 
     synapse_cfg_idx = core.synapse_cfg_idxs[synapse]
@@ -429,15 +450,13 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
             for p in range(n_atoms):
                 for q in range(n_compartments):
                     compartment_idx = compartment_idxs[indices[p, q]]
-                    d_func(
-                        d_get(nxsdk_core, b"c3luYXBzZXM=")[total_synapse_ptr],
-                        b"Y29uZmlndXJl",
-                        kwargs={
-                            b"Q0lkeA==": compartment_idx,
-                            b"V2d0": weights[p, q],
-                            b"c3luRm10SWQ=": synapse_cfg_idx,
-                            b"THJuRW4=": int(synapse.learning),
-                        },
+                    getattr(nxsdk_synapses[total_synapse_ptr], d_set_synapse)(
+                        **{
+                            d_compartment_idx: compartment_idx,
+                            d_weight: weights[p, q],
+                            d_synapse_cfg_idx: synapse_cfg_idx,
+                            d_is_learning: int(synapse.learning),
+                        }
                     )
                     target_compartments.add(compartment_idx)
                     total_synapse_ptr += 1
@@ -456,49 +475,24 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
         else:
             base = int(base)
 
-        assert base <= d(b"MjU2", int), "Currently limited by hardware"
-        d_set(
-            d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-            b"c3luYXBzZVB0cg==",
-            val=synapse_ptr,
-        )
-        d_set(
-            d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-            b"c3luYXBzZUxlbg==",
-            val=n_compartments,
-        )
+        assert base <= max_compartment_offset, "Currently limited by hardware"
+        setattr(nxsdk_synapse_map[axon_id], d_synapse_ptr, synapse_ptr)
+        setattr(nxsdk_synapse_map[axon_id], d_synapse_len, n_compartments)
         if synapse.pop_type == 0:  # discrete
             assert n_atoms == 1
-            d_func(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-                b"ZGlzY3JldGVNYXBFbnRyeQ==",
-                b"Y29uZmlndXJl",
-                kwargs={b"Y3hCYXNl": base},
+            getattr(getattr(nxsdk_synapse_map[axon_id], d_discrete_map), d_set_map)(
+                **{d_compartment_offset: base}
             )
         elif synapse.pop_type == 16:  # pop16
-            d_set(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-                b"cG9wU2l6ZQ==",
-                val=n_atoms,
-            )
+            setattr(nxsdk_synapse_map[axon_id], d_pop_size, n_atoms)
             assert base % 4 == 0
-            d_func(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-                b"cG9wdWxhdGlvbjE2TWFwRW50cnk=",
-                b"Y29uZmlndXJl",
-                kwargs={b"Y3hCYXNl": base // 4, b"YXRvbUJpdHM=": atom_bits_extra},
+            getattr(getattr(nxsdk_synapse_map[axon_id], d_pop16_map), d_set_map)(
+                **{d_compartment_offset: base // 4, d_atom_bits_extra: atom_bits_extra},
             )
         elif synapse.pop_type == 32:  # pop32
-            d_set(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-                b"cG9wU2l6ZQ==",
-                val=n_atoms,
-            )
-            d_func(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
-                b"cG9wdWxhdGlvbjMyTWFwRW50cnk=",
-                b"Y29uZmlndXJl",
-                kwargs={b"Y3hCYXNl": base},
+            setattr(nxsdk_synapse_map[axon_id], d_pop_size, n_atoms)
+            getattr(getattr(nxsdk_synapse_map[axon_id], d_pop32_map), d_set_map)(
+                **{d_compartment_offset: base}
             )
         else:
             raise BuildError("Synapse: unrecognized pop_type: %s" % (synapse.pop_type,))
@@ -507,7 +501,7 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
             assert core.stdp_pre_cfg_idx is not None
             assert stdp_pre_cfg_idx is not None
             d_func(
-                d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id + 1],
+                nxsdk_synapse_map[axon_id + 1],
                 b"c2luZ2xlVHJhY2VFbnRyeQ==",
                 b"Y29uZmlndXJl",
                 kwargs={
