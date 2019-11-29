@@ -18,7 +18,7 @@ if HAS_DL:
     import nengo_dl.neuron_builders
     import tensorflow as tf
     from tensorflow.python.keras.utils import tf_utils
-else:
+else:  # pragma: no cover
     # Empty classes so that we can define the subclasses even though
     # we will never use them, as they are only used in the `install`
     # function that can only run if nengo_dl is importable.

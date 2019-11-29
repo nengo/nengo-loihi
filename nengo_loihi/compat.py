@@ -76,7 +76,7 @@ try:
     import tensorflow as tf
 
     HAS_TF = True
-except ImportError as err:  # pragma: no cover
+except Exception as err:  # pragma: no cover
     tf = None
     HAS_TF = False
     logger.debug("Error importing TensorFlow:\n%s", err)
@@ -86,7 +86,7 @@ try:
 
     HAS_DL = True
     assert HAS_TF, "NengoDL installed without Tensorflow"
-except ImportError as err:  # pragma: no cover
+except Exception as err:  # pragma: no cover
     nengo_dl = None
     HAS_DL = False
     logger.debug("Error importing Nengo DL:\n%s", err)
