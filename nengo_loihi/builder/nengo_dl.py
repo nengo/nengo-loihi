@@ -149,11 +149,11 @@ class LowpassIntegratedNoiseBuilder(NoiseBuilder):
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
             [
-                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
                 for model, op in zip(self.noise_models, ops)
             ]
         )
-        self.tau_s = signals.constant(tau_s, dtype=self.dtype)
+        self.tau_s = tf.constant(tau_s, dtype=self.dtype)
 
     def generate(self, period, tau_rc=None):
         r"""Get Tensorflow code for generating this noise.
