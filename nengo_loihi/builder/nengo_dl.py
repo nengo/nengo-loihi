@@ -1,6 +1,6 @@
 import logging
 import warnings
-
+from distutils.version import LooseVersion
 import numpy as np
 
 from nengo_loihi.compat import HAS_DL
@@ -120,7 +120,9 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
             [
-                model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
+                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                if LooseVersion(nengo_dl.__version__) < "3.0"
+                else model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
                 for model, op in zip(self.noise_models, ops)
             ]
         )
@@ -149,7 +151,9 @@ class LowpassIntegratedNoiseBuilder(NoiseBuilder):
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
             [
-                model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
+                model.tau_s * np.ones((op.J.shape[0], 1), dtype=self.np_dtype)
+                if LooseVersion(nengo_dl.__version__) < "3.0"
+                else model.tau_s * np.ones((1, op.J.shape[0]), dtype=self.np_dtype)
                 for model, op in zip(self.noise_models, ops)
             ]
         )
@@ -330,11 +334,18 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
         else:
             rate_out = self._rate_step(J, signals.dt)
 
-            spikes, voltage, refractory = tf_utils.smart_cond(
-                self.config.training,
-                lambda: (rate_out, voltage, refractory),
-                lambda: (spike_out, spike_voltage, spike_ref),
-            )
+            if LooseVersion(nengo_dl.__version__) < "3.0":
+                spikes, voltage, refractory = tf.cond(
+                    signals.training,
+                    lambda: (rate_out, voltage, refractory),
+                    lambda: (spike_out, spike_voltage, spike_ref),
+                )
+            else:
+                spikes, voltage, refractory = tf_utils.smart_cond(
+                    self.config.training,
+                    lambda: (rate_out, voltage, refractory),
+                    lambda: (spike_out, spike_voltage, spike_ref),
+                )
 
         signals.scatter(self.output_data, spikes)
         signals.scatter(self.refractory_data, refractory)
@@ -358,9 +369,14 @@ class LoihiSpikingRectifiedLinearBuilder(
             signals.dtype,
         )
 
-        self.zeros = tf.zeros(
-            (signals.minibatch_size,) + self.J_data.shape, signals.dtype
-        )
+        if LooseVersion(nengo_dl.__version__) < "3.0":
+            self.zeros = tf.zeros(
+                self.J_data.shape + (signals.minibatch_size,), signals.dtype
+            )
+        else:
+            self.zeros = tf.zeros(
+                (signals.minibatch_size,) + self.J_data.shape, signals.dtype
+            )
 
         self.epsilon = tf.constant(1e-15, dtype=signals.dtype)
 
@@ -412,11 +428,18 @@ class LoihiSpikingRectifiedLinearBuilder(
         else:
             rate_out = self._rate_step(J, signals.dt)
 
-            out, voltage = tf_utils.smart_cond(
-                self.config.training,
-                lambda: (rate_out, voltage),
-                lambda: (spike_out, spike_voltage),
-            )
+            if LooseVersion(nengo_dl.__version__) < "3.0":
+                out, voltage = tf.cond(
+                    signals.training,
+                    lambda: (rate_out, voltage),
+                    lambda: (spike_out, spike_voltage),
+                )
+            else:
+                out, voltage = tf_utils.smart_cond(
+                    self.config.training,
+                    lambda: (rate_out, voltage),
+                    lambda: (spike_out, spike_voltage),
+                )
 
         signals.scatter(self.output_data, out)
         signals.scatter(self.voltage_data, voltage)
