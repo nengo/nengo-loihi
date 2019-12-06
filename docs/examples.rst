@@ -20,6 +20,7 @@ We compare performance with Nengo core where appropriate.
    examples/keyword_spotting
    examples/mnist_convnet
    examples/adaptive_motor_control
+   examples/lmu
 
 Model zoo
 =========

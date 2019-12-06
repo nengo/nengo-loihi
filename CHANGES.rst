@@ -22,7 +22,10 @@ Release history
 0.11.0 (unreleased)
 ===================
 
+**Added**
 
+- Added Legendre Memory Unit example.
+  (`#267 <https://github.com/nengo/nengo-loihi/pull/267>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
