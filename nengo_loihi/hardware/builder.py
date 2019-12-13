@@ -404,9 +404,9 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
     synapse_map = {}  # map weight_idx to (ptr, pop_size, len)
     total_synapse_ptr = int(core.synapse_entries[synapse][0])
     for axon_idx, axon_id in enumerate(axon_ids):
-        assert axon_id <= 2 ** axon_bits
+        assert axon_id is None or axon_id <= 2 ** axon_bits
 
-        weight_idx = int(synapse.axon_weight_idx(axon_idx))
+        weight_idx = synapse.axon_weight_idx(axon_idx)
         base = synapse.axon_compartment_base(axon_idx)
 
         if weight_idx not in synapse_map:
@@ -440,17 +440,12 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
         synapse_ptr, n_atoms, n_compartments = synapse_map[weight_idx]
         assert n_atoms <= 2 ** atom_bits
 
-        if base is None:
-            # This is a dummy axon with no weights. We set `n_compartments = 0`,
-            # but with population axons it appears the axon can still have an effect.
-            # So we also make sure not to connect into it with incoming axons. However,
-            # we still build the axon here so that our indexing is not thrown off.
-            synapse_ptr = 0
-            n_compartments = 0
-            base = 0
-        else:
-            base = int(base)
+        if axon_id is None:
+            # This is a dummy axon with no base or no weights, so skip it
+            assert base is None or n_compartments == 0
+            continue
 
+        base = int(base)
         assert base <= d(b"MjU2", int), "Currently limited by hardware"
         d_set(
             d_get(nxsdk_core, b"c3luYXBzZU1hcA==")[axon_id],
@@ -531,7 +526,7 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
 
 def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     synapse = axon.target
-    tchip_idx, tcore_idx, tsyn_idxs = core.board.find_synapse(synapse)
+    tchip_idx, tcore_idx, taxon_ids = core.board.find_synapse(synapse)
     nxsdk_board = d_get(nxsdk_core, b"cGFyZW50", b"cGFyZW50")
     tchip_id = d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"aWQ=")
     tcore_id = d_get(
@@ -548,11 +543,12 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         if spike is None:
             continue  # this compartment does not route through these axons
 
-        taxon_idx = int(spike.axon_id)
-        taxon_id = int(tsyn_idxs[taxon_idx])
+        taxon_idx = spike.axon_idx
+        taxon_id = taxon_ids[taxon_idx]
         atom = int(spike.atom)
         n_atoms = synapse.axon_populations(taxon_idx)
-        if synapse.axon_compartment_base(taxon_idx) is None:
+
+        if taxon_id is None:
             continue  # this connects to a dummy axon, so do not build
 
         if synapse.pop_type == 0:  # discrete

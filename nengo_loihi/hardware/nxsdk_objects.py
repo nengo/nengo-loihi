@@ -103,7 +103,11 @@ class Core:
         self.stdp_pre_cfgs = []
 
         self.synapse_cfg_idxs = {}  # one synfmt per Synapse, for now
+
+        # for each Synapse, provides a map from axon index to axon id
         self.synapse_axons = collections.OrderedDict()
+
+        # for each Synapse, provides the indices occupied in the synapse weight table
         self.synapse_entries = collections.OrderedDict()
 
         self.learning_coreid = None
@@ -169,15 +173,30 @@ class Core:
         synapse_cfg_idx = self.get_synapse_cfg_idx(synapse.synapse_cfg)
         self.synapse_cfg_idxs[synapse] = synapse_cfg_idx
 
-        a0 = 0
+        # determine starting ID for this synapse's axons
+        id0 = 0
         if len(self.synapse_axons) > 0:
             last = next(reversed(self.synapse_axons))
-            a0 = self.synapse_axons[last][-1] + 1
-        idxs_per_synapse = synapse.idxs_per_synapse()
-        idxs = [a0 + idxs_per_synapse * i for i in range(synapse.n_axons)]
-        self.synapse_axons[synapse] = idxs
-        self.board.index_synapse(synapse, self.chip, self, idxs)
+            id0 = self.synapse_axons[last][-1] + 1
 
+        # determine the ID for each synapse axon index
+        idxs_per_synapse = synapse.idxs_per_synapse()
+        i = id0
+        ids = []
+        for idx in range(synapse.n_axons):
+            base = synapse.axon_compartment_base(idx)
+            w, _ = synapse.axon_weights_indices(idx)
+            if base is None or w.size == 0:
+                # dummy axon, which we will not build
+                ids.append(None)
+            else:
+                ids.append(i)
+                i += idxs_per_synapse
+
+        self.synapse_axons[synapse] = ids
+        self.board.index_synapse(synapse, self.chip, self, ids)
+
+        # determine the indices in the synapse weight table that this synapse occupies
         s0 = 0
         if len(self.synapse_entries) > 0:
             last = next(reversed(self.synapse_entries))
@@ -294,7 +313,7 @@ class LoihiSpikeInput:
         for axon in spike_input.axons:
             synapse = axon.target
             atom_bits_extra = synapse.atom_bits_extra()
-            tchip_idx, tcore_idx, tsyn_ids = board.find_synapse(synapse)
+            tchip_idx, tcore_idx, taxon_ids = board.find_synapse(synapse)
             tchip = d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx]
             tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
@@ -305,8 +324,8 @@ class LoihiSpikeInput:
                     continue  # pragma: no cover
 
                 self.axon_map.setdefault(input_idx, [])
-                taxon_idx = int(spike.axon_id)
-                if synapse.axon_compartment_base(taxon_idx) is None:
+                taxon_id = taxon_ids[spike.axon_idx]
+                if taxon_id is None:
                     continue  # this goes to a dummy axon, so do not connect
 
                 self.axon_map[input_idx].append(
@@ -316,7 +335,7 @@ class LoihiSpikeInput:
                             axon.pop_type,
                             tchip.id,
                             tcore.id,
-                            int(tsyn_ids[taxon_idx]),
+                            taxon_id,
                             spike.atom,
                             atom_bits_extra,
                         ),
