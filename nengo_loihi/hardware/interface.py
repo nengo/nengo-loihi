@@ -691,7 +691,7 @@ class HostSocket:
             ready, _, _ = select([self.socket], [], [], self.recv_timeout)
             if self.socket in ready:
                 data += bytearray(self.socket.recv(self.recv_size))
-            else:
+            else:  # pragma: no cover
                 n_retries += 1
 
         assert len(data) == bytes_expected, "Received (%d) less than expected (%d)" % (

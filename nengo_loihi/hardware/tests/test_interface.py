@@ -1,5 +1,8 @@
+import socket
+
 import nengo
 from nengo.exceptions import SimulationError
+import numpy as np
 import pytest
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
@@ -93,6 +96,27 @@ def test_builder_poptype_errors():
 
     with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):
         build_board(board)
+
+
+def test_host_socket_recv_bytes():
+    host_socket = hardware_interface.HostSocket()
+
+    # We bypass the host_socket.connect method and connect manually
+    host_address = "127.0.0.1"  # Standard loopback interface address
+
+    # Configure socket to send data to itself
+    host_socket.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    host_socket.socket.bind((host_address, host_socket.port))
+    host_socket.socket.connect((host_address, host_socket.port))
+
+    n_recv = 1024 * 2
+    n_send = 1536  # 1024+512, so the host receives one packet and one partial packet
+
+    # Generate random data to send
+    data = np.random.randint(0, 8192) * np.ones(n_send, dtype=np.int32)
+    host_socket.send_all(data)
+    with pytest.raises(AssertionError, match="less than expected"):
+        host_socket.recv_bytes(n_recv)
 
 
 @pytest.mark.target_loihi
