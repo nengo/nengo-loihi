@@ -60,7 +60,7 @@ class NoiseBuilder:
 
         if not equal_types:
             raise NotImplementedError(
-                "Multiple noise models for the same neuron type is " "not supported"
+                "Multiple noise models for the same neuron type is not supported"
             )
 
         return cls.builders[model_type](ops, signals, config, noise_models)

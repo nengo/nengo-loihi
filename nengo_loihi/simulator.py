@@ -164,7 +164,7 @@ class Simulator:
             )
         elif precompute:
             warnings.warn(
-                "No precomputable objects. Setting " "precompute=True has no effect."
+                "No precomputable objects. Setting precompute=True has no effect."
             )
 
         if len(self.model.host.params):

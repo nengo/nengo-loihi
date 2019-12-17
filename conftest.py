@@ -60,7 +60,7 @@ def pytest_addoption(parser):
         parser.addini(
             "nengo_test_unsupported",
             type="linelist",
-            help="List of unsupported unit tests with reason for " "exclusion",
+            help="List of unsupported unit tests with reason for exclusion",
         )
 
 

@@ -121,7 +121,7 @@ class Split:
 
             if isinstance(post, LearningRule) or conn.learning_rule is not None:
                 raise BuildError(
-                    "precompute=True not supported when using " "learning rules"
+                    "precompute=True not supported when using learning rules"
                 )
 
             if self.on_chip(post) and not self.on_chip(pre):
@@ -145,7 +145,7 @@ class Split:
                 pre = base_obj(conn.pre)
                 if self.on_chip(pre):
                     raise BuildError(
-                        "Cannot precompute input, " "as it is dependent on output"
+                        "Cannot precompute input, as it is dependent on output"
                     )
                 mark_precomputable(pre)
 

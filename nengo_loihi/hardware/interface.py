@@ -56,7 +56,7 @@ class HardwareInterface:
     ):
         if isinstance(allocator, RoundRobin) and use_snips:
             raise SimulationError(
-                "snips are not supported for the " "RoundRobin allocator"
+                "snips are not supported for the RoundRobin allocator"
             )
 
         self.closed = False
