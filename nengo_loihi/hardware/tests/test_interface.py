@@ -118,6 +118,7 @@ def test_interface_connection_errors(Simulator):
             interface.connect(attempts=1)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.target_loihi
 def test_snip_input_count(Simulator, seed, plt):
     with nengo.Network(seed=seed) as model:

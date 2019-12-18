@@ -3,6 +3,7 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
+from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.splitter import Split
 
@@ -57,7 +58,7 @@ def test_place_ensembles():
     assert not split.on_chip(error)
 
     for obj in net.all_ensembles + net.all_nodes:
-        assert not split.is_precomputable(obj)
+        assert not split.precomputable(obj)
 
     with pytest.raises(BuildError, match="Locations are only established"):
         split.on_chip(conn)
@@ -128,6 +129,25 @@ def test_precompute_host_to_learning_rule_unsupported():
         Split(net, precompute=True)
 
 
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+def test_precompute_with_convolution_unsupported():
+    with nengo.Network() as net:
+        add_params(net)
+
+        stim = nengo.Node([0, 0])
+        ens = nengo.Ensemble(10, 2)
+        nengo.Connection(
+            stim,
+            ens,
+            transform=nengo_transforms.Convolution(
+                n_filters=2, input_shape=(1, 2, 1), kernel_size=(1, 2), strides=(1, 1)
+            ),
+        )
+
+    with pytest.raises(BuildError, match="convolutional connections"):
+        Split(net, precompute=True)
+
+
 def test_place_probes():
     with nengo.Network() as net:
         add_params(net)
@@ -181,18 +201,17 @@ def test_split_pre_from_host():
     host_precomputable = {pre_1, pre_2, pre_3, pre_4, pre_5}
     for obj in host_precomputable:
         assert not split.on_chip(obj)
-        assert split.is_precomputable(obj)
+        assert split.precomputable(obj)
 
     host_nonprecomputable = {post1, post2, post3}
     for obj in host_nonprecomputable:
         assert not split.on_chip(obj)
-        assert not split.is_precomputable(obj)
+        assert not split.precomputable(obj)
 
     assert split.on_chip(onchip)
-    assert not split.is_precomputable(onchip)
+    assert not split.precomputable(onchip)
 
-    with pytest.raises(BuildError, match="not a part of the network"):
-        split.is_precomputable(nengo.Node(0, add_to_container=False))
+    assert not split.precomputable(nengo.Node(0, add_to_container=False))
 
 
 def test_split_precompute_loop_error():
@@ -325,11 +344,11 @@ def test_precompute_remove_passthrough():
 
     split = Split(net, precompute=True, remove_passthrough=True)
 
-    assert split.is_precomputable(host)
+    assert split.precomputable(host)
     assert not split.on_chip(host)
 
     for obj in (onchip1, passthrough1, onchip2, passthrough2, onchip3):
-        assert not split.is_precomputable(obj)
+        assert not split.precomputable(obj)
 
     for obj in (onchip1, onchip2, onchip3):
         assert split.on_chip(obj)

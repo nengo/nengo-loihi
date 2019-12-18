@@ -156,7 +156,7 @@ class Simulator:
         # Create host_pre and host simulators if necessary
         self.precompute = self.model.split.precompute
         assert precompute is None or precompute == self.precompute
-        if self.model.split.is_precomputable_model and not self.precompute:
+        if self.model.split.precomputable() and not self.precompute:
             warnings.warn(
                 "Model is precomputable. Setting precompute=False may slow execution."
             )

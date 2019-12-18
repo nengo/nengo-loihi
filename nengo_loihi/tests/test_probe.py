@@ -46,6 +46,7 @@ def test_repeated_probes(Simulator):
             sim.run(0.1)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 @pytest.mark.parametrize("probe_target", ["input", "voltage"])
 def test_neuron_probes(precompute, probe_target, Simulator, seed, plt, allclose):

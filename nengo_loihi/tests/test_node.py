@@ -3,6 +3,7 @@ import nengo
 import pytest
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 def test_multiple_stims(allclose, Simulator, seed, precompute):
     with nengo.Network(seed=seed) as model:

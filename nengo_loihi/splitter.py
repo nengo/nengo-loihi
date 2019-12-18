@@ -4,184 +4,281 @@ from nengo import Direct, Ensemble, Node, Probe
 from nengo.exceptions import BuildError
 from nengo.connection import LearningRule
 
+from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.passthrough import base_obj, is_passthrough, PassthroughSplit
 
 
-class Split:
-    """Creates a set of directives to guide the builder."""
+class PrecomputableSplit:
+    """Find all objects that send data to chip, directly or indirectly.
 
-    def __init__(self, network, precompute=None, remove_passthrough=True):
-        self.network = network
+    To find these objects, we compute the transitive closure on all host objects
+    that send data to chip, looking for objects that receive output from the chip,
+    using a breadth-first search.
 
-        # subset of network: only nodes and ensembles;
-        # probes are handled dynamically
-        self._seen_objects = set()
+    Parameters
+    ----------
+    network : Network
+        The original Network supplied to the builder.
+    hostchip: HostChipSplit
+        Tracks whether objects will be on the host or chip.
+    passthrough : PassthroughSplit
+        Tracks passthrough nodes and connections that will be added/removed.
+    strict : bool
+        If True, a BuildError will be raised if there are no precomputable objects.
+    """
 
-        # subset of seen, marking which are run on the hardware;
-        # those running on the host are "seen - chip"
-        self._chip_objects = set()
+    def __init__(self, network, hostchip, passthrough, strict):
+        self.hostchip = hostchip
+        self.passthrough = passthrough
 
-        self._place_objects(network)
-        self.passthrough = self._passthrough_split(network, remove_passthrough)
-
-        # --- Split precomputable parts of host
-        # This is a subset of host, marking which are precomputable
-        is_precomputable_model = False
-        if precompute is None or not precompute:
-            try:
-                precomputable = self._preclosure()
-                is_precomputable_model = True
-            except BuildError:
-                precomputable = set()
-        else:  # precompute is True, so find precomputable part without catching errors
-            precomputable = self._preclosure()
-            is_precomputable_model = True
-
-        if precompute is None:
-            precompute = is_precomputable_model
-
-        self.is_precomputable_model = is_precomputable_model
-        self._host_precomputable_objects = precomputable if precompute else set()
-        self.precompute = precompute
-
-    def _passthrough_split(self, network, remove_passthrough):
-        if remove_passthrough:
-            # Mark passthrough nodes for removal
-            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
-            ignore = self._seen_objects - self._chip_objects - passthroughs
-            return PassthroughSplit(network, ignore)
-        else:
-            return PassthroughSplit(None)
-
-    def _place_objects(self, network):
-        # Step 1. Place nodes on host
-        self._seen_objects.update(network.all_nodes)
-
-        # Step 2. Place all possible ensembles on chip
-        # Note: assumes add_params already called by the simulator
-        for ens in network.all_ensembles:
-            if network.config[ens].on_chip in (None, True) and not isinstance(
-                ens.neuron_type, Direct
-            ):
-                self._chip_objects.add(ens)
-            self._seen_objects.add(ens)
-
-        # Step 3. Move learning ensembles (post and error) to host
-        for conn in network.all_connections:
-            pre = base_obj(conn.pre)
-            post = base_obj(conn.post)
-            if (
-                conn.learning_rule_type is not None
-                and isinstance(post, Ensemble)
-                and post in self._chip_objects
-            ):
-                if network.config[post].on_chip:
-                    raise BuildError(
-                        "Post ensemble (%r) of learned "
-                        "connection (%r) must not be configured "
-                        "as on_chip." % (post, conn)
-                    )
-                self._chip_objects.remove(post)
-            elif (
-                isinstance(post, LearningRule)
-                and isinstance(pre, Ensemble)
-                and pre in self._chip_objects
-            ):
-                if network.config[pre].on_chip:
-                    raise BuildError(
-                        "Pre ensemble (%r) of error "
-                        "connection (%r) must not be configured "
-                        "as on_chip." % (pre, conn)
-                    )
-                self._chip_objects.remove(pre)
-
-    def _preclosure(self):  # noqa: C901
-        """Returns all objects that [in]directly send data to chip."""
-        # performs a "transitive closure" on all host objects that
-        # send data to the chip. if any of these objects receive
-        # output from the chip, then a BuildError is raised
-        precomputable = set()
-
-        # forwards and backwards adjacency lists
-        pre_to_conn = defaultdict(list)
-        post_to_conn = defaultdict(list)
-
-        # data-structure for breadth-first search
-        queue = []
-        head = 0
-
-        def mark_precomputable(obj):
-            assert isinstance(obj, (Node, Ensemble))
-            if obj not in precomputable:
-                precomputable.add(obj)
-                queue.append(obj)
-
-        # determine which connections will actually be built
-        conns = (
-            set(self.network.all_connections) | self.passthrough.to_add
+        self.objs = set()
+        self._precomputable = True
+        self._conns = (
+            set(network.all_connections) | self.passthrough.to_add
         ) - self.passthrough.to_remove
 
-        # Initialize queue with the pre objects on host->chip connections.
-        # We assume that all `conn.pre` objects are pre-computable, and then
-        # raise an error later if one of them turns out to rely on chip output.
         # Learning rules are not supported with precompute=True because
         # this would require a hybrid simulation where some parts of the
         # model interact with the host while other parts are precomputed
         # ahead of time. The simulator assumes that precompute=True does not
         # require any interaction between host and chip between time-steps.
         # Also see issue #214.
-        for conn in conns:
+        has_learning = any(conn.learning_rule is not None for conn in self._conns)
+
+        # host->chip convolutional connections are also not supported with
+        # precompute=True because the BasicSpikeGenerator cannot send population
+        # spikes correctly, meaning we have to use Snips.
+        has_convolution = False
+        if nengo_transforms is not None:
+            has_convolution = any(
+                isinstance(conn.transform, nengo_transforms.Convolution)
+                and not self.hostchip.on_chip(base_obj(conn.pre))
+                and self.hostchip.on_chip(base_obj(conn.post))
+                for conn in self._conns
+            )
+
+        if not has_learning and not has_convolution:
+            self._find_precomputable_objs()
+        else:
+            self._precomputable = False
+            if strict and has_learning:
+                raise BuildError(
+                    "precompute=True not supported when using learning rules"
+                )
+            elif strict and has_convolution:
+                raise BuildError(
+                    "precompute=True not supported when using convolutional connections"
+                )
+
+        if strict and not self._precomputable:
+            raise BuildError("Cannot precompute input, as it is dependent on output")
+
+    def _find_precomputable_objs(self):
+        # Set up the breadth-first search
+        queue = []
+        head = 0
+
+        # Forwards and backwards adjacency lists
+        pre_to_conn = defaultdict(list)
+        post_to_conn = defaultdict(list)
+
+        # Initialize queue with the pre objects on host->chip connections.
+        # We assume that all `conn.pre` objects are precomputable, and then
+        # set a flag to mark the host model as not precomputable if one of them
+        # turns out to rely on chip output.
+        for conn in self._conns:
             pre, post = base_obj(conn.pre), base_obj(conn.post)
             pre_to_conn[pre].append(conn)
             post_to_conn[post].append(conn)
             assert pre not in self.passthrough.to_remove
             assert post not in self.passthrough.to_remove
 
-            if isinstance(post, LearningRule) or conn.learning_rule is not None:
-                raise BuildError(
-                    "precompute=True not supported when using learning rules"
-                )
+            if self.hostchip.on_chip(post) and not self.hostchip.on_chip(pre):
+                self.mark_precomputable(pre, queue)
 
-            if self.on_chip(post) and not self.on_chip(pre):
-                mark_precomputable(pre)
-
-        # traverse all connected objects breadth-first
+        # Traverse all connected objects breadth-first
         while head < len(queue):
             node_or_ens = queue[head]
             head += 1
 
-            # handle forwards adjacencies
+            # Handle forwards adjacencies
             for conn in pre_to_conn[node_or_ens]:
                 assert base_obj(conn.pre) is node_or_ens
                 post = base_obj(conn.post)
-                if not self.on_chip(post):
-                    mark_precomputable(post)
+                if not self.hostchip.on_chip(post):
+                    self.mark_precomputable(post, queue)
 
-            # handle backwards adjacencies
+            # Handle backwards adjacencies
             for conn in post_to_conn[node_or_ens]:
                 assert base_obj(conn.post) is node_or_ens
                 pre = base_obj(conn.pre)
-                if self.on_chip(pre):
-                    raise BuildError(
-                        "Cannot precompute input, as it is dependent on output"
-                    )
-                mark_precomputable(pre)
+                if not self.hostchip.on_chip(pre):
+                    self.mark_precomputable(pre, queue)
+                else:
+                    # Found an input to the chip that relies on an output from the chip.
+                    # The model is not precomputable.
+                    self.objs.clear()
+                    self._precomputable = False
+                    return
 
-        return precomputable
+    def mark_precomputable(self, obj, queue):
+        assert isinstance(obj, (Node, Ensemble))
+        if obj not in self.objs:
+            self.objs.add(obj)
+            queue.append(obj)
 
-    def is_precomputable(self, obj):
+    def precomputable(self, obj=None):
+        if obj is None:
+            return self._precomputable
+
         if isinstance(obj, Probe):
             obj = base_obj(obj.target)
-        return not self.on_chip(obj) and obj in self._host_precomputable_objects
+
+        return obj in self.objs
+
+
+class HostChipSplit:
+    """Place all objects in a network on host or chip."""
+
+    def __init__(self, network):
+        # Objects split to the host.
+        self.host_objs = set()
+
+        # Objects split to the chip.
+        self.chip_objs = set()
+
+        # Place objects on host or chip
+        self._place_nodes(network)
+        self._place_ensembles(network)
+        self._place_probes(network)
+
+    def _place_nodes(self, network):
+        """Place nodes. Currently, all nodes go on the host."""
+
+        self.host_objs.update(network.all_nodes)
+
+    def _place_ensembles(self, network):
+        """Place ensembles.
+
+        Ensembles should go on the chip, unless:
+
+        1. The user has specified they should not
+        2. The ensemble is running in direct mode
+        3. They are the ``post`` in a learned connection.
+        4. They are the ``pre`` in a connection to a LearningRule
+           (i.e., they provide the error signal for a learned connection).
+
+        Notes
+        -----
+        Assumes add_params was already called by the simulator.
+
+        """
+
+        # Enforce rules 1 and 2
+        for ens in network.all_ensembles:
+            if network.config[ens].on_chip is False or isinstance(
+                ens.neuron_type, Direct
+            ):
+                self.host_objs.add(ens)
+            else:
+                self.chip_objs.add(ens)
+
+        for conn in network.all_connections:
+            pre, post = base_obj(conn.pre), base_obj(conn.post)
+
+            # Enforce rule 3
+            if (
+                conn.learning_rule_type is not None
+                and isinstance(post, Ensemble)
+                and post in self.chip_objs
+            ):
+                if network.config[post].on_chip:
+                    raise BuildError(
+                        "Post ensemble (%r) of learned connection (%r) must not be "
+                        "configured as on_chip." % (post, conn)
+                    )
+                self.host_objs.add(post)
+                self.chip_objs.remove(post)
+
+            # Enforce rule 4
+            elif (
+                isinstance(post, LearningRule)
+                and isinstance(pre, Ensemble)
+                and pre in self.chip_objs
+            ):
+                if network.config[pre].on_chip:
+                    raise BuildError(
+                        "Pre ensemble (%r) of error connection (%r) must not be "
+                        "configured as on_chip." % (pre, conn)
+                    )
+                self.host_objs.add(pre)
+                self.chip_objs.remove(pre)
+
+    def _place_probes(self, network):
+        """Place probes. Probes go where their probed object is."""
+
+        for probe in network.all_probes:
+            obj = base_obj(probe.target)
+            if obj in self.host_objs:
+                self.host_objs.add(probe)
+            elif obj in self.chip_objs:
+                self.chip_objs.add(probe)
+            else:
+                raise BuildError("Object (%r) is not a part of the network" % (obj,))
 
     def on_chip(self, obj):
-        if isinstance(obj, Probe):
-            obj = base_obj(obj.target)
-        if not isinstance(obj, (Ensemble, Node)):
+        if not isinstance(obj, (Ensemble, Node, Probe)):
             raise BuildError(
                 "Locations are only established for ensembles ",
                 "nodes, and probes -- not for %r" % (obj,),
             )
-        if obj not in self._seen_objects:
-            raise BuildError("Object (%r) is not a part of the network" % (obj,))
-        return obj in self._chip_objects
+        if obj in self.chip_objs:
+            return True
+        elif obj in self.host_objs:
+            return False
+        raise BuildError("Object (%r) is not a part of the network" % (obj,))
+
+
+class Split:
+    """Creates a set of directives to guide the builder.
+
+    Parameters
+    ----------
+    network : Network
+        The original Network supplied to the builder.
+    precompute : bool, optional (Default: None)
+        Whether model inputs should be precomputed to speed up simulation.
+        The splitter will always determine precomputable objects, but if precompute
+        is set to True then an error will be raised if the model cannot be precomputed.
+    remove_passthrough : bool, optional (Default: True)
+        Whether we should mark passthrough nodes that can be removed.
+        Connections to replace the passthrough nodes will also be determined.
+    """
+
+    def __init__(self, network, precompute=None, remove_passthrough=True):
+        self.network = network
+
+        # Place objects on host or chip
+        self.hostchip = HostChipSplit(network)
+
+        # Determine how passthrough nodes will be handled
+        if remove_passthrough:
+            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
+            ignore = self.hostchip.host_objs - passthroughs
+            self.passthrough = PassthroughSplit(network, ignore)
+        else:
+            self.passthrough = PassthroughSplit(None)
+
+        # Determine which host objects are precomputable
+        self._precomputable = PrecomputableSplit(
+            network, self.hostchip, self.passthrough, strict=precompute is True
+        )
+        self.precompute = precompute
+        if self.precompute is None:
+            self.precompute = self.precomputable()
+
+    def precomputable(self, obj=None):
+        return self._precomputable.precomputable(obj=obj)
+
+    def on_chip(self, obj):
+        return self.hostchip.on_chip(obj)

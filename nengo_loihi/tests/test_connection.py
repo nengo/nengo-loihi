@@ -49,6 +49,7 @@ def test_ens_ens_constant(allclose, weight_solver, target_value, Simulator, seed
     assert allclose(sim_output[t_check], target_output[t_check], rtol=0.15, atol=0.15)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("dt", [3e-4, 1e-3])
 @pytest.mark.parametrize("precompute", [True, False])
 def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
@@ -543,6 +544,7 @@ def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
     plt.legend(["%d" % i for i in range(post_d)], loc="best")
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     out_synapse = nengo.synapses.Alpha(0.03)
@@ -577,6 +579,7 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
     assert allclose(sim.data[p_b], -sim.data[p_a], atol=0.15, rtol=0.1)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("seed_ens", [True, False])
 @pytest.mark.parametrize("precompute", [True, False])
 def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):

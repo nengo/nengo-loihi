@@ -37,6 +37,7 @@ def test_model_validate_notempty(Simulator):
     assert nengo.rc.get("decoder_cache", "enabled")
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 def test_probedict_fallbacks(precompute, Simulator):
     with nengo.Network() as net:
@@ -168,6 +169,7 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
     assert allclose(loihi_sim.data[bp], nengo_sim.data[bp], atol=0.07, xtol=6)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", (True, False))
 def test_close(Simulator, precompute):
     with nengo.Network() as net:
@@ -184,143 +186,176 @@ def test_close(Simulator, precompute):
     assert all(s.closed for s in sim.sims.values())
 
 
-def test_all_run_steps(Simulator):
-    # Case 1. No objects on host, so no host and no host_pre
-    with nengo.Network() as net:
-        pre = nengo.Ensemble(10, 1)
-        post = nengo.Ensemble(10, 1)
-        nengo.Connection(pre, post)
+class TestRunSteps:
+    @staticmethod
+    def simple_prepost():
+        with nengo.Network() as net:
+            net.pre = nengo.Ensemble(10, 1)
+            net.post = nengo.Ensemble(10, 1)
+            nengo.Connection(net.pre, net.post)
+        return net
 
-    # 1. precompute=None, no host, no host_pre
-    with Simulator(net) as sim:
-        sim.run(0.001)
-    # Since no objects on host, we should be precomputing even if we did not
-    # explicitly request precomputing
-    assert sim.precompute
-    assert inspect.ismethod(sim._run_steps)
-    assert sim._run_steps.__name__ == "run_steps"
+    def test_no_host_objs(self, Simulator):
+        """No host objects, so no host and no host_pre."""
+        net = self.simple_prepost()
 
-    # 1a. precompute=False, no host
-    with pytest.warns(UserWarning, match="Model is precomputable"):
-        with Simulator(net, precompute=False) as sim:
+        # precompute=None, no host, no host_pre
+        with Simulator(net, precompute=None) as sim:
             sim.run(0.001)
-    assert inspect.ismethod(sim._run_steps)
-    assert sim._run_steps.__name__ == "run_steps"
+        # Since no objects on host, we should be precomputing even if we did not
+        # explicitly request precomputing
+        assert sim.precompute
+        assert inspect.ismethod(sim._run_steps)
+        assert sim._run_steps.__name__ == "run_steps"
 
-    # 1b. precompute=True, no host, no host_pre
-    with Simulator(net, precompute=True) as sim:
-        sim.run(0.001)
-    assert inspect.ismethod(sim._run_steps)
-    assert sim._run_steps.__name__ == "run_steps"
+        # precompute=False, no host
+        with pytest.warns(UserWarning, match="Model is precomputable"):
+            with Simulator(net, precompute=False) as sim:
+                sim.run(0.001)
+        assert inspect.ismethod(sim._run_steps)
+        assert sim._run_steps.__name__ == "run_steps"
 
-    # Case 2: Add a precomputable off-chip object, so we have either host or
-    # host_pre but not both host and host_pre
-    with net:
-        stim = nengo.Node(1)
-        stim_conn = nengo.Connection(stim, pre)
-
-    # 2. precompute=None, host
-    with Simulator(net) as sim:
-        sim.run(0.001)
-    assert sim.precompute
-    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
-
-    # 2a. precompute=False, host
-    with pytest.warns(UserWarning, match="Model is precomputable"):
-        with Simulator(net, precompute=False) as sim:
-            sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
-
-    # 2b. precompute=True, no host, host_pre
-    with Simulator(net, precompute=True) as sim:
-        sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
-
-    # Case 3: Add a non-precomputable off-chip object so we have host
-    # and host_pre
-    with net:
-        out = nengo.Node(size_in=1)
-        nengo.Connection(post, out)
-        nengo.Probe(out)  # probe to prevent `out` from being optimized away
-
-    # 3. precompute=None
-    with Simulator(net) as sim:
-        sim.run(0.001)
-    assert sim.precompute
-    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
-
-    # 3a. precompute=False, host (same as 2a)
-    with pytest.warns(UserWarning, match="Model is precomputable"):
-        with Simulator(net, precompute=False) as sim:
-            sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
-
-    # 3b. precompute=True, host, host_pre
-    with Simulator(net, precompute=True) as sim:
-        sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
-
-    # Case 4: Delete the precomputable off-chip object, so we have host only
-    net.nodes.remove(stim)
-    net.connections.remove(stim_conn)
-
-    # 4. precompute=None
-    with Simulator(net) as sim:
-        sim.run(0.001)
-    assert sim.precompute
-    assert sim._run_steps.__name__.endswith("_precomputed_host_only")
-
-    # 4a. precompute=False, host (same as 2a and 3a)
-    with pytest.warns(UserWarning, match="Model is precomputable"):
-        with Simulator(net, precompute=False) as sim:
-            sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
-
-    # 4b. precompute=True, host, no host_pre
-    with Simulator(net, precompute=True) as sim:
-        sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_precomputed_host_only")
-
-    # Case 5: Add off-chip feedback to create non-precomputable model
-    with net:
-        feedback = nengo.Node(lambda t, x: x + t, size_in=1)
-        nengo.Connection(post, feedback)
-        nengo.Connection(feedback, pre)
-
-    # 5. precompute=None
-    with Simulator(net) as sim:
-        sim.run(0.001)
-    assert not sim.precompute
-    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
-
-    # 5a. precompute=False, host (same as 2a, 3a, and 4a)
-    with Simulator(net, precompute=False) as sim:
-        sim.run(0.001)
-    assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
-
-    # 5b. precompute=True
-    with pytest.raises(BuildError):
+        # precompute=True, no host, no host_pre
         with Simulator(net, precompute=True) as sim:
             sim.run(0.001)
+        assert inspect.ismethod(sim._run_steps)
+        assert sim._run_steps.__name__ == "run_steps"
 
+    def test_all_precomputable(self, Simulator):
+        """One precomputable host object.
 
-def test_all_onchip(Simulator):
-    with nengo.Network() as net:
-        active_ens = nengo.Ensemble(10, 1, gain=np.ones(10) * 10, bias=np.ones(10) * 10)
-        out = nengo.Ensemble(10, 1, gain=np.ones(10), bias=np.ones(10))
-        nengo.Connection(active_ens.neurons, out.neurons, transform=np.eye(10) * 10)
-        out_p = nengo.Probe(out.neurons)
+        We should have either a host or host_pre, but not both.
+        """
+        net = self.simple_prepost()
+        with net:
+            stim = nengo.Node(1)
+            nengo.Connection(stim, net.pre)
 
-    with Simulator(net) as sim:
-        sim.run(0.01)
+        # precompute=None, no host
+        with Simulator(net, precompute=None) as sim:
+            sim.run(0.001)
+        assert sim.precompute
+        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
 
-    # Though we did not specify precompute, the model should be marked as
-    # precomputable because there are no off-chip objects
-    assert sim.precompute
-    assert inspect.ismethod(sim._run_steps)
-    assert sim._run_steps.__name__ == "run_steps"
-    assert sim.data[out_p].shape[0] == sim.trange().shape[0]
-    assert np.all(sim.data[out_p][-1] > 100)
+        # precompute=False, no host_pre
+        with pytest.warns(UserWarning, match="Model is precomputable"):
+            with Simulator(net, precompute=False) as sim:
+                sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+        # precompute=True, no host
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_only")
+
+    def test_precomputable_and_not(self, Simulator):
+        """One precomputable host object and one non-precomputable host object.
+
+        We will have host and host_pre, unless we request no host_pre.
+        """
+
+        net = self.simple_prepost()
+        with net:
+            stim = nengo.Node(1)
+            nengo.Connection(stim, net.pre)
+            out = nengo.Node(size_in=1)
+            nengo.Connection(net.post, out)
+            nengo.Probe(out)  # probe to prevent `out` from being optimized away
+
+        # precompute=None
+        with Simulator(net) as sim:
+            sim.run(0.001)
+        assert sim.precompute
+        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+
+        # precompute=False, no host_pre
+        with pytest.warns(UserWarning, match="Model is precomputable"):
+            with Simulator(net, precompute=False) as sim:
+                sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+        # precompute=True
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_precomputed_host_pre_and_host")
+
+    def test_all_non_precomputable(self, Simulator):
+        """One non-precomputable host object.
+
+        We will always have a host and never a host_pre.
+        """
+
+        net = self.simple_prepost()
+        with net:
+            out = nengo.Node(size_in=1)
+            nengo.Connection(net.post, out)
+            nengo.Probe(out)  # probe to prevent `out` from being optimized away
+
+        # precompute=None, no host_pre
+        with Simulator(net) as sim:
+            sim.run(0.001)
+        assert sim.precompute
+        assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+
+        # precompute=False, no host_pre
+        with pytest.warns(UserWarning, match="Model is precomputable"):
+            with Simulator(net, precompute=False) as sim:
+                sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+        # precompute=True, no host_pre
+        with Simulator(net, precompute=True) as sim:
+            sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_precomputed_host_only")
+
+    def test_feedback_loop(self, Simulator):
+        """Chip input depends on output, nothing is precomputable.
+
+        We will never have a host_pre.
+        """
+        net = self.simple_prepost()
+        with net:
+            feedback = nengo.Node(lambda t, x: x + t, size_in=1)
+            nengo.Connection(net.post, feedback)
+            nengo.Connection(feedback, net.pre)
+
+        # precompute=None
+        with Simulator(net) as sim:
+            sim.run(0.001)
+        assert not sim.precompute
+        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+        # precompute=False
+        with Simulator(net, precompute=False) as sim:
+            sim.run(0.001)
+        assert sim._run_steps.__name__.endswith("_bidirectional_with_host")
+
+        # precompute=True, raises BuildError
+        with pytest.raises(BuildError):
+            with Simulator(net, precompute=True) as sim:
+                sim.run(0.001)
+
+    def test_all_onchip(self, Simulator):
+        """All network elements simulated on-chip."""
+
+        with nengo.Network() as net:
+            active_ens = nengo.Ensemble(
+                10, 1, gain=np.ones(10) * 10, bias=np.ones(10) * 10
+            )
+            out = nengo.Ensemble(10, 1, gain=np.ones(10), bias=np.ones(10))
+            nengo.Connection(active_ens.neurons, out.neurons, transform=np.eye(10) * 10)
+            out_p = nengo.Probe(out.neurons)
+
+        with Simulator(net, precompute=None) as sim:
+            sim.run(0.01)
+
+        # Though we did not specify precompute, the model should be marked as
+        # precomputable because there are no off-chip objects
+        assert sim.precompute
+        assert inspect.ismethod(sim._run_steps)
+        assert sim._run_steps.__name__ == "run_steps"
+        assert sim.data[out_p].shape[0] == sim.trange().shape[0]
+        assert np.all(sim.data[out_p][-1] > 100)
 
 
 @pytest.mark.target_loihi
@@ -395,6 +430,7 @@ def test_tau_s_warning(Simulator):
     )
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.xfail(
     nengo.version.version_info <= (2, 8, 0), reason="Nengo core controls seeds"
 )
@@ -496,6 +532,7 @@ def test_loihi_simulation_exception(Simulator):
         assert not sim.sims["loihi"].nxDriver.conn
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 def test_double_run(precompute, Simulator, seed, allclose):
     simtime = 0.2
@@ -655,6 +692,7 @@ def test_population_input(request, allclose):
     assert allclose(z[[1, 3, 5]], weights[0], atol=4e-2, rtol=0)
 
 
+@pytest.mark.filterwarnings("ignore:Model is precomputable.")
 def test_precompute(allclose, Simulator, seed, plt):
     simtime = 0.2
 

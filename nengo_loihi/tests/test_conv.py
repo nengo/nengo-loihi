@@ -460,7 +460,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
         sim_real.run(pres_time)
     real_out = sim_real.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    with Simulator(model, dt=dt, precompute=False) as sim_loihi:
+    with Simulator(model, dt=dt) as sim_loihi:
         if "loihi" in sim_loihi.sims:
             sim_loihi.sims["loihi"].snip_max_spikes_per_step = 800
         sim_loihi.run(pres_time)
@@ -561,7 +561,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     with nengo.Simulator(net, optimize=False) as sim:
         sim.run(1.0)
 
-    with Simulator(net, seed=seed, precompute=False) as sim_loihi:
+    with Simulator(net, seed=seed) as sim_loihi:
         sim_loihi.run(1.0)
 
     p0 = np.sum(sim.data[p] > 0, axis=0).reshape(output_shape.shape)
@@ -660,9 +660,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
         sim_nengo.run(simtime)
 
     hw_opts = dict(snip_max_spikes_per_step=100)
-    with Simulator(
-        net, seed=seed, precompute=False, hardware_options=hw_opts
-    ) as sim_loihi:
+    with Simulator(net, seed=seed, hardware_options=hw_opts) as sim_loihi:
         sim_loihi.run(simtime)
 
     nengo_out = []

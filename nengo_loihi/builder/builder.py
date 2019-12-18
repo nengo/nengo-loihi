@@ -215,7 +215,7 @@ class Model:
 
     def host_model(self, obj):
         """Returns the Model corresponding to where obj should be built."""
-        if self.split.is_precomputable(obj):
+        if self.split.precompute and self.split.precomputable(obj):
             return self.host_pre
         else:
             return self.host
