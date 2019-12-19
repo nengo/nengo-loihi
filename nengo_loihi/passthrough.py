@@ -104,7 +104,7 @@ class Cluster:
             np.dot(mid_t, format_transform(sizes[0], transforms[0])),
         )
 
-        if nengo_transforms is None:
+        if nengo_transforms is None:  # pragma: no cover
             return transform
         else:
             return nengo_transforms.Dense(transform.shape, init=transform)
@@ -148,17 +148,18 @@ class Cluster:
             # will get removed
             if nengo_transforms is not None:
                 trans1 = nengo_transforms.Dense((obj.size_out, obj.size_out), init=1.0)
-            else:
+            else:  # pragma: no cover
                 trans1 = np.array(1.0)
             yield (slice(None), trans1, None, obj)
 
         for c in outputs[obj]:
             # should not be possible to have learning on connection from node
             assert c.learning_rule_type is None
+            # should not be possible to have post_obj be LearningRule due to special
+            # case rule in PassthroughSplit._on_chip
+            assert not isinstance(c.post_obj, LearningRule)
 
-            if isinstance(c.post_obj, LearningRule):
-                raise ClusterError("no error signals allowed")
-            elif c.post_obj in previous:
+            if c.post_obj in previous:
                 # cycles of passthrough Nodes are possible in Nengo, but
                 # cannot be compiled away
                 raise ClusterError("no loops allowed")
@@ -227,16 +228,11 @@ class PassthroughSplit:
     set of passthrough Nodes to be removed, the Connections to be removed,
     and the Connections that should be added to replace the Nodes and
     Connections.
-
-    The parameter ignore provides a list of objects (i.e., ensembles and nodes)
-    that should not be considered by the passthrough removal process.
-    The system will only remove passthrough Nodes where neither pre nor post
-    are ignored.
     """
 
-    def __init__(self, network, ignore=None):
+    def __init__(self, network, hostchip):
         self.network = network
-        self.ignore = ignore if ignore is not None else set()
+        self.hostchip = hostchip
 
         self.to_remove = set()
         self.to_add = set()
@@ -264,14 +260,15 @@ class PassthroughSplit:
             assert not isinstance(base_pre, Probe)
             assert not isinstance(base_post, Probe)
 
-            pass_pre = is_passthrough(c.pre_obj) and c.pre_obj not in self.ignore
+            pass_pre = is_passthrough(c.pre_obj)
+            pass_post = is_passthrough(c.post_obj)
+
             if pass_pre and c.pre_obj not in clusters:
                 # add new objects to their own initial Cluster
                 clusters[c.pre_obj] = Cluster(c.pre_obj)
                 if c.pre_obj in probed_objs:
                     clusters[c.pre_obj].probed_objs.add(c.pre_obj)
 
-            pass_post = is_passthrough(c.post_obj) and c.post_obj not in self.ignore
             if pass_post and c.post_obj not in clusters:
                 # add new objects to their own initial Cluster
                 clusters[c.post_obj] = Cluster(c.post_obj)
@@ -296,15 +293,18 @@ class PassthroughSplit:
                 cluster.conns_in.add(c)
         return clusters
 
+    def _on_chip(self, obj):
+        if isinstance(obj, LearningRule):
+            return False
+        return self.hostchip.on_chip(obj)
+
     def _split_cluster(self, cluster):
         """Split a Cluster."""
         assert cluster not in self._already_split
         self._already_split.add(cluster)
 
-        onchip_input = any(base_obj(c.pre) not in self.ignore for c in cluster.conns_in)
-        onchip_output = any(
-            base_obj(c.post) not in self.ignore for c in cluster.conns_out
-        )
+        onchip_input = any(self._on_chip(base_obj(c.pre)) for c in cluster.conns_in)
+        onchip_output = any(self._on_chip(base_obj(c.post)) for c in cluster.conns_out)
 
         has_input = len(cluster.conns_in) > 0
         no_output = len(cluster.conns_out) + len(cluster.probed_objs) == 0

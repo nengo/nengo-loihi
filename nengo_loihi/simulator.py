@@ -11,7 +11,6 @@ import numpy as np
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.nengo_dl import HAS_DL, install_dl_builders
 from nengo_loihi.compat import NengoSimulationData, seed_network
-import nengo_loihi.config as config
 from nengo_loihi.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
@@ -129,8 +128,6 @@ class Simulator:
 
         if network is None:
             raise ValidationError("network parameter must not be None", attr="network")
-
-        config.add_params(network)
 
         # ensure seeds are identical to nengo
         # this has no effect for nengo<=2.8.0

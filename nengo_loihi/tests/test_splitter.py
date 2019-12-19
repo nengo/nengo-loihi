@@ -13,7 +13,6 @@ def test_place_nodes():
     # ChipReceiveNodes and HostSendNodes are created later by the builder
 
     with nengo.Network() as net:
-        add_params(net)
         offchip1 = nengo.Node(0)
         with nengo.Network():
             offchip2 = nengo.Node(np.sin)
@@ -119,8 +118,6 @@ def test_split_host_to_learning_rule():
 
 def test_precompute_host_to_learning_rule_unsupported():
     with nengo.Network() as net:
-        add_params(net)
-
         pre = nengo.Ensemble(10, 1, label="pre")
         post = nengo.Ensemble(10, 1, label="post")
         nengo.Connection(pre, post, learning_rule_type=nengo.PES())
@@ -132,8 +129,6 @@ def test_precompute_host_to_learning_rule_unsupported():
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_precompute_with_convolution_unsupported():
     with nengo.Network() as net:
-        add_params(net)
-
         stim = nengo.Node([0, 0])
         ens = nengo.Ensemble(10, 2)
         nengo.Connection(
@@ -216,7 +211,6 @@ def test_split_pre_from_host():
 
 def test_split_precompute_loop_error():
     with nengo.Network() as net:
-        add_params(net)
         node_offchip = nengo.Node(lambda t, x: x + 1, size_in=1, size_out=1)
         ens_onchip = nengo.Ensemble(10, 1)
         nengo.Connection(node_offchip, ens_onchip)
@@ -257,8 +251,6 @@ def test_chip_learning_errors():
 @pytest.mark.parametrize("remove_passthrough", [True, False])
 def test_split_remove_passthrough(remove_passthrough):
     with nengo.Network() as net:
-        add_params(net)
-
         keep1 = nengo.Node(0, label="keep1")
         keep2 = nengo.Node(lambda t, x: x, size_in=1, label="keep2")
         keep3 = nengo.Node(size_in=1, label="keep3")
@@ -307,8 +299,6 @@ def test_split_remove_passthrough(remove_passthrough):
 
 def test_sliced_passthrough_bug():
     with nengo.Network() as model:
-        add_params(model)
-
         a = nengo.Ensemble(1, 1, label="a")
         passthrough = nengo.Node(size_in=1, label="passthrough")
 
@@ -327,8 +317,6 @@ def test_sliced_passthrough_bug():
 
 def test_precompute_remove_passthrough():
     with nengo.Network() as net:
-        add_params(net)
-
         host = nengo.Node(0, label="host")
         onchip1 = nengo.Ensemble(1, 1, label="onchip1")
         passthrough1 = nengo.Node(size_in=1, label="passthrough1")

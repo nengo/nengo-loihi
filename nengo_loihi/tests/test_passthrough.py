@@ -6,12 +6,13 @@ import pytest
 from nengo_loihi.compat import transform_array
 from nengo_loihi.decode_neurons import OnOffDecodeNeurons
 from nengo_loihi.passthrough import PassthroughSplit
+from nengo_loihi.splitter import HostChipSplit
 
 default_node_neurons = OnOffDecodeNeurons()
 
 
 def test_passthrough_placement():
-    with nengo.Network() as model:
+    with nengo.Network() as net:
         stim = nengo.Node(0)
         a = nengo.Node(None, size_in=1)  # should be off-chip
         b = nengo.Ensemble(10, 1)
@@ -29,7 +30,7 @@ def test_passthrough_placement():
         nengo.Connection(f, g)
         nengo.Probe(g)
 
-    split = PassthroughSplit(model, ignore={stim})
+    split = PassthroughSplit(net, HostChipSplit(net))
 
     assert split.to_remove == {c, d, e, conn_bc, conn_cd, conn_de, conn_ef}
     assert len(split.to_add) == 1
@@ -42,7 +43,7 @@ def test_passthrough_placement():
 @pytest.mark.parametrize("d2", [1, 3])
 @pytest.mark.parametrize("d3", [1, 3])
 def test_transform_merging(d1, d2, d3):
-    with nengo.Network() as model:
+    with nengo.Network() as net:
         a = nengo.Ensemble(10, d1)
         b = nengo.Node(None, size_in=d2)
         c = nengo.Ensemble(10, d3)
@@ -53,7 +54,7 @@ def test_transform_merging(d1, d2, d3):
         conn_ab = nengo.Connection(a, b, transform=t1)
         conn_bc = nengo.Connection(b, c, transform=t2)
 
-    split = PassthroughSplit(model)
+    split = PassthroughSplit(net, HostChipSplit(net))
 
     assert split.to_remove == {b, conn_ab, conn_bc}
 
@@ -65,12 +66,12 @@ def test_transform_merging(d1, d2, d3):
 @pytest.mark.parametrize("n_ensembles", [1, 3])
 @pytest.mark.parametrize("ens_dimensions", [1, 3])
 def test_identity_array(n_ensembles, ens_dimensions):
-    with nengo.Network() as model:
+    with nengo.Network() as net:
         a = nengo.networks.EnsembleArray(10, n_ensembles, ens_dimensions)
         b = nengo.networks.EnsembleArray(10, n_ensembles, ens_dimensions)
         nengo.Connection(a.output, b.input)
 
-    split = PassthroughSplit(model)
+    split = PassthroughSplit(net, HostChipSplit(net))
 
     assert len(split.to_add) == n_ensembles
 
@@ -89,13 +90,13 @@ def test_identity_array(n_ensembles, ens_dimensions):
 @pytest.mark.parametrize("n_ensembles", [1, 3])
 @pytest.mark.parametrize("ens_dimensions", [1, 3])
 def test_full_array(n_ensembles, ens_dimensions):
-    with nengo.Network() as model:
+    with nengo.Network() as net:
         a = nengo.networks.EnsembleArray(10, n_ensembles, ens_dimensions)
         b = nengo.networks.EnsembleArray(10, n_ensembles, ens_dimensions)
         D = n_ensembles * ens_dimensions
         nengo.Connection(a.output, b.input, transform=np.ones((D, D)))
 
-    split = PassthroughSplit(model)
+    split = PassthroughSplit(net, HostChipSplit(net))
 
     assert len(split.to_add) == n_ensembles ** 2
 
@@ -111,7 +112,7 @@ def test_full_array(n_ensembles, ens_dimensions):
 
 
 def test_synapse_merging(Simulator, seed):
-    with nengo.Network(seed=seed) as model:
+    with nengo.Network(seed=seed) as net:
         a = nengo.networks.EnsembleArray(10, n_ensembles=2)
         b = nengo.Node(None, size_in=2)
         c = nengo.networks.EnsembleArray(10, n_ensembles=2)
@@ -122,7 +123,7 @@ def test_synapse_merging(Simulator, seed):
         nengo.Connection(b[1], c.input[0], synapse=None)
         nengo.Connection(b[1], c.input[1], synapse=0.2)
 
-    split = PassthroughSplit(model)
+    split = PassthroughSplit(net, HostChipSplit(net))
 
     assert len(split.to_add) == 4
 
@@ -143,7 +144,7 @@ def test_synapse_merging(Simulator, seed):
 
     # check that model builds/runs, and issues the warning
     with pytest.warns(UserWarning) as record:
-        with Simulator(model, remove_passthrough=True) as sim:
+        with Simulator(net, remove_passthrough=True) as sim:
             sim.step()
 
     assert any("Combining two Lowpass synapses" in r.message.args[0] for r in record)

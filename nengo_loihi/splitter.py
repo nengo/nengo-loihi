@@ -5,7 +5,8 @@ from nengo.exceptions import BuildError
 from nengo.connection import LearningRule
 
 from nengo_loihi.compat import nengo_transforms
-from nengo_loihi.passthrough import base_obj, is_passthrough, PassthroughSplit
+from nengo_loihi.config import add_params
+from nengo_loihi.passthrough import base_obj, PassthroughSplit
 
 
 class PrecomputableSplit:
@@ -141,6 +142,11 @@ class HostChipSplit:
     """Place all objects in a network on host or chip."""
 
     def __init__(self, network):
+        # We call this in case it hasn't been called before, as we expect the
+        # on_chip configuration option to be defined for these objects.
+        # It is safe to call it twice.
+        add_params(network)
+
         # Objects split to the host.
         self.host_objs = set()
 
@@ -167,11 +173,6 @@ class HostChipSplit:
         3. They are the ``post`` in a learned connection.
         4. They are the ``pre`` in a connection to a LearningRule
            (i.e., they provide the error signal for a learned connection).
-
-        Notes
-        -----
-        Assumes add_params was already called by the simulator.
-
         """
 
         # Enforce rules 1 and 2
@@ -263,11 +264,9 @@ class Split:
 
         # Determine how passthrough nodes will be handled
         if remove_passthrough:
-            passthroughs = set(obj for obj in network.all_nodes if is_passthrough(obj))
-            ignore = self.hostchip.host_objs - passthroughs
-            self.passthrough = PassthroughSplit(network, ignore)
+            self.passthrough = PassthroughSplit(self.network, self.hostchip)
         else:
-            self.passthrough = PassthroughSplit(None)
+            self.passthrough = PassthroughSplit(None, None)
 
         # Determine which host objects are precomputable
         self._precomputable = PrecomputableSplit(
