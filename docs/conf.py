@@ -65,7 +65,7 @@ pygments_style = "sphinx"
 
 project = "Nengo Loihi"
 authors = "Applied Brain Research"
-copyright = "2018-2019 Applied Brain Research"
+copyright = "2018-2020 Applied Brain Research"
 version = ".".join(nengo_loihi.__version__.split(".")[:2])  # Short X.Y version
 release = nengo_loihi.__version__  # Full version, with tags
 
