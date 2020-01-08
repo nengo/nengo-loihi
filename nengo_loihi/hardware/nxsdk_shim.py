@@ -7,12 +7,27 @@ from packaging.version import parse as parse_version
 
 from nengo_loihi.nxsdk_obfuscation import d_get, d_import, d_set
 
+
+def parse_nxsdk_version(nxsdk):
+    """
+    Modify nxsdk versions to be PEP 440 compliant.
+
+    NxSDK uses the `daily` suffix for some versions, which is not part of the PEP 440
+    specification and so does not compare correctly with other version strings.
+    """
+
+    v = nxsdk if isinstance(nxsdk, str) else getattr(nxsdk, "__version__", "0.0.0")
+    v = v.replace("daily", "dev")
+    return parse_version(v)
+
+
 try:
     import nxsdk
 
-    nxsdk_dir = os.path.realpath(os.path.join(os.path.dirname(nxsdk.__file__), ".."))
-    nxsdk_version = parse_version(getattr(nxsdk, "__version__", "0.0.0"))
     HAS_NXSDK = True
+
+    nxsdk_dir = os.path.realpath(os.path.join(os.path.dirname(nxsdk.__file__), ".."))
+    nxsdk_version = parse_nxsdk_version(nxsdk)
 
     def assert_nxsdk():
         pass
@@ -61,9 +76,9 @@ try:
 
 except ImportError:
     HAS_NXSDK = False
+    nxsdk = None
     nxsdk_dir = None
     nxsdk_version = None
-    nxsdk = None
 
     exception = sys.exc_info()[1]
 
@@ -73,9 +88,18 @@ except ImportError:
 
 if HAS_NXSDK:
     micro_gen = d_import(b"bnhzZGsuY29tcGlsZXIubWljcm9jb2RlZ2VuLmludGVyZmFjZQ==")
-    TraceConfigGenerator = d_import(
-        b"bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=", b"VHJhY2VDZmdHZW4="
-    )
+    try:
+        # try new location (nxsdk > 0.9.0)
+        TraceConfigGenerator = d_import(
+            b"bnhzZGsuYXJjaC5uMmEuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=",
+            b"VHJhY2VDZmdHZW4=",
+        )
+    except ImportError:
+        # try old location (nxsdk <= 0.9.0)
+        TraceConfigGenerator = d_import(
+            b"bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=", b"VHJhY2VDZmdHZW4="
+        )
+
     NxsdkBoard = d_import(b"bnhzZGsuZ3JhcGgubnhib2FyZA==", b"TjJCb2FyZA==")
     SpikeGen = d_import(
         b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu", b"QmFzaWNTcGlrZUdlbmVyYXRvcg=="

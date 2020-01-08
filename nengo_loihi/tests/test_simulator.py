@@ -763,7 +763,6 @@ def test_precompute(allclose, Simulator, seed, plt):
 
 
 @pytest.mark.target_loihi
-@pytest.mark.xfail
 def test_input_node_precompute(allclose, Simulator, plt):
     simtime = 1.0
     input_fn = lambda t: np.sin(6 * np.pi * t / simtime)

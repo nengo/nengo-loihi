@@ -11,14 +11,19 @@ import warnings
 import jinja2
 from nengo.exceptions import SimulationError
 import numpy as np
-from packaging.version import parse as parse_version
 
 from nengo_loihi.builder.discretize import scale_pes_errors
 from nengo_loihi.compat import make_process_step
 from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
-from nengo_loihi.hardware.nxsdk_shim import assert_nxsdk, nxsdk, SnipPhase, SpikeProbe
+from nengo_loihi.hardware.nxsdk_shim import (
+    assert_nxsdk,
+    nxsdk,
+    parse_nxsdk_version,
+    SnipPhase,
+    SpikeProbe,
+)
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
 from nengo_loihi.probe import LoihiProbe
@@ -56,8 +61,8 @@ class HardwareInterface:
     """
 
     connection_retries = 3
-    min_nxsdk_version = parse_version("0.8.7")
-    max_nxsdk_version = parse_version("0.9.0")
+    min_nxsdk_version = parse_nxsdk_version("0.8.7")
+    max_nxsdk_version = parse_nxsdk_version("0.9.5")
 
     def __init__(
         self,
@@ -128,18 +133,18 @@ class HardwareInterface:
         # raise exception if nxsdk not installed
         assert_nxsdk()
 
-        # if installed, check version
-        version = parse_version(getattr(nxsdk, "__version__", "0.0.0"))
-        if version < cls.min_nxsdk_version:
+        # if installed, check version (parse it here so that monkeypatch tests work)
+        nxsdk_version = parse_nxsdk_version(nxsdk)
+        if nxsdk_version < cls.min_nxsdk_version:
             raise ImportError(
                 "nengo-loihi requires nxsdk>=%s, found %s"
-                % (cls.min_nxsdk_version, version)
+                % (cls.min_nxsdk_version, nxsdk_version)
             )
-        elif version > cls.max_nxsdk_version:
+        elif nxsdk_version > cls.max_nxsdk_version:
             warnings.warn(
                 "nengo-loihi has not been tested with your nxsdk "
                 "version (%s); latest fully supported version is "
-                "%s" % (version, cls.max_nxsdk_version)
+                "%s" % (nxsdk_version, cls.max_nxsdk_version)
             )
 
     @property

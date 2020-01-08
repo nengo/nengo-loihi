@@ -22,7 +22,7 @@ Release history
 0.11.0 (unreleased)
 ===================
 
-*Compatible with NxSDK 0.8.7 - 0.9.0*
+*Compatible with NxSDK 0.8.7 - 0.9.5*
 
 **Added**
 
@@ -85,6 +85,8 @@ Release history
 - Allocators like ``RoundRobin`` no longer accept the ``n_chips`` parameter.
   Instead, the ``__call__`` method accepts ``n_chips``.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+- Nengo Loihi now supports NxSDK version 0.9.5.rc1.
+  (`#272 <https://github.com/nengo/nengo-loihi/pull/272>`__)
 
 **Removed**
 

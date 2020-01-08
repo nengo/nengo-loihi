@@ -7,6 +7,7 @@ from nengo.exceptions import ValidationError
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
 import numpy as np
+from packaging.version import parse as parse_version
 import pytest
 import scipy.signal
 
@@ -19,6 +20,7 @@ from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
+from nengo_loihi.hardware.nxsdk_shim import nxsdk_version
 from nengo_loihi.neurons import loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear
 from nengo_loihi.probe import LoihiProbe
 
@@ -212,10 +214,6 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
             bias = bias * np.ones(x.shape[-1])
         rates = loihi_rates(neuron_type, y, gain, bias, dt)
         return rates.reshape(x.shape)
-
-    if channels_last:
-        plt.saveas = None
-        pytest.xfail("Blocked by CxBase cannot be > 256 bug")
 
     target = request.config.getoption("--target")
 
@@ -585,10 +583,12 @@ def test_conv_deepnet(
             os.environ["PARTITION"] = partition
 
     if request.config.getoption("--target") == "loihi":
-        # TODO: This case fails in NxSDK 0.9.0 but will be fixed in the next version.
-        # Remove this check once the next version is released.
-        if pop_type == 32:
-            pytest.skip("Pop32 multichip test requires latest NxSDK")
+        if (
+            pop_type == 32
+            and nxsdk_version is not None
+            and nxsdk_version < parse_version("0.9.5.dev0")
+        ):
+            pytest.skip("Pop32 multichip test requires NxSDK >= 0.9.5")
         elif pop_type == 16:
             request.addfinalizer(set_partition)
             # multichip pop_type = 16 works only on nahuku32 board currently

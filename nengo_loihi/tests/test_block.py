@@ -48,8 +48,6 @@ def test_strings():
     assert str(spike) == "Spike(axon_idx=7, atom=2)"
 
 
-# TODO: Only targeting sim due to bug with negative cx_base on Loihi
-@pytest.mark.target_sim
 def test_negative_base(request, seed):
     n_axons = 3
 
