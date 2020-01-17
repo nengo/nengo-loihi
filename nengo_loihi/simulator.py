@@ -108,6 +108,9 @@ class Simulator:
         self.sims = OrderedDict()
         self.timers = Timers()
         self.timers.start("build")
+        self.seed = seed
+        self._n_steps = 0
+        self._time = 0
 
         hardware_options = {} if hardware_options is None else hardware_options
 
@@ -214,7 +217,6 @@ class Simulator:
 
         self._runner = StepRunner(self.model, self.sims, self.precompute, self.timers)
         self.closed = False
-        self.reset(seed=seed)
         self.timers.stop("build")
 
     def __del__(self):
@@ -311,22 +313,7 @@ class Simulator:
         if self.closed:
             raise SimulatorClosed("Cannot reset closed Simulator.")
 
-        if seed is not None:
-            self.seed = seed
-
-        self._n_steps = 0
-        self._time = 0
-        self.timers.reset("run")
-        self.timers.reset("connect")
-        if "startup" in self.timers:
-            self.timers.reset("startup")
-        if "shutdown" in self.timers:
-            self.timers.reset("shutdown")
-
-        # clear probe data
-        for probe in self.model.probes:
-            self._probe_outputs[probe] = []
-        self.data.reset()
+        raise NotImplementedError()
 
     def run(self, time_in_seconds):
         """Simulate for the given length of time.
