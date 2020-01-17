@@ -28,6 +28,9 @@ Release history
 
 - Added Legendre Memory Unit example.
   (`#267 <https://github.com/nengo/nengo-loihi/pull/267>`__)
+- Added a ``timers`` attribute to ``Simulator`` that tracks the wall time
+  taken by various parts of the model, including build time and run time.
+  (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
 
 **Changed**
 

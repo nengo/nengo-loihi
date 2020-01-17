@@ -106,6 +106,8 @@ class Simulator:
         self.closed = True
         self.network = network
         self.sims = OrderedDict()
+        self.timers = Timers()
+        self.timers.start("build")
 
         hardware_options = {} if hardware_options is None else hardware_options
 
@@ -210,9 +212,10 @@ class Simulator:
 
         assert "emulator" in self.sims or "loihi" in self.sims
 
-        self._runner = StepRunner(self.model, self.sims, self.precompute)
+        self._runner = StepRunner(self.model, self.sims, self.precompute, self.timers)
         self.closed = False
         self.reset(seed=seed)
+        self.timers.stop("build")
 
     def __del__(self):
         """Raise a ResourceWarning if we are deallocated while open."""
@@ -225,8 +228,10 @@ class Simulator:
             )
 
     def __enter__(self):
+        self.timers.start("connect")
         for sim in self.sims.values():
             sim.__enter__()
+        self.timers.stop("connect")
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -311,6 +316,12 @@ class Simulator:
 
         self._n_steps = 0
         self._time = 0
+        self.timers.reset("run")
+        self.timers.reset("connect")
+        if "startup" in self.timers:
+            self.timers.reset("startup")
+        if "shutdown" in self.timers:
+            self.timers.reset("shutdown")
 
         # clear probe data
         for probe in self.model.probes:
@@ -393,8 +404,9 @@ class Simulator:
 
 
 class StepRunner:
-    def __init__(self, model, sims, precompute):
+    def __init__(self, model, sims, precompute, timers):
         self.model = model
+        self.timers = timers
 
         self.host_pre = sims.get("host_pre", None)
         self.host = sims.get("host", None)
@@ -467,63 +479,121 @@ class StepRunner:
         sim.host2chip(spikes, errors)
 
     def emu_precomputed_host_pre_and_host(self, steps):
+        self.timers.start("run")
         self.host_pre.run_steps(steps)
         self._host2chip(self.emulator)
         self.emulator.run_steps(steps)
         self._chip2host(self.emulator)
         self.host.run_steps(steps)
+        self.timers.stop("run")
 
     def emu_precomputed_host_pre_only(self, steps):
+        self.timers.start("run")
         self.host_pre.run_steps(steps)
         self._host2chip(self.emulator)
         self.emulator.run_steps(steps)
+        self.timers.stop("run")
 
     def emu_precomputed_host_only(self, steps):
+        self.timers.start("run")
         self.emulator.run_steps(steps)
         self._chip2host(self.emulator)
         self.host.run_steps(steps)
+        self.timers.stop("run")
 
     def emu_only(self, steps):
+        self.timers.start("run")
         self.emulator.run_steps(steps)
+        self.timers.stop("run")
 
     def emu_bidirectional_with_host(self, steps):
+        self.timers.start("run")
         for _ in range(steps):
             self.host.step()
             self._host2chip(self.emulator)
             self.emulator.step()
             self._chip2host(self.emulator)
+        self.timers.stop("run")
 
     def loihi_precomputed_host_pre_and_host(self, steps):
+        self.timers.start("run")
         self.host_pre.run_steps(steps)
         self._host2chip(self.loihi)
         self.loihi.run_steps(steps, blocking=True)
         self._chip2host(self.loihi)
         self.host.run_steps(steps)
+        self.timers.stop("run")
 
     def loihi_precomputed_host_pre_only(self, steps):
+        self.timers.start("run")
         self.host_pre.run_steps(steps)
         self._host2chip(self.loihi)
         self.loihi.run_steps(steps, blocking=True)
+        self.timers.stop("run")
 
     def loihi_precomputed_host_only(self, steps):
+        self.timers.start("run")
         self.loihi.run_steps(steps, blocking=True)
         self._chip2host(self.loihi)
         self.host.run_steps(steps)
+        self.timers.stop("run")
 
     def loihi_only(self, steps):
+        self.timers.start("run")
         self.loihi.run_steps(steps)
+        self.timers.stop("run")
 
     def loihi_bidirectional_with_host(self, steps):
+        self.timers.start("startup")
         self.loihi.run_steps(steps, blocking=False)
+        self.timers.stop("startup")
 
+        self.timers.start("run")
         for _ in range(steps):
             self.host.step()
             self._host2chip(self.loihi)
             self._chip2host(self.loihi)
+        self.timers.stop("run")
 
+        self.timers.start("shutdown")
         logger.info("Waiting for run_steps to complete...")
         self.loihi.wait_for_completion()
         logger.info("run_steps completed")
+        self.timers.stop("shutdown")
+
+
+class Timers(Mapping):
+    def __init__(self):
+        self._totals = OrderedDict()
+        self._last_start = {}
+
+    def __getitem__(self, key):
+        return self._totals[key]
+
+    def __iter__(self):
+        return iter(self._totals)
+
+    def __len__(self):
+        return len(self._totals)
+
+    def __repr__(self):
+        return "<Timers: {%s}>" % (
+            ", ".join(["%r: %.4f" % (k, self._totals[k]) for k in self._totals]),
+        )
+
+    def reset(self, key):
+        self._totals[key] = 0.0
+        if key in self._last_start:
+            del self._last_start[key]
+
+    def start(self, key):
+        self._last_start[key] = default_timer()
+        if key not in self._totals:
+            self._totals[key] = 0.0
+
+    def stop(self, key):
+        self._totals[key] = default_timer() - self._last_start[key]
+        del self._last_start[key]
 
 
 class SimulationData(NengoSimulationData):

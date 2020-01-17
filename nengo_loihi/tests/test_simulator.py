@@ -937,3 +937,27 @@ def test_network_unchanged(Simulator):
         with Simulator(model):
             pass
         assert model.all_networks == []
+
+
+def test_timers():
+    timers = Timers()
+    timers.start("1")
+    timers.start("2")
+    timers.start("3")
+    timers.stop("3")
+    timers.reset("2")
+    timers.stop("1")
+
+    assert len(timers) == 3
+    n_totals = 0
+    for total in timers:
+        n_totals += 1
+    assert n_totals == 3
+    assert timers["1"] > timers["3"]
+    assert timers["2"] == 0.0
+    assert "2" not in timers._last_start
+
+    regex = re.compile(r"<Timers: {'1': [0-9\.]+, '2': [0-9\.]+, '3': [0-9\.]+}>")
+    assert regex.fullmatch(repr(timers))
+    assert regex.fullmatch(str(timers))
+    assert repr(timers) == str(timers)
