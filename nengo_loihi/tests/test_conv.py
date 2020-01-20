@@ -443,7 +443,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
         sim_nengo.run(pres_time)
     ref_out = sim_nengo.data[bp].mean(axis=0).reshape(output_shape.shape)
 
-    with nengo_loihi.Simulator(model, target="simreal") as sim_emu:
+    with Simulator(model, target="simreal") as sim_emu:
         sim_emu.run(pres_time)
     emu_out = sim_emu.data[bp].mean(axis=0).reshape(output_shape.shape)
 
