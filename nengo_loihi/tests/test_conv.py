@@ -902,7 +902,8 @@ def test_conv_preslice(on_chip, Simulator, plt):
         nengo.Connection(a.neurons[::2], b.neurons, transform=transform)
         bp = nengo.Probe(b.neurons, synapse=nengo.Alpha(0.02))
 
-    with Simulator(net, precompute=True) as sim:
+    with Simulator(net) as sim:
+        assert sim.precompute is True
         sim.run(0.3)
 
     y_ref = y_ref / input_gain
@@ -1157,10 +1158,10 @@ def test_chip_population_axons(
         probe = nengo.Probe(layer1.neurons)
 
     sim_time = 0.1
-    with nengo_loihi.Simulator(net, target="sim") as emulator:
+    with Simulator(net, target="sim") as emulator:
         emulator.run(sim_time)
 
-    with nengo_loihi.Simulator(net, target="loihi", precompute=precompute) as loihi:
+    with Simulator(net, target="loihi", precompute=precompute) as loihi:
         loihi.run(sim_time)
 
     assert np.all(emulator.data[probe].sum(axis=0) > 0)

@@ -306,9 +306,7 @@ class LoihiSpikeInput:
 
                 self.axon_map.setdefault(input_idx, [])
                 taxon_idx = int(spike.axon_id)
-                taxon_id = int(tsyn_ids[taxon_idx])
-                base = synapse.axon_compartment_base(taxon_idx)
-                if base is None:
+                if synapse.axon_compartment_base(taxon_idx) is None:
                     continue  # this goes to a dummy axon, so do not connect
 
                 self.axon_map[input_idx].append(
@@ -318,7 +316,7 @@ class LoihiSpikeInput:
                             axon.pop_type,
                             tchip.id,
                             tcore.id,
-                            taxon_id,
+                            int(tsyn_ids[taxon_idx]),
                             spike.atom,
                             atom_bits_extra,
                         ),
