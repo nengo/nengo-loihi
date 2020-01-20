@@ -35,10 +35,6 @@ Release history
   See `nengo_loihi.add_params
   <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
   for details. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
-- The input spike generator now supports population spikes when ``precompute=True`` on
-  the ``Simulator``. This allows ``precompute=True`` to be used with convolutional
-  connections that go from the host to the chip.
-  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 - ``Convolution`` transforms with ``channels_last=True`` now work with larger outputs
   (up to the full 1024 neurons allowed per core), by repeating weights up to four times.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
@@ -62,6 +58,8 @@ Release history
 - Fixed an issue in which ignored axons were still having an effect in
   convolutional networks where not all input pixels are used in the output.
   (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Fixed an issue that prevented population spikes to be sent to the chip when
+  ``precompute=True``. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 0.10.0 (November 25, 2019)
 ==========================
