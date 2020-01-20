@@ -3,7 +3,6 @@ import nengo
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.splitter import Split
 

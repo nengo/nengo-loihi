@@ -4,7 +4,6 @@ from nengo import Direct, Ensemble, Node, Probe
 from nengo.exceptions import BuildError
 from nengo.connection import LearningRule
 
-from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params
 from nengo_loihi.passthrough import base_obj, PassthroughSplit
 
