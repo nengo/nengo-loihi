@@ -31,13 +31,10 @@ Release history
 - Added a ``timers`` attribute to ``Simulator`` that tracks the wall time
   taken by various parts of the model, including build time and run time.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
-- The ``Connection`` config now has an option to use the pop16 axon format on Loihi,
-  for ``Convolution`` transforms, instead of the default pop32 format. This can allow
-  more axons to fit on the chip, with some restrictions (namely the ``Convolution``
-  transform must have ``channels_last=True`` and ``n_filters`` be a multiple of 4).
-  To enable this config option, call ``nengo_loihi.add_params`` on your network, then
-  set the ``pop_type`` config value to 16 for the connection.
-  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Added the ``pop_type`` configuration option to the ``Connection`` config.
+  See `nengo_loihi.add_params
+  <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
+  for details. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 - The input spike generator now supports population spikes when ``precompute=True`` on
   the ``Simulator``. This allows ``precompute=True`` to be used with convolutional
   connections that go from the host to the chip.

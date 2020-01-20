@@ -11,6 +11,12 @@ def add_params(network):
       * ``on_chip``: Whether the ensemble should be simulated
         on a Loihi chip. Marking specific ensembles for simulation
         off of a Loihi chip can help with debugging.
+    `nengo.Connection`
+      * ``pop_type``: The axon format when using population spikes, which are only
+        used for convolutional connections. By default, we use ``pop_type`` 32.
+        Setting ``pop_type`` to 16 allows more axons to fit on one chip as long as
+        the ``Convolution`` transform has ``channels_last=True`` and ``n_filters``
+        is a multiple of 4.
 
     Examples
     --------
