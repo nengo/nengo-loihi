@@ -552,8 +552,7 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         taxon_id = int(tsyn_idxs[taxon_idx])
         atom = int(spike.atom)
         n_atoms = synapse.axon_populations(taxon_idx)
-        base = synapse.axon_compartment_base(taxon_idx)
-        if base is None:
+        if synapse.axon_compartment_base(taxon_idx) is None:
             continue  # this connects to a dummy axon, so do not build
 
         if synapse.pop_type == 0:  # discrete
