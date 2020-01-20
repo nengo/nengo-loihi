@@ -126,23 +126,6 @@ def test_precompute_host_to_learning_rule_unsupported():
         Split(net, precompute=True)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-def test_precompute_with_convolution_unsupported():
-    with nengo.Network() as net:
-        stim = nengo.Node([0, 0])
-        ens = nengo.Ensemble(10, 2)
-        nengo.Connection(
-            stim,
-            ens,
-            transform=nengo_transforms.Convolution(
-                n_filters=2, input_shape=(1, 2, 1), kernel_size=(1, 2), strides=(1, 1)
-            ),
-        )
-
-    with pytest.raises(BuildError, match="convolutional connections"):
-        Split(net, precompute=True)
-
-
 def test_place_probes():
     with nengo.Network() as net:
         add_params(net)

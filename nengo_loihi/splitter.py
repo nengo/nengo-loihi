@@ -46,29 +46,13 @@ class PrecomputableSplit:
         # Also see issue #214.
         has_learning = any(conn.learning_rule is not None for conn in self._conns)
 
-        # host->chip convolutional connections are also not supported with
-        # precompute=True because the BasicSpikeGenerator cannot send population
-        # spikes correctly, meaning we have to use Snips.
-        has_convolution = False
-        if nengo_transforms is not None:
-            has_convolution = any(
-                isinstance(conn.transform, nengo_transforms.Convolution)
-                and not self.hostchip.on_chip(base_obj(conn.pre))
-                and self.hostchip.on_chip(base_obj(conn.post))
-                for conn in self._conns
-            )
-
-        if not has_learning and not has_convolution:
+        if not has_learning:
             self._find_precomputable_objs()
         else:
             self._precomputable = False
             if strict and has_learning:
                 raise BuildError(
                     "precompute=True not supported when using learning rules"
-                )
-            elif strict and has_convolution:
-                raise BuildError(
-                    "precompute=True not supported when using convolutional connections"
                 )
 
         if strict and not self._precomputable:
