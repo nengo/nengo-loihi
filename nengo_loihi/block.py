@@ -282,12 +282,25 @@ class Compartment:
 class Axon:
     """A group of axons targeting a specific Synapse object.
 
+    Parameters
+    ----------
+    n_axons : int
+        The number of outgoing axons.
+    target : Synapse
+        Target synapses for these axons.
+    compartment_map : array_like (``n_compartments``,)
+        Indices indicating which target axon each compartment maps to.
+        If < 0, the corresponding compartment will not be used with these axons.
+    atoms : array_like (``n_compartments``,)
+        Atom (weight index) associated with each compartment.
+
     Attributes
     ----------
     compartment_atoms : list of length ``block.n_neurons``
-        Atom (weight index) associated with each block compartment.
+        Atom (weight index) associated with each compartment.
     compartment_map : list of length ``block.n_neurons``
-        Index of the axon in ``target`` targeted by each block compartment.
+        Indices indicating which target axon each compartment maps to.
+        If < 0, the corresponding compartment will not be used with these axons.
     n_axons : int
         The number of outgoing axons.
     target : Synapse
@@ -322,13 +335,18 @@ class Axon:
                 self.atom,
             )
 
-    def __init__(self, n_axons, label=None):
+    def __init__(self, n_axons, target, compartment_map, atoms=None, label=None):
         self.n_axons = n_axons
+        self.target = target
+        self.compartment_map = np.asarray(compartment_map, dtype=int)
+        self.compartment_atoms = (
+            np.zeros(self.compartment_map.size, dtype=int)
+            if atoms is None
+            else np.asarray(atoms, dtype=int)
+        )
         self.label = label
 
-        self.target = None
-        self.compartment_map = None
-        self.compartment_atoms = None
+        assert self.compartment_map.ndim == self.compartment_atoms.ndim == 1
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
@@ -346,42 +364,14 @@ class Axon:
         """The total number of axon_cfg slots used by all axons."""
         return self.slots_per_axon * self.n_axons
 
-    def map_axon(self, compartment_idxs):
-        return (
-            self.compartment_map[compartment_idxs]
-            if self.compartment_map is not None
-            else compartment_idxs
-        )
-
-    def map_atoms(self, compartment_idxs):
-        return (
-            self.compartment_atoms[compartment_idxs]
-            if self.compartment_atoms is not None
-            else [0 for _ in compartment_idxs]
-        )
-
     def map_spikes(self, compartment_idxs):
-        axon_ids = self.map_axon(compartment_idxs)
-        atoms = self.map_atoms(compartment_idxs)
+        axon_ids = self.compartment_map[compartment_idxs]
+        atoms = self.compartment_atoms[compartment_idxs]
+
         return [
             self.Spike(axon_id, atom=atom) if axon_id >= 0 else None
             for axon_id, atom in zip(axon_ids, atoms)
         ]
-
-    def set_compartment_axon_map(self, target_axons, atoms=None):
-        """Set mapping from compartments to axons in target.
-
-        Parameters
-        ----------
-        target_axons : array_like (``n_compartments``,)
-            Indices indicating which target axon each compartment maps to.
-            If < 0, the corresponding compartment will not be used with these
-            axons.
-        atoms : array_like (``n_compartments``,)
-            Atoms to use for each compartment. Use only if ``pop_type != 0``.
-        """
-        self.compartment_map = target_axons
-        self.compartment_atoms = atoms
 
 
 class SynapseConfig(Config):

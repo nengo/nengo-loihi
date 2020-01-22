@@ -97,18 +97,11 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = Axon(nij, label="inp_ax")
-
     # we always compute the pixel/channel idxs with channels_last=True
     # (not sure why?), and then set it to the correct value afterwards
     inp_shape = nengo_transforms.ChannelShape((ni, nj, nk), channels_last=True)
-    inp_ax.set_compartment_axon_map(
-        target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
-    )
     inp_shape.shape = (ni, nj, nk) if channels_last else (nk, ni, nj)
     inp_shape.channels_last = channels_last
-
-    inp.add_axon(inp_ax)
 
     model.add_block(inp)
 
@@ -139,7 +132,18 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     out_probe = Probe(target=neurons, key="spiked")
     neurons.add_probe(out_probe)
 
-    inp_ax.target = synapse
+    # input axon
+    inp_shape_for_axon = nengo_transforms.ChannelShape((ni, nj, nk), channels_last=True)
+    inp_ax = Axon(
+        nij,
+        target=synapse,
+        compartment_map=conv.pixel_idxs(inp_shape_for_axon),
+        atoms=conv.channel_idxs(inp_shape_for_axon),
+        label="inp_ax",
+    )
+
+    inp.add_axon(inp_ax)
+
     model.add_block(neurons)
 
     # simulation
@@ -280,12 +284,6 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
     inp.compartment.configure_relu()
     inp.compartment.bias[:] = inp_biases.ravel()
 
-    inp_ax = Axon(np.prod(inp_shape.spatial_shape), label="inp_ax")
-    inp_ax.set_compartment_axon_map(
-        target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
-    )
-    inp.add_axon(inp_ax)
-
     model.add_block(inp)
 
     # conv block
@@ -308,7 +306,16 @@ def test_conv2d_weights(channels_last, hw_opts, request, plt, seed, rng, allclos
     out_probe = Probe(target=neurons, key="spiked")
     neurons.add_probe(out_probe)
 
-    inp_ax.target = synapse
+    # input axon
+    inp_ax = Axon(
+        np.prod(inp_shape.spatial_shape),
+        target=synapse,
+        compartment_map=conv.pixel_idxs(inp_shape),
+        atoms=conv.channel_idxs(inp_shape),
+        label="inp_ax",
+    )
+    inp.add_axon(inp_ax)
+
     model.add_block(neurons)
 
     # simulation
@@ -903,7 +910,6 @@ def test_conv_preslice(on_chip, Simulator, plt):
         bp = nengo.Probe(b.neurons, synapse=nengo.Alpha(0.02))
 
     with Simulator(net) as sim:
-        assert sim.precompute is True
         sim.run(0.3)
 
     y_ref = y_ref / input_gain

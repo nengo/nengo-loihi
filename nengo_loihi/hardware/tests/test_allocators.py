@@ -71,23 +71,21 @@ def _basic_model():
     block1.compartment.configure_lif()
     model.add_block(block1)
 
-    axon1 = Axon(1)
-    block0.add_axon(axon1)
-
     synapse1 = Synapse(1)
     synapse1.set_weights([[1]])
-    axon1.target = synapse1
     block1.add_synapse(synapse1)
 
-    axon0 = Axon(1)
-    input = LoihiInput()
-    input.add_axon(axon0)
-    model.add_input(input)
+    axon1 = Axon(1, target=synapse1, compartment_map=np.arange(1))
+    block0.add_axon(axon1)
 
     synapse0 = Synapse(1)
     synapse0.set_weights([[1]])
-    axon0.target = synapse0
     block0.add_synapse(synapse0)
+
+    axon0 = Axon(1, target=synapse0, compartment_map=np.arange(1))
+    input = LoihiInput()
+    input.add_axon(axon0)
+    model.add_input(input)
 
     discretize_model(model)
 

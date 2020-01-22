@@ -535,7 +535,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     loihi_weights = weights.T
 
     mid_obj = pre_obj
-    mid_axon_inds = None
+    mid_axon_inds = np.arange(mid_obj.n_neurons)
     post_tau = tau_s
     if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
         # --- add decode neurons
@@ -597,9 +597,9 @@ def build_chip_connection(model, conn):  # noqa: C901
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         pre_slice = slice(None)
 
-        dec_ax0 = Axon(n, label="decoders")
-        dec_ax0.target = dec_syn
-        dec_ax0.set_compartment_axon_map(target_axons)
+        dec_ax0 = Axon(
+            n, target=dec_syn, compartment_map=target_axons, label="decoders"
+        )
         pre_obj.add_axon(dec_ax0)
         model.objs[conn]["decode_axon"] = dec_ax0
 
@@ -676,9 +676,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         assert target_axons[pre_slice].size == n1
 
-        ax = Axon(mid_obj.n_neurons, label="neuron_weights")
-        ax.target = syn
-        ax.set_compartment_axon_map(target_axons)
+        ax = Axon(
+            mid_obj.n_neurons,
+            target=syn,
+            compartment_map=target_axons,
+            label="neuron_weights",
+        )
         mid_obj.add_axon(ax)
 
         post_obj.compartment.configure_filter(post_tau, dt=model.dt)
@@ -701,8 +704,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
 
-        ax = Axon(n1, label="decoder_weights")
-        ax.target = syn
+        ax = Axon(
+            n1,
+            target=syn,
+            compartment_map=np.arange(mid_obj.n_neurons),
+            label="decoder_weights",
+        )
         mid_obj.add_axon(ax)
 
         post_obj.compartment.configure_filter(post_tau, dt=model.dt)
@@ -717,9 +724,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         if target_encoders not in post_obj.named_synapses:
             build_decode_neuron_encoders(model, conn.post_obj, kind=target_encoders)
 
-        mid_ax = Axon(mid_obj.n_neurons, label="encoders")
-        mid_ax.target = post_obj.named_synapses[target_encoders]
-        mid_ax.set_compartment_axon_map(mid_axon_inds)
+        mid_ax = Axon(
+            mid_obj.n_neurons,
+            target=post_obj.named_synapses[target_encoders],
+            compartment_map=mid_axon_inds,
+            label="encoders",
+        )
         mid_obj.add_axon(mid_ax)
         model.objs[conn]["mid_axon"] = mid_ax
 
@@ -815,9 +825,13 @@ def build_conv2d_connection(model, conn):
     atoms = np.zeros(pre_obj.n_neurons, dtype=int)
     atoms[conn.pre_slice] = channel_idxs(input_shape)
 
-    ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")
-    ax.target = synapse
-    ax.set_compartment_axon_map(target_axons, atoms=atoms)
+    ax = Axon(
+        np.prod(input_shape.spatial_shape),
+        target=synapse,
+        compartment_map=target_axons,
+        atoms=atoms,
+        label="conv2d_weights",
+    )
     pre_obj.add_axon(ax)
 
     post_obj.compartment.configure_filter(tau_s, dt=model.dt)

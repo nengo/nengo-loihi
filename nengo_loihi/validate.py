@@ -66,7 +66,7 @@ def validate_axon(axon):
     if isinstance(axon.target, Synapse):
         if axon.compartment_atoms is not None:
             idxs = np.arange(len(axon.compartment_atoms))
-            axon_ids = axon.map_axon(idxs)
+            axon_ids = axon.compartment_map[idxs]
             for atom, axon_id in zip(axon.compartment_atoms, axon_ids):
                 n_populations = axon.target.axon_populations(axon_id)
                 assert 0 <= atom < n_populations

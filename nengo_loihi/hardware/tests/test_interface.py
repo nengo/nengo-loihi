@@ -78,14 +78,13 @@ def test_builder_poptype_errors():
     block1.compartment.configure_lif()
     model.add_block(block1)
 
-    axon = Axon(1)
-    block0.add_axon(axon)
-
     synapse = Synapse(1)
     synapse.set_weights([[1]])
     synapse.pop_type = 8
-    axon.target = synapse
     block1.add_synapse(synapse)
+
+    axon = Axon(1, target=synapse, compartment_map=[0])
+    block0.add_axon(axon)
 
     discretize_model(model)
 

@@ -540,9 +540,6 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     spikes = axon.map_spikes(compartment_idxs)
 
     for compartment_id, spike in zip(compartment_ids, spikes):
-        if spike is None:
-            continue  # this compartment does not route through these axons
-
         taxon_idx = spike.axon_idx
         taxon_id = taxon_ids[taxon_idx]
         atom = int(spike.atom)
