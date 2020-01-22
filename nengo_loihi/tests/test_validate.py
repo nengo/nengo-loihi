@@ -22,8 +22,7 @@ def test_validate_block():
     # too many output axons
     block = LoihiBlock(410)
     synapse = Synapse(2500)
-    axon = Axon(5000)
-    axon.target = synapse
+    axon = Axon(5000, target=synapse, compartment_map=np.arange(410))
     block.add_synapse(synapse)
     block.add_axon(axon)
     with pytest.raises(BuildError, match="Output axons"):
@@ -33,8 +32,7 @@ def test_validate_block():
     block = LoihiBlock(600)
     synapse = Synapse(500)
     synapse.set_weights(np.ones((500, 600)))
-    axon = Axon(500)
-    axon.target = synapse
+    axon = Axon(500, target=synapse, compartment_map=np.arange(500))
     block.add_synapse(synapse)
     block.add_axon(axon)
     with pytest.raises(BuildError, match="synapse bits"):

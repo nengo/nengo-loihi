@@ -40,11 +40,11 @@ def test_strings():
     synapse = Synapse(2, label="mySynapse")
     assert str(synapse) == "Synapse(mySynapse)"
 
-    axon = Axon(2, label="myAxon")
+    axon = Axon(2, target=None, compartment_map=[], label="myAxon")
     assert str(axon) == "Axon(myAxon)"
 
-    spike = Axon.Spike(axon_id=7, atom=2)
-    assert str(spike) == "Spike(axon_id=7, atom=2)"
+    spike = Axon.Spike(axon_idx=7, atom=2)
+    assert str(spike) == "Spike(axon_idx=7, atom=2)"
 
 
 # TODO: Only targeting sim due to bug with negative cx_base on Loihi
@@ -58,9 +58,6 @@ def test_negative_base(request, seed):
     input.add_spikes(1, list(range(n_axons)))
     model.add_input(input)
 
-    axon = Axon(n_axons)
-    input.add_axon(axon)
-
     block = LoihiBlock(3)
     block.compartment.configure_relu()
     model.add_block(block)
@@ -73,8 +70,10 @@ def test_negative_base(request, seed):
     synapse.set_population_weights(
         weights, indices, axon_to_weight_map, bases, pop_type=32
     )
-    axon.target = synapse
     block.add_synapse(synapse)
+
+    axon = Axon(n_axons, target=synapse, compartment_map=np.arange(3))
+    input.add_axon(axon)
 
     probe = Probe(target=block, key="voltage")
     block.add_probe(probe)

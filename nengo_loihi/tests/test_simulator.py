@@ -656,12 +656,6 @@ def test_population_input(request, allclose):
     model.add_input(input)
     spikes = [(input, ti, inds) for ti, inds in spike_times_inds]
 
-    input_axon = Axon(n_axons)
-    target_axons = np.zeros(n_inputs, dtype=int)
-    atoms = np.arange(n_inputs)
-    input_axon.set_compartment_axon_map(target_axons, atoms=atoms)
-    input.add_axon(input_axon)
-
     block = LoihiBlock(n_compartments)
     block.compartment.configure_lif(tau_rc=0.0, tau_ref=0.0, dt=dt)
     block.compartment.configure_filter(0, dt=dt)
@@ -676,7 +670,14 @@ def test_population_input(request, allclose):
         weights, indices, axon_to_weight_map, bases, pop_type=32
     )
     block.add_synapse(synapse)
-    input_axon.target = synapse
+
+    input_axon = Axon(
+        n_axons,
+        target=synapse,
+        compartment_map=np.zeros(n_inputs),
+        atoms=np.arange(n_inputs),
+    )
+    input.add_axon(input_axon)
 
     probe = Probe(target=block, key="voltage")
     block.add_probe(probe)

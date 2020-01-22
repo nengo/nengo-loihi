@@ -31,6 +31,10 @@ Release history
 - Added a ``timers`` attribute to ``Simulator`` that tracks the wall time
   taken by various parts of the model, including build time and run time.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- Added the ``pop_type`` configuration option to the ``Connection`` config.
+  See `nengo_loihi.add_params
+  <https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params>`__
+  for details. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Changed**
 
@@ -43,11 +47,22 @@ Release history
 - Added the ``add_to_container`` argument to ``DecodeNeurons.get_ensemble``,
   which makes it easier to add a decode neurons ensemble to a network.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- ``Convolution`` transforms with ``channels_last=True`` now work with outputs
+  up to 1024 neurons.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
 
 **Fixed**
 
 - We no longer create a spike generator if we are communicating through Snips.
   (`#260 <https://github.com/nengo/nengo-loihi/pull/260>`__)
+- Fixed an issue in which ignored axons were still having an effect in
+  convolutional networks where not all input pixels are used in the output.
+  (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Fixed an issue that prevented population spikes to be sent to the chip when
+  ``precompute=True``. (`#261 <https://github.com/nengo/nengo-loihi/pull/261>`__)
+- Fixed a bug preventing making sparse connections to an ensemble.
+  (`#245 <https://github.com/nengo/nengo-loihi/issues/245>`__,
+  `#246 <https://github.com/nengo/nengo-loihi/pull/246>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

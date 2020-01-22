@@ -33,16 +33,18 @@ void nengo_io(runState *s) {
 {% for core in cores %}
     {{ obfs.core_class }} *core{{ core }} = NEURON_PTR((CoreId){.id = {{ core }}});
 {% endfor %}
-    {{ obfs.id_class }} core_id;
+
     int in_channel = {{ obfs.get_channel }}("nengo_io_h2c");
     int out_channel = {{ obfs.get_channel }}("nengo_io_c2h");
 
-    {{ obfs.int_type }} axon_type;
-    {{ obfs.int_type }} axon_id;
-    {{ obfs.int_type }} atom;
     {{ obfs.int_type }} n_spikes; // input spike count
     {{ obfs.int_type }} i_spike;  // input spike position
     {{ obfs.int_type }} *spike;
+    {{ obfs.id_class }} core_id;
+    {{ obfs.int_type }} axon_type;
+    {{ obfs.int_type }} axon_id;
+    {{ obfs.int_type }} atom;
+    {{ obfs.int_type }} atom_bits;
 
     {{ obfs.int_type }} error_index;   // index into error stored in shared data
     {{ obfs.int_type }} i_error = 0;   // index of error block
@@ -115,10 +117,13 @@ void nengo_io(runState *s) {
         printf("send spike core=%d, axon=%d, type=%d atom=%d\n", core_id.id,
                axon_id, axon_type, atom);
 #endif
-        if (axon_type == {{ obfs.axon_type_0 }}) {
+        if (axon_type == 0) {
             {{ obfs.do_axon_type_0 }}(s->{{ obfs.step }}, core_id, axon_id);
-        } else if (axon_type == {{ obfs.axon_type_1 }}) {
-            {{ obfs.do_axon_type_1 }}(s->{{ obfs.step }}, core_id, axon_id, atom, 0, 0, 0);
+        } else if (axon_type == 32) {
+            {{ obfs.do_axon_type_32 }}(s->{{ obfs.step }}, core_id, axon_id, atom, 0, 0, 0);
+        } else if (axon_type >= 16) {
+            atom_bits = axon_type - 16;
+            {{ obfs.do_axon_type_16 }}(s->{{ obfs.step }}, core_id, axon_id, atom, atom_bits);
         } else {
             printf("Got invalid axon_type: %d\n", axon_type);
             return;

@@ -143,14 +143,16 @@ def pixel_idxs(shape):
 
 
 def conv2d_loihi_weights(transform):
-    # TODO: It appears from that there is an upper limit on
-    # CxBase of 256 (bug), so I had to make extra sets of redundant weights
-    # with indices to work around this. If using pop32 axons then I could
-    # put the filters as the major index to avoid this that way.
+    assert transform.padding == "valid", "Only 'valid' padding currently implemented"
+    assert (
+        transform.channels_last == transform.input_shape.channels_last
+    ), "Transforms that switch the channel position not yet implemented"
 
-    inp_shape = transform.input_shape
-    input_rows, input_cols = inp_shape.spatial_shape
+    input_rows, input_cols = transform.input_shape.spatial_shape
+    n_channels = transform.input_shape.n_channels
     output_rows, output_cols = transform.output_shape.spatial_shape
+    n_filters = transform.n_filters
+    n_compartments = output_rows * output_cols * n_filters
 
     # compute number of used input pixels
     ri_max = (output_rows - 1) * transform.strides[0] + 1
@@ -158,6 +160,7 @@ def conv2d_loihi_weights(transform):
 
     weights = []
     indices = []
+    # compartment offset (aka. compartment base) for each axon
     offsets = np.zeros(input_rows * input_cols, dtype=int)
     axon_to_weight_map = np.zeros(input_rows * input_cols, dtype=int)
     weights_map = {}
@@ -180,7 +183,20 @@ def conv2d_loihi_weights(transform):
             offsets[ij] = -1
             continue
 
-        weight_key = (tuple(wmask_i), tuple(wmask_j))
+        assert ri[wmask_i][0] % transform.strides[0] == 0, "true if mode == 'valid'"
+        yi0 = ri[wmask_i][0] // transform.strides[0]
+        yj0 = rj[wmask_j][0] // transform.strides[1]
+        yij0 = yi0 * output_cols + yj0
+        offset = yij0 * n_filters if transform.channels_last else yij0
+
+        # There is currently an upper limit on the axon compartment offset of 256.
+        # To work around this, we split the offset into two parts, and make extra sets
+        # of redundant weights with part of the offset in the indices, as needed.
+        axon_offset = offset % 256
+        index_offset = offset - axon_offset
+        offsets[ij] = axon_offset
+
+        weight_key = (tuple(wmask_i), tuple(wmask_j), index_offset)
         if weight_key not in weights_map:
             # tranpose kernel to (in_channels, rows, cols, out_channels)
             kernel = np.transpose(transform.init, (2, 0, 1, 3))
@@ -189,60 +205,41 @@ def conv2d_loihi_weights(transform):
             kernel = kernel[:, ::-1, ::-1, :]
 
             w = kernel[:, wmask_i[:, None] * wmask_j, :]
-            assert w.size == (
-                inp_shape.n_channels
-                * wmask_i.sum()
-                * wmask_j.sum()
-                * transform.n_filters
-            )
-            assert w.shape == (
-                inp_shape.n_channels,
-                wmask_i.sum() * wmask_j.sum(),
-                transform.n_filters,
-            )
+            assert w.shape == (n_channels, wmask_i.sum() * wmask_j.sum(), n_filters)
 
-            if transform.channels_last:
-                w = w.reshape(inp_shape.n_channels, -1)
-                inds = (
-                    np.zeros((inp_shape.n_channels, 1, 1, 1), dtype=int)
-                    + (
-                        output_cols
-                        * transform.n_filters
-                        * np.arange(wmask_i.sum())[:, None, None]
-                    )
-                    + transform.n_filters * np.arange(wmask_j.sum())[:, None]
-                    + np.arange(transform.n_filters)
-                ).reshape(inp_shape.n_channels, -1)
-            else:
-                w = np.transpose(w, (0, 2, 1)).reshape(inp_shape.n_channels, -1)
-                inds = (
-                    np.zeros((inp_shape.n_channels, 1, 1, 1), dtype=int)
-                    + (
-                        output_rows
-                        * output_cols
-                        * np.arange(transform.n_filters)[:, None, None]
-                    )
-                    + output_cols * np.arange(wmask_i.sum())[:, None]
-                    + np.arange(wmask_j.sum())
-                ).reshape(inp_shape.n_channels, -1)
+            # --- determine indices
+            # channel inds are zero, since we use same indices for each channel
+            channel_inds = np.zeros(n_channels, dtype=int)
+            row_inds = np.arange(wmask_i.sum())
+            col_inds = np.arange(wmask_j.sum())
+            filter_inds = np.arange(n_filters)
+
+            order = [channel_inds, row_inds, col_inds, filter_inds]
+            shape = [n_channels, output_rows, output_cols, n_filters]
+            if not transform.channels_last:
+                # move filters (aka. output channels) before rows/cols
+                w = np.transpose(w, (0, 2, 1))
+                order = [order[i] for i in (0, 3, 1, 2)]
+                shape = [shape[i] for i in (0, 3, 1, 2)]
+
+            n = len(shape)
+            strides = [np.prod(shape[i + 1 :]) for i in range(n)]
+
+            # inds[i_0,...,i_{n-1}] = sum_{k=0}^{n-1} strides[k] * order[k][i_k]
+            strided_inds = [
+                stride * ind.reshape([-1] + [1] * (n - 1 - k))
+                for k, (ind, stride) in enumerate(zip(order, strides))
+            ]
+            inds = sum([index_offset] + strided_inds)
 
             weights_map[weight_key] = len(weights)
-            weights.append(w)
-            indices.append(inds)
+            weights.append(w.reshape(n_channels, -1))
+            indices.append(inds.reshape(n_channels, -1))
 
         axon_to_weight_map[ij] = weights_map[weight_key]
 
-        assert ri[wmask_i][0] % transform.strides[0] == 0, "true if mode == 'valid'"
-        yi0 = ri[wmask_i][0] // transform.strides[0]
-        yj0 = rj[wmask_j][0] // transform.strides[1]
-        if transform.channels_last:
-            offsets[ij] = (yi0 * output_cols + yj0) * transform.n_filters
-        else:
-            offsets[ij] = yi0 * output_cols + yj0
-
+        # check that offset (compartment base) plus index points to a valid compartment
         inds = indices[axon_to_weight_map[ij]]
-        assert (
-            offsets[ij] + inds < output_rows * output_cols * transform.n_filters
-        ).all()
+        assert (offsets[ij] + inds < n_compartments).all()
 
     return weights, indices, axon_to_weight_map, offsets

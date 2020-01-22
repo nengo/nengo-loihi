@@ -66,7 +66,7 @@ def validate_axon(axon):
     if isinstance(axon.target, Synapse):
         if axon.compartment_atoms is not None:
             idxs = np.arange(len(axon.compartment_atoms))
-            axon_ids = axon.map_axon(idxs)
+            axon_ids = axon.compartment_map[idxs]
             for atom, axon_id in zip(axon.compartment_atoms, axon_ids):
                 n_populations = axon.target.axon_populations(axon_id)
                 assert 0 <= atom < n_populations
@@ -83,7 +83,11 @@ def validate_synapse(synapse):
         )
     if synapse.pop_type == 16:
         if synapse.axon_compartment_bases is not None:
-            assert all(b % d(b"NA==", int) == 0 for b in synapse.axon_compartment_bases)
+            assert all(
+                b % d(b"NA==", int) == 0
+                for b in synapse.axon_compartment_bases
+                if b >= 0
+            )
 
 
 def validate_synapse_cfg(synapse_cfg):

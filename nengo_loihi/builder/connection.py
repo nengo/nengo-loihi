@@ -45,6 +45,21 @@ def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
     dest_model.seeds[dest_obj] = src_model.seeds[src_obj]
 
 
+def _inherit_config(dest_model, dest_obj, src_model, src_obj):
+    if src_model.config is None:
+        return
+
+    assert dest_model.config is not None, "Destination model must have a config"
+    src_params = src_model.config[src_obj]  # InstanceParams object for source
+    filled_params = [
+        attr
+        for attr in src_params._clsparams.params
+        if src_params in src_params._clsparams.get_param(attr)
+    ]
+    for attr in filled_params:
+        setattr(dest_model.config[dest_obj], attr, getattr(src_params, attr))
+
+
 @Builder.register(Connection)
 def build_connection(model, conn):
     pre_onchip = model.split.on_chip(base_obj(conn.pre))
@@ -101,6 +116,7 @@ def build_host_neurons_to_chip(model, conn):
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
+    _inherit_config(model, receive2post, model, conn)
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating HostSendNode for %s", conn)
@@ -182,6 +198,7 @@ def build_host_to_chip(model, conn):
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
+    _inherit_config(model, receive2post, model, conn)
     build_chip_connection(model, receive2post)
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
@@ -518,7 +535,7 @@ def build_chip_connection(model, conn):  # noqa: C901
     loihi_weights = weights.T
 
     mid_obj = pre_obj
-    mid_axon_inds = None
+    mid_axon_inds = np.arange(mid_obj.n_neurons)
     post_tau = tau_s
     if needs_decode_neurons and not isinstance(conn.post_obj, Neurons):
         # --- add decode neurons
@@ -580,9 +597,9 @@ def build_chip_connection(model, conn):  # noqa: C901
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         pre_slice = slice(None)
 
-        dec_ax0 = Axon(n, label="decoders")
-        dec_ax0.target = dec_syn
-        dec_ax0.set_compartment_axon_map(target_axons)
+        dec_ax0 = Axon(
+            n, target=dec_syn, compartment_map=target_axons, label="decoders"
+        )
         pre_obj.add_axon(dec_ax0)
         model.objs[conn]["decode_axon"] = dec_ax0
 
@@ -659,9 +676,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         assert target_axons[pre_slice].size == n1
 
-        ax = Axon(mid_obj.n_neurons, label="neuron_weights")
-        ax.target = syn
-        ax.set_compartment_axon_map(target_axons)
+        ax = Axon(
+            mid_obj.n_neurons,
+            target=syn,
+            compartment_map=target_axons,
+            label="neuron_weights",
+        )
         mid_obj.add_axon(ax)
 
         post_obj.compartment.configure_filter(post_tau, dt=model.dt)
@@ -684,8 +704,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
 
-        ax = Axon(n1, label="decoder_weights")
-        ax.target = syn
+        ax = Axon(
+            n1,
+            target=syn,
+            compartment_map=np.arange(mid_obj.n_neurons),
+            label="decoder_weights",
+        )
         mid_obj.add_axon(ax)
 
         post_obj.compartment.configure_filter(post_tau, dt=model.dt)
@@ -700,9 +724,12 @@ def build_chip_connection(model, conn):  # noqa: C901
         if target_encoders not in post_obj.named_synapses:
             build_decode_neuron_encoders(model, conn.post_obj, kind=target_encoders)
 
-        mid_ax = Axon(mid_obj.n_neurons, label="encoders")
-        mid_ax.target = post_obj.named_synapses[target_encoders]
-        mid_ax.set_compartment_axon_map(mid_axon_inds)
+        mid_ax = Axon(
+            mid_obj.n_neurons,
+            target=post_obj.named_synapses[target_encoders],
+            compartment_map=mid_axon_inds,
+            label="encoders",
+        )
         mid_obj.add_axon(mid_ax)
         model.objs[conn]["mid_axon"] = mid_ax
 
@@ -751,11 +778,11 @@ def build_conv2d_connection(model, conn):
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
     assert isinstance(conn.transform, nengo_transforms.Convolution)
 
-    weights = conn.transform.sample(rng=rng)
+    kernel = conn.transform.sample(rng=rng)
     input_shape = conn.transform.input_shape
 
     # Account for nengo spike height of 1/dt
-    weights = weights / model.dt
+    kernel = kernel / model.dt
 
     if isinstance(conn.pre_obj, ChipReceiveNeurons):
         neuron_type = conn.pre_obj.neuron_type
@@ -763,7 +790,7 @@ def build_conv2d_connection(model, conn):
         neuron_type = conn.pre_obj.ensemble.neuron_type
 
     if neuron_type is not None and hasattr(neuron_type, "amplitude"):
-        weights = weights * neuron_type.amplitude
+        kernel = kernel * neuron_type.amplitude
 
     # --- post
     assert isinstance(conn.post_obj, Neurons)
@@ -771,7 +798,7 @@ def build_conv2d_connection(model, conn):
 
     gain = model.params[conn.post_obj.ensemble].gain
     if not np.all(gain == gain[0]):
-        # Cannot fold gains into weights, result would not be convolutional.
+        # Cannot fold gains into kernel, result would not be convolutional.
         # Therefore, Loihi does not support this if we want to share weights.
         raise ValidationError(
             "All neurons targeted by a Convolution connection must "
@@ -779,11 +806,11 @@ def build_conv2d_connection(model, conn):
             "gain",
             obj=conn.post_obj.ensemble,
         )
-    weights = weights * gain[0]
+    kernel = kernel * gain[0]
 
-    pop_type = 32  # TODO: pick this
+    pop_type = model.config[conn].pop_type
     new_transform = copy.copy(conn.transform)
-    type(new_transform).init.data[new_transform] = weights
+    type(new_transform).init.data[new_transform] = kernel
     weights, indices, axon_to_weight_map, offsets = conv2d_loihi_weights(new_transform)
 
     synapse = Synapse(np.prod(input_shape.spatial_shape), label="conv2d_weights")
@@ -798,13 +825,17 @@ def build_conv2d_connection(model, conn):
     atoms = np.zeros(pre_obj.n_neurons, dtype=int)
     atoms[conn.pre_slice] = channel_idxs(input_shape)
 
-    ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")
-    ax.target = synapse
-    ax.set_compartment_axon_map(target_axons, atoms=atoms)
+    ax = Axon(
+        np.prod(input_shape.spatial_shape),
+        target=synapse,
+        compartment_map=target_axons,
+        atoms=atoms,
+        label="conv2d_weights",
+    )
     pre_obj.add_axon(ax)
 
     post_obj.compartment.configure_filter(tau_s, dt=model.dt)
 
     model.params[conn] = BuiltConnection(
-        eval_points=None, solver_info=None, transform=None, weights=weights
+        eval_points=None, solver_info=None, transform=None, weights=kernel
     )
