@@ -64,6 +64,9 @@ Release history
 - It is now possible to build models with larger ensembles because
   the builder can now split large Loihi blocks into smaller ones.
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
+- Modules for discretizing and validating models have been moved to the
+  ``builder`` directory.
+  (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 
 **Fixed**
 

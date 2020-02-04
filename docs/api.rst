@@ -110,13 +110,34 @@ and `.LoihiProbe` objects to collect output.
 Discretization
 --------------
 
-.. autofunction:: nengo_loihi.discretize.discretize_model
+.. autofunction:: nengo_loihi.builder.discretize.discretize_model
 
-.. autofunction:: nengo_loihi.discretize.discretize_block
+.. autofunction:: nengo_loihi.builder.discretize.discretize_block
 
-.. autofunction:: nengo_loihi.discretize.discretize_compartment
+.. autofunction:: nengo_loihi.builder.discretize.discretize_compartment
 
-.. autofunction:: nengo_loihi.discretize.discretize_synapse
+.. autofunction:: nengo_loihi.builder.discretize.discretize_synapse
+
+.. autofunction:: nengo_loihi.builder.discretize.discretize_weights
+
+.. autofunction:: nengo_loihi.builder.discretize.discretize_probe
+
+Validation
+----------
+
+.. autofunction:: nengo_loihi.builder.validate.validate_model
+
+.. autofunction:: nengo_loihi.builder.validate.validate_block
+
+.. autofunction:: nengo_loihi.builder.validate.validate_compartment
+
+.. autofunction:: nengo_loihi.builder.validate.validate_axon
+
+.. autofunction:: nengo_loihi.builder.validate.validate_synapse
+
+.. autofunction:: nengo_loihi.builder.validate.validate_synapse_cfg
+
+.. autofunction:: nengo_loihi.builder.validate.validate_probe
 
 Emulator
 ========

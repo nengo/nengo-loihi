@@ -6,7 +6,7 @@ import pytest
 
 from nengo_loihi.block import LoihiBlock, Synapse, Axon
 from nengo_loihi.builder import Model
-from nengo_loihi.discretize import discretize_model
+from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, OneToOne, RoundRobin
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput

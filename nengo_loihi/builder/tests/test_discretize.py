@@ -8,14 +8,14 @@ import pytest
 
 from nengo_loihi.block import LoihiBlock, SynapseConfig
 from nengo_loihi.builder import Model
-from nengo_loihi.decode_neurons import NoisyDecodeNeurons
-from nengo_loihi.discretize import (
+from nengo_loihi.builder.discretize import (
     decay_int,
     decay_magnitude,
     discretize_block,
     discretize_weights,
     overflow_signed,
 )
+from nengo_loihi.decode_neurons import NoisyDecodeNeurons
 
 
 @pytest.mark.parametrize("b", (8, 16, 17, 23))

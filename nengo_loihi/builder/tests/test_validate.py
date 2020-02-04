@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
-from nengo_loihi.validate import validate_block
+from nengo_loihi.builder.validate import validate_block
 
 
 def test_validate_block():

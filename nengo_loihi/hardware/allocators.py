@@ -3,7 +3,7 @@ import logging
 from nengo.exceptions import ValidationError
 import numpy as np
 
-from nengo_loihi.discretize import tracing_mag_int_frac, vth_to_manexp
+from nengo_loihi.builder.discretize import tracing_mag_int_frac, vth_to_manexp
 from nengo_loihi.hardware.nxsdk_objects import (
     Board,
     CompartmentConfig,

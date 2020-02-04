@@ -5,7 +5,7 @@ import pytest
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
-from nengo_loihi.discretize import discretize_model, VTH_MAX
+from nengo_loihi.builder.discretize import discretize_model, VTH_MAX
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.emulator.interface import (
     BlockInfo,

@@ -5,8 +5,7 @@ import warnings
 from nengo.exceptions import SimulationError, ValidationError
 import numpy as np
 
-from nengo_loihi.compat import make_process_step
-from nengo_loihi.discretize import (
+from nengo_loihi.builder.discretize import (
     decay_int,
     LEARN_FRAC,
     learn_overflow_bits,
@@ -16,6 +15,7 @@ from nengo_loihi.discretize import (
     Q_BITS,
     U_BITS,
 )
+from nengo_loihi.compat import make_process_step
 from nengo_loihi.probe import LoihiProbe
 
 logger = logging.getLogger(__name__)

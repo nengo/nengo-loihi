@@ -4,7 +4,7 @@ import nengo.utils.numpy as npext
 from nengo.exceptions import BuildError
 import numpy as np
 
-from nengo_loihi.discretize import bias_to_manexp
+from nengo_loihi.builder.discretize import bias_to_manexp
 from nengo_loihi.nxsdk_obfuscation import d, d_get, d_func, d_set
 from nengo_loihi.hardware.nxsdk_objects import (
     LoihiSpikeInput,

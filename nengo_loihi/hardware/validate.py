@@ -1,8 +1,8 @@
 import numpy as np
 
-from nengo_loihi.discretize import VTH_MAN_MAX
+from nengo_loihi.builder.discretize import VTH_MAN_MAX
+from nengo_loihi.builder.validate import validate_synapse_cfg
 from nengo_loihi.nxsdk_obfuscation import d
-from nengo_loihi.validate import validate_synapse_cfg
 
 
 def validate_board(board):
