@@ -45,26 +45,16 @@ Loihi parameters
 There are parameters specific to the Loihi board itself
 that are only exposed through the `.HardwareInterface`.
 
-Currently the only such parameter is
-the maximum number of spikes
-that can be sent to the board in one timestep.
-You may get a warning like:
+To set these parameters, use the ``hardware_options`` argument.
 
-.. code-block:: none
+.. code-block:: python
 
-   Too many spikes (140) sent in one timestep. Increase the value
-   of `snip_max_spikes_per_step` (currently set to 50).
+   with nengo_loihi.Simulator(network, target='loihi', hardware_options={
+       "snip_max_spikes_per_step": 300,
+       "allocator": RoundRobin(),
+       "n_chips": 32,
+   }) as sim:
+       ...
 
-This occurs because we send spikes
-to the Loihi chip through
-a channel that has a fixed size.
-Models that spike more than we expect
-need to have that fixed size changed.
-
-You can increase the value as follows::
-
-    with nengo_loihi.Simulator(network, target='loihi') as sim:
-        sim.sims['loihi'].snips_max_spikes_per_step = 300
-
-.. note:: You must set ``snip_max_spikes_per_step``
-          before calling ``sim.run``.
+See `.HardwareInterface` for details on what parameters are available
+and what they do.

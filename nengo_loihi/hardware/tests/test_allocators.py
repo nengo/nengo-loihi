@@ -46,7 +46,7 @@ def test_big_block_error():
     model.add_block(LoihiBlock(1050))
 
     with pytest.raises(ValidationError, match="Segment does not fit"):
-        Greedy(n_chips=1)(model)
+        Greedy()(model, n_chips=1)
 
 
 def _basic_model(n_blocks=2):
@@ -83,12 +83,12 @@ def _basic_model(n_blocks=2):
     return model
 
 
-@pytest.mark.parametrize("allocator", [Greedy(n_chips=1), RoundRobin(n_chips=1)])
+@pytest.mark.parametrize("allocator", [Greedy(), RoundRobin()])
 def test_basic(allocator):
-    # RoundRobin(n_chips=1) is equivalent to Greedy(n_chips=1)
+    # RoundRobin is equivalent to Greedy when n_chips == 1
     n_blocks = 3
     model = _basic_model(n_blocks=n_blocks)
-    board = allocator(model)
+    board = allocator(model, n_chips=1)
 
     assert board.n_chips == 1
     assert board.n_cores_per_chip == [n_blocks]
@@ -108,7 +108,7 @@ def test_basic(allocator):
 def test_round_robin_allocator_under():
     model = _basic_model(n_blocks=3)
 
-    board = RoundRobin(n_chips=2)(model)
+    board = RoundRobin()(model, n_chips=2)
 
     assert board.n_chips == 2
     assert board.n_cores_per_chip == [2, 1]
@@ -136,7 +136,7 @@ def test_round_robin_allocator_under():
 def test_round_robin_allocator_over():
     model = _basic_model(n_blocks=3)
 
-    board = RoundRobin(n_chips=4)(model)
+    board = RoundRobin()(model, n_chips=4)
 
     assert board.n_chips == 3
     assert board.n_cores_per_chip == [1, 1, 1]
@@ -157,10 +157,10 @@ def test_greedy_chip_allocator_cfg_check():
     model = _basic_model(n_blocks=400)
 
     with pytest.raises(AssertionError, match="The network needs more chips"):
-        Greedy(n_chips=2)(model)
+        Greedy()(model, n_chips=2)
 
     with pytest.raises(ValueError, match="Chips cannot have more than 128 cores"):
-        Greedy(n_chips=4, cores_per_chip=130)(model)
+        Greedy(cores_per_chip=130)(model, n_chips=4)
 
 
 @pytest.mark.slow
@@ -188,20 +188,20 @@ def test_deterministic_network_allocation(Simulator, seed):
 
     # one block each for ensemble, connection, probe, minus no final connection
     n_blocks = n_ensembles * 3 - 1
-    greedy4 = ceil_div(n_blocks, 4)
-    greedy5 = ceil_div(n_blocks, 5)
     allocation = [
-        (1, RoundRobin(n_chips=1)),
-        (3, RoundRobin(n_chips=3)),
-        (8, RoundRobin(n_chips=8)),
-        (greedy4, Greedy(n_chips=6, cores_per_chip=4)),
-        (greedy5, Greedy(n_chips=8, cores_per_chip=5)),
+        (1, 1, RoundRobin()),
+        (3, 3, RoundRobin()),
+        (8, 8, RoundRobin()),
+        (6, ceil_div(n_blocks, 4), Greedy(cores_per_chip=4)),
+        (8, ceil_div(n_blocks, 5), Greedy(cores_per_chip=5)),
     ]
 
     sim_prev = None
-    for n_chips_used, allocator in allocation:
+    for n_chips, n_chips_used, allocator in allocation:
         with Simulator(
-            model, precompute=True, hardware_options={"allocator": allocator}
+            model,
+            precompute=True,
+            hardware_options={"n_chips": n_chips, "allocator": allocator},
         ) as sim_loihi:
             sim_loihi.run(sim_t)
 

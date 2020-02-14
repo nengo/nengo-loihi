@@ -134,7 +134,7 @@ class Allocator:
         """
         board.add_input(input)
 
-    def __call__(self, model):
+    def __call__(self, model, n_chips):
         """Returns a Board object corresponding to the given model."""
         raise NotImplementedError()
 
@@ -144,20 +144,17 @@ class Greedy(Allocator):
 
     Parameters
     ----------
-    n_chips : int
-        Number of chips available on the board.
     cores_per_chip : int, optional (Default: 128)
         Number of cores to use on each chip.
     """
 
-    def __init__(self, n_chips, cores_per_chip=128):
+    def __init__(self, cores_per_chip=128):
         if cores_per_chip > 128:
             raise ValueError("Chips cannot have more than 128 cores")
 
-        self.n_chips = n_chips
         self.cores_per_chip = cores_per_chip
 
-    def __call__(self, model):
+    def __call__(self, model, n_chips):
         board = Board()
         board.new_chip()
 
@@ -165,9 +162,8 @@ class Greedy(Allocator):
             chip = board.chips[-1]
             assert len(chip.cores) <= self.cores_per_chip
             if len(chip.cores) == self.cores_per_chip:
-                assert len(board.chips) < self.n_chips, (
-                    "The network needs more chips than allowed by the allocator (%d)"
-                    % self.n_chips,
+                assert len(board.chips) < n_chips, (
+                    "The network needs more chips than requested (%d)" % n_chips,
                 )
                 chip = board.new_chip()
 
@@ -193,26 +189,18 @@ class RoundRobin(Allocator):
     """Assigns each block to distinct cores on as many chips as possible.
 
     Each chip is used in round-robin order.
-
-    Parameters
-    ----------
-    n_chips : int
-        Number of chips available on the board.
     """
 
-    def __init__(self, n_chips):
-        self.n_chips = n_chips
-
-    def __call__(self, model):
+    def __call__(self, model, n_chips):
         board = Board()
 
         # We must dynamically allocate the chips
         # as needed because nxsdk==0.8.0 hits
         # an assertion if any chips contain 0 cores
         def get_chip(i):
-            if len(board.chips) <= i < self.n_chips:
+            if len(board.chips) <= i < n_chips:
                 board.new_chip()
-            return board.chips[i % self.n_chips]
+            return board.chips[i % n_chips]
 
         for input in model.inputs:
             self.input_to_board(input, board)

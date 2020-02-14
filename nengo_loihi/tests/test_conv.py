@@ -325,7 +325,7 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     n_steps = int(pres_time / dt)
     if target == "loihi":
         with HardwareInterface(
-            model, use_snips=False, seed=seed, allocator=RoundRobin(n_chips=2),
+            model, use_snips=False, seed=seed, allocator=RoundRobin(),
         ) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
@@ -716,7 +716,7 @@ def test_conv_deepnet(
             net,
             precompute=precompute,
             hardware_options={
-                "allocator": RoundRobin(n_chips=2),
+                "allocator": RoundRobin(),
                 "snip_max_spikes_per_step": 800,
             },
         ) as sim_loihi:

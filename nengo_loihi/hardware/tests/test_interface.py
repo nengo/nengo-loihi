@@ -66,8 +66,8 @@ def test_builder_poptype_errors():
 
     discretize_model(model)
 
-    allocator = Greedy(n_chips=1)  # one core per ensemble
-    board = allocator(model)
+    allocator = Greedy()  # one core per ensemble
+    board = allocator(model, n_chips=1)
 
     with pytest.raises(ValueError, match="[Ss]ynapse.*[Uu]nrec.*pop.*type"):
         build_board(board)
@@ -92,7 +92,7 @@ def test_builder_poptype_errors():
 
     discretize_model(model)
 
-    board = allocator(model)
+    board = allocator(model, n_chips=1)
 
     with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):
         build_board(board)

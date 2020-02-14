@@ -43,6 +43,9 @@ Release history
 - Added the ``Greedy`` allocator, which uses all cores on one chip before
   proceeding to the next chip. ``Greedy`` is now the default allocator.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+- Added the ``n_chips`` parameter to ``HardwareInterface`` for specifying
+  the number of chips on the board.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 **Changed**
 
@@ -72,6 +75,9 @@ Release history
   (`#264 <https://github.com/nengo/nengo-loihi/pull/264>`__)
 - It is now possible to use multi-chip allocators with all models,
   including those that cannot be precomputed.
+  (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+- Allocators like ``RoundRobin`` no longer accept the ``n_chips`` parameter.
+  Instead, the ``__call__`` method accepts ``n_chips``.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 
 **Removed**

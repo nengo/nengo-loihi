@@ -69,9 +69,7 @@ def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(simtime)
 
-    with Simulator(
-        model, hardware_options={"allocator": RoundRobin(n_chips=2)}
-    ) as loihi_sim:
+    with Simulator(model, hardware_options={"allocator": RoundRobin()}) as loihi_sim:
         loihi_sim.run(simtime)
 
     with Simulator(model, target="simreal") as real_sim:
@@ -130,7 +128,7 @@ def test_pes_overflow(plt, seed, Simulator):
     loihi_model.pes_wgt_exp = -2
 
     with Simulator(
-        model, model=loihi_model, hardware_options={"allocator": RoundRobin(n_chips=2)},
+        model, model=loihi_model, hardware_options={"allocator": RoundRobin()},
     ) as loihi_sim:
         loihi_sim.run(simtime)
 
@@ -185,7 +183,7 @@ def test_pes_error_clip(plt, seed, Simulator):
 
     with pytest.warns(UserWarning, match=r".*PES error.*pes_error_scale.*"):
         with Simulator(
-            model, hardware_options={"allocator": RoundRobin(n_chips=2)}
+            model, hardware_options={"allocator": RoundRobin()}
         ) as loihi_sim:
             loihi_sim.run(simtime)
 
@@ -231,7 +229,7 @@ def test_multiple_pes(init_function, allclose, plt, seed, Simulator):
         probe = nengo.Probe(output, synapse=0.1)
 
     simtime = 0.6
-    with Simulator(model, hardware_options={"allocator": RoundRobin(n_chips=2)}) as sim:
+    with Simulator(model, hardware_options={"allocator": RoundRobin()}) as sim:
         sim.run(simtime)
 
     t = sim.trange()
@@ -278,9 +276,7 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
     simtime = 0.1
     sims = []
     for _ in range(n_sims):
-        with Simulator(
-            model, hardware_options={"allocator": RoundRobin(n_chips=2)}
-        ) as sim:
+        with Simulator(model, hardware_options={"allocator": RoundRobin()}) as sim:
             sim.run(simtime)
         sims.append(sim)
 
@@ -313,7 +309,7 @@ def test_learning_seed(Simulator, request, seed):
         period=simtime / 2,
     )
 
-    sim_args = dict(hardware_options={"allocator": RoundRobin(n_chips=2)})
+    sim_args = dict(hardware_options={"allocator": RoundRobin()})
 
     with Simulator(model, seed=seed, **sim_args) as sim:
         sim.run(simtime)

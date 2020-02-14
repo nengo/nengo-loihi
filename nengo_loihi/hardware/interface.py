@@ -48,7 +48,9 @@ class HardwareInterface:
     snip_max_spikes_per_step : int
         The maximum number of spikes that can be sent to each chip in one
         timestep if ``.use_snips`` is True.
-    allocator : Allocator, optional (Default: ``Greedy(n_chips=2)``)
+    n_chips : int, optional (Default: 2)
+        The number of chips on the board.
+    allocator : Allocator, optional (Default: ``Greedy()``)
         Callable object that allocates the board's devices to given models.
         Defaults to one block and one input per core on a single chip.
     """
@@ -63,6 +65,7 @@ class HardwareInterface:
         use_snips=True,
         seed=None,
         snip_max_spikes_per_step=50,
+        n_chips=2,
         allocator=None,
     ):
         self.closed = False
@@ -80,8 +83,8 @@ class HardwareInterface:
         d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
 
         # --- allocate
-        allocator = Greedy(n_chips=2) if allocator is None else allocator
-        self.board = allocator(self.model)
+        allocator = Greedy() if allocator is None else allocator
+        self.board = allocator(self.model, n_chips=n_chips)
 
         # --- validate
         validate_board(self.board)
