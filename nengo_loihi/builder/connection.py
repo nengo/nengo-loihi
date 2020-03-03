@@ -582,6 +582,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             post_inds = np.arange(post_d, dtype=np.int32)[post_slice]
             assert loihi_weights.shape[1] == len(post_inds) == conn.size_out
             mid_axon_inds = model.decode_neurons.get_post_inds(post_inds, post_d)
+            post_slice = slice(None)
 
             target_encoders = "decode_neuron_encoders"
             decoder_block, dec_syn = model.decode_neurons.get_block(
