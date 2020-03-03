@@ -660,25 +660,31 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                 raise NotImplementedError()
 
         mid_obj = decoder_block
+    elif not slice_is_none(post_slice):
+        mid_axon_inds = np.arange(conn.post_obj.size_in, dtype=np.int32)[post_slice]
+        post_slice = slice(None)
+
+    assert slice_is_none(post_slice)
 
     if isinstance(post_obj, LoihiProbe):
         assert post_obj.target == [None]
-        assert slice_is_none(post_slice)
         post_obj.target[0] = mid_obj
         model.add_probe(post_obj)
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_obj, LoihiBlock)
-        assert slice_is_none(post_slice)
         if loihi_weights is None:
             raise NotImplementedError("Need weights for connection to neurons")
 
         assert loihi_weights.ndim == 2
         n1, n2 = loihi_weights.shape
+        # TODO: change this to check the post slice size == n2
         assert post_obj.n_neurons == n2
 
         syn = Synapse(n1, label="neuron_weights")
         gain = model.params[conn.post_obj.ensemble].gain
         loihi_weights = scale_matrix(loihi_weights, gain)
+        # TODO: must have more direct access to `_set_weights_indices`, and use the
+        # `indices` parameter to target the compartments specified by `post_slice`
         syn.set_weights(loihi_weights)
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
@@ -699,7 +705,6 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     elif isinstance(conn.post_obj, Ensemble) and conn.solver.weights:
         assert isinstance(post_obj, LoihiBlock)
         assert slice_is_none(pre_slice), "Not implemented"
-        assert slice_is_none(post_slice)
         assert loihi_weights.ndim == 2
         n1, n2 = loihi_weights.shape
         assert post_obj.n_neurons == n2
@@ -724,7 +729,6 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     elif isinstance(conn.post_obj, Ensemble):
         assert isinstance(post_obj, LoihiBlock)
         assert slice_is_none(pre_slice), "Not implemented"
-        assert slice_is_none(post_slice)
         assert target_encoders is not None
         if target_encoders not in post_obj.named_synapses:
             build_decode_neuron_encoders(model, conn.post_obj, kind=target_encoders)
