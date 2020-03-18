@@ -13,6 +13,7 @@ from nengo_loihi.neurons import (
     loihi_rates,
     LoihiLIF,
     LoihiSpikingRectifiedLinear,
+    LowpassIntegratedNoise,
     LowpassRCNoise,
     nengo_rates,
 )
@@ -365,6 +366,9 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
     [
         LoihiLIF(amplitude=0.3, nengo_dl_noise=LowpassRCNoise(0.001)),
         LoihiLIF(amplitude=0.3, nengo_dl_noise=AlphaRCNoise(0.001)),
+        LoihiSpikingRectifiedLinear(
+            amplitude=0.3, nengo_dl_noise=LowpassIntegratedNoise(0.001)
+        ),
     ],
 )
 def test_nengo_dl_noise(neuron_type, seed, plt):
@@ -395,12 +399,17 @@ def test_nengo_dl_noise(neuron_type, seed, plt):
     if isinstance(neuron_type.nengo_dl_noise, AlphaRCNoise):
         exp_model = 0.7 + 2.8 * np.exp(-0.22 * (x1 - 1))
         atol = 0.12 * exp_model.max()
+        mu_atol = 0.6  # depends on n_noise and variance of noise
     elif isinstance(neuron_type.nengo_dl_noise, LowpassRCNoise):
         exp_model = 1.5 + 2.2 * np.exp(-0.22 * (x1 - 1))
         atol = 0.2 * exp_model.max()
+        mu_atol = 0.6  # depends on n_noise and variance of noise
+    elif isinstance(neuron_type.nengo_dl_noise, LowpassIntegratedNoise):
+        exp_model = 10 * (1 - np.exp(-0.010 * (x1 - 1)))
+        atol = 0.2 * exp_model.max()
+        mu_atol = 2.0
 
     rtol = 0.2
-    mu_atol = 0.6  # depends on n_noise and variance of noise
 
     # --- plots
     plt.subplot(211)
