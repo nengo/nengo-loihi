@@ -8,7 +8,7 @@ from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, NengoException
 import numpy as np
 
-from nengo_loihi.compat import nengo_transforms, transform_array
+from nengo_loihi.compat import is_transform_type, nengo_transforms, transform_array
 
 
 def is_passthrough(obj):
@@ -73,14 +73,15 @@ class Cluster:
         """
 
         def format_transform(size, transform):
-            if nengo_transforms is not None:
-                if isinstance(transform, nengo_transforms.Dense):
-                    transform = transform.init
-                else:
-                    raise NotImplementedError(
-                        "Mergeable transforms must be Dense; "
-                        "set remove_passthrough=False"
-                    )
+            if is_transform_type(transform, "NoTransform"):
+                transform = np.array(1.0)
+            elif is_transform_type(transform, "Dense"):
+                transform = transform_array(transform)
+            else:
+                raise NotImplementedError(
+                    "Mergeable transforms must be Dense; "
+                    "set remove_passthrough=False"
+                )
 
             if not isinstance(transform, np.ndarray):
                 raise NotImplementedError(

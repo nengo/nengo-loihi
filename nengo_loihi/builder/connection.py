@@ -31,7 +31,13 @@ from nengo_loihi.builder.sparse_matrix import (
     scale_matrix,
     stack_matrices,
 )
-from nengo_loihi.compat import conn_solver, multiply, nengo_transforms, sample_transform
+from nengo_loihi.compat import (
+    conn_solver,
+    is_transform_type,
+    multiply,
+    nengo_transforms,
+    sample_transform,
+)
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
 from nengo_loihi.inputs import LoihiInput
 from nengo_loihi.neurons import loihi_rates
@@ -144,17 +150,16 @@ def build_host_to_chip(model, conn):
     rng = np.random.RandomState(model.seeds[conn])
     host = model.host_model(base_obj(conn.pre))
 
-    if nengo_transforms is not None:
-        if isinstance(conn.transform, nengo_transforms.Convolution):
-            raise BuildError(
-                "Conv2D transforms not supported for off-chip to "
-                "on-chip connections where `pre` is not a Neurons object."
-            )
-        elif not isinstance(conn.transform, nengo_transforms.Dense):
-            raise BuildError(
-                "nengo-loihi does not yet support %r transforms "
-                "on host to chip connections" % (type(conn.transform).__name__,)
-            )
+    if is_transform_type(conn.transform, "Convolution"):
+        raise BuildError(
+            "Conv2D transforms not supported for off-chip to "
+            "on-chip connections where `pre` is not a Neurons object."
+        )
+    elif not is_transform_type(conn.transform, ("Dense", "NoTransform")):
+        raise BuildError(
+            "nengo-loihi does not yet support %r transforms "
+            "on host to chip connections" % (type(conn.transform).__name__,)
+        )
 
     # Scale the input spikes based on the radius of the target ensemble
     weights = sample_transform(conn, rng=rng)
@@ -164,6 +169,8 @@ def build_host_to_chip(model, conn):
 
     if nengo_transforms is None:  # pragma: no cover
         transform = weights
+    elif is_transform_type(conn.transform, "NoTransform"):
+        transform = weights  # weights are 1 / (post ensemble radius), if applicable
     else:
         # copy the Transform information, setting `init` to the sampled weights
         transform = copy.copy(conn.transform)
@@ -294,9 +301,8 @@ def build_chip_to_host(model, conn):
 
 
 def build_host_to_learning_rule(model, conn):
-    if nengo_transforms is not None and not isinstance(
-        conn.transform, nengo_transforms.Dense
-    ):
+    if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
+        # TODO: What needs to be done to support this? It looks like it should just work
         raise BuildError(
             "nengo-loihi does not yet support %r transforms "
             "on host to chip learning rule connections"
@@ -351,9 +357,7 @@ def build_decoders(model, conn, rng, sampled_transform):
         #         "Non-compositional solvers only work with Dense transforms")
         # transform = conn.transform.sample(rng=rng)
         # targets = np.dot(targets, transform.T)
-        if nengo_transforms is not None and not isinstance(
-            conn.transform, nengo_transforms.Dense
-        ):  # pragma: no cover
+        if not is_transform_type(conn.transform, "Dense"):  # pragma: no cover
             raise BuildError(
                 "Non-compositional solvers only work with Dense transforms"
             )
@@ -428,15 +432,10 @@ def build_no_solver(model, solver, conn, rng, sampled_transform):
 
 
 def build_chip_connection(model, conn):
-    if nengo_transforms is not None:
-        if isinstance(
-            conn.transform, (nengo_transforms.Dense, nengo_transforms.Sparse)
-        ):
-            return build_full_chip_connection(model, conn)
-        else:
-            model.build(conn.transform, conn)
-    else:  # pragma: no cover
+    if is_transform_type(conn.transform, ("NoTransform", "Dense", "Sparse")):
         return build_full_chip_connection(model, conn)
+    else:
+        model.build(conn.transform, conn)
 
 
 def build_full_chip_connection(model, conn):  # noqa: C901
@@ -754,11 +753,7 @@ def register_transform_builder(attr):
 
 @register_transform_builder("Convolution")
 def build_conv2d_connection(model, transform, conn):
-    if nengo_transforms is None:
-        # It should not be possible to reach this, because this function is
-        # only called for a Convolution transform, which can exist only if
-        # nengo_transforms exists.
-        raise NotImplementedError("Convolution requires newer Nengo")
+    assert is_transform_type(transform, "Convolution")
 
     if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
@@ -783,7 +778,6 @@ def build_conv2d_connection(model, transform, conn):
 
     # --- pre
     assert isinstance(conn.pre_obj, (Neurons, ChipReceiveNeurons))
-    assert isinstance(transform, nengo_transforms.Convolution)
 
     kernel = transform.sample(rng=rng)
     input_shape = transform.input_shape

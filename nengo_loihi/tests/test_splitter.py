@@ -99,7 +99,7 @@ def test_split_host_to_learning_rule():
         net.config[err_offchip].on_chip = False
         ens_conn = nengo.Connection(pre, post, learning_rule_type=nengo.PES())
         neurons_conn = nengo.Connection(
-            pre.neurons, post.neurons, learning_rule_type=nengo.PES()
+            pre.neurons, post.neurons, transform=1.0, learning_rule_type=nengo.PES()
         )
         nengo.Connection(err_onchip, ens_conn.learning_rule)
         nengo.Connection(err_onchip, neurons_conn.learning_rule)

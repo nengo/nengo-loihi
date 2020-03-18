@@ -19,10 +19,20 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
     def conn_solver(solver, activities, targets, rng):
         return solver(activities, targets, rng=rng)
 
+    def is_transform_type(transform, types):
+        types = (types,) if isinstance(types, str) else types
+        types = tuple(
+            getattr(nengo_transforms, t) for t in types if hasattr(nengo_transforms, t)
+        )
+        return isinstance(transform, types)
+
     def transform_array(transform):
         return transform.init
 
     def sample_transform(conn, rng=np.random):
+        if is_transform_type(conn.transform, "NoTransform"):
+            return np.array(1.0)
+
         transform = conn.transform.sample(rng=rng)
 
         # convert SparseMatrix to scipy.sparse
@@ -40,7 +50,13 @@ if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
 else:  # pragma: no cover
     from nengo.builder.connection import multiply
     from nengo.simulator import ProbeDict as NengoSimulationData
-    from nengo.utils.compat import is_array, is_integer, is_iterable, is_number
+    from nengo.utils.compat import (
+        is_array,
+        is_array_like,
+        is_integer,
+        is_iterable,
+        is_number,
+    )
     from nengo.utils.testing import allclose as signals_allclose
 
     nengo_transforms = None
@@ -55,6 +71,11 @@ else:  # pragma: no cover
         # pass E=1 because solver.weights requires E to not be None, but we've
         # already multiplied targets by encoders, so multiply by 1 does nothing
         return solver(activities, targets, rng=rng, E=1 if solver.weights else None)
+
+    def is_transform_type(transform, types):
+        types = (types,) if isinstance(types, str) else types
+        assert is_array_like(transform)
+        return "Dense" in types  # all old transforms are dense
 
     def transform_array(transform):
         return transform
