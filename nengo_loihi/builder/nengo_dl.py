@@ -363,10 +363,12 @@ class Installer:
         self.installed = False
 
     def __call__(self):
-        if not HAS_DL:
-            warnings.warn("nengo_dl cannot be imported")
-        elif not self.installed:
-            logger.debug("Installing NengoDL neuron builders")
+        if self.installed:
+            pass
+        elif not HAS_DL:
+            logger.info("nengo_dl cannot be imported, so not installing builders")
+        else:
+            logger.info("Installing NengoDL neuron builders")
             nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
                 LoihiLIF
             ] = LoihiLIFBuilder
@@ -374,8 +376,6 @@ class Installer:
                 LoihiSpikingRectifiedLinear
             ] = LoihiSpikingRectifiedLinearBuilder
             self.installed = True
-        else:
-            logger.debug("NengoDL neuron builders already installed")
 
 
 install_dl_builders = Installer()

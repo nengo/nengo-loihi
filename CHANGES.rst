@@ -108,6 +108,11 @@ Release history
   Loihi, for more accurate simulation in Nengo (this was already done in the rate
   equation and NengoDL implementation of this neuron).
   (`#275 <https://github.com/nengo/nengo-loihi/pull/275>`__)
+- ``LoihiLIF`` and ``LoihiSpikingRectifiedLinear`` now add the appropriate NengoDL
+  builders when instantiated, so they work properly if used in NengoDL without making
+  a NengoLoihi simulator.
+  (`#248 <https://github.com/nengo/nengo-loihi/issues/248>`__,
+  `#275 <https://github.com/nengo/nengo-loihi/pull/275>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

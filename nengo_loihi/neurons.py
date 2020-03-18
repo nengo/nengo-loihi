@@ -4,6 +4,15 @@ import numpy as np
 from nengo_loihi.compat import HAS_TF, tf
 
 
+def _install_dl_builders():
+    # avoid circular import by doing import in here
+    from nengo_loihi.builder.nengo_dl import (  # pylint: disable=import-outside-toplevel
+        install_dl_builders,
+    )
+
+    install_dl_builders()
+
+
 def discretize_tau_rc(tau_rc, dt):
     """Discretize tau_rc as per discretize_compartment.
 
@@ -109,10 +118,11 @@ class LoihiLIF(LIF):
         amplitude=1,
         nengo_dl_noise=None,
     ):
-        super(LoihiLIF, self).__init__(
+        super().__init__(
             tau_rc=tau_rc, tau_ref=tau_ref, min_voltage=min_voltage, amplitude=amplitude
         )
         self.nengo_dl_noise = nengo_dl_noise
+        _install_dl_builders()
 
     @property
     def _argreprs(self):
@@ -148,6 +158,10 @@ class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
     same output firing rate. This class reproduces this effect. It can be used
     in e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.
     """
+
+    def __init__(self, amplitude=1):
+        super().__init__(amplitude=amplitude)
+        _install_dl_builders()
 
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)

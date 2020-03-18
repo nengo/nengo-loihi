@@ -2,10 +2,11 @@ import logging
 
 import pytest
 
+from nengo_loihi.neurons import LoihiLIF
 from nengo_loihi.builder import nengo_dl as builder_nengo_dl
 
 
-def test_installer_with_no_dl(monkeypatch):
+def test_installer_with_no_dl(caplog, monkeypatch):
     """Ensures that the installer works as expected with no Nengo DL.
 
     If Nengo DL is installed, other tests will test the installer as
@@ -13,20 +14,21 @@ def test_installer_with_no_dl(monkeypatch):
     """
     monkeypatch.setattr(builder_nengo_dl, "HAS_DL", False)
     install = builder_nengo_dl.Installer()
-    with pytest.warns(UserWarning, match="nengo_dl cannot be imported"):
+    with caplog.at_level(logging.INFO):
         install()
+    messages = [rec.message for rec in caplog.records]
+    assert len(messages) == 1
+    assert messages[0].startswith("nengo_dl cannot be imported")
 
 
 def test_installer_called_twice(caplog, monkeypatch):
-    """Ensures that the installer prints debug messages when called twice."""
+    """Ensures that the installer prints no messages when called twice."""
     monkeypatch.setattr(builder_nengo_dl, "HAS_DL", True)
     install = builder_nengo_dl.Installer()
     install.installed = True
     with caplog.at_level(logging.DEBUG):
         install()
-    assert [rec.message for rec in caplog.records] == [
-        "NengoDL neuron builders already installed"
-    ]
+    assert len(caplog.records) == 0
 
 
 def test_register_twice_warning():
@@ -41,3 +43,18 @@ def test_register_twice_warning():
     # Second time warns
     with pytest.warns(UserWarning, match="already has a builder"):
         builder_nengo_dl.NoiseBuilder.register(int)(MockNoiseBuilder)
+
+
+def test_install_on_instantiation():
+    nengo_dl = pytest.importorskip("nengo_dl")
+
+    if builder_nengo_dl.install_dl_builders.installed:
+        # undo any installation that happened in other tests
+        del nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[LoihiLIF]
+        builder_nengo_dl.install_dl_builders.installed = False
+
+    assert LoihiLIF not in nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL
+
+    LoihiLIF()
+
+    assert LoihiLIF in nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL
