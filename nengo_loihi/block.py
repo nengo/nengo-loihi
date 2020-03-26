@@ -47,7 +47,7 @@ class LoihiBlock:
         self.n_neurons = n_neurons
         self.label = label
 
-        self.compartment = Compartment(n_compartments=n_neurons)
+        self.compartment = Compartment(n_compartments=n_neurons, label=label)
         self.axons = []
         self.synapses = []
         self.named_synapses = {}

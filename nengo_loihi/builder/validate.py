@@ -33,7 +33,8 @@ def validate_block(block):
     n_axons = sum(a.axon_slots() for a in block.axons)
     if n_axons > MAX_OUT_AXONS:
         raise BuildError(
-            "Output axons (%d) exceeded max (%d)" % (n_axons, MAX_OUT_AXONS)
+            "Output axons (%d) exceeded max (%d) in %s"
+            % (n_axons, MAX_OUT_AXONS, block)
         )
 
     for axon in block.axons:
@@ -42,13 +43,15 @@ def validate_block(block):
     # -- Synapses
     n_axons = sum(s.n_axons for s in block.synapses)
     if n_axons > MAX_IN_AXONS:
-        raise BuildError("Input axons (%d) exceeded max (%d)" % (n_axons, MAX_IN_AXONS))
+        raise BuildError(
+            "Input axons (%d) exceeded max (%d) in %s" % (n_axons, MAX_IN_AXONS, block)
+        )
 
     synapse_bits = sum(s.bits() for s in block.synapses)
     if synapse_bits > MAX_SYNAPSE_BITS:
         raise BuildError(
-            "Total synapse bits (%d) exceeded max (%d)"
-            % (synapse_bits, MAX_SYNAPSE_BITS)
+            "Total synapse bits (%d) exceeded max (%d) in %s"
+            % (synapse_bits, MAX_SYNAPSE_BITS, block)
         )
 
     for synapse in block.synapses:
@@ -58,8 +61,8 @@ def validate_block(block):
 def validate_compartment(comp):
     if comp.n_compartments > MAX_COMPARTMENTS:
         raise BuildError(
-            "Number of compartments (%d) exceeded max (%d)"
-            % (comp.n_compartments, MAX_COMPARTMENTS)
+            "Number of compartments (%d) exceeded max (%d) in %s"
+            % (comp.n_compartments, MAX_COMPARTMENTS, comp)
         )
 
 

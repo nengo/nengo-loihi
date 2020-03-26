@@ -36,7 +36,7 @@ def test_compartment_errors():
 def test_strings():
     block = LoihiBlock(3, label="myBlock")
     assert str(block) == "LoihiBlock(myBlock)"
-    assert str(block.compartment) == "Compartment()"
+    assert str(block.compartment) == "Compartment(myBlock)"
 
     synapse = Synapse(2, label="mySynapse")
     assert str(synapse) == "Synapse(mySynapse)"
