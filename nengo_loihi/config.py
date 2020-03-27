@@ -1,5 +1,3 @@
-import warnings
-
 import nengo
 from nengo.exceptions import ValidationError
 from nengo.params import Parameter
@@ -97,19 +95,8 @@ class BlockShape:
         self._ens_shape = np.asarray(self.ensemble_shape)
         self._shape = np.asarray(self.shape)
 
-        # See if we can make the block shape smaller while achieving the same
-        # number of splits.
         n_splits = np.ceil(self._ens_shape / self._shape).astype(int)
-        shape = np.ceil(self._ens_shape / n_splits).astype(int)
         self.n_splits = np.prod(n_splits)
-        if not np.all(shape == self._shape):
-            self._shape = shape
-            shape = tuple(shape)
-            warnings.warn(
-                "Requested shape %s uses the same number of blocks as %s. "
-                "Using %s instead." % (self.shape, shape, shape)
-            )
-            self.shape = shape
 
     @property
     def block_size(self):

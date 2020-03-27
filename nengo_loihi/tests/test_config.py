@@ -26,11 +26,6 @@ def test_block_shape_1d():
 
     assert list(block_shape.zip_dimensions()) == [(15, 5)]
 
-    with pytest.warns(UserWarning, match="uses the same number of blocks as"):
-        block_shape = BlockShape((4,), (9,))
-        assert block_shape.shape == (3,)
-        assert block_shape.n_splits == 3
-
 
 def test_block_shape_3d():
     block_shape = BlockShape((2, 3, 2), (4, 6, 7))
@@ -42,8 +37,3 @@ def test_block_shape_3d():
     assert block_shape.ensemble_size == 4 * 6 * 7
 
     assert list(block_shape.zip_dimensions()) == [(4, 2), (6, 3), (7, 2)]
-
-    with pytest.warns(UserWarning, match="uses the same number of blocks as"):
-        block_shape = BlockShape((2, 3, 5), (4, 6, 7))
-        assert block_shape.shape == (2, 3, 4)
-        assert block_shape.n_splits == 2 * 2 * 2
