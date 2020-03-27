@@ -283,11 +283,13 @@ def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
         # compartments in the new block.
         new_axon_idxs = old_axon_idxs
         assert all(i is not None for i in new_axon_idxs)
-        n_axons = sum(i >= 0 for i in new_axon_idxs)
+        new_axon_idxs = np.asarray(new_axon_idxs)
+        n_axons = np.unique(new_axon_idxs[new_axon_idxs >= 0]).size
+
         new_axon = Axon(n_axons)
         new_axon.label = old_axon.label
         new_axon.target = old_axon.target
-        new_axon.compartment_map = np.asarray(new_axon_idxs)
+        new_axon.compartment_map = new_axon_idxs
         new_axon.compartment_atoms = np.asarray(old_atoms)
         return [new_axon]
 
@@ -301,7 +303,8 @@ def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
         # `new_axon_idxs` are the new synapse indices that the new axon connects to
         new_axon_idxs = [synapse_axon_map.get(i, -1) for i in old_axon_idxs]
         assert all(i is not None for i in new_axon_idxs)
-        n_axons = sum(i >= 0 for i in new_axon_idxs)
+        new_axon_idxs = np.asarray(new_axon_idxs)
+        n_axons = np.unique(new_axon_idxs[new_axon_idxs >= 0]).size
         if n_axons == 0:
             continue
 
@@ -309,7 +312,7 @@ def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
         if old_axon.label is not None:
             new_axon.label = "%s[%d]" % (old_axon.label, k)
         new_axon.target = new_synapse
-        new_axon.compartment_map = np.asarray(new_axon_idxs)
+        new_axon.compartment_map = new_axon_idxs
         new_axon.compartment_atoms = np.asarray(old_atoms)
         new_axons.append(new_axon)
 
@@ -589,7 +592,7 @@ def set_new_synapse_weights(
             new_ii = np.tile(new_ii, (ii.shape[0], 1))
             assert new_ii.shape == ii.shape
 
-        key = hash((array_hash(ww), array_hash(new_ii)))
+        key = (array_hash(ww), array_hash(new_ii))
         if key not in weight_idx_map:
             # we don't have this key, so add weights/indices to the weight memory
             weight_idx_map[key] = len(weights)
