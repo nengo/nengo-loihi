@@ -5,6 +5,7 @@ from nengo import Ensemble, Network, Node, Probe
 from nengo.builder import Model as NengoModel
 from nengo.builder.builder import Builder as NengoBuilder
 from nengo.cache import NoDecoderCache
+import numpy as np
 
 from nengo_loihi.block import LoihiBlock
 from nengo_loihi.config import add_params
@@ -233,6 +234,49 @@ class Model:
             return self.host_pre
         else:
             return self.host
+
+    def utilization_summary(self):
+        r"""Summarize utilization info for all blocks.
+
+        Returns
+        -------
+        summary : list of string
+            One string per block, with the block name and the block utilization values,
+            expressed as percentages.
+
+        Examples
+        --------
+
+        .. testcode::
+
+            with nengo.Network() as network:
+                nengo.Ensemble(1000, 3, label="MyEnsemble")
+
+            with nengo_loihi.Simulator(network) as sim:
+                print("\n".join(sim.model.utilization_summary()))
+
+        .. testoutput::
+            :options: +NORMALIZE_WHITESPACE
+
+            LoihiBlock(<Ensemble "MyEnsemble">): 97.7% compartments, 0.0% in-axons,
+              0.0% out-axons, 0.0% synapses
+            Average (1 blocks): 97.7% compartments, 0.0% in-axons, 0.0% out-axons,
+              0.0% synapses
+        """
+        lines = []
+        totals = OrderedDict()
+        for block in self.blocks:
+            util = block.utilization()
+            util_strs = []
+            for k, v in util.items():
+                frac = v[0] / v[1]
+                util_strs.append("%0.1f%% %s" % (100 * frac, k))
+                totals.setdefault(k, []).append(frac)
+            lines.append("%s: %s" % (block, ", ".join(util_strs)))
+
+        means = ["%0.1f%% %s" % (100 * np.mean(v), k) for k, v in totals.items()]
+        lines.append("Average (%d blocks): %s" % (len(self.blocks), ", ".join(means)))
+        return lines
 
 
 class Builder(NengoBuilder):

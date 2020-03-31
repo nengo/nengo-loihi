@@ -46,6 +46,9 @@ Release history
 - Added the ``n_chips`` parameter to ``HardwareInterface`` for specifying
   the number of chips on the board.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
+- Added ``Model.utilization_summary`` to provide a summary of how much of
+  the various resources of each block are utilized.
+  (`#279 <https://github.com/nengo/nengo-loihi/pull/279>`__)
 
 **Changed**
 

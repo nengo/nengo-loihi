@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import warnings
 
 from nengo.exceptions import BuildError
@@ -63,6 +64,30 @@ class LoihiBlock:
 
     def add_axon(self, axon):
         self.axons.append(axon)
+
+    def utilization(self):
+        """Measure utilization of core resources by the block.
+
+        Returns
+        -------
+        utilization : OrderedDict
+            "compartments": The (current, max) number of compartments used.
+            "in-axons": The (current, max) number of input axons used.
+            "out-axons": The (current, max) number of output axons used.
+            "synapses": The (current, max) amount of synapse memory used.
+        """
+        n_compartments = self.compartment.n_compartments
+        n_in_axons = sum(s.n_axons for s in self.synapses)
+        n_out_axons = sum(a.axon_slots() for a in self.axons)
+        n_synapse_bits = sum(s.bits() for s in self.synapses)
+        return OrderedDict(
+            [
+                ("compartments", (n_compartments, MAX_COMPARTMENTS)),
+                ("in-axons", (n_in_axons, MAX_IN_AXONS)),
+                ("out-axons", (n_out_axons, MAX_OUT_AXONS)),
+                ("synapses", (n_synapse_bits, MAX_SYNAPSE_BITS)),
+            ]
+        )
 
 
 class Config:

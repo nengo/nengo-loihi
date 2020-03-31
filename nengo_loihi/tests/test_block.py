@@ -2,7 +2,7 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
-from nengo_loihi.block import Axon, LoihiBlock, Synapse
+from nengo_loihi.block import Axon, LoihiBlock, MAX_COMPARTMENTS, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
@@ -98,3 +98,24 @@ def test_negative_base(request, seed):
     assert np.allclose(y[1, 1], 0), "Third axon not ignored"
     assert np.allclose(y[1, 0], y[1, 2]), "Third axon targeting another"
     assert not np.allclose(y[1], y[0]), "Voltage not changing"
+
+
+def test_utilization():
+    comp_fracs = [0.9, 0.2, 0.35]
+
+    model = Model()
+
+    for comp_frac in comp_fracs:
+        n_compartments = int(round(comp_frac * MAX_COMPARTMENTS))
+        block = LoihiBlock(n_compartments)
+        block.compartment.configure_relu()
+        model.add_block(block)
+
+        util = block.utilization()
+        assert np.allclose(
+            util["compartments"], (n_compartments, MAX_COMPARTMENTS), rtol=0, atol=0.001
+        )
+
+    lines = model.utilization_summary()
+    assert len(lines) == len(comp_fracs) + 1
+    assert lines[-1].startswith("Average")
