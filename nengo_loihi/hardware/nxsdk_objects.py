@@ -332,15 +332,11 @@ class LoihiSpikeInput:
             tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
-                if spike is None:
-                    # This should not happen, because input slices happen when
-                    # connecting into the spike input. If it does, we just skip it.
-                    continue  # pragma: no cover
-
                 self.axon_map.setdefault(input_idx, [])
-                taxon_id = taxon_ids[spike.axon_idx]
+
+                taxon_id = taxon_ids[spike.axon_idx] if spike is not None else None
                 if taxon_id is None:
-                    continue  # this goes to a dummy axon, so do not connect
+                    continue  # this is a dummy axon, so do not connect
 
                 self.axon_map[input_idx].append(
                     np.array(
