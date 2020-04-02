@@ -20,5 +20,6 @@ We compare performance with Nengo core where appropriate.
    examples/keyword-spotting
    examples/mnist-convnet
    examples/cifar10-convnet
+   examples/keras-to-loihi
    examples/adaptive-motor-control
    examples/lmu

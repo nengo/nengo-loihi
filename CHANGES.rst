@@ -56,6 +56,11 @@ Release history
   `new example <https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html>`_
   showing how to map larger convolutional networks to Loihi (applied to CIFAR-10
   dataset). (`#282 <https://github.com/nengo/nengo-loihi/pull/282>`__)
+- Added a
+  `Keras example <https://www.nengo.ai/nengo-loihi/examples/keras-to-loihi.html>`_
+  showing how to directly convert a Keras convolutional network to run on Loihi
+  using the NengoDL Keras Converter.
+  (`#281 <https://github.com/nengo/nengo-loihi/pull/281>`__)
 
 **Changed**
 
