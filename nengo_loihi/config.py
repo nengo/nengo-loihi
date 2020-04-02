@@ -123,8 +123,13 @@ def add_params(network):
         Loihi neuron cores. See `.BlockShape` for more details.
     `nengo.Connection`
       * ``pop_type``: The axon format when using population spikes, which are only
-        used for convolutional connections. Must be an int between 16 and 32.
-        By default, we use ``pop_type`` 32.
+        used for convolutional connections. Must be either the integer 16 or 32.
+        By default, we use ``pop_type`` 32. Using 16 reduces the number of axons
+        required by a factor of two, but has more constraints, including on the
+        number of channels allowed per block. When using ``pop_type`` 16, we
+        recommend to use ``channels_last=True`` and have ``n_filters`` (as well as
+        the number of channels per block) be a multiple of 4 on your
+        convolutional connections; this will reduce the required synapse memory.
 
     Examples
     --------
