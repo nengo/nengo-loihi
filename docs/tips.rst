@@ -60,14 +60,19 @@ dimensions.
 We could also use shapes that are uneven in the spatial dimensions,
 for example 16 x 32 x 2.
 
-If the tiling does not fit. For example,
-a block shape of 15 x 15 x 3 would require 18 cores to tile the image,
-rather than the 8 required by 16 x 16 x 2.
-Furthermore, some of the cores will be very under-utilized,
-because they will be representing, e.g., a 2 x 15 x 1 strip at the edge of the image.
-In this case, it would be better to use a shape of 11 x 11 x 2,
-which would also result in 18 cores being used,
-but would more equally use resources across these cores.
+Furthermore, the block shape does not have to fit evenly into the image shape
+in all (or even any) of the dimensions.
+For example, with a 4 x 4 image, we could choose a block shape of 3 x 3;
+this would result in 4 blocks:
+a 3 x 3 block for the top-left of the image,
+a 3 x 1 block for the top-right,
+a 1 x 3 block for the bottom-left,
+and a 1 x 1 block for the bottom-right.
+In this case, it would be better to use a 2 x 2 block shape,
+which also results in 4 blocks,
+but uses resources more equally across all cores.
+(This assumes that resource constraints are preventing us from using
+e.g. a 2 x 4 or 4 x 4 block shape that would simply use fewer cores.)
 
 The constraints on `.BlockShape` are that each block has to fit on one Loihi core.
 The most basic resource limitation is that the number of neurons (the product of the
