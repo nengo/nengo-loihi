@@ -564,9 +564,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.skipif(  # noqa: C901
-    nengo_transforms is None, reason="Requires new nengo.transforms"
-)
+@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("precompute", [False, True])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
@@ -591,13 +589,11 @@ def test_conv_deepnet(
         if pop_type == 16:
             set_partition("nahuku32")
 
-        def has_nahuku32():
-            return os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
+        has_nahuku32 = os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
 
     else:
         # we're just running in simulation, so no need to skip
-        def has_nahuku32():
-            return True
+        has_nahuku32 = True
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
@@ -719,7 +715,7 @@ def test_conv_deepnet(
 
     # TODO: Remove the if condition when configurable timeout parameter
     # is available in nxsdk
-    if pop_type == 32 or has_nahuku32():
+    if pop_type == 32 or has_nahuku32:
         with Simulator(
             net,
             precompute=precompute,
