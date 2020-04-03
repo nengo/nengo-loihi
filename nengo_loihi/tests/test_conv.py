@@ -564,7 +564,9 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+@pytest.mark.skipif(  # noqa: C901
+    nengo_transforms is None, reason="Requires new nengo.transforms"
+)
 @pytest.mark.parametrize("precompute", [False, True])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
@@ -575,18 +577,27 @@ def test_conv_deepnet(
     Checks that network with block splitting on the target matches one without
     on the emulator.
     """
-    # TODO: This case fails in NxSDK 0.9.0 but will be fixed in the next version.
-    # Remove this check once the next version is released.
-    if pop_type == 32:
-        pytest.skip("Pop32 multichip test requires latest NxSDK")
+    if request.config.getoption("--target") == "loihi":
+        # TODO: This case fails in NxSDK 0.9.0 but will be fixed in the next version.
+        # Remove this check once the next version is released.
+        if pop_type == 32:
+            pytest.skip("Pop32 multichip test requires latest NxSDK")
 
-    def set_partition(partition):
-        os.environ["PARTITION"] = partition
+        def set_partition(partition):
+            os.environ["PARTITION"] = partition
 
-    request.addfinalizer(lambda: set_partition(""))
-    # multichip pop_type = 16 works only on nahuku32 board currently
-    if pop_type == 16:
-        set_partition("nahuku32")
+        request.addfinalizer(lambda: set_partition(""))
+        # multichip pop_type = 16 works only on nahuku32 board currently
+        if pop_type == 16:
+            set_partition("nahuku32")
+
+        def has_nahuku32():
+            return os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
+
+    else:
+        # we're just running in simulation, so no need to skip
+        def has_nahuku32():
+            return True
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
@@ -708,10 +719,7 @@ def test_conv_deepnet(
 
     # TODO: Remove the if condition when configurable timeout parameter
     # is available in nxsdk
-    if (
-        pop_type == 32
-        or os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
-    ):
+    if pop_type == 32 or has_nahuku32():
         with Simulator(
             net,
             precompute=precompute,
