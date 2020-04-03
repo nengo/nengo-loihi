@@ -575,22 +575,26 @@ def test_conv_deepnet(
     Checks that network with block splitting on the target matches one without
     on the emulator.
     """
+
+    def set_partition(partition=os.environ.get("PARTITION", None)):
+        if partition is None:
+            del os.environ["PARTITION"]
+        else:
+            os.environ["PARTITION"] = partition
+
     if request.config.getoption("--target") == "loihi":
         # TODO: This case fails in NxSDK 0.9.0 but will be fixed in the next version.
         # Remove this check once the next version is released.
         if pop_type == 32:
             pytest.skip("Pop32 multichip test requires latest NxSDK")
-
-        def set_partition(partition=""):
-            os.environ["PARTITION"] = partition
-
-        request.addfinalizer(set_partition)
-        # multichip pop_type = 16 works only on nahuku32 board currently
-        if pop_type == 16:
+        elif pop_type == 16:
+            request.addfinalizer(set_partition)
+            # multichip pop_type = 16 works only on nahuku32 board currently
             set_partition("nahuku32")
 
-        has_nahuku32 = os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
-
+            has_nahuku32 = (
+                os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
+            )
     else:
         # we're just running in simulation, so no need to skip
         has_nahuku32 = True
