@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
 import logging
 import os
 from select import select
@@ -12,6 +11,7 @@ import warnings
 import jinja2
 from nengo.exceptions import SimulationError
 import numpy as np
+from packaging.version import parse as parse_version
 
 from nengo_loihi.builder.discretize import scale_pes_errors
 from nengo_loihi.compat import make_process_step
@@ -56,8 +56,8 @@ class HardwareInterface:
     """
 
     connection_retries = 3
-    min_nxsdk_version = LooseVersion("0.8.7")
-    max_nxsdk_version = LooseVersion("0.9.0")
+    min_nxsdk_version = parse_version("0.8.7")
+    max_nxsdk_version = parse_version("0.9.0")
 
     def __init__(
         self,
@@ -129,7 +129,7 @@ class HardwareInterface:
         assert_nxsdk()
 
         # if installed, check version
-        version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
+        version = parse_version(getattr(nxsdk, "__version__", "0.0.0"))
         if version < cls.min_nxsdk_version:
             raise ImportError(
                 "nengo-loihi requires nxsdk>=%s, found %s"

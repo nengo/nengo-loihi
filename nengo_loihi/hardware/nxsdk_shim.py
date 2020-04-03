@@ -1,8 +1,9 @@
-from distutils.version import LooseVersion
 import os
 import shutil
 import sys
 import tempfile
+
+from packaging.version import parse as parse_version
 
 from nengo_loihi.nxsdk_obfuscation import d_get, d_import, d_set
 
@@ -10,7 +11,7 @@ try:
     import nxsdk
 
     nxsdk_dir = os.path.realpath(os.path.join(os.path.dirname(nxsdk.__file__), ".."))
-    nxsdk_version = LooseVersion(getattr(nxsdk, "__version__", "0.0.0"))
+    nxsdk_version = parse_version(getattr(nxsdk, "__version__", "0.0.0"))
     HAS_NXSDK = True
 
     def assert_nxsdk():

@@ -35,6 +35,7 @@ setup_py:
   install_req:
     - jinja2
     - nengo>=2.8.0
+    - packaging
     - scipy>=1.2.1
   docs_req:
     - abr_control
@@ -99,6 +100,7 @@ setup_cfg:
       - abr_control
       - nengo_dl
       - nengo_extras
+      - packaging
   pytest:
     filterwarnings:
       - ignore:Combining two lowpass synapses

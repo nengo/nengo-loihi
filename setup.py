@@ -32,6 +32,7 @@ version = runpy.run_path(os.path.join(root, "nengo_loihi", "version.py"))["versi
 install_req = [
     "jinja2",
     "nengo>=2.8.0",
+    "packaging",
     "scipy>=1.2.1",
 ]
 docs_req = [

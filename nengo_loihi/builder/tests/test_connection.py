@@ -1,13 +1,12 @@
-from distutils.version import LooseVersion
-
 import nengo
 from nengo.exceptions import BuildError
 import numpy as np
+from packaging.version import parse as parse_version
 import pytest
 
 
 @pytest.mark.skipif(
-    LooseVersion(nengo.__version__) <= LooseVersion("2.8.0"),
+    parse_version(nengo.__version__) <= parse_version("2.8.0"),
     reason="requires more recent Nengo version",
 )
 def test_split_conv2d_transform_error(Simulator):

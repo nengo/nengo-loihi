@@ -1,14 +1,14 @@
-from distutils.version import LooseVersion
 import logging
 
 import nengo
 import numpy as np
+from packaging.version import parse as parse_version
 import scipy.sparse
 
 logger = logging.getLogger(__name__)
 
 
-if LooseVersion(nengo.__version__) > LooseVersion("2.8.0"):  # noqa: C901
+if parse_version(nengo.__version__) > parse_version("2.8.0"):  # noqa: C901
     from nengo.builder.network import seed_network
     from nengo.builder.transforms import multiply
     from nengo.simulator import SimulationData as NengoSimulationData
