@@ -581,10 +581,10 @@ def test_conv_deepnet(
         if pop_type == 32:
             pytest.skip("Pop32 multichip test requires latest NxSDK")
 
-        def set_partition(partition):
+        def set_partition(partition=""):
             os.environ["PARTITION"] = partition
 
-        request.addfinalizer(lambda: set_partition(""))
+        request.addfinalizer(set_partition)
         # multichip pop_type = 16 works only on nahuku32 board currently
         if pop_type == 16:
             set_partition("nahuku32")
@@ -614,7 +614,7 @@ def test_conv_deepnet(
         layer = nengo.Ensemble(conv.output_shape.size, 1, label=label)
 
         # connect up the input object to the new layer
-        conn = nengo.Connection(x, layer.neurons, transform=conv)
+        conn = nengo.Connection(x, layer.neurons, transform=conv, **conn_args)
 
         return layer, conv, conn
 
