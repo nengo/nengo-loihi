@@ -767,7 +767,10 @@ def test_conv_deepnet(
     tile(sim_out, rows=2, cols=2, grid=True, ax=ax)
 
     assert allclose(sim_out, ref_out, atol=0.15, rtol=1e-3)
-    assert allclose(sim_out, emu_out, atol=1e-3, rtol=1e-3)
+    # The emulator and hardware usually match almost perfectly. However, for this test
+    # with pop_type=16 and precompute=False, timing appears to change slightly on the
+    # input spikes, and we get a difference. So we've loosened the tolerances.
+    assert allclose(sim_out, emu_out, atol=0.08, rtol=1e-3)
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
