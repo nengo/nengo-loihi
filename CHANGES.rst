@@ -49,6 +49,9 @@ Release history
 - Added ``Model.utilization_summary`` to provide a summary of how much of
   the various resources of each block are utilized.
   (`#279 <https://github.com/nengo/nengo-loihi/pull/279>`__)
+- Added some `new documentation <https://www.nengo.ai/nengo-loihi/tips>`__ focused on
+  mapping large models onto Loihi.
+  (`#279 <https://github.com/nengo/nengo-loihi/pull/279>`__)
 
 **Changed**
 
