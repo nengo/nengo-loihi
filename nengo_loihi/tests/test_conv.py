@@ -564,7 +564,9 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
+@pytest.mark.skipif(  # noqa: C901
+    nengo_transforms is None, reason="Requires new nengo.transforms"
+)
 @pytest.mark.parametrize("precompute", [False, True])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
