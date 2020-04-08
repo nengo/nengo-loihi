@@ -2,6 +2,8 @@ import pytest
 import nengo
 import numpy as np
 
+from nengo_loihi import add_params, BlockShape
+
 
 def test_spike_units(Simulator, seed):
     with nengo.Network(seed=seed) as model:
@@ -136,3 +138,60 @@ def test_probe_filter_twice(plt, seed, Simulator):
     plt.plot(sim1.trange(), sim1.data[probe])
 
     assert np.all(sim0.data[probe] == sim1.data[probe])
+
+
+def test_probe_split_blocks(Simulator, seed, plt):
+    n_neurons = 80
+    gain = np.ones(n_neurons)
+    bias = np.linspace(0, 20, n_neurons)
+    simtime = 0.2
+
+    with nengo.Network(seed=seed) as net:
+        ens = nengo.Ensemble(n_neurons, 1, gain=gain, bias=bias)
+
+        probe = nengo.Probe(ens.neurons)
+
+        probe1_slice = slice(3, 33)
+        probe1 = nengo.Probe(ens.neurons[probe1_slice])
+
+        probe2_slice = slice(7, 52, 3)
+        probe2 = nengo.Probe(ens.neurons[probe2_slice])
+
+        probe3_slice = [2, 5, 17, 21, 36, 49, 52, 69, 73]  # randomly chosen inds
+        probe3 = nengo.Probe(ens.neurons[probe3_slice])
+
+    # run without splitting ensemble
+    with Simulator(net) as sim1:
+        assert len(sim1.model.blocks) == 1
+        sim1.run(simtime)
+
+    # run with splitting ensemble
+    with net:
+        add_params(net)
+        net.config[ens].block_shape = BlockShape((5, 4), (10, 8))
+
+    with Simulator(net) as sim2:
+        assert len(sim2.model.blocks) == 4
+        sim2.run(simtime)
+
+    for k, sim in enumerate((sim1, sim2)):
+        plt.subplot(2, 1, k + 1)
+        plt.plot(bias, sim.data[probe].mean(axis=0))
+        plt.plot(bias[probe1_slice], sim.data[probe1].mean(axis=0))
+        plt.plot(bias[probe2_slice], sim.data[probe2].mean(axis=0), ".")
+        plt.plot(bias[probe3_slice], sim.data[probe3].mean(axis=0), "x")
+
+    # ensure rates increase and not everything is zero
+    for sim in (sim1, sim2):
+        diffs = np.diff(sim.data[probe].mean(axis=0))
+        assert (diffs >= 0).all() and (diffs > 1).sum() > 10
+
+    # ensure slices match unsliced probe
+    for sim in (sim1, sim2):
+        assert np.array_equal(sim.data[probe1], sim.data[probe][:, probe1_slice])
+        assert np.array_equal(sim.data[probe2], sim.data[probe][:, probe2_slice])
+        assert np.array_equal(sim.data[probe3], sim.data[probe][:, probe3_slice])
+
+    # ensure split and unsplit simulators match
+    for p in (probe, probe1, probe2, probe3):
+        assert np.array_equal(sim1.data[p], sim2.data[p])

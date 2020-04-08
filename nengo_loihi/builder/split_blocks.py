@@ -186,7 +186,7 @@ def split_probe(probe, block_map, synapse_map):
         else:
             diffs = np.unique(np.diff(comp_idxs))
             new_slice = (
-                slice(comp_idxs[0], comp_idxs[1] + 1, diffs[0])
+                slice(comp_idxs[0], comp_idxs[-1] + 1, diffs[0])
                 if len(diffs) == 1
                 else comp_idxs
             )

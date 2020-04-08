@@ -125,6 +125,8 @@ Release history
   a NengoLoihi simulator.
   (`#248 <https://github.com/nengo/nengo-loihi/issues/248>`__,
   `#275 <https://github.com/nengo/nengo-loihi/pull/275>`__)
+- Fixed bug when probing sliced objects.
+  (`#284 <https://github.com/nengo/nengo-loihi/pull/284>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

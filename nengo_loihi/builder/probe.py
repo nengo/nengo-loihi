@@ -1,6 +1,5 @@
 import nengo
 from nengo import Ensemble, Connection, Node
-from nengo.base import ObjView
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
@@ -72,15 +71,10 @@ def conn_probe(model, nengo_probe):
     model.seeded[conn] = model.seeded[nengo_probe]
     model.seeds[conn] = model.seeds[nengo_probe]
 
-    if isinstance(nengo_probe.target, ObjView):
-        target_obj = nengo_probe.target.obj
-    else:
-        target_obj = nengo_probe.target
-
     d = conn.size_out
-    if isinstance(target_obj, Ensemble):
+    if isinstance(nengo_probe.obj, Ensemble):
         # probed values are scaled by the target ensemble's radius
-        scale = target_obj.radius
+        scale = nengo_probe.obj.radius
         w = np.diag(scale * np.ones(d))
         weights = np.vstack([w, -w])
     else:
@@ -109,14 +103,14 @@ def signal_probe(model, key, probe):
         assert kwargs["function"] is None
         weights = kwargs["transform"].T / model.dt
 
-    if isinstance(probe.target, nengo.ensemble.Neurons):
+    if isinstance(probe.obj, nengo.ensemble.Neurons):
         if probe.attr == "output":
             if weights is None:
                 # spike probes should give values of 1.0/dt on spike events
                 weights = 1.0 / model.dt
 
-            if hasattr(probe.target.ensemble.neuron_type, "amplitude"):
-                weights *= probe.target.ensemble.neuron_type.amplitude
+            if hasattr(probe.obj.ensemble.neuron_type, "amplitude"):
+                weights *= probe.obj.ensemble.neuron_type.amplitude
 
     # Signal probes directly probe a target signal
     target = model.objs[probe.obj]["out"]

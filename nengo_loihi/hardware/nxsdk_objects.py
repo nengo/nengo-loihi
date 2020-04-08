@@ -157,7 +157,7 @@ class Core:
         for block in self.blocks:
             i1 = i0 + block.compartment.n_compartments
             a1 = a0 + sum(ax.n_axons for ax in block.axons)
-            compartment_idxs = list(range(i0, i1))
+            compartment_idxs = np.arange(i0, i1)
             ax_range = (a0, a1)
             yield block, compartment_idxs, ax_range
             i0 = i1
