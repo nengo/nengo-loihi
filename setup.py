@@ -41,11 +41,12 @@ docs_req = [
     "matplotlib>=2.0",
     "nbsphinx",
     "nbconvert",
-    "nengo-dl",
+    "nengo-dl>=3.2.0",
     "nengo-extras",
     "nengo_sphinx_theme>=0.7",
     "numpydoc>=0.6",
     "sphinx>=1.8",
+    "tensorflow-probability>=0.8.0",
 ]
 optional_req = []
 tests_req = [

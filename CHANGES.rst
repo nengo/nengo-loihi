@@ -52,6 +52,10 @@ Release history
 - Added some `new documentation <https://www.nengo.ai/nengo-loihi/tips>`__ focused on
   mapping large models onto Loihi.
   (`#279 <https://github.com/nengo/nengo-loihi/pull/279>`__)
+- Added a
+  `new example <https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html>`_
+  showing how to map larger convolutional networks to Loihi (applied to CIFAR-10
+  dataset). (`#282 <https://github.com/nengo/nengo-loihi/pull/282>`__)
 
 **Changed**
 

@@ -43,11 +43,12 @@ setup_py:
     - matplotlib>=2.0
     - nbsphinx
     - nbconvert
-    - nengo-dl  # TODO: add >=3.0 when released
+    - nengo-dl>=3.2.0
     - nengo-extras
     - nengo_sphinx_theme>=0.7
     - numpydoc>=0.6
     - sphinx>=1.8
+    - tensorflow-probability>=0.8.0
   tests_req:
     - coverage>=4.3
     - nengo-extras
