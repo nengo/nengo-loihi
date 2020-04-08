@@ -10,16 +10,16 @@ We compare performance with Nengo core where appropriate.
 .. toctree::
    :maxdepth: 1
 
-   examples/communication_channel
+   examples/communication-channel
    examples/integrator
-   examples/integrator_multi_d
+   examples/integrator-multi-d
    examples/oscillator
-   examples/oscillator_nonlinear
-   examples/neuron_to_neuron
-   examples/learn_communication_channel
-   examples/keyword_spotting
-   examples/mnist_convnet
-   examples/adaptive_motor_control
+   examples/oscillator-nonlinear
+   examples/neuron-to-neuron
+   examples/learn-communication-channel
+   examples/keyword-spotting
+   examples/mnist-convnet
+   examples/adaptive-motor-control
    examples/lmu
 
 Model zoo

@@ -18,6 +18,7 @@ extensions = [
     "nbsphinx",
     "nengo_sphinx_theme",
     "nengo_sphinx_theme.ext.backoff",
+    "nengo_sphinx_theme.ext.redirects",
     "numpydoc",
 ]
 
@@ -85,3 +86,16 @@ html_theme_options = {
     "nengo_logo_color": "#127bc1",
     "analytics_id": "UA-41658423-2",
 }
+html_redirects = [
+    ("examples/adaptive_motor_control.html", "examples/adaptive-motor-control.html"),
+    ("examples/communication_channel.html", "examples/communication-channel.html"),
+    ("examples/integrator_multi_d.html", "examples/integrator-multi-d.html"),
+    ("examples/keyword_spotting.html", "examples/keyword-spotting.html"),
+    (
+        "examples/learn_communication_channel.html",
+        "examples/learn-communication-channel.html",
+    ),
+    ("examples/mnist_convnet.html", "examples/mnist-convnet.html"),
+    ("examples/neuron_to_neuron.html", "examples/neuron-to-neuron.html"),
+    ("examples/oscillator_nonlinear.html", "examples/oscillator-nonlinear.html"),
+]
