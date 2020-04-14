@@ -129,6 +129,9 @@ Release history
   (`#284 <https://github.com/nengo/nengo-loihi/pull/284>`__)
 - Fixed bug when connecting to a single neuron ensemble with a single scalar
   weight. (`#287 <https://github.com/nengo/nengo-loihi/pull/287>`__)
+- Added an error if more than 32 "populations" (e.g. convolutional filters) are used
+  with ``pop_type=16`` axons, since this is not yet supported by NxSDK.
+  (`#286 <https://github.com/nengo/nengo-loihi/pull/286>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

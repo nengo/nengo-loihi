@@ -436,6 +436,11 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
     atom_bits = synapse.atom_bits()
     axon_bits = synapse.axon_bits()
     atom_bits_extra = synapse.atom_bits_extra()
+    if atom_bits_extra > 0:
+        raise NotImplementedError(
+            "Using more than 32 'populations' (e.g. convolutional filters) with "
+            "`pop_type=16` axons has not yet been implemented in NxSDK"
+        )
 
     target_compartments = set()
     synapse_map = {}  # map weight_idx to (ptr, pop_size, len)
