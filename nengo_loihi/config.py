@@ -1,4 +1,6 @@
 import nengo
+from nengo import Ensemble
+from nengo.config import InstanceParams
 from nengo.exceptions import ValidationError
 from nengo.params import Parameter
 import numpy as np
@@ -8,7 +10,25 @@ from nengo_loihi.compat import is_integer, nengo_transforms
 
 class BlockShapeParam(Parameter):
     def coerce(self, instance, block_shape):
+        if isinstance(instance, InstanceParams):
+            instance = instance._configures
+
+        assert isinstance(instance, Ensemble), "Not implemented for non-Ensembles"
         self.check_type(instance, block_shape, BlockShape)
+
+        if instance.n_neurons != block_shape.ensemble_size:
+            raise ValidationError(
+                "Block shape ensemble size (`prod(%s) = %d`) must match "
+                "number of ensemble neurons (%d)"
+                % (
+                    list(block_shape.ensemble_shape),
+                    block_shape.ensemble_size,
+                    instance.n_neurons,
+                ),
+                attr=self.name,
+                obj=instance,
+            )
+
         return super().coerce(instance, block_shape)
 
 

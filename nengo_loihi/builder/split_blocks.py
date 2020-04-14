@@ -344,6 +344,7 @@ def split_block(old_block, block_shapes):
             (ceil_div(n_compartments, n_split),), (n_compartments,)
         )
     old_block_shape = block_shapes[old_block]
+    assert old_block_shape.ensemble_size == old_block.n_neurons
 
     # find compartment indices for each new block
     new_block_inds = []

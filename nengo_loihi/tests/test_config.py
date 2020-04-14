@@ -1,7 +1,8 @@
+import nengo
 from nengo.exceptions import ValidationError
 import pytest
 
-from nengo_loihi.config import BlockShape
+from nengo_loihi.config import add_params, BlockShape
 
 
 def test_block_shape_errors():
@@ -13,6 +14,13 @@ def test_block_shape_errors():
 
     with pytest.raises(ValidationError, match="[Mm]ust be the same length"):
         BlockShape((2, 2), (8,))
+
+    with nengo.Network() as net:
+        add_params(net)
+        a = nengo.Ensemble(10, 1)
+
+        with pytest.raises(ValidationError, match="Block shape ensemble size"):
+            net.config[a].block_shape = BlockShape((3, 2), (6, 2))
 
 
 def test_block_shape_1d():
