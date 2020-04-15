@@ -127,6 +127,8 @@ Release history
   `#275 <https://github.com/nengo/nengo-loihi/pull/275>`__)
 - Fixed bug when probing sliced objects.
   (`#284 <https://github.com/nengo/nengo-loihi/pull/284>`__)
+- Fixed bug when connecting to a single neuron ensemble with a single scalar
+  weight. (`#287 <https://github.com/nengo/nengo-loihi/pull/287>`__)
 
 0.10.0 (November 25, 2019)
 ==========================

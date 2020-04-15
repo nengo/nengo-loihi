@@ -28,6 +28,9 @@ def scale_matrix(matrix, scale):
         assert scale.size == matrix.shape[1]
         diag = scipy.sparse.dia_matrix((scale, 0), shape=(scale.size, scale.size))
         return matrix.dot(diag)
+    elif scale.size == 1:
+        # avoid bug where a sparse n x 1 matrix times a 1-vector gives a vector
+        return matrix * scale.item()
     else:
         return matrix * scale
 

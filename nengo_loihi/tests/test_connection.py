@@ -785,3 +785,22 @@ def test_sparse_transforms_empty_neurons(Simulator):
     # only the first and third neurons should get input, not the second
     spikes = (sim.data[probe] > 0).sum(axis=0)
     assert np.array_equal(spikes > 0, [1, 0, 1])
+
+
+def test_single_neuron_connection(Simulator, allclose):
+    """Addresses https://github.com/nengo/nengo-loihi/issues/274"""
+
+    max_rate = 50.0
+    simtime = 0.4
+
+    with nengo.Network() as net:
+        inp = nengo.Node([1.0])
+        ens = nengo.Ensemble(1, 1, max_rates=[max_rate], intercepts=[-1.0])
+        nengo.Connection(inp, ens.neurons, synapse=None)
+        probe = nengo.Probe(ens.neurons)
+
+    with Simulator(net) as sim:
+        sim.run(simtime)
+
+    exp_rate = max_rate * simtime
+    assert allclose((sim.data[probe] > 0).sum(), exp_rate, rtol=0.1)
