@@ -576,11 +576,18 @@ def test_conv_deepnet(
     on the emulator.
     """
 
-    def set_partition(partition=os.environ.get("PARTITION", None)):
-        if partition is None:
-            del os.environ["PARTITION"]
+    def set_os_environ(key, value):
+        if value is None:
+            del os.environ[key]
         else:
-            os.environ["PARTITION"] = partition
+            os.environ[key] = value
+
+    def set_partition(
+        partition=os.environ.get("PARTITION", None),
+        lmt_options=os.environ.get("LMTOPTIONS", None),
+    ):
+        set_os_environ("PARTITION", partition)
+        set_os_environ("LMTOPTIONS", lmt_options)
 
     if request.config.getoption("--target") == "loihi":
         if (
@@ -592,7 +599,7 @@ def test_conv_deepnet(
         elif pop_type == 16:
             request.addfinalizer(set_partition)
             # multichip pop_type = 16 works only on nahuku32 board currently
-            set_partition("nahuku32")
+            set_partition("nahuku32", lmt_options="--skip-power=1")
 
             has_nahuku32 = (
                 os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
