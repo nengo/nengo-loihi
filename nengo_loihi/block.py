@@ -226,8 +226,8 @@ class Compartment:
         self.scale_u = decay_u > self.DECAY_SCALE_TH
         if not self.scale_u:
             raise BuildError(
-                "Current (U) scaling is required. Perhaps a synapse time "
-                "constant is too large in your model."
+                "%s: Current (U) scaling is required. Perhaps a synapse time "
+                "constant is too large in your model." % self
             )
 
     def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001, min_voltage=0):
@@ -255,8 +255,8 @@ class Compartment:
         self.scale_v = np.all(self.decay_v > self.DECAY_SCALE_TH)
         if not self.scale_v:
             raise BuildError(
-                "Voltage (V) scaling is required with LIF neurons. Perhaps "
-                "the neuron tau_rc time constant is too large."
+                "%s: Voltage (V) scaling is required with LIF neurons. Perhaps "
+                "the neuron tau_rc time constant is too large." % self
             )
 
     def configure_nonspiking(self, tau_ref=0.0, vth=1, dt=0.001):

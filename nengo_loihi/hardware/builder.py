@@ -506,7 +506,9 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
                 **{d_compartment_offset: base}
             )
         else:
-            raise BuildError("Synapse: unrecognized pop_type: %s" % (synapse.pop_type,))
+            raise BuildError(
+                "%s: unrecognized pop_type: %s" % (synapse, synapse.pop_type)
+            )
 
         if synapse.learning:
             assert core.stdp_pre_cfg_idx is not None
@@ -611,7 +613,9 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
             else:
                 d_func(nxsdk_core, b"Y3JlYXRlUG9wMzJBeG9u", kwargs=kwargs)
         else:
-            raise BuildError("Axon: unrecognized pop_type: %s" % (synapse.pop_type,))
+            raise BuildError(
+                "%s: unrecognized pop_type: %s" % (synapse, synapse.pop_type)
+            )
 
 
 def build_probe(nxsdk_board, board, probe, use_snips):

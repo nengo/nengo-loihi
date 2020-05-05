@@ -92,7 +92,9 @@ class Cluster:
             if transform.ndim == 0:  # scalar
                 transform = np.eye(size) * transform
             elif transform.ndim != 2:
-                raise BuildError("Unhandled transform shape: %s" % (transform.shape,))
+                raise BuildError(
+                    "%s: Unhandled transform shape: %s" % (node, transform.shape)
+                )
 
             return transform
 
