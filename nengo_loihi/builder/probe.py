@@ -151,7 +151,7 @@ def build_probe(model, probe):
         if isinstance(probe.obj, nengotype):
             break
     else:
-        raise BuildError("Type %r is not probeable" % type(probe.obj).__name__)
+        raise BuildError(f"{probe}: Type '{type(probe.obj).__name__}' is not probeable")
 
     key = probeables[probe.attr] if probe.attr in probeables else probe.attr
     if key is None:

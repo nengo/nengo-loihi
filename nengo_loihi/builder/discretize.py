@@ -311,7 +311,7 @@ def discretize_compartment(comp, w_max):
             if (vth <= vth_max).all() and (np.abs(bias) <= BIAS_MAX).all():
                 break
         else:
-            raise BuildError("Could not find appropriate weight exponent")
+            raise BuildError(f"{comp}: Could not find appropriate weight exponent")
     elif b_max > 1e-8:
         b_scale = BIAS_MAX / b_max
         while b_scale * b_max > 1:
@@ -324,7 +324,7 @@ def discretize_compartment(comp, w_max):
 
             b_scale /= 2.0
         else:
-            raise BuildError("Could not find appropriate bias scaling")
+            raise BuildError(f"{comp}: Could not find appropriate bias scaling")
     else:
         # reduce vth_max in this case to avoid overflow since we're setting
         # all vth to vth_max (esp. in learning with zeroed initial weights)

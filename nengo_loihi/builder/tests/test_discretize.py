@@ -123,23 +123,23 @@ def test_lossy_shift(lossy_shift, rng):
 
 def test_bad_weight_exponent_error(Simulator):
     with nengo.Network() as net:
-        a = nengo.Ensemble(5, 1)
-        b = nengo.Ensemble(5, 1, neuron_type=nengo.LIF(tau_rc=5.0))
+        a = nengo.Ensemble(5, 1, label="a")
+        b = nengo.Ensemble(5, 1, neuron_type=nengo.LIF(tau_rc=5.0), label="b")
         nengo.Connection(
             a.neurons, b.neurons, transform=1e-8 * np.ones((5, 5)), synapse=5.0
         )
 
-    with pytest.raises(BuildError, match="[Cc]ould not find.*weight exp"):
+    with pytest.raises(BuildError, match="Ensemble .b.*Could not find.*weight exp"):
         with Simulator(net):
             pass
 
 
 def test_bad_bias_scaling_error(Simulator):
-    block = LoihiBlock(10)
+    block = LoihiBlock(10, label="mylab")
     block.compartment.configure_lif(tau_rc=5.0, vth=1e8)
     block.compartment.bias[:] = 1000.0
 
-    with pytest.raises(BuildError, match="[Cc]ould not find.*bias scaling"):
+    with pytest.raises(BuildError, match="mylab.*Could not find.*bias scaling"):
         discretize_block(block)
 
 

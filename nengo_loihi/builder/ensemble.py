@@ -54,11 +54,10 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
         if gain is not None and (not np.all(np.isfinite(gain)) or np.any(gain <= 0.0)):
             raise BuildError(
-                "The specified intercepts for %s lead to neurons with "
-                "negative or non-finite gain. Please adjust the intercepts so "
-                "that all gains are positive. For most neuron types (e.g., "
-                "LIF neurons) this is achieved by reducing the maximum "
-                "intercept value to below 1." % ens
+                f"{ens}: The specified intercepts lead to neurons with negative or "
+                "non-finite gain. Please adjust the intercepts so that all gains are "
+                "positive. For most neuron types (e.g., LIF neurons) this is achieved "
+                "by reducing the maximum intercept value to below 1."
             )
 
     return gain, bias, max_rates, intercepts
@@ -85,9 +84,9 @@ def build_ensemble(model, ens):
 
     if np.any(np.isnan(encoders)):
         raise BuildError(
-            "NaNs detected in %r encoders. This usually means that you had zero-length "
-            "encoders that were normalized, resulting in NaNs. Ensure all encoders "
-            "have non-zero length, or set `normalize_encoders=False`." % ens
+            f"{ens}: NaNs detected in encoders. This usually means that you have "
+            "zero-length encoders; when normalized, these result in NaNs. Ensure all "
+            "encoders have non-zero length, or set `normalize_encoders=False`."
         )
 
     # Build the neurons
@@ -134,11 +133,11 @@ def build_neurons(model, neurontype, neurons, block):
     # If we haven't registered a builder for a specific type, then it cannot
     # be simulated on Loihi.
     raise BuildError(
-        "The neuron type %r cannot be simulated on Loihi. Please either "
-        "switch to a supported neuron type like LIF or "
-        "SpikingRectifiedLinear, or explicitly mark ensembles using this "
-        "neuron type as off-chip with\n"
-        "  net.config[ensembles].on_chip = False" % type(neurontype).__name__
+        f"{neurons}: The neuron type '{type(neurontype).__name__}' cannot be "
+        "simulated on Loihi. Please either switch to a supported neuron type like "
+        "LIF or SpikingRectifiedLinear, or explicitly mark ensembles using "
+        "this neuron type as off-chip with\n"
+        "  net.config[ensembles].on_chip = False"
     )
 
 

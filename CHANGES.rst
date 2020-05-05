@@ -33,6 +33,10 @@ Release history
   usage during long runs, by running for a segment of the full run time, recording the
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
 
+**Changed**
+
+- Build errors specify the associated objects, making them easier to debug. (`#289`_)
+
 **Fixed**
 
 - Fixed several issues to ensure that memory is freed when a ``Simulator``
@@ -41,6 +45,7 @@ Release history
   the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
+.. _#289: https://github.com/nengo/nengo-loihi/pull/289
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317

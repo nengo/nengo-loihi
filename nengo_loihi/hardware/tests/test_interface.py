@@ -69,10 +69,10 @@ def test_builder_poptype_errors():
     allocator = Greedy()  # one core per ensemble
     board = allocator(model, n_chips=1)
 
-    with pytest.raises(ValueError, match="[Ss]ynapse.*[Uu]nrec.*pop.*type"):
+    with pytest.raises(ValueError, match="unrecognized pop_type"):
         build_board(board)
 
-    # Test error in collect_axons
+    # Test error in build_axon
     model = Model()
     block0 = LoihiBlock(1)
     block0.compartment.configure_lif()
@@ -94,7 +94,7 @@ def test_builder_poptype_errors():
 
     board = allocator(model, n_chips=1)
 
-    with pytest.raises(ValueError, match="[Aa]xon.*[Uu]nrec.*pop.*type"):
+    with pytest.raises(ValueError, match="unrecognized pop_type"):
         build_board(board)
 
 
