@@ -63,6 +63,13 @@ class Simulator:
         Whether the simulator should target the emulator (``'sim'``) or
         Loihi hardware (``'loihi'``). If None, *target* will default to
         ``'loihi'`` if NxSDK is installed, and the emulator if it is not.
+    progress_bar : bool or `nengo.utils.progress.ProgressBar`, optional
+        Progress bar for displaying build and simulation progress. If ``True``, the
+        default progress bar will be used. If ``False``, the progress bar will be
+        disabled. For more control, pass in a ``ProgressBar`` instance.
+    remove_passthrough : bool, optional
+        Whether to remove passthrough `.Node` objects (i.e. Nodes with ``output=None``
+        that only act as intermediaries between other objects) from the model.
     hardware_options : dict, optional (Default: {})
         Dictionary of additional configuration for the hardware.
         See `.hardware.HardwareInterface` for possible parameters.

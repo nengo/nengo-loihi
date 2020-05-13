@@ -33,8 +33,7 @@ def validate_block(block):
     n_axons = sum(a.axon_slots() for a in block.axons)
     if n_axons > MAX_OUT_AXONS:
         raise BuildError(
-            "Output axons (%d) exceeded max (%d) in %s"
-            % (n_axons, MAX_OUT_AXONS, block)
+            "%s: Output axons (%d) exceeded max (%d)" % (block, n_axons, MAX_OUT_AXONS)
         )
 
     for axon in block.axons:
@@ -44,14 +43,14 @@ def validate_block(block):
     n_axons = sum(s.n_axons for s in block.synapses)
     if n_axons > MAX_IN_AXONS:
         raise BuildError(
-            "Input axons (%d) exceeded max (%d) in %s" % (n_axons, MAX_IN_AXONS, block)
+            "%s: Input axons (%d) exceeded max (%d)" % (block, n_axons, MAX_IN_AXONS)
         )
 
     synapse_bits = sum(s.bits() for s in block.synapses)
     if synapse_bits > MAX_SYNAPSE_BITS:
         raise BuildError(
-            "Total synapse bits (%d) exceeded max (%d) in %s"
-            % (synapse_bits, MAX_SYNAPSE_BITS, block)
+            "%s: Total synapse bits (%d) exceeded max (%d)"
+            % (block, synapse_bits, MAX_SYNAPSE_BITS)
         )
 
     for synapse in block.synapses:
@@ -61,8 +60,8 @@ def validate_block(block):
 def validate_compartment(comp):
     if comp.n_compartments > MAX_COMPARTMENTS:
         raise BuildError(
-            "Number of compartments (%d) exceeded max (%d) in %s"
-            % (comp.n_compartments, MAX_COMPARTMENTS, comp)
+            "%s: Number of compartments (%d) exceeded max (%d)"
+            % (comp, comp.n_compartments, MAX_COMPARTMENTS)
         )
 
 
@@ -82,14 +81,14 @@ def validate_synapse(synapse):
         min_base = d(b"LTE=", int)
         max_base = d(b"MjU2", int)
         assert all(min_base <= b < max_base for b in synapse.axon_compartment_bases), (
-            "compartment base must be >= %d and < %d (-1 indicating unused)"
-            % (min_base, max_base)
+            "%s: compartment base must be >= %d and < %d (-1 indicating unused)"
+            % (synapse, min_base, max_base)
         )
     if synapse.pop_type == 16:
         if synapse.axon_compartment_bases is not None:
             assert all(b % 4 == 0 for b in synapse.axon_compartment_bases if b >= 0), (
-                "Pop16 axons must have all compartment bases modulo 4: %s"
-                % synapse.axon_compartment_bases
+                "%s: Pop16 axons must have all compartment bases modulo 4: %s"
+                % (synapse, synapse.axon_compartment_bases)
             )
 
 
