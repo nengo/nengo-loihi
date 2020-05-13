@@ -152,13 +152,13 @@ def build_host_to_chip(model, conn):
 
     if is_transform_type(conn.transform, "Convolution"):
         raise BuildError(
-            "Conv2D transforms not supported for off-chip to "
-            "on-chip connections where `pre` is not a Neurons object."
+            "Error on %s connection. Conv2D transforms not supported for off-chip to "
+            "on-chip connections where `pre` is not a Neurons object." % conn
         )
     elif not is_transform_type(conn.transform, ("Dense", "NoTransform")):
         raise BuildError(
-            "nengo-loihi does not yet support %r transforms "
-            "on host to chip connections" % (type(conn.transform).__name__,)
+            "Error on %s connection. nengo-loihi does not yet support %r transforms "
+            "on host to chip connections" % (conn, type(conn.transform).__name__,)
         )
 
     # Scale the input spikes based on the radius of the target ensemble
@@ -304,9 +304,8 @@ def build_host_to_learning_rule(model, conn):
     if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
         # TODO: What needs to be done to support this? It looks like it should just work
         raise BuildError(
-            "nengo-loihi does not yet support %r transforms "
-            "on host to chip learning rule connections"
-            % (type(conn.transform).__name__,)
+            "Error on %s connection. nengo-loihi does not yet support %r transforms "
+            "on host to chip connections" % (conn, type(conn.transform).__name__,)
         )
 
     dim = conn.size_out
@@ -359,7 +358,8 @@ def build_decoders(model, conn, rng, sampled_transform):
         # targets = np.dot(targets, transform.T)
         if not is_transform_type(conn.transform, "Dense"):  # pragma: no cover
             raise BuildError(
-                "Non-compositional solvers only work with Dense transforms"
+                "Error on %s connection. Non-compositional solvers only work with "
+                "Dense transforms" % conn
             )
         targets = np.dot(targets, sampled_transform.T)
 
