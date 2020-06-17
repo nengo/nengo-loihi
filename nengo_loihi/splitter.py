@@ -136,10 +136,29 @@ class HostChipSplit:
         # Objects split to the chip.
         self.chip_objs = set()
 
+        # For each object, determine config's `on_chip` value using all parent networks
+        self._config_on_chip = {}
+        self._fill_config_on_chip(network)
+
         # Place objects on host or chip
         self._place_nodes(network)
         self._place_ensembles(network)
         self._place_probes(network)
+
+    def _fill_config_on_chip(self, network, network_stack=()):
+        network_stack = network_stack + (network_stack,)
+
+        for ens in network.ensembles:
+            for net in network_stack[::-1]:
+                on_chip = network.config[ens].on_chip
+                if on_chip is not None:
+                    self._config_on_chip[ens] = on_chip
+                    break  # use setting on deepest sub-network
+            else:
+                self._config_on_chip[ens] = None
+
+        for net in network.networks:
+            self._fill_config_on_chip(net, network_stack=network_stack)
 
     def _place_nodes(self, network):
         """Place nodes. Currently, all nodes go on the host."""
@@ -160,7 +179,7 @@ class HostChipSplit:
 
         # Enforce rules 1 and 2
         for ens in network.all_ensembles:
-            if network.config[ens].on_chip is False or isinstance(
+            if self._config_on_chip[ens] is False or isinstance(
                 ens.neuron_type, Direct
             ):
                 self.host_objs.add(ens)
@@ -176,7 +195,7 @@ class HostChipSplit:
                 and isinstance(post, Ensemble)
                 and post in self.chip_objs
             ):
-                if network.config[post].on_chip:
+                if self._config_on_chip[ens]:
                     raise BuildError(
                         "Post ensemble (%r) of learned connection (%r) must not be "
                         "configured as on_chip." % (post, conn)
