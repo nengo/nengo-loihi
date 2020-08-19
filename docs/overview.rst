@@ -36,7 +36,7 @@ a Loihi model using the following terms.
   We usually assume that your local machine is not the superhost,
   though you can work directly on the superhost.
 
-Nengo Loihi runs on the superhost
+NengoLoihi runs on the superhost
 and will automatically handle the communication
 with the host and board.
 Unless you are setting up a new host and board,
@@ -49,14 +49,14 @@ your local machine and the superhost.
 Software
 ========
 
-Nengo Loihi is a Python package for running
+NengoLoihi is a Python package for running
 Nengo models on Loihi boards.
 It contains a Loihi **emulator backend**
 for rapid model development and easier debugging,
 and a Loihi **hardware backend**
 for running models on a Loihi board.
 
-Nengo Loihi requires the Nengo_
+NengoLoihi requires the Nengo_
 Python package to define large-scale neural models.
 Please refer to the `Nengo documentation <Nengo>`_
 for example models and instructions
@@ -64,22 +64,22 @@ for building your own models.
 
 .. _Nengo: https://www.nengo.ai/nengo/
 
-Nengo and Nengo Loihi's emulator backend
+Nengo and NengoLoihi's emulator backend
 are pure Python packages that use
 `NumPy <http://www.numpy.org/>`_
 to simulate neural models quickly.
 On your local machine,
 you only need to install
-Nengo Loihi and its dependencies,
+NengoLoihi and its dependencies,
 which include Nengo and NumPy.
 See :doc:`installation` for details.
 
-Nengo Loihi's hardware backend
+NengoLoihi's hardware backend
 uses Intel's NxSDK API
 to interact with the host
 and configure the board.
 On the superhost,
-you need to install Nengo Loihi and its dependencies,
+you need to install NengoLoihi and its dependencies,
 as well as NxSDK.
 See :doc:`installation` for details.
 
@@ -87,7 +87,7 @@ Running models
 ==============
 
 While you can use most models constructed
-in Nengo with Nengo Loihi,
+in Nengo with NengoLoihi,
 some models will see degraded performance
 due to the discretization process used to
 convert float values to integers
@@ -105,7 +105,7 @@ for the core Nengo objects,
 resulting in better performance.
 
 After creating the model,
-running it on Nengo Loihi is done by replacing::
+running it on NengoLoihi is done by replacing::
 
   nengo.Simulator(model)
 
@@ -113,7 +113,7 @@ with::
 
   nengo_loihi.Simulator(model)
 
-By default, Nengo Loihi will use the
+By default, NengoLoihi will use the
 hardware backend if it is available.
 You can choose to use the emulator
 even when the hardware backend is installed
@@ -124,4 +124,4 @@ by doing::
 See :doc:`configuration` for advanced configuration options.
 See :doc:`api` for additional options
 and other functions and classes available
-in Nengo Loihi.
+in NengoLoihi.

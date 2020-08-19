@@ -110,4 +110,4 @@ try:
 except Exception as err:  # pragma: no cover
     nengo_dl = None
     HAS_DL = False
-    logger.debug("Error importing Nengo DL:\n%s", err)
+    logger.debug("Error importing NengoDL:\n%s", err)
