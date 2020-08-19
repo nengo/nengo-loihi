@@ -14,11 +14,12 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
-    "sphinx.ext.viewcode",
     "nbsphinx",
     "nengo_sphinx_theme",
     "nengo_sphinx_theme.ext.backoff",
     "nengo_sphinx_theme.ext.redirects",
+    "nengo_sphinx_theme.ext.sourcelinks",
+    "notfound.extension",
     "numpydoc",
 ]
 
@@ -36,7 +37,7 @@ import nengo
 # -- sphinx.ext.intersphinx
 intersphinx_mapping = {
     "nengo": ("https://www.nengo.ai/nengo/", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
 }
@@ -44,11 +45,19 @@ intersphinx_mapping = {
 # -- sphinx.ext.todo
 todo_include_todos = True
 
+# -- nbsphinx
+nbsphinx_timeout = -1
+
+# -- notfound.extension
+notfound_template = "404.html"
+notfound_urls_prefix = "/nengo-loihi/"
+
 # -- numpydoc config
 numpydoc_show_class_members = False
 
-# -- nbsphinx
-nbsphinx_timeout = -1
+# -- nengo_sphinx_theme.ext.sourcelinks
+sourcelinks_module = "nengo_loihi"
+sourcelinks_url = "https://github.com/nengo/nengo-loihi"
 
 # -- sphinx
 nitpicky = True
