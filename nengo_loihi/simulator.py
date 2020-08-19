@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Simulator:
-    """Nengo Loihi simulator for Loihi hardware and emulator.
+    """NengoLoihi simulator for Loihi hardware and emulator.
 
     The simulator takes a `nengo.Network` and builds internal data structures
     to run the model defined by that network on Loihi emulator or hardware.

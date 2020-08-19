@@ -6,7 +6,7 @@ These pages are for Loihi system administrators
 or other individuals who are setting up a Loihi system
 for the first time.
 
-While other parts of Nengo Loihi documentation
+While other parts of NengoLoihi documentation
 are written with enough ambiguity that
 they should work on a variety of different setups,
 this page is specific to certain hardware designs

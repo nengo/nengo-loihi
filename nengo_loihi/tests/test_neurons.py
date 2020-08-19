@@ -198,7 +198,7 @@ def test_lif_min_voltage(Simulator, plt, allclose):
 def rate_nengo_dl_net(
     neuron_type, discretize=True, dt=0.001, nx=256, gain=1.0, bias=0.0
 ):
-    """Create a network for determining rate curves with Nengo DL.
+    """Create a network for determining rate curves with NengoDL.
 
     Arguments
     ---------
