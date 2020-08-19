@@ -439,7 +439,7 @@ docs_conf_py:
     scipy: https://docs.scipy.org/doc/scipy/reference
   nengo_logo: nengo-loihi-full-light.svg
   nengo_logo_color: "#127bc1"
-  analytics_id: UA-41658423-2
+  tagmanager_id: GTM-KWCR2HN
   doctest_setup:
     - import nengo
   html_redirects:

@@ -81,8 +81,16 @@ setup(
         "tests": tests_req,
     },
     python_requires=">=3.4",
-    entry_points={"nengo.backends": ["loihi = nengo_loihi:Simulator",],},
-    package_data={"nengo_loihi": ["nengo_loihi/snips/*",],},
+    entry_points={
+        "nengo.backends": [
+            "loihi = nengo_loihi:Simulator",
+        ],
+    },
+    package_data={
+        "nengo_loihi": [
+            "nengo_loihi/snips/*",
+        ],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Framework :: Nengo",
