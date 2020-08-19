@@ -189,7 +189,7 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
     rasterplot(t, nengosim.data[p_post])
     plt.ylabel("post neuron number")
     plt.subplot(2, 1, 2)
-    plt.title("Nengo Loihi")
+    plt.title("NengoLoihi")
     plt.plot(t, sim.data[p_pre], c="k")
     plt.ylabel("Decoded pre value")
     plt.xlabel("Time (s)")

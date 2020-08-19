@@ -4,7 +4,7 @@ Example models
 
 The following examples are similar
 to the `Nengo core examples <https://www.nengo.ai/nengo/examples.html>`_,
-but run using Nengo Loihi.
+but run using NengoLoihi.
 We compare performance with Nengo core where appropriate.
 
 .. toctree::

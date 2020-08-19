@@ -14,7 +14,7 @@ that has ``pip``.
    pip install nengo-loihi
 
 ``pip`` will do its best to install
-Nengo Loihi's requirements.
+NengoLoihi's requirements.
 If anything goes wrong during this process,
 it is likely related to installing NumPy.
 Follow `our NumPy install instructions
@@ -26,7 +26,7 @@ INRC/Superhost
 
 These steps will take you through
 setting up a Python environment
-for running Nengo Loihi,
+for running NengoLoihi,
 as well as for running models
 using the NxSDK directly.
 
@@ -129,7 +129,7 @@ for running Loihi models.
 
       pip install nxsdk-0.9.0.tar.gz
 
-7. Install Nengo Loihi.
+7. Install NengoLoihi.
 
    .. code-block:: bash
 
@@ -154,7 +154,7 @@ for running Loihi models.
 Developer install
 =================
 
-If you plan to make changes to Nengo Loihi,
+If you plan to make changes to NengoLoihi,
 you should perform a developer install.
 All of the steps above are the same
 with a developer install,

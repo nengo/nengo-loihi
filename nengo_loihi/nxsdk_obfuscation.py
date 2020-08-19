@@ -1,10 +1,10 @@
 """
-Nengo Loihi is a publicly viewable project. NxSDK is not. In order to be able
+NengoLoihi is a publicly viewable project. NxSDK is not. In order to be able
 to construct classes and call function that are part of NxSDK without making
-Nengo Loihi private, we need a mechanism to obfuscate those parts of
-Nengo Loihi.
+NengoLoihi private, we need a mechanism to obfuscate those parts of
+NengoLoihi.
 
-It is not possible to encrypt / compile these parts of Nengo Loihi such that
+It is not possible to encrypt / compile these parts of NengoLoihi such that
 they are unrecoverable; instead, the goal here is to prevent shoulder surfing,
 meaning that anyone wishing to see certain strings that are part of the
 NxSDK API will at least have to take some steps to obtain those strings,

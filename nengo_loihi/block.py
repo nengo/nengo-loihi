@@ -19,7 +19,7 @@ class LoihiBlock:
     """Class holding Loihi objects that can be placed on the chip.
 
     This class can be thought of as a block of the Loihi board, and is how
-    Nengo Loihi keeps track of how Loihi Neuron cores will be configured.
+    NengoLoihi keeps track of how Loihi Neuron cores will be configured.
     Generally, the job of the build process is to convert Nengo objects
     (ensembles, connections, and nodes) to LoihiBlocks, which will then
     be used by the `.EmulatorInterface` or `.HardwareInterface`.

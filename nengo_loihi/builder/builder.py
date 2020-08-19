@@ -83,7 +83,7 @@ class Model:
     label : str or None
         A name or description to differentiate models.
     objs : dict
-        Dictionary mapping from Nengo objects to Nengo Loihi objects.
+        Dictionary mapping from Nengo objects to NengoLoihi objects.
     params : dict
         Mapping from objects to namedtuples containing parameters generated
         in the build process.
@@ -284,7 +284,7 @@ class Builder(NengoBuilder):
 
     We cannot use the Nengo builder as is because we make normal Nengo
     networks for host-to-chip and chip-to-host communication. To keep
-    Nengo and Nengo Loihi builders separate, we make a blank subclass,
+    Nengo and NengoLoihi builders separate, we make a blank subclass,
     which effectively copies the class.
     """
 

@@ -94,7 +94,7 @@ Release history
 - Allocators like ``RoundRobin`` no longer accept the ``n_chips`` parameter.
   Instead, the ``__call__`` method accepts ``n_chips``.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
-- Nengo Loihi now supports NxSDK version 0.9.5.rc1.
+- NengoLoihi now supports NxSDK version 0.9.5.rc1.
   (`#272 <https://github.com/nengo/nengo-loihi/pull/272>`__)
 
 **Removed**
