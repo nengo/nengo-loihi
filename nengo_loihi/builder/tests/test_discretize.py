@@ -16,6 +16,7 @@ from nengo_loihi.builder.discretize import (
     overflow_signed,
 )
 from nengo_loihi.decode_neurons import NoisyDecodeNeurons
+from nengo_loihi.neurons import LoihiLIF
 
 
 @pytest.mark.parametrize("b", (8, 16, 17, 23))
@@ -124,7 +125,7 @@ def test_lossy_shift(lossy_shift, rng):
 def test_bad_weight_exponent_error(Simulator):
     with nengo.Network() as net:
         a = nengo.Ensemble(5, 1)
-        b = nengo.Ensemble(5, 1, neuron_type=nengo.LIF(tau_rc=5.0))
+        b = nengo.Ensemble(5, 1, neuron_type=LoihiLIF(tau_rc=5.0))
         nengo.Connection(
             a.neurons, b.neurons, transform=1e-8 * np.ones((5, 5)), synapse=5.0
         )

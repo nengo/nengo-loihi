@@ -17,15 +17,17 @@ from nengo_loihi.neurons import (
     nengo_rates,
 )
 
+v0_arg = dict(initial_state={"voltage": nengo.dists.Choice([0])})
+
 
 @pytest.mark.parametrize("dt", [3e-4, 1e-3])
 @pytest.mark.parametrize(
     "neuron_type",
     [
-        nengo.LIF(),
-        nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34),
-        nengo.SpikingRectifiedLinear(),
-        nengo.SpikingRectifiedLinear(amplitude=0.23),
+        nengo.LIF(**v0_arg),
+        nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34, **v0_arg),
+        nengo.SpikingRectifiedLinear(**v0_arg),
+        nengo.SpikingRectifiedLinear(amplitude=0.23, **v0_arg),
     ],
 )
 def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
@@ -160,7 +162,7 @@ def test_nengo_dl_neurons(neuron_type, inference_only, Simulator, plt, allclose)
 
 
 def test_lif_min_voltage(Simulator, plt, allclose):
-    neuron_type = nengo.LIF(min_voltage=-0.5)
+    neuron_type = nengo.LIF(min_voltage=-0.5, **v0_arg)
     t_final = 0.4
 
     with nengo.Network() as model:

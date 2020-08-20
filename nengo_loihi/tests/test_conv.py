@@ -27,6 +27,8 @@ from nengo_loihi.probe import LoihiProbe
 home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, "tests")
 
+v0_arg = dict(initial_state={"voltage": nengo.dists.Choice([0])})
+
 
 def make_shape(spatial_shape, n_channels, channels_last):
     s = tuple(spatial_shape)
@@ -234,7 +236,7 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     tau_s = 0.005
     dt = 0.001
 
-    encode_type = nengo.SpikingRectifiedLinear()
+    encode_type = nengo.SpikingRectifiedLinear(**v0_arg)
     encode_gain = 1.0 / dt
     encode_bias = 0.0
     neuron_type = nengo.LIF(tau_rc=tau_rc, tau_ref=tau_ref)
@@ -537,7 +539,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
         c = nengo.Ensemble(
             transform.output_shape.size,
             1,
-            neuron_type=nengo.LIF(),
+            neuron_type=LoihiLIF(),
             max_rates=nengo.dists.Choice([100]),
             intercepts=nengo.dists.Choice([0]),
         )
@@ -834,7 +836,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
         b = nengo.Ensemble(
             transform.output_shape.size,
             1,
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=nengo.SpikingRectifiedLinear(**v0_arg),
             max_rates=nengo.dists.Choice([50]),
             intercepts=nengo.dists.Choice([0]),
         )
@@ -864,7 +866,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
             c = nengo.Ensemble(
                 transform_xy.output_shape.size,
                 1,
-                neuron_type=nengo.LIF(),
+                neuron_type=LoihiLIF(),
                 max_rates=nengo.dists.Choice([15]),
                 intercepts=nengo.dists.Choice([0]),
             )
@@ -946,7 +948,7 @@ def test_conv_preslice(on_chip, Simulator, plt):
 
     input_gain = 149.0
 
-    neuron_type = nengo.SpikingRectifiedLinear()
+    neuron_type = nengo.SpikingRectifiedLinear(**v0_arg)
     loihi_neuron = LoihiSpikingRectifiedLinear()
     layer0_neuron = loihi_neuron if on_chip else neuron_type
 
@@ -1024,7 +1026,7 @@ def test_conv_onchip(Simulator, plt):
     input_scale = 119.0
     bias = input_scale * image.ravel()
 
-    neuron_type = nengo.SpikingRectifiedLinear()
+    neuron_type = nengo.SpikingRectifiedLinear(**v0_arg)
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
     y_ref = conv2d.conv2d(
@@ -1094,7 +1096,7 @@ def test_conv_overlap_input(Simulator, plt):
     input_scale = 119.0
     bias = input_scale * image.ravel()
 
-    neuron_type = nengo.SpikingRectifiedLinear()
+    neuron_type = nengo.SpikingRectifiedLinear(**v0_arg)
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
     y_ref = conv2d.conv2d(
@@ -1199,7 +1201,7 @@ def test_chip_population_axons(
     with nengo.Network(seed=0) as net:
         nengo_loihi.add_params(net)
         net.config[nengo.Ensemble].neuron_type = nengo.SpikingRectifiedLinear(
-            amplitude=amp
+            amplitude=amp, **v0_arg
         )
         net.config[nengo.Ensemble].max_rates = nengo.dists.Choice([max_rate])
         net.config[nengo.Ensemble].intercepts = nengo.dists.Choice([0])

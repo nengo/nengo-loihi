@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from nengo_loihi.builder import Model
-from nengo_loihi.neurons import nengo_rates
+from nengo_loihi.neurons import LoihiLIF, LoihiSpikingRectifiedLinear, nengo_rates
 
 
 @pytest.mark.parametrize("tau_ref", [0.001, 0.003, 0.005])
@@ -18,7 +18,7 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
         a = nengo.Ensemble(
             n,
             1,
-            neuron_type=nengo.LIF(tau_ref=tau_ref),
+            neuron_type=LoihiLIF(tau_ref=tau_ref),
             encoders=encoders,
             gain=gain,
             bias=bias,
@@ -62,7 +62,7 @@ def test_relu_response_curves(Simulator, plt, allclose):
         a = nengo.Ensemble(
             n,
             1,
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=LoihiSpikingRectifiedLinear(),
             encoders=encoders,
             gain=gain,
             bias=bias,
@@ -86,7 +86,7 @@ def test_relu_response_curves(Simulator, plt, allclose):
 
 
 @pytest.mark.parametrize("amplitude", (0.1, 0.5, 1))
-@pytest.mark.parametrize("neuron_type", (nengo.SpikingRectifiedLinear, nengo.LIF))
+@pytest.mark.parametrize("neuron_type", (LoihiSpikingRectifiedLinear, LoihiLIF))
 def test_amplitude(Simulator, amplitude, neuron_type, seed, plt, allclose):
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([0.5])
@@ -97,7 +97,7 @@ def test_amplitude(Simulator, amplitude, neuron_type, seed, plt, allclose):
             1,
             gain=np.ones(n),
             bias=np.zeros(n),
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=LoihiSpikingRectifiedLinear(),
         )
         nengo.Connection(a, ens)
 
@@ -169,9 +169,11 @@ def test_radius_probe(Simulator, seed, radius):
             dimensions=1,
             radius=radius,
             intercepts=nengo.dists.Uniform(-0.95, 0.95),
+            neuron_type=LoihiLIF(),
         )
         nengo.Connection(stim, ens)
         p = nengo.Probe(ens, synapse=0.1)
+
     with Simulator(model, precompute=True) as sim:
         sim.run(0.5)
 
@@ -189,12 +191,14 @@ def test_radius_ens_ens(Simulator, seed, radius1, radius2, weights):
             dimensions=1,
             radius=radius1,
             intercepts=nengo.dists.Uniform(-0.95, 0.95),
+            neuron_type=LoihiLIF(),
         )
         b = nengo.Ensemble(
             n_neurons=100,
             dimensions=1,
             radius=radius2,
             intercepts=nengo.dists.Uniform(-0.95, 0.95),
+            neuron_type=LoihiLIF(),
         )
         nengo.Connection(stim, a)
         nengo.Connection(
@@ -205,6 +209,7 @@ def test_radius_ens_ens(Simulator, seed, radius1, radius2, weights):
             solver=nengo.solvers.LstsqL2(weights=weights),
         )
         p = nengo.Probe(b, synapse=0.1)
+
     with Simulator(model, precompute=True) as sim:
         sim.run(0.4)
 

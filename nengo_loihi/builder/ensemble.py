@@ -95,6 +95,8 @@ def build_ensemble(model, ens):
 
     block = LoihiBlock(ens.n_neurons, label="%s" % ens)
     block.compartment.bias[:] = bias
+
+    # build the neuron_type (see builders below)
     model.build(ens.neuron_type, ens.neurons, block)
 
     # set default filter just in case no other filter gets set
@@ -140,8 +142,29 @@ def build_neurons(model, neurontype, neurons, block):
     )
 
 
+def check_state_zero(model, neuron_type, neurons, block):
+    if not hasattr(neuron_type, "make_state"):
+        # we're using a Nengo version before `make_state`
+        return  # pragma: no cover
+
+    seed = model.seeds[neurons.ensemble]
+    seed = seed if seed is None else (seed + 1)
+    rng = np.random.RandomState(seed)
+
+    state_init = neuron_type.make_state(block.n_neurons, rng=rng)
+    for key, value in state_init.items():
+        value = np.asarray(value)
+        if not np.all(value == 0):
+            warnings.warn(
+                "NengoLoihi does not support initial values for %r being non-zero on "
+                "%s neurons. On the chip, all values will be initialized to zero."
+                % (key, type(neuron_type).__name__)
+            )
+
+
 @Builder.register(nengo.LIF)
 def build_lif(model, lif, neurons, block):
+    check_state_zero(model, lif, neurons, block)
     block.compartment.configure_lif(
         tau_rc=lif.tau_rc, tau_ref=lif.tau_ref, min_voltage=lif.min_voltage, dt=model.dt
     )
@@ -149,6 +172,7 @@ def build_lif(model, lif, neurons, block):
 
 @Builder.register(nengo.SpikingRectifiedLinear)
 def build_relu(model, relu, neurons, block):
+    check_state_zero(model, relu, neurons, block)
     block.compartment.configure_relu(
         vth=1.0 / model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
         dt=model.dt,

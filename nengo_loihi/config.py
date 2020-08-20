@@ -189,3 +189,6 @@ def set_defaults():
     """
     nengo.Ensemble.max_rates.default = nengo.dists.Uniform(100, 120)
     nengo.Ensemble.intercepts.default = nengo.dists.Uniform(-1.0, 0.5)
+    nengo.Ensemble.neuron_type.default = nengo.LIF(
+        initial_state={"voltage": nengo.dists.Choice([0])}
+    )

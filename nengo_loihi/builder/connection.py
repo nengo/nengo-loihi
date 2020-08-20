@@ -14,6 +14,7 @@ from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
+import nengo.utils.numpy as npext
 import numpy as np
 import scipy.sparse
 
@@ -48,8 +49,13 @@ logger = logging.getLogger(__name__)
 
 
 def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
-    dest_model.seeded[dest_obj] = src_model.seeded[src_obj]
-    dest_model.seeds[dest_obj] = src_model.seeds[src_obj]
+    _set_seed(dest_model, dest_obj, src_model.seeds[src_obj], src_model.seeded[src_obj])
+
+
+def _set_seed(dest_model, dest_obj, seed, seeded):
+    seed = seed.randint(npext.maxint) if hasattr(seed, "randint") else seed
+    dest_model.seeded[dest_obj] = seeded
+    dest_model.seeds[dest_obj] = seed
 
 
 def _inherit_config(dest_model, dest_obj, src_model, src_obj):
@@ -212,7 +218,7 @@ def build_host_to_chip(model, conn):
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
     ens = model.node_neurons.get_ensemble(dim, add_to_container=False)
     ens.label = None if conn.label is None else "%s_ens" % conn.label
-    _inherit_seed(host, ens, model, conn)
+    _set_seed(host, ens, seed=rng, seeded=model.seeded[conn])
     host.build(ens)
 
     pre2ens = Connection(

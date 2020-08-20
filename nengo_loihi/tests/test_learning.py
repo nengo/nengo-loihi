@@ -7,6 +7,7 @@ import pytest
 
 from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.builder import Model
+from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 
 
 def pes_network(
@@ -358,7 +359,7 @@ def test_drop_trace_spikes(Simulator, seed):
             1,
             gain=nengo.dists.Choice([1]),
             bias=nengo.dists.Choice([2000]),
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=LoihiSpikingRectifiedLinear(),
         )
         b = nengo.Node(size_in=1)
 

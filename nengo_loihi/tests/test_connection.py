@@ -6,13 +6,15 @@ import pytest
 import scipy.sparse
 
 from nengo_loihi.compat import nengo_transforms
-from nengo_loihi.config import add_params
-from nengo_loihi.neurons import nengo_rates
+from nengo_loihi.config import add_params, set_defaults
+from nengo_loihi.neurons import LoihiLIF, LoihiSpikingRectifiedLinear, nengo_rates
 
 
 @pytest.mark.parametrize("weight_solver", [False, True])
 @pytest.mark.parametrize("target_value", [-0.75, 0.4, 1.0])
 def test_ens_ens_constant(allclose, weight_solver, target_value, Simulator, seed, plt):
+    set_defaults()
+
     a_fn = lambda x: x + target_value
     solver = nengo.solvers.LstsqL2(weights=weight_solver)
 
@@ -61,7 +63,7 @@ def test_node_to_neurons(dt, precompute, allclose, Simulator, plt):
     gain = [3] * len(y)
     bias = [0] * len(y)
 
-    neuron_type = nengo.LIF()
+    neuron_type = LoihiLIF()
     z = nengo_rates(neuron_type, y[np.newaxis, :], gain, bias).squeeze(axis=0)
 
     with nengo.Network() as model:
@@ -136,7 +138,7 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, sparse, seed, allclos
         b = nengo.Ensemble(
             nb,
             1,
-            neuron_type=nengo.SpikingRectifiedLinear(),
+            neuron_type=LoihiSpikingRectifiedLinear(),
             gain=np.ones(nb),
             bias=np.zeros(nb),
         )
@@ -159,6 +161,8 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, sparse, seed, allclos
 
 
 def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
+    set_defaults()
+
     with nengo.Network(seed=seed) as net:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
         pre = nengo.Ensemble(20, 1)
@@ -214,6 +218,8 @@ def test_ensemble_to_neurons(Simulator, seed, allclose, plt):
 def test_neurons_to_ensemble_transform(
     pre_on_chip, post_ensemble, Simulator, seed, rng, allclose, plt
 ):
+    set_defaults()
+
     with nengo.Network(seed=seed) as net:
         add_params(net)
 
@@ -263,7 +269,8 @@ def test_neurons_to_ensemble_transform(
 
 
 def test_dists(Simulator, seed):
-    # check that distributions on connection transforms are handled correctly
+    """Check that distributions on connection transforms are handled correctly"""
+    set_defaults()
 
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([1])
@@ -309,6 +316,8 @@ def test_dists(Simulator, seed):
 
 
 def test_long_tau(Simulator):
+    set_defaults()
+
     with nengo.Network() as model:
         u = nengo.Node(0)
         x = nengo.Ensemble(100, 1)
@@ -320,6 +329,8 @@ def test_long_tau(Simulator):
 
 
 def test_zero_activity_error(Simulator):
+    set_defaults()
+
     with nengo.Network() as net:
         a = nengo.Ensemble(
             5,
@@ -337,6 +348,8 @@ def test_zero_activity_error(Simulator):
 
 def test_chip_to_host_function_points(Simulator, seed, plt, allclose):
     """Connection from chip to host that computes a function using points"""
+    set_defaults()
+
     fn = lambda x: -x
     probe_syn = nengo.Lowpass(0.03)
     simtime = 0.3
@@ -367,6 +380,8 @@ def test_chip_to_host_function_points(Simulator, seed, plt, allclose):
 @pytest.mark.parametrize("val", (-0.75, -0.5, 0, 0.5, 0.75))
 @pytest.mark.parametrize("type", ("array", "func"))
 def test_input_node(allclose, Simulator, val, type):
+    set_defaults()
+
     with nengo.Network() as net:
         if type == "array":
             input = [val]
@@ -396,6 +411,8 @@ def test_input_node(allclose, Simulator, val, type):
     "pre_d, post_d, func", [(1, 1, False), (1, 3, False), (3, 1, True), (3, 3, True)]
 )
 def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
+    set_defaults()
+
     simtime = 0.5
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * pre_d)
@@ -456,6 +473,8 @@ def test_ens2node(allclose, Simulator, seed, plt, pre_d, post_d, func):
 
 
 def test_neurons2node(Simulator, seed, plt):
+    set_defaults()
+
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi)])
         p_stim = nengo.Probe(stim)
@@ -491,6 +510,8 @@ def test_neurons2node(Simulator, seed, plt):
     "pre_d, post_d, func", [(1, 1, False), (1, 3, False), (3, 1, True), (3, 3, True)]
 )
 def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
+    set_defaults()
+
     simtime = 0.5
     with nengo.Network(seed=seed) as model:
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)] * pre_d)
@@ -546,6 +567,8 @@ def test_node2ens(allclose, Simulator, seed, plt, pre_d, post_d, func):
 @pytest.mark.filterwarnings("ignore:Model is precomputable.")
 @pytest.mark.parametrize("precompute", [True, False])
 def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
+    set_defaults()
+
     out_synapse = nengo.synapses.Alpha(0.03)
     simtime = 0.6
 
@@ -583,6 +606,7 @@ def test_ens_decoded_on_host(precompute, allclose, Simulator, seed, plt):
 @pytest.mark.parametrize("precompute", [True, False])
 def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     """Ensure that neuron to neuron connections work on and off chip."""
+    set_defaults()
 
     if not seed_ens and nengo.version.version_info <= (2, 8, 0):
         plt.saveas = None
@@ -640,6 +664,8 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_chip_error(Simulator):
+    set_defaults()
+
     with nengo.Network() as net:
         stim = nengo.Node(np.ones(4))
         ens = nengo.Ensemble(100, 2)
@@ -658,6 +684,8 @@ def test_sparse_host_to_chip_error(Simulator):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_chip_to_chip_transform_error(Simulator):
+    set_defaults()
+
     class MyTransform(nengo_transforms.Transform):  # pylint: disable=abstract-method
         """Dummy transform"""
 
@@ -696,6 +724,8 @@ def test_sparse_host_to_learning_rule_error(Simulator):
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_ens_ens(Simulator, seed, plt, allclose):
+    set_defaults()
+
     transform = nengo_transforms.Sparse(
         shape=(2, 3), indices=[[0, 2], [1, 0]], init=[-0.8, 0.6]
     )
@@ -722,7 +752,10 @@ def test_sparse_ens_ens(Simulator, seed, plt, allclose):
     assert allclose(sim.data[bp][:, 1], 0.6 * sim.data[up][:, 0], atol=0.2)
 
 
-def test_input_synapses(Simulator, allclose, plt):
+@pytest.mark.parametrize("reps", list(range(10)))
+def test_input_synapses(reps, Simulator, allclose, plt):
+    set_defaults()
+
     synapse = 0.1
     with nengo.Network() as net:
         stim = nengo.Node(lambda t: 1 if t % 0.5 < 0.25 else 0)
@@ -755,6 +788,8 @@ def test_input_synapses(Simulator, allclose, plt):
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_transforms_empty_neurons(Simulator):
     """Test that sparse transforms work properly, even if some neurons get no input"""
+    set_defaults()
+
     n_neurons = 3
     transform = nengo_transforms.Sparse(
         shape=(n_neurons, n_neurons), indices=[(0, 0), (2, 2)], init=[1, 2]
@@ -789,6 +824,7 @@ def test_sparse_transforms_empty_neurons(Simulator):
 
 def test_single_neuron_connection(Simulator, allclose):
     """Addresses https://github.com/nengo/nengo-loihi/issues/274"""
+    set_defaults()
 
     max_rate = 50.0
     simtime = 0.4

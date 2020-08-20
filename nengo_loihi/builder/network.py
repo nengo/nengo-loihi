@@ -34,8 +34,7 @@ def build_network(
         # Build the extra passthrough connections into the model
         passthrough = model.split.passthrough
         for conn in passthrough.to_add:
-            # Note: connections added by the passthrough splitter do not
-            # respect seeds
+            # Note: connections added by the passthrough splitter do not have seeds
             model.seeds[conn] = None
             model.seeded[conn] = False
             model.build(conn)

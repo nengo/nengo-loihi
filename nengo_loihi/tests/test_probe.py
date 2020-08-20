@@ -3,6 +3,7 @@ import nengo
 import numpy as np
 
 from nengo_loihi import add_params, BlockShape
+from nengo_loihi.neurons import LoihiLIF
 
 
 def test_spike_units(Simulator, seed):
@@ -60,7 +61,7 @@ def test_neuron_probes(precompute, probe_target, Simulator, seed, plt, allclose)
         a = nengo.Ensemble(
             1,
             1,
-            neuron_type=nengo.LIF(min_voltage=-1),
+            neuron_type=LoihiLIF(min_voltage=-1),
             encoders=nengo.dists.Choice([[1]]),
             max_rates=nengo.dists.Choice([100]),
             intercepts=nengo.dists.Choice([0.0]),
