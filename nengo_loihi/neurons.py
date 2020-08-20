@@ -1,3 +1,4 @@
+from nengo.dists import Choice
 from nengo.neurons import LIF, SpikingRectifiedLinear
 import numpy as np
 
@@ -110,6 +111,11 @@ class LoihiLIF(LIF):
         type in ``nengo_dl``.
     """
 
+    state = {
+        "voltage": Choice([0]),
+        "refractory_time": Choice([0]),
+    }
+
     def __init__(
         self,
         tau_rc=0.02,
@@ -117,9 +123,14 @@ class LoihiLIF(LIF):
         min_voltage=0,
         amplitude=1,
         nengo_dl_noise=None,
+        **kwargs
     ):
         super().__init__(
-            tau_rc=tau_rc, tau_ref=tau_ref, min_voltage=min_voltage, amplitude=amplitude
+            tau_rc=tau_rc,
+            tau_ref=tau_ref,
+            min_voltage=min_voltage,
+            amplitude=amplitude,
+            **kwargs,
         )
         self.nengo_dl_noise = nengo_dl_noise
         _install_dl_builders()
@@ -134,7 +145,7 @@ class LoihiLIF(LIF):
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_lif_rates(self, x, gain, bias, dt)
 
-    def step_math(self, dt, J, spiked, voltage, refractory_time):
+    def step(self, dt, J, output, voltage, refractory_time):
         tau_ref = discretize_tau_ref(self.tau_ref, dt)
         tau_rc = discretize_tau_rc(self.tau_rc, dt)
 
@@ -142,12 +153,12 @@ class LoihiLIF(LIF):
         delta_t = (dt - refractory_time).clip(0, dt)
         voltage -= (J - voltage) * np.expm1(-delta_t / tau_rc)
 
-        spiked_mask = voltage > 1
-        spiked[:] = spiked_mask * (self.amplitude / dt)
+        spikes_mask = voltage > 1
+        output[:] = spikes_mask * (self.amplitude / dt)
 
         voltage[voltage < self.min_voltage] = self.min_voltage
-        voltage[spiked_mask] = 0
-        refractory_time[spiked_mask] = tau_ref + dt
+        voltage[spikes_mask] = 0
+        refractory_time[spikes_mask] = tau_ref + dt
 
 
 class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
@@ -159,21 +170,25 @@ class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
     in e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.
     """
 
-    def __init__(self, amplitude=1):
-        super().__init__(amplitude=amplitude)
+    state = {
+        "voltage": Choice([0]),
+    }
+
+    def __init__(self, amplitude=1, **kwargs):
+        super().__init__(amplitude=amplitude, **kwargs)
         _install_dl_builders()
 
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
 
-    def step_math(self, dt, J, spiked, voltage):
+    def step(self, dt, J, output, voltage):
         voltage += J * dt
 
-        spiked_mask = voltage > 1
-        spiked[:] = spiked_mask * (self.amplitude / dt)
+        spikes_mask = voltage > 1
+        output[:] = spikes_mask * (self.amplitude / dt)
 
         voltage[voltage < 0] = 0
-        voltage[spiked_mask] = 0
+        voltage[spikes_mask] = 0
 
 
 class NeuronOutputNoise:

@@ -14,6 +14,7 @@ from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import NoSolver, Solver
+import nengo.utils.numpy as npext
 import numpy as np
 import scipy.sparse
 
@@ -48,8 +49,11 @@ logger = logging.getLogger(__name__)
 
 
 def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
+    seed = src_model.seeds[src_obj]
+    dest_model.seeds[dest_obj] = (
+        np.random.randint(npext.maxint) if seed is None else seed
+    )
     dest_model.seeded[dest_obj] = src_model.seeded[src_obj]
-    dest_model.seeds[dest_obj] = src_model.seeds[src_obj]
 
 
 def _inherit_config(dest_model, dest_obj, src_model, src_obj):

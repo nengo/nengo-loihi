@@ -186,6 +186,10 @@ def set_defaults():
       * ``max_rates``: Set to ``Uniform(low=100, high=120)``
       * ``intercepts``: Set to ``Uniform(low=-0.5, high=0.5)``
 
+    `nengo.LIF` and `nengo.SpikingRectifiedLinear`
+      * ``initial_voltage``: Set to 0
     """
     nengo.Ensemble.max_rates.default = nengo.dists.Uniform(100, 120)
     nengo.Ensemble.intercepts.default = nengo.dists.Uniform(-1.0, 0.5)
+    nengo.LIF.state["voltage"] = nengo.dists.Choice([0])
+    nengo.SpikingRectifiedLinear.state["voltage"] = nengo.dists.Choice([0])

@@ -263,7 +263,7 @@ def test_neurons_to_ensemble_transform(
 
 
 def test_dists(Simulator, seed):
-    # check that distributions on connection transforms are handled correctly
+    """Check that distributions on connection transforms are handled correctly"""
 
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([1])

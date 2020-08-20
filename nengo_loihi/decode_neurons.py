@@ -1,4 +1,5 @@
 from nengo import Ensemble, SpikingRectifiedLinear
+from nengo.dists import Choice
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Synapse
@@ -188,7 +189,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
         return Ensemble(
             n_neurons,
             dim,
-            neuron_type=SpikingRectifiedLinear(),
+            neuron_type=SpikingRectifiedLinear(initial_state={"voltage": Choice([0])}),
             encoders=encoders,
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),
