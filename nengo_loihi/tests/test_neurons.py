@@ -276,28 +276,29 @@ def rate_nengo_dl_net(
 @pytest.mark.parametrize(
     "neuron_type",
     [
-        pytest.param(
-            LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002), marks=pytest.mark.xfail
-        ),
-        pytest.param(
-            LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
-            marks=pytest.mark.xfail,
-        ),
+        LoihiLIF(amplitude=1.0, tau_rc=0.02, tau_ref=0.002),
+        LoihiLIF(amplitude=0.063, tau_rc=0.05, tau_ref=0.001),
         LoihiSpikingRectifiedLinear(),
         LoihiSpikingRectifiedLinear(amplitude=0.42),
     ],
 )
-def test_nengo_dl_neuron_grads(neuron_type, plt):
-    tf = pytest.importorskip("tensorflow")
+def test_nengo_dl_neuron_grads(neuron_type, plt, allclose):
+    pytest.importorskip("tensorflow")
 
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
 
-    with tf.keras.backend.learning_phase_scope(1):
-        with nengo_dl.Simulator(net, dt=net.dt) as sim:
-            sim.run_steps(1, data={net.stim: net.x[None, None, :]})
-            y = sim.data[net.probe][0]
+    with net:
+        nengo_dl.configure_settings(
+            # run with `training=True`
+            learning_phase=True,
+            dtype="float64",
+        )
+
+    with nengo_dl.Simulator(net, dt=net.dt) as sim:
+        sim.run_steps(1, data={net.stim: net.x[None, None, :]})
+        y = sim.data[net.probe][0]
 
     # --- compute spiking rates
     n_spike_steps = 1000
@@ -321,8 +322,7 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
 
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
         assert sim.unroll == 1
-        # note: not actually checking gradients, just using this to get the
-        # gradients
+        # note: not actually checking gradients, just using this to get the gradients
         analytic = sim.check_gradients(inputs=[net.x[None, None, :]], atol=1e10)[
             net.probe
         ]["analytic"][0]
@@ -351,9 +351,9 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
     assert np.all(analytic == 0)
 
     assert y.shape == rates["ref"].shape
-    assert np.allclose(y, rates["ref"], atol=1e-3, rtol=1e-5)
-    assert np.allclose(dy, dy_ref, atol=1e-3, rtol=1e-5)
-    assert np.allclose(y_spikerate, rates["ref"], atol=1, rtol=1e-2)
+    assert allclose(y, rates["ref"], atol=1e-3, rtol=1e-5)
+    assert allclose(dy, dy_ref, atol=1e-3, rtol=1e-5)
+    assert allclose(y_spikerate, rates["ref"], atol=1, rtol=1e-2, record_rmse=False)
 
 
 @pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
@@ -365,21 +365,21 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
         LoihiLIF(amplitude=0.3, nengo_dl_noise=AlphaRCNoise(0.001)),
     ],
 )
-def test_nengo_dl_noise(neuron_type, seed, plt):
-    tf = pytest.importorskip("tensorflow")
+def test_nengo_dl_noise(neuron_type, seed, plt, allclose):
+    pytest.importorskip("tensorflow")
 
     install_dl_builders()
 
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
     n_noise = 1000  # number of noise samples per x point
 
-    with tf.keras.backend.learning_phase_scope(1):
-        with nengo_dl.Simulator(
-            net, dt=net.dt, minibatch_size=n_noise, seed=seed
-        ) as sim:
-            input_data = {net.stim: np.tile(net.x[None, None, :], (n_noise, 1, 1))}
-            sim.step(data=input_data)
-            y = sim.data[net.probe][:, 0, :]
+    with net:
+        nengo_dl.configure_settings(learning_phase=True)  # run with `training=True`
+
+    with nengo_dl.Simulator(net, dt=net.dt, minibatch_size=n_noise, seed=seed) as sim:
+        input_data = {net.stim: np.tile(net.x[None, None, :], (n_noise, 1, 1))}
+        sim.step(data=input_data)
+        y = sim.data[net.probe][:, 0, :]
 
     ymean = y.mean(axis=0)
     y25 = np.percentile(y, 25, axis=0)
@@ -422,9 +422,9 @@ def test_nengo_dl_noise(neuron_type, seed, plt):
     plt.legend()
 
     assert ymean.shape == rates["ref"].shape
-    assert np.allclose(ymean, rates["ref"], atol=mu_atol)
-    assert np.allclose(dy25[x1mask], -exp_model, atol=atol, rtol=rtol)
-    assert np.allclose(dy75[x1mask], exp_model, atol=atol, rtol=rtol)
+    assert allclose(ymean, rates["ref"], atol=mu_atol, record_rmse=False)
+    assert allclose(dy25[x1mask], -exp_model, atol=atol, rtol=rtol, record_rmse=False)
+    assert allclose(dy75[x1mask], exp_model, atol=atol, rtol=rtol, record_rmse=False)
 
 
 def test_no_nengo_dl(Simulator, monkeypatch):
