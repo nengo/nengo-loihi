@@ -508,7 +508,7 @@ ci_scripts:
         - alha
         - hist
   - template: hardware
-    travis_var_key: 11c217ff4863
+    travis_var_key: 2895d60e3414
     coverage: true
     host: loihihost
     pip_install:
