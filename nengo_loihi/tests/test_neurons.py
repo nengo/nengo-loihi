@@ -290,8 +290,11 @@ def test_nengo_dl_neuron_grads(neuron_type, plt, allclose):
     net, rates, lif_kw = rate_nengo_dl_net(neuron_type)
 
     with net:
-        nengo_dl.configure_settings(learning_phase=True)  # run with `training=True`
-        nengo_dl.configure_settings(dtype="float64")
+        nengo_dl.configure_settings(
+            # run with `training=True`
+            learning_phase=True,
+            dtype="float64",
+        )
 
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
         sim.run_steps(1, data={net.stim: net.x[None, None, :]})

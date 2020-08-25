@@ -86,13 +86,7 @@ class NoiseBuilder:
         self.dtype = signals.dtype
         self.np_dtype = self.dtype.as_numpy_dtype()
 
-    def build_step(self, signals):
-        pass
-
-    def build_post(self, signals):
-        pass
-
-    def generate(self, period, tau_rc=None):
+    def build_step(self, period, tau_rc=None):
         """Generate TensorFlow code to implement these noise models.
 
         Parameters
@@ -105,12 +99,15 @@ class NoiseBuilder:
         """
         raise NotImplementedError("Subclass must implement")
 
+    def build_post(self, signals):
+        pass
+
 
 @NoiseBuilder.register(type(None))
 class NoNoiseBuilder(NoiseBuilder):
     """nengo_dl builder for if there is no noise model."""
 
-    def generate(self, period, tau_rc=None):
+    def build_step(self, period, tau_rc=None):
         return tf.math.reciprocal(period)
 
 
@@ -130,7 +127,7 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         )
         self.tau_s = tf.constant(tau_s, dtype=self.dtype)
 
-    def generate(self, period, tau_rc=None):
+    def build_step(self, period, tau_rc=None):
         d = tau_rc - self.tau_s
         u01 = tf.random.uniform(tf.shape(period))
         t = u01 * period
@@ -157,7 +154,7 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
         )
         self.tau_s = tf.constant(tau_s, dtype=self.dtype)
 
-    def generate(self, period, tau_rc=None):
+    def build_step(self, period, tau_rc=None):
         d = tau_rc - self.tau_s
         u01 = tf.random.uniform(tf.shape(period))
         t = u01 * period
@@ -207,7 +204,7 @@ class LoihiLIFBuilder(LIFBuilder):
             tf.math.reciprocal(tf.maximum(J, self.epsilon))
         )
         period = dt * tf.math.ceil(period / dt)
-        loihi_rates = self.spike_noise.generate(period, tau_rc=tau_rc)
+        loihi_rates = self.spike_noise.build_step(period, tau_rc=tau_rc)
         loihi_rates = tf.where(J > self.zero, loihi_rates, self.zeros)
         if self.amplitude is not None:
             loihi_rates *= self.amplitude
