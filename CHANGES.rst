@@ -32,6 +32,7 @@ Release history
 - Added ``Simulator.clear_probes`` to clear probe histories. This can help reduce memory
   usage during long runs, by running for a segment of the full run time, recording the
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
+- Added support for ``padding='same'`` on ``nengo.Convolution`` transforms. (`#297`_)
 
 **Changed**
 
@@ -47,6 +48,7 @@ Release history
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
 .. _#289: https://github.com/nengo/nengo-loihi/pull/289
+.. _#297: https://github.com/nengo/nengo-loihi/pull/297
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317

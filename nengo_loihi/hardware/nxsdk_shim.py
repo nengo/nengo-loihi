@@ -34,7 +34,6 @@ try:
     def assert_nxsdk():
         pass
 
-
 except ImportError:
     HAS_NXSDK = False
     nxsdk = None
