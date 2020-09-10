@@ -4,6 +4,7 @@ import pickle
 import nengo
 from nengo.dists import Choice, Uniform
 from nengo.exceptions import ValidationError
+from nengo._vendor.npconv2d.conv2d import conv2d as np_conv2d
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
 import numpy as np
@@ -37,6 +38,55 @@ def make_shape(spatial_shape, n_channels, channels_last):
 def make_channel_shape(spatial_shape, n_channels, channels_last):
     shape = make_shape(spatial_shape, n_channels, channels_last)
     return nengo.transforms.ChannelShape(shape, channels_last=channels_last)
+
+
+@pytest.mark.parametrize("channels_last", [False, True])
+@pytest.mark.parametrize("padding", ["valid", "same"])
+@pytest.mark.parametrize("strides", [(1, 1), (2, 2), (3, 2)])
+@pytest.mark.parametrize("kernel_size", [(3, 3), (4, 4)])
+@pytest.mark.parametrize("spatial_shape", [(6, 6), (7, 9)])
+def test_conv2d_loihi_weights(
+    spatial_shape, kernel_size, strides, padding, channels_last, rng, allclose
+):
+    spatial_shape = (4, 4)
+    n_channels = 3
+    n_filters = 4
+
+    inp = rng.normal(size=spatial_shape + (n_channels,))
+    kernel = rng.normal(size=kernel_size + (n_channels,) + (n_filters,))
+
+    transform = nengo.Convolution(
+        n_filters,
+        input_shape=make_channel_shape(spatial_shape, n_channels, channels_last),
+        kernel_size=kernel_size,
+        strides=strides,
+        padding=padding,
+        channels_last=channels_last,
+        init=kernel,
+    )
+    ref_out = np_conv2d(inp[None, ...], kernel, pad=padding.upper(), stride=strides)[0]
+    ref_out = ref_out if channels_last else np.transpose(ref_out, (2, 0, 1))
+    assert ref_out.shape == transform.output_shape.shape
+
+    # compute and manually apply Loihi weights
+    weights, indices, axon_to_weight_map, offsets = conv.conv2d_loihi_weights(transform)
+
+    input_pixels = np.prod(spatial_shape)
+    inp_flat = inp.reshape((input_pixels, n_channels))
+
+    out = np.zeros(transform.output_shape.size)
+    for ij in range(input_pixels):
+        w = weights[axon_to_weight_map[ij]]
+        inds = indices[axon_to_weight_map[ij]]
+        offset = offsets[ij]
+        if offset < 0:
+            continue
+
+        for k in range(n_channels):
+            out[offset + inds[k]] += w[k] * inp_flat[ij, k]
+
+    out = out.reshape(transform.output_shape.shape)
+    assert allclose(out, ref_out)
 
 
 @pytest.mark.parametrize(
@@ -94,8 +144,16 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     inp_biases = inp_biases / (inp_biases.max() + 0.001)
 
     # --- compute nengo_loihi outputs
-    ni, nj, nk = inp_biases.shape
-    si, sj, nc, nf = filters.shape
+    ni, nj, _ = inp_biases.shape
+    assert inp_biases.shape[-1] == nc
+    if not channels_last:
+        inp_biases = np.transpose(inp_biases, (2, 0, 1))  # put channels first
+
+    inp_shape = make_channel_shape((ni, nj), nc, channels_last=channels_last)
+
+    si, sj, _, nf = filters.shape
+    assert filters.shape[2] == nc
+
     nij = ni * nj
     nyi = 1 + (ni - si) // sti
     nyj = 1 + (nj - sj) // stj
@@ -105,7 +163,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     model = Model()
 
     # input block
-    inp = LoihiBlock(ni * nj * nk, label="inp")
+    inp = LoihiBlock(inp_shape.size, label="inp")
     model.add_block(inp)
 
     assert inp.n_neurons <= 1024
@@ -113,15 +171,9 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     inp.compartment.bias[:] = inp_biases.ravel()
 
     inp_ax = Axon(nij, label="inp_ax")
-
-    # we always compute the pixel/channel idxs with channels_last=True
-    # (not sure why?), and then set it to the correct value afterwards
-    inp_shape = make_channel_shape((ni, nj), nk, channels_last=True)
     inp_ax.set_compartment_axon_map(
         target_axons=conv.pixel_idxs(inp_shape), atoms=conv.channel_idxs(inp_shape)
     )
-    inp_shape.shape = make_shape((ni, nj), nk, channels_last)
-    inp_shape.channels_last = channels_last
 
     inp.add_axon(inp_ax)
 
@@ -200,7 +252,8 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
 
 @pytest.mark.parametrize("channels_last", (True, False))
-def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
+@pytest.mark.parametrize("padding", ("valid", "same"))
+def test_conv2d_weights(padding, channels_last, request, plt, seed, rng, allclose):
     # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
     require_partition(
         "nahuku32",
@@ -251,8 +304,8 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
 
     # --- compute ideal outputs
     def conv_pm(x, kernel):
-        y0 = scipy.signal.correlate2d(x[0], kernel, mode="valid")[::sti, ::stj]
-        y1 = scipy.signal.correlate2d(x[1], kernel, mode="valid")[::sti, ::stj]
+        y0 = scipy.signal.correlate2d(x[0], kernel, mode=padding)[::sti, ::stj]
+        y1 = scipy.signal.correlate2d(x[1], kernel, mode=padding)[::sti, ::stj]
         return [y0, -y1]
 
     ref_out = np.array([test_x, -test_x])
@@ -273,9 +326,10 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     conv2d_transform = nengo.Convolution(
         8,
         inp_shape,
-        strides=(sti, stj),
-        channels_last=channels_last,
         kernel_size=(7, 7),
+        strides=(sti, stj),
+        padding=padding,
+        channels_last=channels_last,
         init=kernel,
     )
 
@@ -570,10 +624,12 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
 
 @pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
+@pytest.mark.parametrize("padding", ["valid", "same"])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
     channels_last,
     pop_type,
+    padding,
     precompute,
     Simulator,
     request,
@@ -687,6 +743,7 @@ def test_conv_deepnet(
             array_init=filters0,
             strides=(1, 1),
             channels_last=channels_last,
+            padding=padding,
             label="layer0",
             conn_args=dict(synapse=None),
         )
@@ -698,6 +755,7 @@ def test_conv_deepnet(
             array_init=filters1,
             strides=(2, 2),
             channels_last=channels_last,
+            padding=padding,
             label="layer1",
         )
         net.config[layer1].block_shape = nengo_loihi.BlockShape(
@@ -711,6 +769,7 @@ def test_conv_deepnet(
             array_init=filters2,
             strides=(1, 1),
             channels_last=channels_last,
+            padding=padding,
             label="layer2",
         )
         net.config[layer2].block_shape = nengo_loihi.BlockShape(
