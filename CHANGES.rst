@@ -22,7 +22,15 @@ Release history
 1.1.0 (unreleased)
 ==================
 
+*Compatible with Nengo 3.1.0 - 3.2.0*
 
+*Compatible with NxSDK 0.9.0 - 0.9.9*
+
+**Added**
+
+- Added support for ``padding='same'`` on ``nengo.Convolution`` transforms. (`#297`_)
+
+.. _#297: https://github.com/nengo/nengo-loihi/pull/297
 
 1.0.0 (January 20, 2021)
 ========================
