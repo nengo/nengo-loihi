@@ -137,7 +137,6 @@ def pixel_idxs(shape):
 
 
 def conv2d_loihi_weights(transform):
-    assert transform.padding == "valid", "Only 'valid' padding currently implemented"
     assert (
         transform.channels_last == transform.input_shape.channels_last
     ), "Transforms that switch the channel position not yet implemented"
@@ -165,9 +164,26 @@ def conv2d_loihi_weights(transform):
         # if strides == 1 and mode == 'full'
         ri0, ri1 = i + 1 - transform.kernel_size[0], i + 1
         rj0, rj1 = j + 1 - transform.kernel_size[1], j + 1
+        if transform.padding == "same":
+            # these paddings are based off the method used in `nengo._vendor.npconv2d`,
+            # to ensure we perform the same as Nengo transforms
+            pad_i = (
+                (output_rows - 1) * transform.strides[0]
+                + transform.kernel_size[0]
+                - input_rows
+            )
+            pad_j = (
+                (output_cols - 1) * transform.strides[1]
+                + transform.kernel_size[1]
+                - input_cols
+            )
+            ri0 += pad_i // 2
+            ri1 += pad_i // 2
+            rj0 += pad_j // 2
+            rj1 += pad_j // 2
+
         ri = np.arange(ri0, ri1)
         rj = np.arange(rj0, rj1)
-        # ^ TODO: padding
 
         wmask_i = (ri >= 0) & (ri < ri_max) & (ri % transform.strides[0] == 0)
         wmask_j = (rj >= 0) & (rj < rj_max) & (rj % transform.strides[1] == 0)
@@ -204,9 +220,9 @@ def conv2d_loihi_weights(transform):
             # --- determine indices
             # channel inds are zero, since we use same indices for each channel
             channel_inds = np.zeros(n_channels, dtype=int)
-            row_inds = np.arange(wmask_i.sum())
-            col_inds = np.arange(wmask_j.sum())
-            filter_inds = np.arange(n_filters)
+            row_inds = np.arange(wmask_i.sum(), dtype=int)
+            col_inds = np.arange(wmask_j.sum(), dtype=int)
+            filter_inds = np.arange(n_filters, dtype=int)
 
             order = [channel_inds, row_inds, col_inds, filter_inds]
             shape = [n_channels, output_rows, output_cols, n_filters]
@@ -217,7 +233,7 @@ def conv2d_loihi_weights(transform):
                 shape = [shape[i] for i in (0, 3, 1, 2)]
 
             n = len(shape)
-            strides = [np.prod(shape[i + 1 :]) for i in range(n)]
+            strides = [np.prod(shape[i + 1 :], dtype=int) for i in range(n)]
 
             # inds[i_0,...,i_{n-1}] = sum_{k=0}^{n-1} strides[k] * order[k][i_k]
             strided_inds = [

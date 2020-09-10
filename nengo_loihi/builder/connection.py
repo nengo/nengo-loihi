@@ -732,10 +732,6 @@ def build_conv2d_connection(model, transform, conn):
 
     if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
-    if transform.padding != "valid":
-        raise NotImplementedError(
-            "nengo-loihi only supports convolution with 'valid' padding"
-        )
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
