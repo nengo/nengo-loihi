@@ -1,9 +1,8 @@
 import itertools
 
 from nengo.exceptions import ValidationError
+from nengo.transforms import ChannelShape, Convolution
 import numpy as np
-
-from nengo_loihi.compat import nengo_transforms
 
 
 class ImageSlice:
@@ -28,12 +27,7 @@ class ImageSlice:
         col_slice=slice(None),
         channel_slice=slice(None),
     ):
-        if nengo_transforms is None:
-            raise NotImplementedError("ImageSlice requires newer Nengo")
-        if not (
-            isinstance(full_shape, nengo_transforms.ChannelShape)
-            and full_shape.dimensions == 2
-        ):
+        if not (isinstance(full_shape, ChannelShape) and full_shape.dimensions == 2):
             raise ValidationError(
                 "must be 2-D ChannelShape (got %r)" % full_shape,
                 attr="full_shape",
@@ -61,7 +55,7 @@ def split_transform(transform, in_slice=None, out_slice=None):
     a_slice = slice(None)
     b_slice = slice(None)
 
-    if isinstance(transform, nengo_transforms.Convolution):
+    if isinstance(transform, Convolution):
         if in_slice is not None:
             assert in_slice.channel_slice_only()
             a_slice = in_slice.channel_slice
@@ -73,11 +67,11 @@ def split_transform(transform, in_slice=None, out_slice=None):
         kernel = transform.init[:, :, a_slice, b_slice]
         rows, cols = transform.input_shape.spatial_shape
         nc = kernel.shape[2]
-        input_shape = nengo_transforms.ChannelShape(
+        input_shape = ChannelShape(
             (rows, cols, nc) if transform.channels_last else (nc, rows, cols),
             channels_last=transform.channels_last,
         )
-        return nengo_transforms.Convolution(
+        return Convolution(
             kernel.shape[3],
             input_shape,
             strides=transform.strides,

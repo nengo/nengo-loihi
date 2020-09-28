@@ -34,7 +34,7 @@ setup_py:
   include_package_data: True
   install_req:
     - jinja2
-    - nengo>=2.8.0
+    - nengo>=3.1.0
     - packaging
     - scipy>=1.2.1
   docs_req:
@@ -323,12 +323,26 @@ setup_cfg:
         probe bug?
       test_solvers.py::test_nosolver[*:
         NoSolver bug
+      test_learning_rules.py::test_bad_learning_rule_modifies:
+        Exception not implemented
+
+      # reference builder only (often checks signals)
+      test_neurons.py::test_bad_initial_state:
+        No exception for state clobbering 'in' signal
+      test_learning_rules.py::test_pes_pre_post_varieties[*:
+        Model does not have operators
 
       # reset bugs
       test_neurons.py::test_reset*:
         sim.reset not working correctly
 
+      # PES limitations
+      test_learning_rules.py::test_pes_adv_idx:
+        PES does not support connections from Neurons
+
       # non-PES learning rules
+      test_connection.py::test_learning_transform_shape_error:
+        non-PES learning rules not implemented
       test_learning_rules.py::test_unsupervised*:
         non-PES learning rules not implemented
       test_learning_rules.py::test_dt_dependence*:
@@ -336,6 +350,8 @@ setup_cfg:
       test_voja*:
         voja not implemented
       test_learning_rules.py::test_custom_type:
+        non-PES learning rules not implemented
+      test_learning_rules.py::test_rls_*:
         non-PES learning rules not implemented
 
       # Nengo bug
@@ -418,13 +434,17 @@ setup_cfg:
       test_connection.py::test_function_returns_none_error:
         decoded connection optimized away
 
+      # unsupported neuron types
+      test_neurons.py::test_sigmoid_invalid:
+        Sigmoid neurons unsupported
+
       # 1D conv not supported
       test_solvers.py::test_non_compositional_solver_transform_error:
         1D convolution not supported
 
       # sparse transforms not supported
       test_transforms.py::test_sparse[*:
-        sparse transforms not supported
+        sparse transforms not supported on host-chip connections
       # neuron advanced indexing not yet supported
       test_connection.py::test_neuron_advanced_indexing:
         neuron advanced indexing not yet supported
@@ -432,8 +452,18 @@ setup_cfg:
       # dtype not supported
       test_simulator.py::test_dtype[*:
         dtype option not supported
+
+      # negative activities not supported
+      test_solvers.py::test_all_negative_activities[*:
+        Negative activities not supported
+
+      # non-zero initial voltages not supported
+      test_neurons.py::test_initial_state[*:
+        Non-zero initial voltages not supported
+
     allclose_tolerances:
       - tests/test_solvers.py::test_non_compositional_solver[solver0] atol=0.15
+      - tests/test_connection.py::test_configure_weight_solver atol=0.15
 
 docs_conf_py:
   intersphinx_mapping:
@@ -463,20 +493,11 @@ travis_yml:
       script: emulator
     - script: static
     - stage: advanced
-      script: emulator
-      env:
-        NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
-    - script: hardware
+      script: hardware
       python: 3.5.2  # nxsdk requires 3.5.2
       env:
-        NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
         NXSDK_VERSION: 0.9
     - script: docs
-      env:
-        NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
   pypi_user: tbekolay
   deploy_dists:
     - sdist

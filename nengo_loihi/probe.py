@@ -1,7 +1,7 @@
+from nengo.utils.numpy import is_iterable
 import numpy as np
 
 from nengo_loihi.block import LoihiBlock
-from nengo_loihi.compat import is_iterable
 
 
 class LoihiProbe:
