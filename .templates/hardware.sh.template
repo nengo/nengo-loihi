@@ -23,5 +23,5 @@
 
 {% block remote_script %}
 {{ super() }}
-        SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
+        SLURM=1 pytest nengo_loihi --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
 {% endblock %}
