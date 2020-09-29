@@ -323,7 +323,10 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     n_steps = int(pres_time / dt)
     if target == "loihi":
         with HardwareInterface(
-            model, use_snips=False, seed=seed, allocator=RoundRobin(),
+            model,
+            use_snips=False,
+            seed=seed,
+            allocator=RoundRobin(),
         ) as sim:
             sim.run_steps(n_steps)
             sim_out = sim.get_probe_output(out_probe)
@@ -568,7 +571,15 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 @pytest.mark.parametrize("precompute", [False, True])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
-    channels_last, pop_type, precompute, Simulator, request, rng, seed, plt, allclose,
+    channels_last,
+    pop_type,
+    precompute,
+    Simulator,
+    request,
+    rng,
+    seed,
+    plt,
+    allclose,
 ):
     """Run a convolutional network with two layers on the chip.
 

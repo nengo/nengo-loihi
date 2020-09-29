@@ -282,8 +282,7 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
 class LoihiSpikingRectifiedLinearBuilder(
     nengo_dl.neuron_builders.SpikingRectifiedLinearBuilder
 ):
-    """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type.
-    """
+    """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type."""
 
     def __init__(self, ops, signals, config):
         super(LoihiSpikingRectifiedLinearBuilder, self).__init__(ops, signals, config)

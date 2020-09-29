@@ -304,7 +304,8 @@ def test_nengo_dl_neuron_grads(neuron_type, plt):
     x_spikes = net.x + np.zeros((1, n_spike_steps, 1), dtype=net.x.dtype)
     with nengo_dl.Simulator(net, dt=net.dt) as sim:
         sim.run_steps(
-            n_spike_steps, data={net.stim: x_spikes},
+            n_spike_steps,
+            data={net.stim: x_spikes},
         )
         y_spikes = sim.data[net.probe]
         y_spikerate = y_spikes.mean(axis=0)

@@ -668,7 +668,9 @@ class ChipSnips:
 
         # write c file using template
         Snips.render_template(
-            "nengo_learn.c", c_path, header_file=h_filename,
+            "nengo_learn.c",
+            c_path,
+            header_file=h_filename,
         )
 
         # write header file using template

@@ -81,9 +81,11 @@ def validate_synapse(synapse):
     if synapse.axon_compartment_bases is not None:
         min_base = d(b"LTE=", int)
         max_base = d(b"MjU2", int)
-        assert all(min_base <= b < max_base for b in synapse.axon_compartment_bases), (
-            "compartment base must be >= %d and < %d (-1 indicating unused)"
-            % (min_base, max_base)
+        assert all(
+            min_base <= b < max_base for b in synapse.axon_compartment_bases
+        ), "compartment base must be >= %d and < %d (-1 indicating unused)" % (
+            min_base,
+            max_base,
         )
     if synapse.pop_type == 16:
         if synapse.axon_compartment_bases is not None:

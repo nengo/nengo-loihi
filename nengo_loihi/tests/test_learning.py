@@ -128,7 +128,9 @@ def test_pes_overflow(plt, seed, Simulator):
     loihi_model.pes_wgt_exp = -2
 
     with Simulator(
-        model, model=loihi_model, hardware_options={"allocator": RoundRobin()},
+        model,
+        model=loihi_model,
+        hardware_options={"allocator": RoundRobin()},
     ) as loihi_sim:
         loihi_sim.run(simtime)
 
