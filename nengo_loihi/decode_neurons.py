@@ -129,7 +129,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
     """
 
     def __init__(self, pairs_per_dim=1, dt=0.001, rate=None, is_input=False):
-        super(OnOffDecodeNeurons, self).__init__(dt=dt)
+        super().__init__(dt=dt)
 
         self.pairs_per_dim = pairs_per_dim
         self.is_input = is_input
@@ -228,9 +228,7 @@ class NoisyDecodeNeurons(OnOffDecodeNeurons):
     """
 
     def __init__(self, pairs_per_dim, dt=0.001, rate=None, noise_exp=-2.0):
-        super(NoisyDecodeNeurons, self).__init__(
-            pairs_per_dim=pairs_per_dim, dt=dt, rate=rate
-        )
+        super().__init__(pairs_per_dim=pairs_per_dim, dt=dt, rate=rate)
         self.noise_exp = noise_exp  # noise exponent for added voltage noise
 
     def __str__(self):
@@ -243,7 +241,7 @@ class NoisyDecodeNeurons(OnOffDecodeNeurons):
         )
 
     def get_block(self, weights, block_label=None, syn_label=None):
-        block, syn = super(NoisyDecodeNeurons, self).get_block(
+        block, syn = super().get_block(
             weights, block_label=block_label, syn_label=syn_label
         )
 
@@ -263,7 +261,7 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
     """
 
     def __init__(self, dt=0.001, rate=None):
-        super(Preset5DecodeNeurons, self).__init__(pairs_per_dim=5, dt=dt, rate=rate)
+        super().__init__(pairs_per_dim=5, dt=dt, rate=rate)
 
         assert self.pairs_per_dim == 5
         intercepts = np.linspace(-0.8, 0.8, self.pairs_per_dim)
@@ -292,7 +290,7 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
     """
 
     def __init__(self, dt=0.001, rate=None):
-        super(Preset10DecodeNeurons, self).__init__(pairs_per_dim=10, dt=dt, rate=rate)
+        super().__init__(pairs_per_dim=10, dt=dt, rate=rate)
 
         # Parameters determined by hyperopt
         assert self.pairs_per_dim == 10

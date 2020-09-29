@@ -126,7 +126,7 @@ class LoihiLIF(LIF):
 
     @property
     def _argreprs(self):
-        args = super(LoihiLIF, self)._argreprs
+        args = super()._argreprs
         if self.nengo_dl_noise is not None:
             args.append("nengo_dl_noise=%s" % self.nengo_dl_noise)
         return args

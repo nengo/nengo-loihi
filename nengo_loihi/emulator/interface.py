@@ -219,7 +219,7 @@ class CompartmentState(IterableState):
     MAX_DELAY = 1  # delay not yet implemented
 
     def __init__(self, block_info, strict=True):
-        super(CompartmentState, self).__init__(block_info, "compartment", strict=strict)
+        super().__init__(block_info, "compartment", strict=strict)
 
         # Initialize NumPy arrays to store compartment-related data
         self.input = np.zeros((self.MAX_DELAY, self.n_compartments), dtype=self.dtype)
@@ -336,7 +336,7 @@ class NoiseState(IterableState):
     """State representing the noise parameters for all compartments."""
 
     def __init__(self, block_info):
-        super(NoiseState, self).__init__(block_info, "compartment")
+        super().__init__(block_info, "compartment")
         self.enabled = np.full(self.n_compartments, np.nan, dtype=bool)
         self.exp = np.full(self.n_compartments, np.nan, dtype=self.dtype)
         self.mant_offset = np.full(self.n_compartments, np.nan, dtype=self.dtype)
@@ -401,7 +401,7 @@ class SynapseState(IterableState):
     """
 
     def __init__(self, block_info, pes_error_scale=1.0, strict=True):  # noqa: C901
-        super(SynapseState, self).__init__(block_info, "synapses", strict=strict)
+        super().__init__(block_info, "synapses", strict=strict)
 
         self.pes_error_scale = pes_error_scale
 
@@ -555,7 +555,7 @@ class AxonState(IterableState):
     """State representing all (output) Axons."""
 
     def __init__(self, block_info):
-        super(AxonState, self).__init__(block_info, "axons")
+        super().__init__(block_info, "axons")
 
 
 class ProbeState:
