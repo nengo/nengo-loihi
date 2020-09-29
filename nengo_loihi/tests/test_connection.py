@@ -694,34 +694,6 @@ def test_sparse_host_to_learning_rule_error(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
-def test_sparse_ens_ens(Simulator, seed, plt, allclose):
-    transform = nengo_transforms.Sparse(
-        shape=(2, 3), indices=[[0, 2], [1, 0]], init=[-0.8, 0.6]
-    )
-
-    with nengo.Network(seed=seed) as net:
-        u = nengo.Node(lambda t: [np.sin(2 * np.pi * t), t, -np.sin(2 * np.pi * t)])
-        a = nengo.Ensemble(200, 3)
-        b = nengo.Ensemble(200, 2)
-        nengo.Connection(u, a, synapse=None)
-        nengo.Connection(a, b, transform=transform)
-
-        up = nengo.Probe(u, synapse=nengo.synapses.Alpha(0.01))
-        bp = nengo.Probe(b, synapse=nengo.synapses.Alpha(0.01))
-
-    with pytest.warns(UserWarning, match="Converting Sparse transform"):
-        with Simulator(net) as sim:
-            sim.run(0.4)
-
-    matrix = transform.init.toarray()
-    plt.plot(sim.trange(), sim.data[up].dot(matrix.T), "--")
-    plt.plot(sim.trange(), sim.data[bp])
-
-    assert allclose(sim.data[bp][:, 0], -0.8 * sim.data[up][:, 2], atol=0.2)
-    assert allclose(sim.data[bp][:, 1], 0.6 * sim.data[up][:, 0], atol=0.2)
-
-
 def test_input_synapses(Simulator, allclose, plt):
     synapse = 0.1
     with nengo.Network() as net:

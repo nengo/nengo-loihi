@@ -1,6 +1,5 @@
 import copy
 import logging
-import warnings
 
 import nengo
 from nengo import Ensemble, Connection, Node, Probe as NengoProbe
@@ -487,10 +486,9 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         if isinstance(transform, scipy.sparse.spmatrix):
-            warnings.warn(
-                "Converting Sparse transform to Dense to combine with decoders"
+            raise BuildError(
+                "Applying a sparse transform to a decoded connection is not supported"
             )
-            transform = transform.toarray()
 
         eval_points, decoders, solver_info = model.build(
             conn.solver, conn, rng, transform
