@@ -489,9 +489,6 @@ travis_yml:
   jobs:
     - stage: basic
       script: emulator
-      env:
-        # TODO: remove this when NengoDL 3.0 is released
-        NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
     - script: static
     - stage: advanced
       script: emulator
