@@ -494,9 +494,9 @@ travis_yml:
     - script: static
     - stage: advanced
       script: hardware
-      python: 3.5.2  # nxsdk requires 3.5.2
+      python: 3.6.8
       env:
-        NXSDK_VERSION: 0.9
+        NXSDK_VERSION: 0.9.9
     - script: docs
   pypi_user: tbekolay
   deploy_dists:

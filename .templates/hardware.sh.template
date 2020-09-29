@@ -1,27 +1,20 @@
 {% extends "templates/remote.sh.template" %}
 
 {% block remote_install %}
-        # note: this part is just copied from nengo-bones, with the small change below
-        # to use the conda-forge channel
-        echo "$ ({{ host }}) Installing miniconda"
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh --quiet -O miniconda.sh
-        bash miniconda.sh -b -p ./miniconda
-        export PATH="\$PWD/miniconda/bin:\$PATH"
-        # install python from conda-forge, since nxsdk requires 3.5.2 which is no longer
-        # supported in the default channel
-        conda create -y -c conda-forge -n travis-ci-"$TRAVIS_JOB_NUMBER" python="$TRAVIS_PYTHON_VERSION"
-        source activate travis-ci-"$TRAVIS_JOB_NUMBER" || REMOTE_STATUS=1
-        cd {{ pkg }} || REMOTE_STATUS=1
+{{ super() }}
+        export PIP_USE_FEATURE="$PIP_USE_FEATURE"
 
-        echo "$ ({{ host }}) Installing {{ pkg }}"
-        pip install $NENGO_DL_VERSION jupyter
-        pip install -e .[tests]
-        pip install $NENGO_VERSION --upgrade
+        # NxSDK has a number of specific versions it "requires". However, these
+        # requirements do not seem necessary, and they don't play nice with pytest,
+        # so we install NxSDK first and then overwrite these requirements as necessary.
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
         pip install nxsdk-$NXSDK_VERSION.tar.gz
+
+        pip install $NENGO_VERSION $NENGO_DL_VERSION jupyter
+        pip install -e .[tests]
 {% endblock %}
 
 {% block remote_script %}
 {{ super() }}
-        SLURM=1 pytest --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
+        SLURM=1 pytest nengo_loihi --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
 {% endblock %}

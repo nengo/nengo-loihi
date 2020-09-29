@@ -23,7 +23,7 @@ Release history
 ===================
 
 *Compatible with Nengo 3.1.0*
-*Compatible with NxSDK 0.8.7 - 0.9.5*
+*Compatible with NxSDK 0.8.7 - 0.9.9*
 
 **Added**
 
@@ -62,6 +62,8 @@ Release history
   showing how to directly convert a Keras convolutional network to run on Loihi
   using the NengoDL Keras Converter.
   (`#281 <https://github.com/nengo/nengo-loihi/pull/281>`__)
+- Added support for NxSDK 0.9.8 and 0.9.9.
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
 
 **Changed**
 

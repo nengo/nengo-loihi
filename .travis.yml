@@ -37,10 +37,10 @@ jobs:
       SCRIPT="static"
   -
     env:
-      NXSDK_VERSION="0.9"
+      NXSDK_VERSION="0.9.9"
       SCRIPT="hardware"
     stage: advanced
-    python: 3.5.2
+    python: 3.6.8
   -
     env:
       SCRIPT="docs"
