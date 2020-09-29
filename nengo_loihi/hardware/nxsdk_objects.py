@@ -377,7 +377,7 @@ class CompartmentConfig(Config):
     params = ("decay_u", "decay_v", "refract_delay", "enable_noise")
 
     def __init__(self, decay_v, decay_u, refract_delay, enable_noise):
-        super(CompartmentConfig, self).__init__()
+        super().__init__()
         self.decay_v = decay_v
         self.decay_u = decay_u
         self.refract_delay = refract_delay
@@ -397,7 +397,7 @@ class VthConfig(Config):
     params = ("vth",)
 
     def __init__(self, vth):
-        super(VthConfig, self).__init__()
+        super().__init__()
         self.vth = vth
 
 
@@ -405,7 +405,7 @@ class TraceConfig(Config):
     params = ("tau", "spike_int", "spike_frac")
 
     def __init__(self, tau=0, spike_int=0, spike_frac=0):
-        super(TraceConfig, self).__init__()
+        super().__init__()
         self.tau = tau
         self.spike_int = spike_int
         self.spike_frac = spike_frac

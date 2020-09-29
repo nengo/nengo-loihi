@@ -114,7 +114,7 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
     """nengo_dl builder for the LowpassRCNoise model."""
 
     def __init__(self, ops, signals, *args, **kwargs):
-        super(LowpassRCNoiseBuilder, self).__init__(ops, signals, *args, **kwargs)
+        super().__init__(ops, signals, *args, **kwargs)
 
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
@@ -131,8 +131,8 @@ class LowpassRCNoiseBuilder(NoiseBuilder):
         t = u01 * period
         q_rc = tf.exp(-t / tau_rc)
         q_s = tf.exp(-t / self.tau_s)
-        r_rc1 = -(tf.math.expm1(-period / tau_rc))  # 1 - exp(-period/tau_rc)
-        r_s1 = -(tf.math.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
+        r_rc1 = -tf.math.expm1(-period / tau_rc)  # 1 - exp(-period/tau_rc)
+        r_s1 = -tf.math.expm1(-period / self.tau_s)  # 1 - exp(-period/tau_s)
         return (1.0 / d) * (q_rc / r_rc1 - q_s / r_s1)
 
 
@@ -141,7 +141,7 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
     """nengo_dl builder for the AlphaRCNoise model."""
 
     def __init__(self, ops, signals, *args, **kwargs):
-        super(AlphaRCNoiseBuilder, self).__init__(ops, signals, *args, **kwargs)
+        super().__init__(ops, signals, *args, **kwargs)
 
         # tau_s is the time constant of the synaptic filter
         tau_s = np.concatenate(
@@ -158,8 +158,8 @@ class AlphaRCNoiseBuilder(NoiseBuilder):
         t = u01 * period
         q_rc = tf.exp(-t / tau_rc)
         q_s = tf.exp(-t / self.tau_s)
-        r_rc1 = -(tf.math.expm1(-period / tau_rc))  # 1 - exp(-period/tau_rc)
-        r_s1 = -(tf.math.expm1(-period / self.tau_s))  # 1 - exp(-period/tau_s)
+        r_rc1 = -tf.math.expm1(-period / tau_rc)  # 1 - exp(-period/tau_rc)
+        r_s1 = -tf.math.expm1(-period / self.tau_s)  # 1 - exp(-period/tau_s)
 
         pt = tf.where(
             period < 100 * self.tau_s, (period - t) * (1 - r_s1), tf.zeros_like(period)
@@ -180,7 +180,7 @@ class LoihiLIFBuilder(nengo_dl.neuron_builders.LIFBuilder):
     """
 
     def __init__(self, ops, signals, config):
-        super(LoihiLIFBuilder, self).__init__(ops, signals, config)
+        super().__init__(ops, signals, config)
         self.spike_noise = NoiseBuilder.build(ops, signals, config)
 
     def _rate_step(self, J, dt):
@@ -285,7 +285,7 @@ class LoihiSpikingRectifiedLinearBuilder(
     """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type."""
 
     def __init__(self, ops, signals, config):
-        super(LoihiSpikingRectifiedLinearBuilder, self).__init__(ops, signals, config)
+        super().__init__(ops, signals, config)
 
         self.amplitude = signals.op_constant(
             [op.neurons for op in ops],

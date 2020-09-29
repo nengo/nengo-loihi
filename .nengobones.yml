@@ -87,6 +87,7 @@ setup_cfg:
       - consider-using-in
       - expression-not-assigned
       - inconsistent-return-statements
+      - invalid-unary-operand-type
       - logging-not-lazy
       - missing-docstring
       - no-value-for-parameter

@@ -571,7 +571,7 @@ class Timers(Mapping):
         del self._last_start[key]
 
 
-class SimulationData(NengoSimulationData):
+class SimulationData(NengoSimulationData):  # pylint: disable=too-many-ancestors
     """Map from Probe -> ndarray
 
     This is more like a view on the dict that the simulator manipulates.
@@ -581,7 +581,7 @@ class SimulationData(NengoSimulationData):
     """
 
     def __init__(self, raw):
-        super(SimulationData, self).__init__(raw=raw)
+        super().__init__(raw=raw)
         self.fallbacks = []
 
     def add_fallback(self, fallback):
