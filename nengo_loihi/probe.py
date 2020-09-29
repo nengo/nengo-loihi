@@ -98,9 +98,11 @@ class LoihiProbe:
             if slice_ != slice(None):
                 size = np.arange(size)[slice_].size
             if weights is not None and weights.ndim == 2:
-                assert size == weights.shape[0], (
-                    "Sliced compartment size (%d) must match weight input size (%d)"
-                    % (size, weights.shape[0])
+                assert (
+                    size == weights.shape[0]
+                ), "Sliced compartment size (%d) must match weight input size (%d)" % (
+                    size,
+                    weights.shape[0],
                 )
                 size = weights.shape[1]
             sizes.append(size)

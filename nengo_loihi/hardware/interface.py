@@ -667,9 +667,7 @@ class ChipSnips:
         c_path = os.path.join(self.tmp_snip_dir, "nengo_learn_chip_%d.c" % self.idx)
 
         # write c file using template
-        Snips.render_template(
-            "nengo_learn.c", c_path, header_file=h_filename,
-        )
+        Snips.render_template("nengo_learn.c", c_path, header_file=h_filename)
 
         # write header file using template
         Snips.render_template(
