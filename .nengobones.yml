@@ -498,11 +498,11 @@ travis_yml:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
         NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
     - script: hardware
-      python: 3.5.2  # nxsdk requires 3.5.2
+      python: 3.6.8
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
         NENGO_DL_VERSION: git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl
-        NXSDK_VERSION: 0.9
+        NXSDK_VERSION: 0.9.8
     - script: docs
       env:
         NENGO_VERSION: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
