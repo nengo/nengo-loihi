@@ -9,16 +9,21 @@
         export PATH="\$PWD/miniconda/bin:\$PATH"
         # install python from conda-forge, since nxsdk requires 3.5.2 which is no longer
         # supported in the default channel
-        conda create -y -c conda-forge -n travis-ci-"$TRAVIS_JOB_NUMBER" python="$TRAVIS_PYTHON_VERSION"
+        conda create -y -n travis-ci-"$TRAVIS_JOB_NUMBER" python="$TRAVIS_PYTHON_VERSION" pip
         source activate travis-ci-"$TRAVIS_JOB_NUMBER" || REMOTE_STATUS=1
         cd {{ pkg }} || REMOTE_STATUS=1
 
         echo "$ ({{ host }}) Installing {{ pkg }}"
-        pip install $NENGO_DL_VERSION jupyter
-        pip install -e .[tests]
-        pip install $NENGO_VERSION --upgrade
+
+        # NxSDK has a number of specific versions it "requires". However, these
+        # requirements do not seem necessary, and they don't play nice with pytest,
+        # so we install NxSDK first and then overwrite these requirements as necessary.
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
         pip install nxsdk-$NXSDK_VERSION.tar.gz
+
+        pip install $NENGO_VERSION
+        pip install $NENGO_DL_VERSION jupyter
+        pip install -e .[tests]
 {% endblock %}
 
 {% block remote_script %}
