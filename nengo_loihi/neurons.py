@@ -1,5 +1,11 @@
 from nengo.dists import Choice
-from nengo.neurons import LIF, SpikingRectifiedLinear
+from nengo.neurons import (
+    LIF,
+    LIFRate,
+    RectifiedLinear,
+    RegularSpiking,
+    SpikingRectifiedLinear,
+)
 import numpy as np
 
 from nengo_loihi.compat import HAS_TF, tf
@@ -46,24 +52,40 @@ def discretize_tau_ref(tau_ref, dt):
     return dt * lib.round(tau_ref / dt)
 
 
-def loihi_lif_rates(neuron_type, x, gain, bias, dt):
+def loihi_lif_rates(neuron_type, x, gain, bias, dt, amplitude=None):
     tau_ref = discretize_tau_ref(neuron_type.tau_ref, dt)
     tau_rc = discretize_tau_rc(neuron_type.tau_rc, dt)
+    amplitude = neuron_type.amplitude if amplitude is None else amplitude
 
     j = neuron_type.current(x, gain, bias) - 1
     out = np.zeros_like(j)
     period = tau_ref + tau_rc * np.log1p(1.0 / j[j > 0])
-    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    out[j > 0] = (amplitude / dt) / np.ceil(period / dt)
     return out
 
 
-def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt):
-    j = neuron_type.current(x, gain, bias)
+def loihi_spikingrectifiedlinear_rates(neuron_type, x, gain, bias, dt, amplitude=None):
+    amplitude = neuron_type.amplitude if amplitude is None else amplitude
 
+    j = neuron_type.current(x, gain, bias)
     out = np.zeros_like(j)
     period = 1.0 / j[j > 0]
-    out[j > 0] = (neuron_type.amplitude / dt) / np.ceil(period / dt)
+    out[j > 0] = (amplitude / dt) / np.ceil(period / dt)
     return out
+
+
+def loihi_regularspiking_rates(neuron_type, x, gain, bias, dt):
+    base_type = neuron_type.base_type
+    if type(base_type) is LIFRate:
+        return loihi_lif_rates(
+            base_type, x, gain, bias, dt, amplitude=neuron_type.amplitude
+        )
+    elif type(base_type) is RectifiedLinear:
+        return loihi_spikingrectifiedlinear_rates(
+            base_type, x, gain, bias, dt, amplitude=neuron_type.amplitude
+        )
+    else:
+        return neuron_type.rates(x, gain, bias)
 
 
 def _broadcast_rates_inputs(x, gain, bias):
@@ -92,6 +114,7 @@ def nengo_rates(neuron_type, x, gain, bias):
 loihi_rate_functions = {
     LIF: loihi_lif_rates,
     SpikingRectifiedLinear: loihi_spikingrectifiedlinear_rates,
+    RegularSpiking: loihi_regularspiking_rates,
 }
 
 
