@@ -7,7 +7,6 @@ from nengo.exceptions import ValidationError
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
 import numpy as np
-from packaging.version import parse as parse_version
 import pytest
 import scipy.signal
 
@@ -20,9 +19,9 @@ from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
-from nengo_loihi.hardware.nxsdk_shim import nxsdk_version
 from nengo_loihi.neurons import loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear
 from nengo_loihi.probe import LoihiProbe
+from nengo_loihi.utils import require_partition
 
 home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, "tests")
@@ -205,6 +204,14 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
+    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
+    require_partition(
+        "nahuku32",
+        request=request,
+        lmt_options="--skip-power=1",
+        action="fail" if nengo_loihi.version.dev is None else "skip",
+    )
+
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
         y = x.reshape((-1, x.shape[-1]))
@@ -589,37 +596,28 @@ def test_conv_deepnet(
     on the emulator.
     """
 
-    def set_os_environ(key, value):
-        if value is None:
-            del os.environ[key]
-        else:
-            os.environ[key] = value
+    # if request.config.getoption("--target") == "loihi":
+    #     if (
+    #         pop_type == 32
+    #         and nxsdk_version is not None
+    #         and nxsdk_version < parse_version("0.9.5.dev0")
+    #     ):
+    #         pytest.skip("Pop32 multichip test requires NxSDK >= 0.9.5")
+    #     elif pop_type == 16:
+    #         # multichip pop_type = 16 works only on nahuku32 board currently
+    #         require_partition(
+    #             "nahuku32",
+    #             lmt_options="--skip-power=1",
+    #             action="fail" if nengo_loihi.version.dev is None else "skip",
+    #         )
 
-    def set_env(
-        partition=os.environ.get("PARTITION", None),
-        lmt_options=os.environ.get("LMTOPTIONS", None),
-    ):
-        set_os_environ("PARTITION", partition)
-        set_os_environ("LMTOPTIONS", lmt_options)
-
-    if request.config.getoption("--target") == "loihi":
-        if (
-            pop_type == 32
-            and nxsdk_version is not None
-            and nxsdk_version < parse_version("0.9.5.dev0")
-        ):
-            pytest.skip("Pop32 multichip test requires NxSDK >= 0.9.5")
-        elif pop_type == 16:
-            request.addfinalizer(set_env)
-            # multichip pop_type = 16 works only on nahuku32 board currently
-            set_env(partition="nahuku32", lmt_options="--skip-power=1")
-
-            has_nahuku32 = (
-                os.popen("sinfo -h --partition=nahuku32").read().find("idle") > 0
-            )
-    else:
-        # we're just running in simulation, so no need to skip
-        has_nahuku32 = True
+    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
+    require_partition(
+        "nahuku32",
+        request=request,
+        lmt_options="--skip-power=1",
+        action="fail" if nengo_loihi.version.dev is None else "skip",
+    )
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
@@ -739,25 +737,16 @@ def test_conv_deepnet(
         sim_emu.run(pres_time)
         emu_out = (sim_emu.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
-    # TODO: Remove the if condition when configurable timeout parameter
-    # is available in nxsdk
-    if pop_type == 32 or has_nahuku32:
-        with Simulator(
-            net,
-            precompute=precompute,
-            hardware_options={
-                "allocator": RoundRobin(),
-                "snip_max_spikes_per_step": 800,
-            },
-        ) as sim_loihi:
-            sim_loihi.run(pres_time)
-            sim_out = (
-                (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
-            )
-    elif nengo_loihi.version.dev is None:
-        pytest.fail("Pop16 multichip test failed since Nahuku32 is unavailable")
-    else:
-        pytest.skip("Pop16 multichip test skipped since Nahuku32 is unavailable")
+    with Simulator(
+        net,
+        precompute=precompute,
+        hardware_options={
+            "allocator": RoundRobin(),
+            "snip_max_spikes_per_step": 800,
+        },
+    ) as sim_loihi:
+        sim_loihi.run(pres_time)
+        sim_out = (sim_loihi.data[output_p] > 0).sum(axis=0).reshape(output_shape.shape)
 
     out_max = ref_out.max()
     ref_out = ref_out / out_max
