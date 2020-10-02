@@ -1,5 +1,6 @@
 import copy
 import logging
+import warnings
 
 import nengo
 from nengo import Ensemble, Connection, Node, Probe as NengoProbe
@@ -822,6 +823,12 @@ def build_conv2d_connection(model, transform, conn):
     )
     post_obj.add_synapse(synapse)
     model.objs[conn]["weights"] = synapse
+    if synapse.atom_bits_extra() > 0:
+        warnings.warn(
+            "Using more than 32 'populations' (e.g. convolutional filters) with "
+            "`pop_type=16` axons has not yet been implemented in NxSDK. This feature "
+            "is therefore emulator-only."
+        )
 
     target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
     target_axons[conn.pre_slice] = pixel_idxs(input_shape)
