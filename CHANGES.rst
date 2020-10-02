@@ -22,6 +22,7 @@ Release history
 0.11.0 (unreleased)
 ===================
 
+*Compatible with Nengo 3.1.0*
 *Compatible with NxSDK 0.8.7 - 0.9.5*
 
 **Added**
@@ -96,6 +97,8 @@ Release history
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
 - NengoLoihi now supports NxSDK version 0.9.5.rc1.
   (`#272 <https://github.com/nengo/nengo-loihi/pull/272>`__)
+- NengoLoihi now supports Nengo version 3.1. Support for Nengo 3.0 has been dropped.
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
 
 **Removed**
 

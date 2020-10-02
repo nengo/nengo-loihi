@@ -143,10 +143,6 @@ def build_neurons(model, neurontype, neurons, block):
 
 
 def check_state_zero(model, neuron_type, neurons, block):
-    if not hasattr(neuron_type, "make_state"):
-        # we're using a Nengo version before `make_state`
-        return  # pragma: no cover
-
     seed = model.seeds[neurons.ensemble]
     seed = seed if seed is None else (seed + 1)
     rng = np.random.RandomState(seed)
