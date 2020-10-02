@@ -1150,10 +1150,19 @@ def test_conv_overlap_input(Simulator, plt):
 @pytest.mark.target_loihi
 @pytest.mark.parametrize("on_chip", [True, False])
 @pytest.mark.parametrize("precompute", [True, False])
-@pytest.mark.parametrize("pop_type", [16, 32])
-@pytest.mark.parametrize("channels_last", [True, False])
+@pytest.mark.parametrize(
+    "pop_type, channels_last, n_filters0, n_filters1",
+    [
+        (16, True, 4, 4),
+        (32, True, 4, 4),
+        (32, False, 4, 4),
+        (16, True, 36, 36),
+        (32, True, 34, 36),
+        (32, False, 37, 33),
+    ],
+)
 def test_chip_population_axons(
-    on_chip, precompute, pop_type, channels_last, Simulator, rng
+    on_chip, precompute, pop_type, channels_last, n_filters0, n_filters1, Simulator, rng
 ):
     """Check that all types of population axons work as inputs or between cores.
 
@@ -1172,12 +1181,13 @@ def test_chip_population_axons(
 
     if pop_type == 16 and not channels_last:
         pytest.skip("pop16 axons not compatible with single-compartment shifts")
+    if pop_type == 16 and (n_filters0 > 32 or n_filters1 > 32):
+        # see ``test_pop16_extra_atom_bits_error`` below
+        pytest.skip("extra atom bits for pop16 axons not yet implemented in NxSDK")
 
     max_rate = 100
     amp = 1 / max_rate
 
-    n_filters0 = 4
-    n_filters1 = 4
     # 6 x 6 input will have one unused pixel at edge with 3 x 3 kernel and stride 2
     input_shape = (6, 6, 1) if channels_last else (1, 6, 6)
     input_shape = nengo_transforms.ChannelShape(
@@ -1240,6 +1250,37 @@ def test_chip_population_axons(
 
     assert np.all(emulator.data[probe].sum(axis=0) > 0)
     assert np.array_equal(loihi.data[probe], emulator.data[probe])
+
+
+def test_pop16_extra_atom_bits_error(request, Simulator):
+    """pop16 extra atom bits currently not supported on NxSDK (current as of 0.9.8)
+
+    When this feature is enabled on NxSDK, testing for this should be enabled in
+    ``test_chip_population_axons``.
+    """
+    with nengo.Network() as net:
+        nengo_loihi.add_params(net)
+        net.config[nengo.Ensemble].gain = nengo.dists.Choice([1])
+        net.config[nengo.Ensemble].bias = nengo.dists.Choice([0])
+
+        a = nengo.Ensemble(36, 1)
+        b = nengo.Ensemble(36, 1)
+        conn = nengo.Connection(
+            a.neurons,
+            b.neurons,
+            transform=nengo_transforms.Convolution(
+                36, input_shape=(1, 1, 36), kernel_size=(1, 1)
+            ),
+        )
+        net.config[conn].pop_type = 16
+
+    with (
+        pytest.raises(NotImplementedError, match="Using more than 32 'populations'")
+        if request.config.getoption("--target") == "loihi"
+        else pytest.warns(Warning, match="Using more than 32 'populations'")
+    ):
+        with Simulator(net):
+            pass
 
 
 @pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
