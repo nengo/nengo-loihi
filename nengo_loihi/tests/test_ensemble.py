@@ -151,11 +151,44 @@ def test_bad_gain_error(Simulator):
             pass
 
 
-def test_nonloihi_neuron_error(Simulator):
+def test_neuron_build_errors(Simulator):
+    # unsupported neuron type
     with nengo.Network() as net:
         nengo.Ensemble(5, 1, neuron_type=nengo.neurons.Sigmoid(tau_ref=0.005))
 
     with pytest.raises(BuildError, match="type 'Sigmoid' cannot be simulated"):
+        with Simulator(net):
+            pass
+
+    # unsupported RegularSpiking type
+    with nengo.Network() as net:
+        nengo.Ensemble(
+            5, 1, neuron_type=nengo.RegularSpiking(nengo.Sigmoid(tau_ref=0.005))
+        )
+
+    with pytest.raises(BuildError, match="RegularSpiking.*'Sigmoid'.*cannot be simu"):
+        with Simulator(net):
+            pass
+
+    # amplitude with RegularSpiking base type
+    with nengo.Network() as net:
+        nengo.Ensemble(
+            5, 1, neuron_type=nengo.RegularSpiking(nengo.LIFRate(amplitude=0.5))
+        )
+
+    with pytest.raises(BuildError, match="Amplitude is not supported on RegularSpikin"):
+        with Simulator(net):
+            pass
+
+    # non-zero initial voltage warning
+    with nengo.Network() as net:
+        nengo.Ensemble(
+            5,
+            1,
+            neuron_type=nengo.LIF(initial_state={"voltage": nengo.dists.Uniform(0, 1)}),
+        )
+
+    with pytest.warns(Warning, match="initial values for 'voltage' being non-zero"):
         with Simulator(net):
             pass
 

@@ -28,6 +28,12 @@ v0_arg = dict(initial_state={"voltage": nengo.dists.Choice([0])})
         nengo.LIF(tau_ref=0.001, tau_rc=0.07, amplitude=0.34, **v0_arg),
         nengo.SpikingRectifiedLinear(**v0_arg),
         nengo.SpikingRectifiedLinear(amplitude=0.23, **v0_arg),
+        nengo.RegularSpiking(nengo.LIFRate(), **v0_arg),
+        nengo.RegularSpiking(
+            nengo.LIFRate(tau_ref=0.001, tau_rc=0.03), amplitude=0.31, **v0_arg
+        ),
+        nengo.RegularSpiking(nengo.RectifiedLinear(), **v0_arg),
+        nengo.RegularSpiking(nengo.RectifiedLinear(), amplitude=0.46, **v0_arg),
     ],
 )
 def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
@@ -54,17 +60,44 @@ def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
         axis=0
     )
 
+    ref_rates2 = None
+    if isinstance(neuron_type, nengo.RegularSpiking):
+        if isinstance(neuron_type.base_type, nengo.LIFRate):
+            neuron_type2 = nengo.LIF(
+                tau_rc=neuron_type.base_type.tau_rc,
+                tau_ref=neuron_type.base_type.tau_ref,
+                amplitude=neuron_type.amplitude,
+            )
+        elif isinstance(neuron_type.base_type, nengo.RectifiedLinear):
+            neuron_type2 = nengo.SpikingRectifiedLinear(
+                amplitude=neuron_type.amplitude,
+            )
+
+        ref_rates2 = loihi_rates(
+            neuron_type2, x[np.newaxis, :], gain, bias, dt=dt
+        ).squeeze(axis=0)
+
     plt.plot(x, ref_rates, "k", label="predicted")
+    if ref_rates2 is not None:
+        plt.plot(x, ref_rates2, "b", label="predicted-base")
     plt.plot(x, est_rates, "g", label="measured")
     plt.legend(loc="best")
 
     assert ref_rates.shape == est_rates.shape
     assert allclose(est_rates, ref_rates, atol=1, rtol=0, xtol=1)
+    if ref_rates2 is not None:
+        assert allclose(ref_rates2, ref_rates)
 
 
-def test_loihi_rates_other_type(allclose):
+@pytest.mark.parametrize(
+    "neuron_type",
+    [
+        nengo.Sigmoid(),
+        nengo.RegularSpiking(nengo.Sigmoid()),
+    ],
+)
+def test_loihi_rates_other_type(neuron_type, allclose):
     """Test using a neuron type that has no Loihi-specific implementation"""
-    neuron_type = nengo.neurons.Sigmoid()
     x = np.linspace(-7, 10)
     gain, bias = 0.2, 0.4
     dt = 0.002

@@ -173,3 +173,35 @@ def build_relu(model, relu, neurons, block):
         vth=1.0 / model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
         dt=model.dt,
     )
+
+
+@Builder.register(nengo.RegularSpiking)
+def build_regularspiking(model, regularspiking, neurons, block):
+    base = regularspiking.base_type
+    if type(base) not in (nengo.LIFRate, nengo.RectifiedLinear):
+        raise BuildError(
+            "RegularSpiking neurons with %r as a base type cannot be simulated on "
+            "Loihi. Please either switch to a supported base neuron type like "
+            "LIFRate or RectifiedLinear, or explicitly mark ensembles using this "
+            "neuron type as off-chip with\n"
+            "  net.config[ensembles].on_chip = False" % type(base).__name__
+        )
+
+    if base.amplitude != 1:
+        raise BuildError(
+            "Amplitude is not supported on RegularSpiking base types on Loihi, since "
+            "this effectively modifies the `dt` for individual neurons. To change the "
+            "amplitude of output spikes, set `amplitude` on the `RegularSpiking` "
+            "instance instead of the base type instance."
+        )
+
+    check_state_zero(model, regularspiking, neurons, block)
+    if type(base) is nengo.LIFRate:
+        block.compartment.configure_lif(
+            tau_rc=base.tau_rc, tau_ref=base.tau_ref, dt=model.dt
+        )
+    elif type(base) is nengo.RectifiedLinear:
+        block.compartment.configure_relu(
+            vth=1.0 / model.dt,  # so input == 1 -> neuron fires 1/dt steps -> 1 Hz
+            dt=model.dt,
+        )

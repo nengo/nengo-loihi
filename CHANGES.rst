@@ -64,6 +64,10 @@ Release history
   (`#281 <https://github.com/nengo/nengo-loihi/pull/281>`__)
 - Added support for NxSDK 0.9.8 and 0.9.9.
   (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
+- Added support for the ``nengo.RegularSpiking`` neuron type, when using ``LIFRate``
+  or ``RectifiedLinear`` as the base type (these are equivalent to ``LIF`` and
+  ``SpikingRectifiedLinear``, respectively).
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
 
 **Changed**
 
