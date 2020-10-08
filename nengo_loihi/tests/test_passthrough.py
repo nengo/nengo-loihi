@@ -3,7 +3,6 @@ from nengo.exceptions import BuildError
 import numpy as np
 import pytest
 
-from nengo_loihi.compat import transform_array
 from nengo_loihi.decode_neurons import OnOffDecodeNeurons
 from nengo_loihi.passthrough import PassthroughSplit
 from nengo_loihi.splitter import HostChipSplit
@@ -60,7 +59,7 @@ def test_transform_merging(d1, d2, d3):
 
     assert len(split.to_add) == 1
     conn = next(iter(split.to_add))
-    assert np.allclose(transform_array(conn.transform), np.dot(t2, t1))
+    assert np.allclose(conn.transform.init, np.dot(t2, t1))
 
 
 @pytest.mark.parametrize("n_ensembles", [1, 3])
@@ -80,7 +79,7 @@ def test_identity_array(n_ensembles, ens_dimensions):
     for conn in split.to_add:
         assert conn.pre in a.all_ensembles or conn.pre_obj is a.input
         assert conn.post in b.all_ensembles
-        assert np.allclose(transform_array(conn.transform), np.eye(ens_dimensions))
+        assert np.allclose(conn.transform.init, np.eye(ens_dimensions))
         pre.add(conn.pre)
         post.add(conn.post)
     assert len(pre) == n_ensembles
@@ -105,7 +104,7 @@ def test_full_array(n_ensembles, ens_dimensions):
         assert conn.pre in a.all_ensembles
         assert conn.post in b.all_ensembles
         assert np.allclose(
-            transform_array(conn.transform), np.ones((ens_dimensions, ens_dimensions))
+            conn.transform.init, np.ones((ens_dimensions, ens_dimensions))
         )
         pairs.add((conn.pre, conn.post))
     assert len(pairs) == n_ensembles ** 2

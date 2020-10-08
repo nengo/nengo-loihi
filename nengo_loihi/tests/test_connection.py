@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 import scipy.sparse
 
-from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.config import add_params, set_defaults
 from nengo_loihi.neurons import LoihiLIF, LoihiSpikingRectifiedLinear, nengo_rates
 
@@ -112,18 +111,13 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, sparse, seed, allclos
         pre_slice = slice(None)
 
     if sparse != "dense":
-        if nengo_transforms is None:
-            pytest.skip("Sparse matrices require nengo transforms")
-
         shape = (nb, nb)
         data = factor * np.ones(nb)
         rowi = coli = np.arange(nb)
         if sparse == "nengo":
-            transform = nengo_transforms.Sparse(
-                shape, indices=np.array((rowi, coli)).T, init=data
-            )
+            transform = nengo.Sparse(shape, indices=np.array((rowi, coli)).T, init=data)
         elif sparse == "scipy":
-            transform = nengo_transforms.Sparse(
+            transform = nengo.Sparse(
                 shape, init=scipy.sparse.coo_matrix((data, (rowi, coli)), shape=shape)
             )
     else:
@@ -662,7 +656,6 @@ def test_n2n_on_host(precompute, allclose, Simulator, seed_ens, seed, plt):
     assert allclose(sim.data[p_post], sim2.data[p_post], atol=0.1)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_chip_error(Simulator):
     set_defaults()
 
@@ -672,7 +665,7 @@ def test_sparse_host_to_chip_error(Simulator):
         nengo.Connection(
             stim,
             ens,
-            transform=nengo_transforms.Sparse(
+            transform=nengo.Sparse(
                 shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
             ),
         )
@@ -682,11 +675,10 @@ def test_sparse_host_to_chip_error(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_chip_to_chip_transform_error(Simulator):
     set_defaults()
 
-    class MyTransform(nengo_transforms.Transform):  # pylint: disable=abstract-method
+    class MyTransform(nengo.transforms.Transform):  # pylint: disable=abstract-method
         """Dummy transform"""
 
         size_in = 1
@@ -702,7 +694,6 @@ def test_chip_to_chip_transform_error(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_host_to_learning_rule_error(Simulator):
     with nengo.Network() as net:
         err = nengo.Node(np.ones(4))
@@ -712,7 +703,7 @@ def test_sparse_host_to_learning_rule_error(Simulator):
         nengo.Connection(
             err,
             conn.learning_rule,
-            transform=nengo_transforms.Sparse(
+            transform=nengo.Sparse(
                 shape=(2, 4), indices=[[0, 0], [1, 1]], init=[-1, -1]
             ),
         )
@@ -755,13 +746,12 @@ def test_input_synapses(reps, Simulator, allclose, plt):
     assert allclose(ref_filt[t < 0.4], sim_filt[t < 0.4], atol=1.5)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_sparse_transforms_empty_neurons(Simulator):
     """Test that sparse transforms work properly, even if some neurons get no input"""
     set_defaults()
 
     n_neurons = 3
-    transform = nengo_transforms.Sparse(
+    transform = nengo.Sparse(
         shape=(n_neurons, n_neurons), indices=[(0, 0), (2, 2)], init=[1, 2]
     )
 

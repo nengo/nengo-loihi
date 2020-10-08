@@ -6,11 +6,11 @@ import warnings
 
 import nengo
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
+from nengo.simulator import SimulationData as NengoSimulationData
 import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
-from nengo_loihi.compat import NengoSimulationData
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
 

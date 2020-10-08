@@ -5,15 +5,15 @@ import warnings
 import nengo
 from nengo import Ensemble, Connection, Node, Probe as NengoProbe
 from nengo.builder.connection import (
-    build_no_solver as _build_no_solver,
     BuiltConnection,
     get_eval_points,
     get_targets,
 )
+from nengo.builder.transforms import multiply
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
-from nengo.solvers import NoSolver, Solver
+from nengo.solvers import Solver
 import nengo.utils.numpy as npext
 import numpy as np
 import scipy.sparse
@@ -33,10 +33,7 @@ from nengo_loihi.builder.sparse_matrix import (
     stack_matrices,
 )
 from nengo_loihi.compat import (
-    conn_solver,
     is_transform_type,
-    multiply,
-    nengo_transforms,
     sample_transform,
 )
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
@@ -173,9 +170,7 @@ def build_host_to_chip(model, conn):
     if isinstance(conn.post_obj, Ensemble):
         weights = weights / conn.post_obj.radius
 
-    if nengo_transforms is None:  # pragma: no cover
-        transform = weights
-    elif is_transform_type(conn.transform, "NoTransform"):
+    if is_transform_type(conn.transform, "NoTransform"):
         transform = weights  # weights are 1 / (post ensemble radius), if applicable
     else:
         # copy the Transform information, setting `init` to the sampled weights
@@ -403,9 +398,7 @@ def solve_for_decoders(conn, gain, bias, x, targets, rng, dt):
             "ranges of any neurons." % (conn, conn.pre_obj)
         )
 
-    # CHANGE: backwards compatibility for solvers
-    # decoders, solver_info = conn.solver(activities, targets, rng=rng)
-    decoders, solver_info = conn_solver(conn.solver, activities, targets, rng=rng)
+    decoders, solver_info = conn.solver(activities, targets, rng=rng)
 
     return decoders, solver_info
 
@@ -427,14 +420,6 @@ def build_decode_neuron_encoders(model, ens, kind="decode_neuron_encoders"):
 @Builder.register(Solver)
 def build_solver(model, solver, conn, rng, sampled_transform):
     return build_decoders(model, conn, rng, sampled_transform)
-
-
-@Builder.register(NoSolver)
-def build_no_solver(model, solver, conn, rng, sampled_transform):
-    args = (model, solver, conn, rng)
-    if nengo_transforms is None:  # pragma: no cover
-        args += (sampled_transform,)
-    return _build_no_solver(*args)
 
 
 def build_chip_connection(model, conn):
@@ -744,19 +729,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     )
 
 
-def register_transform_builder(attr):
-    if nengo_transforms is not None:
-        transform = getattr(nengo_transforms, attr)
-        return Builder.register(transform)
-    else:  # pragma: no cover
-
-        def register_builder(build_fn):
-            return build_fn
-
-        return register_builder
-
-
-@register_transform_builder("Convolution")
+@Builder.register(nengo.Convolution)
 def build_conv2d_connection(model, transform, conn):
     assert is_transform_type(transform, "Convolution")
 

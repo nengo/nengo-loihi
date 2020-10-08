@@ -15,7 +15,6 @@ from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi import conv
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
-from nengo_loihi.compat import nengo_transforms
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
@@ -37,10 +36,9 @@ def make_shape(spatial_shape, n_channels, channels_last):
 
 def make_channel_shape(spatial_shape, n_channels, channels_last):
     shape = make_shape(spatial_shape, n_channels, channels_last)
-    return nengo_transforms.ChannelShape(shape, channels_last=channels_last)
+    return nengo.transforms.ChannelShape(shape, channels_last=channels_last)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize(
     "pop_type, channels_last, nc",
     [(16, True, 2), (32, True, 1), (32, True, 2), (32, False, 1), (32, False, 2)],
@@ -137,7 +135,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     neurons.compartment.bias[:] = neuron_bias
 
     synapse = Synapse(np.prod(inp_shape.spatial_shape), label="synapse")
-    conv2d_transform = nengo_transforms.Convolution(
+    conv2d_transform = nengo.Convolution(
         nf,
         inp_shape,
         strides=(sti, stj),
@@ -201,7 +199,6 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     assert allclose(sim_out[:, :, 0], ref_out, rtol=0, atol=1e-7)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
@@ -267,13 +264,13 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
 
     # --- compute nengo_loihi outputs
     inp_biases = np.stack([test_x, -test_x], axis=-1 if channels_last else 0)
-    inp_shape = nengo_transforms.ChannelShape(
+    inp_shape = nengo.transforms.ChannelShape(
         inp_biases.shape, channels_last=channels_last
     )
 
     kernel = np.array([filters, -filters])  # two channels, pos and neg
     kernel = np.transpose(kernel, (2, 3, 0, 1))
-    conv2d_transform = nengo_transforms.Convolution(
+    conv2d_transform = nengo.Convolution(
         8,
         inp_shape,
         strides=(sti, stj),
@@ -372,7 +369,6 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
     assert allclose(sim_out, ref_out, atol=12, rtol=1e-3)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels", [1, 2])
 @pytest.mark.parametrize("channels_last", (True, False))
 def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, allclose):
@@ -427,7 +423,7 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
         else:
             raise ValueError("Test not configured for more than two channels")
 
-        conv2d_transform = nengo_transforms.Convolution(
+        conv2d_transform = nengo.Convolution(
             8,
             input_shape,
             strides=strides,
@@ -502,7 +498,6 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
     assert allclose(sim_out, ref_out, atol=10, rtol=1e-3)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 @pytest.mark.parametrize("channels_last", [True, False])
 def test_conv_input(channels_last, Simulator, plt, allclose):
     input_shape = make_channel_shape((4, 4), 1, channels_last=channels_last)
@@ -516,7 +511,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
         nc = 2
         kernel = np.array([1.0, -1.0]).reshape((1, 1, 1, nc))
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             nc,
             input_shape,
             channels_last=channels_last,
@@ -536,7 +531,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 
         nf = 4
         kernel = rng.uniform(-0.005, 0.005, size=(3, 3, nc, nf))
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             nf,
             output_shape,
             channels_last=channels_last,
@@ -574,10 +569,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.skipif(  # noqa: C901
-    nengo_transforms is None, reason="Requires new nengo.transforms"
-)
-@pytest.mark.parametrize("precompute", [False, True])
+@pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
 def test_conv_deepnet(
     channels_last,
@@ -788,7 +780,6 @@ def test_conv_deepnet(
     assert allclose(sim_out, emu_out, atol=0.08, rtol=1e-3)
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_split(Simulator, rng, plt, allclose):
     channels_last = False
 
@@ -815,7 +806,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
         # --- make population to turn image into spikes
         nc = 1
         in_kernel = np.array([1.0]).reshape((1, 1, 1, nc))
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             1,
             input_shape,
             kernel_size=(1, 1),
@@ -833,7 +824,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
         nengo.Connection(a, b.neurons, transform=transform)
         in_shape = transform.output_shape
 
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             n_filters,
             in_shape,
             kernel_size=kernel_size,
@@ -960,7 +951,7 @@ def test_conv_preslice(on_chip, Simulator, plt):
         )
         net.config[a].on_chip = on_chip
 
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
@@ -1032,7 +1023,7 @@ def test_conv_onchip(Simulator, plt):
             bias=bias,
         )
 
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             n_filters=1, input_shape=(5, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
@@ -1102,7 +1093,7 @@ def test_conv_overlap_input(Simulator, plt):
             bias=bias,
         )
 
-        transform = nengo_transforms.Convolution(
+        transform = nengo.Convolution(
             n_filters=1, input_shape=(4, 5, 1), init=kernel.reshape((3, 3, 1, 1))
         )
 
@@ -1190,7 +1181,7 @@ def test_chip_population_axons(
 
     # 6 x 6 input will have one unused pixel at edge with 3 x 3 kernel and stride 2
     input_shape = (6, 6, 1) if channels_last else (1, 6, 6)
-    input_shape = nengo_transforms.ChannelShape(
+    input_shape = nengo.transforms.ChannelShape(
         input_shape, channels_last=channels_last
     )
     X = rng.uniform(0.2, 1, size=input_shape.shape)
@@ -1268,9 +1259,7 @@ def test_pop16_extra_atom_bits_error(request, Simulator):
         conn = nengo.Connection(
             a.neurons,
             b.neurons,
-            transform=nengo_transforms.Convolution(
-                36, input_shape=(1, 1, 36), kernel_size=(1, 1)
-            ),
+            transform=nengo.Convolution(36, input_shape=(1, 1, 36), kernel_size=(1, 1)),
         )
         net.config[conn].pop_type = 16
 
@@ -1283,13 +1272,12 @@ def test_pop16_extra_atom_bits_error(request, Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_gain(Simulator):
     with nengo.Network() as net:
         a = nengo.Ensemble(16, 1)
         b = nengo.Ensemble(4, 1)
         nengo.Connection(
-            a.neurons, b.neurons, transform=nengo_transforms.Convolution(1, (4, 4, 1))
+            a.neurons, b.neurons, transform=nengo.Convolution(1, (4, 4, 1))
         )
 
     with pytest.raises(ValidationError, match="must have the same gain"):
@@ -1297,7 +1285,6 @@ def test_conv_gain(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_conv_non_lowpass(Simulator):
     k = 10
     d = 5
@@ -1321,9 +1308,8 @@ def test_conv_non_lowpass(Simulator):
             pass
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_imageslice_api():
-    imageshape = nengo_transforms.ChannelShape((5, 6, 8))
+    imageshape = nengo.transforms.ChannelShape((5, 6, 8))
     imageslice = conv.ImageSlice(
         imageshape,
         row_slice=slice(None, None, 2),
@@ -1342,18 +1328,17 @@ def test_imageslice_api():
     assert imageslice.channel_idxs() == [2, 4, 6]
 
     with pytest.raises(ValidationError, match="must be 2-D ChannelShape"):
-        conv.ImageSlice(nengo_transforms.ChannelShape((5, 6, 7, 8)))
+        conv.ImageSlice(nengo.transforms.ChannelShape((5, 6, 7, 8)))
 
 
-@pytest.mark.skipif(nengo_transforms is None, reason="Requires new nengo.transforms")
 def test_split_transform(rng):
     n = 8
-    shape0 = nengo_transforms.ChannelShape((1, 1, n))
+    shape0 = nengo.transforms.ChannelShape((1, 1, n))
     slice0 = conv.ImageSlice(shape0, channel_slice=slice(1, None, 2))
-    shape1 = nengo_transforms.ChannelShape((1, 1, n))
+    shape1 = nengo.transforms.ChannelShape((1, 1, n))
     slice1 = conv.ImageSlice(shape1, channel_slice=slice(0, None, 3))
 
-    shape8 = nengo_transforms.ChannelShape((4, 1, 2))
+    shape8 = nengo.transforms.ChannelShape((4, 1, 2))
     slice8 = conv.ImageSlice(shape8, row_slice=slice(1, 3))
     assert np.prod(shape8.shape) == n
 
