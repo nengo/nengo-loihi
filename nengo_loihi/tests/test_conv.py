@@ -3,7 +3,7 @@ import pickle
 
 import nengo
 from nengo.dists import Choice, Uniform
-from nengo.exceptions import ValidationError
+from nengo.exceptions import BuildError, ValidationError
 from nengo._vendor.npconv2d.conv2d import conv2d as np_conv2d
 from nengo_extras.matplotlib import tile, imshow
 from nengo_extras.vision import Gabor
@@ -1420,3 +1420,19 @@ def test_split_transform(rng):
         conv.split_transform(transform, in_slice=slice8)
     with pytest.raises(AssertionError):
         conv.split_transform(transform, out_slice=slice8)
+
+
+def test_conv_chip2host(Simulator):
+    input_shape = nengo.transforms.ChannelShape((5, 6, 2))
+
+    with nengo.Network() as model:
+        a = nengo.Ensemble(n_neurons=input_shape.size, dimensions=1)
+        conv = nengo.Convolution(
+            n_filters=4, input_shape=input_shape, strides=(1, 1), kernel_size=(3, 3)
+        )
+        b = nengo.Node(lambda t, x: x + 1, size_in=conv.output_shape.size)
+        nengo.Connection(a.neurons, b, transform=conv)
+
+    with pytest.raises(BuildError, match="'Convolution'.*on chip to host"):
+        with Simulator(model):
+            pass

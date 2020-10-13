@@ -252,6 +252,12 @@ def build_host_to_chip(model, conn):
 
 
 def build_chip_to_host(model, conn):
+    if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
+        raise BuildError(
+            "nengo-loihi does not yet support %r transforms "
+            "on chip to host connections" % (type(conn.transform).__name__,)
+        )
+
     rng = np.random.RandomState(model.seeds[conn])
     dim = conn.size_out
     host = model.host_model(base_obj(conn.post))
