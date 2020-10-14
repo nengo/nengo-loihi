@@ -94,9 +94,9 @@ if HAS_NXSDK:  # noqa: C901
 
             return new_c_file, new_include_dir
 
-        def createProcess(  # pragma: no cover (only used with older NxSDK)
+        def createProcess(
             self, name, cFilePath, includeDir, *args, **kwargs
-        ):
+        ):  # pragma: no cover (only used with older NxSDK)
             cFilePath, includeDir = self._make_tmp_files(name, cFilePath, includeDir)
             return super().createProcess(name, cFilePath, includeDir, *args, **kwargs)
 
