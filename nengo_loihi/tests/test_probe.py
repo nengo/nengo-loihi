@@ -119,18 +119,18 @@ def test_neuron_probe_with_synapse(Simulator, seed, allclose):
     assert allclose(sim.data[p_synapse], synapse.filt(sim.data[p_nosynapse]))
 
 
-@pytest.mark.xfail
-def test_probe_filter_twice(plt, seed, Simulator):
+@pytest.mark.parametrize("precompute", [True, False])
+def test_probe_filter_twice(precompute, plt, seed, Simulator):
     with nengo.Network(seed=seed) as net:
         stim = nengo.Node([1])
         ens = nengo.Ensemble(100, 1)
         probe = nengo.Probe(ens, synapse=0.01)
         nengo.Connection(stim, ens)
 
-    with Simulator(net) as sim0:
+    with Simulator(net, precompute=precompute) as sim0:
         sim0.run(0.04)
 
-    with Simulator(net) as sim1:
+    with Simulator(net, precompute=precompute) as sim1:
         sim1.run(0.02)
         sim1.run(0.02)
 
@@ -195,3 +195,72 @@ def test_probe_split_blocks(Simulator, seed, plt):
     # ensure split and unsplit simulators match
     for p in (probe, probe1, probe2, probe3):
         assert np.array_equal(sim1.data[p], sim2.data[p])
+
+
+def piecewise_net(n_pres, pres_time, seed):
+    values = np.linspace(-1, 1, n_pres)
+    with nengo.Network(seed=seed) as net:
+        add_params(net)
+        inp = nengo.Node(nengo.processes.PresentInput(values, pres_time), size_out=1)
+        ens = nengo.Ensemble(100, 1)
+        nengo.Connection(inp, ens)
+
+        net.probe = nengo.Probe(ens, synapse=nengo.Alpha(0.01))
+        node = nengo.Node(size_in=1)
+        nengo.Connection(ens, node, synapse=nengo.Alpha(0.01))
+        net.node_probe = nengo.Probe(node)
+
+    return net, values
+
+
+@pytest.mark.parametrize("precompute", [False, True])
+def test_clear_probes(Simulator, seed, plt, allclose, precompute):
+    n_pres = 5
+    pres_time = 0.1
+    net, values = piecewise_net(n_pres, pres_time, seed)
+
+    outputs = {"probe": [], "node": []}
+    with Simulator(net, precompute=precompute) as sim:
+        for _ in range(n_pres):
+            sim.clear_probes()
+            sim.run(pres_time)
+            outputs["probe"].append(np.copy(np.squeeze(sim.data[net.probe], axis=-1)))
+            outputs["node"].append(
+                np.copy(np.squeeze(sim.data[net.node_probe], axis=-1))
+            )
+
+    for key, output in outputs.items():
+        for i, line in enumerate(output):
+            plt.plot(
+                line,
+                color="b" if key == "probe" else "r",
+                label=key if i == 0 else None,
+            )
+    plt.legend(loc="best")
+
+    expected_shape = (int(pres_time / 0.001),)
+    for key, output in outputs.items():
+        # check that results from each presentation have the same shape
+        assert all(
+            x.shape == expected_shape for x in output
+        ), f"shapes: {[x.shape for x in output]}"
+
+        # check that the last-timestep values match the presented values
+        # within neural tolerances
+        assert allclose([x[-1] for x in output], values, atol=0.05, rtol=0.03)
+
+    # node output is delayed, since it has DecodeNeurons, hence higher tolerance
+    assert allclose(outputs["node"], outputs["probe"], atol=0.15)
+
+
+def test_probe_precompute(Simulator, seed, allclose):
+    n_pres = 5
+    pres_time = 0.1
+    net, _ = piecewise_net(n_pres, pres_time, seed)
+    with Simulator(net, precompute=False) as sim:
+        sim.run(pres_time * n_pres)
+    with Simulator(net, precompute=True) as sim_precompute:
+        sim_precompute.run(pres_time * n_pres)
+
+    assert allclose(sim.data[net.probe], sim_precompute.data[net.probe])
+    assert allclose(sim.data[net.node_probe], sim_precompute.data[net.node_probe])

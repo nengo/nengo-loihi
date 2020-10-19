@@ -586,11 +586,11 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
     if target == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
     else:
         with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
 
     t = np.arange(1, n_steps + 1)
     bias = offset2 * 2.0 ** (exp2 - 1)
@@ -672,14 +672,14 @@ def test_population_input(request, allclose):
                 sim.host2chip(spikes=spikes_i, errors=[])
                 sim.chip2host(probes_receivers={})
 
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
     else:
         for inp, ti, inds in spikes:
             inp.add_spikes(ti, inds)
 
         with EmulatorInterface(model) as sim:
             sim.run_steps(steps)
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
 
     vth = block.compartment.vth[0]
     assert (block.compartment.vth == vth).all()

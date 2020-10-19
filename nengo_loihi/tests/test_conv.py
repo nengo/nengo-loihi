@@ -162,11 +162,11 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
     if target == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
-            sim_out = sim.get_probe_output(out_probe)
+            sim_out = sim.collect_probe_output(out_probe)
     else:
         with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
-            sim_out = sim.get_probe_output(out_probe)
+            sim_out = sim.collect_probe_output(out_probe)
 
     sim_out = np.sum(sim_out, axis=0) * (dt / pres_time)
     sim_out.shape = make_shape((nyi, nyj), nf, channels_last)
@@ -330,11 +330,11 @@ def test_conv2d_weights(channels_last, request, plt, seed, rng, allclose):
             model, use_snips=False, seed=seed, allocator=RoundRobin()
         ) as sim:
             sim.run_steps(n_steps)
-            sim_out = sim.get_probe_output(out_probe)
+            sim_out = sim.collect_probe_output(out_probe)
     else:
         with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
-            sim_out = sim.get_probe_output(out_probe)
+            sim_out = sim.collect_probe_output(out_probe)
 
     sim_out = np.sum(sim_out, axis=0) / pres_time
     sim_out.shape = make_shape((nyi, nyj), nf, channels_last)

@@ -2,6 +2,7 @@ import numpy as np
 from nengo.utils.numpy import is_iterable
 
 from nengo_loihi.block import LoihiBlock
+from nengo_loihi.compat import make_process_step
 
 
 class LoihiProbe:
@@ -171,3 +172,48 @@ class LoihiProbe:
             nc,
         )
         return result
+
+
+class ProbeFilter:
+    def __init__(self, dt):
+        self.dt = dt
+        self.filter_functions = {}
+        self.filter_step_counters = {}
+
+    def _init_filter(self, probe):
+        assert isinstance(probe, LoihiProbe)
+
+        self.filter_step_counters[probe] = 0
+
+        if probe.synapse is None:
+            self.filter_functions[probe] = None
+        else:
+            size = probe.output_size
+            self.filter_functions[probe] = make_process_step(
+                probe.synapse,
+                shape_in=(size,),
+                shape_out=(size,),
+                dt=self.dt,
+                rng=None,
+                dtype=np.float32,
+            )
+
+    def __call__(self, probe, data):
+        assert isinstance(probe, LoihiProbe)
+
+        if probe not in self.filter_functions:
+            self._init_filter(probe)
+
+        filter_fn = self.filter_functions[probe]
+        if filter_fn is None:
+            self.filter_step_counters[probe] += len(data)
+            return data
+
+        total_steps = self.filter_step_counters[probe]
+        filt_data = np.zeros_like(data)
+        new_steps = 0
+        for new_steps, x in enumerate(data):
+            filt_data[new_steps] = filter_fn((total_steps + new_steps) * self.dt, x)
+
+        self.filter_step_counters[probe] = total_steps + new_steps
+        return filt_data

@@ -15,8 +15,7 @@ from nengo_loihi.builder.discretize import (
     scale_pes_errors,
     shift,
 )
-from nengo_loihi.compat import make_process_step
-from nengo_loihi.probe import LoihiProbe
+from nengo_loihi.probe import LoihiProbe, ProbeFilter
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,6 @@ class EmulatorInterface:
         self.probes = ProbeState(self.block_info, list(model.probes), model.dt)
 
         self.t = 0
-        self._chip2host_sent_steps = 0
         self.closed = False
 
     def __enter__(self):
@@ -65,6 +63,13 @@ class EmulatorInterface:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    def clear_probes(self):
+        # Probe data in `self.probes` is cleared after it is retrieved by a
+        # `self.collect_probe_output` call, so nothing needs to happen here.
+        # This function remains so that `nengo_loihi.Simulator` can call `clear_probes`
+        # on all of its internal simulators without checking their types.
+        pass
 
     def close(self):
         self.closed = True
@@ -76,14 +81,16 @@ class EmulatorInterface:
         self.synapses = None
         self.axons = None
 
-    def chip2host(self, probes_receivers):
-        increment = 0
-        for probe, receiver in probes_receivers.items():
-            inc = self.probes.send(probe, self._chip2host_sent_steps, receiver)
-            increment = inc if increment == 0 else increment
-            assert inc == 0 or increment == inc
+    def collect_probe_output(self, probe):
+        """Collect and clear output from a particular probe"""
+        return self.probes.collect_probe_output(probe)
 
-        self._chip2host_sent_steps += increment
+    def chip2host(self, probes_receivers):
+        increment = None
+        for probe, receiver in probes_receivers.items():
+            inc = self.probes.send(self.t, probe, receiver)
+            increment = inc if increment is None else increment
+            assert increment == inc
 
     def host2chip(self, spikes, errors):
         for spike_input, t, spike_idxs in spikes:
@@ -114,9 +121,6 @@ class EmulatorInterface:
         self.synapses.update_weights(self.t, self.rng)
         self.compartment.update(self.rng)
         self.probes.update(self.t, self.compartment)
-
-    def get_probe_output(self, probe):
-        return self.probes[probe]
 
 
 class BlockInfo:
@@ -585,61 +589,47 @@ class ProbeState:
             )
             self.probes[probe] = block_slices
 
-        self.filters = {}
-        self.filter_pos = {}
-        for probe, block_slices in self.probes.items():
-            if probe.synapse is not None:
-                size = probe.output_size
-                self.filters[probe] = make_process_step(
-                    probe.synapse,
-                    shape_in=(size,),
-                    shape_out=(size,),
-                    dt=self.dt,
-                    rng=None,
-                    dtype=np.float32,
-                )
-                self.filter_pos[probe] = 0
-
         self.outputs = {}
         for probe, block_slices in self.probes.items():
             self.outputs[probe] = [[] for block in block_slices]
 
-    def __getitem__(self, probe):
+        self.probe_filter = ProbeFilter(dt=dt)
+
+    def collect_probe_output(self, probe):
+        """Collect and clear output from a particular probe"""
         assert isinstance(probe, LoihiProbe)
         out = probe.weight_outputs(self.outputs[probe])
-        # TODO: if this is called multiple times, it will change the filter state
-        return self._filter(probe, out) if probe in self.filters else out
+        out = self.probe_filter(probe, out)
+        self.clear_probe(probe)
+        return out
 
-    def _filter(self, probe, data):
-        dt = self.dt
-        i = self.filter_pos[probe]
-        step = self.filters[probe]
-        filt_data = np.zeros_like(data)
-        for k, x in enumerate(data):
-            filt_data[k] = step((i + k) * dt, x)
-        self.filter_pos[probe] = i + k
-        return filt_data
+    def clear_probe(self, probe):
+        for block_output in self.outputs[probe]:
+            block_output.clear()
 
-    def send(self, probe, already_sent, receiver):
+    def send(self, t, probe, receiver):
         """Send probed data to the receiver node.
 
         Returns
         -------
-        steps : int
+        n_send_steps : int
             The number of steps sent to the receiver.
         """
         # we don't currently filter here, so make sure the probe isn't expecting it
         assert probe.synapse is None, "Filtering should be done on host-side connection"
 
-        outputs = [block_output[already_sent:] for block_output in self.outputs[probe]]
+        outputs = self.outputs[probe]
+        n_send_steps = len(outputs[0])
+        if n_send_steps > 0:
+            assert t >= n_send_steps, (t, n_send_steps)
+            t0 = t - n_send_steps
 
-        n_timesteps = len(outputs[0])
-        if n_timesteps > 0:
             x = probe.weight_outputs(outputs)
             for j, xx in enumerate(x):
-                receiver.receive(self.dt * (already_sent + j + 2), xx)
+                receiver.receive(self.dt * (t0 + j + 2), xx)
 
-        return n_timesteps
+        self.clear_probe(probe)
+        return n_send_steps
 
     def update(self, t, compartment):
         for probe, block_slices in self.probes.items():

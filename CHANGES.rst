@@ -29,12 +29,19 @@ Release history
 **Added**
 
 - Added support for NxSDK 1.0.0. (`#317`_)
+- Added ``Simulator.clear_probes`` to clear probe histories. This can help reduce memory
+  usage during long runs, by running for a segment of the full run time, recording the
+  relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
 
 **Fixed**
 
 - Fixed several issues to ensure that memory is freed when a ``Simulator``
   is deleted. (`#312`_)
+- Fixed probe filters such that multiple ``Simulator.run`` calls now results in
+  the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
 
+.. _#271: https://github.com/nengo/nengo-loihi/issues/271
+.. _#303: https://github.com/nengo/nengo-loihi/pull/303
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 

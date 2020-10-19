@@ -13,7 +13,6 @@ import numpy as np
 from nengo.exceptions import SimulationError
 
 from nengo_loihi.builder.discretize import scale_pes_errors
-from nengo_loihi.compat import make_process_step
 from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
@@ -26,7 +25,7 @@ from nengo_loihi.hardware.nxsdk_shim import (
 )
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
-from nengo_loihi.probe import LoihiProbe
+from nengo_loihi.probe import LoihiProbe, ProbeFilter
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +74,10 @@ class HardwareInterface:
     ):
         self.closed = False
 
-        self._probe_filters = {}
-        self._probe_filter_pos = {}
-
         self.model = model
         self.use_snips = use_snips
         self.seed = seed
+        self._probe_filter = ProbeFilter(dt=self.model.dt)
 
         self.check_nxsdk_version()
 
@@ -153,6 +150,13 @@ class HardwareInterface:
             self.nxsdk_board, b"ZXhlY3V0b3I=", b"aGFzU3RhcnRlZA=="
         )
 
+    def clear_probes(self):
+        # Probe data in `self.probes` is cleared after it is retrieved by a
+        # `self.collect_probe_output` call, so nothing needs to happen here.
+        # This function remains so that `nengo_loihi.Simulator` can call `clear_probes`
+        # on all of its internal simulators without checking their types.
+        pass
+
     def close(self):
         if self.snips is not None and self.snips.connected:
             self.snips.close()
@@ -162,6 +166,13 @@ class HardwareInterface:
             self.nxsdk_board = None
 
         self.closed = True
+
+    def collect_probe_output(self, probe):
+        """Get and clear output from a particular probe"""
+        assert isinstance(probe, LoihiProbe)
+        communicator = self.snips if self.use_snips else self.no_snips
+        out = communicator.collect_probe_output(probe)
+        return self._probe_filter(probe, out)
 
     def connect(self):
         """Connects to the board."""
@@ -183,48 +194,6 @@ class HardwareInterface:
                 "Board connection error%s"
                 % (": %s" % last_exception if last_exception is not None else "")
             )
-
-    def get_probe_output(self, probe):
-        assert isinstance(probe, LoihiProbe)
-        if self.use_snips:
-            data = self.snips.probe_data[probe]
-        else:
-            nxsdk_probes = self.board.probe_map[probe]
-            outputs = [
-                np.column_stack(
-                    [d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==") for p in nxsdk_probe]
-                )
-                for nxsdk_probe in nxsdk_probes
-            ]
-            data = probe.weight_outputs(outputs)
-
-        # --- Filter probed data
-        dt = self.model.dt
-        shape = data[0].shape
-        i = self._probe_filter_pos.get(probe, 0)
-        if i == 0:
-            synapse = probe.synapse
-            rng = None
-            step = (
-                make_process_step(synapse, shape, shape, dt, rng, dtype=np.float32)
-                if synapse is not None
-                else None
-            )
-            self._probe_filters[probe] = step
-        else:
-            step = self._probe_filters[probe]
-
-        if step is None:
-            self._probe_filter_pos[probe] = i + len(data)
-            return data
-        else:
-            filt_data = np.zeros((len(data),) + shape, dtype=np.float32)
-            for k, x in enumerate(data):
-                filt_data[k] = step((i + k) * dt, x)
-
-            self._probe_filter_pos[probe] = i + k
-
-        return filt_data
 
     def host2chip(self, spikes, errors):
         loihi_spikes = OrderedDict()
@@ -262,38 +231,52 @@ class HardwareInterface:
 
 class NoSnips:
     def __init__(self, dt, probe_map, spike_generator):
-        self.sent_steps = 0
+        self.step = 0
+
         self.dt = dt
         self.probe_map = probe_map
         self.spike_generator = spike_generator
 
+    def clear_probe(self, probe):
+        nxsdk_probes = self.probe_map[probe]
+        for nxsdk_probe in nxsdk_probes:
+            for p in nxsdk_probe:
+                data = d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")
+                data.clear()
+
+    def collect_probe_output(self, probe):
+        nxsdk_probes = self.probe_map[probe]
+        outputs = [
+            np.column_stack(
+                [d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==") for p in nxsdk_probe]
+            )
+            for nxsdk_probe in nxsdk_probes
+        ]
+        self.clear_probe(probe)
+
+        if len(outputs) > 0:
+            outputs = probe.weight_outputs(outputs)
+
+        return outputs
+
     def chip2host(self, probes_receivers):
         increment = None
         for probe, receiver in probes_receivers.items():
-            nxsdk_probes = self.probe_map[probe]
-            outputs = [
-                np.column_stack(
-                    [
-                        d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")[self.sent_steps :]
-                        for p in nxsdk_probe
-                    ]
-                )
-                for nxsdk_probe in nxsdk_probes
-            ]
+            outputs = self.collect_probe_output(probe)
 
             if len(outputs) > 0:
-                x = probe.weight_outputs(outputs)
-
                 if increment is None:
-                    increment = len(x)
+                    increment = len(outputs)
 
-                assert increment == len(x), "All x need same number of steps"
+                assert increment == len(
+                    outputs
+                ), "All outputs need same number of steps"
 
-                for j in range(len(x)):
-                    receiver.receive(self.dt * (self.sent_steps + j + 2), x[j])
+                for j in range(len(outputs)):
+                    receiver.receive(self.dt * (self.step + j + 2), outputs[j])
 
         if increment is not None:
-            self.sent_steps += increment
+            self.step += increment
 
     def host2chip(self, loihi_spikes):
         nxsdk_spike_generator = self.spike_generator
@@ -411,9 +394,17 @@ class Snips:
     def connected(self):
         return self.host_snip is not None and self.host_snip.connected
 
+    def clear_probe(self, probe):
+        self.probe_data[probe].clear()
+
     def close(self):
         if self.host_snip is not None:
             self.host_snip.close()
+
+    def collect_probe_output(self, probe):
+        out = list(self.probe_data[probe])
+        self.clear_probe(probe)
+        return out
 
     def connect(self, nxsdk_board):
         if self.host_snip is not None:

@@ -84,11 +84,11 @@ def test_negative_base(request, seed):
     if request.config.getoption("--target") == "loihi":
         with HardwareInterface(model, use_snips=False, seed=seed) as sim:
             sim.run_steps(n_steps)
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
     else:
         with EmulatorInterface(model, seed=seed) as sim:
             sim.run_steps(n_steps)
-            y = sim.get_probe_output(probe)
+            y = sim.collect_probe_output(probe)
 
     # Compartments 0 and 2 should change from axons 0 and 1.
     # Axon 2 should have no effect, and not change compartment 1 (the sum of
