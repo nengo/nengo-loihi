@@ -236,6 +236,16 @@ class Simulator:
         """(float) The current time of the simulator."""
         return self._time
 
+    def clear_probes(self):
+        """Clear all probe histories."""
+        for probe in self.model.nengo_probes:
+            self._probe_outputs[probe].clear()
+
+        for sim in self.sims.values():
+            sim.clear_probes()
+
+        self.data.reset()  # clear probe cache
+
     def close(self):
         """Closes the simulator.
 
@@ -265,12 +275,8 @@ class Simulator:
             elif "emulator" in self.sims:
                 data = self.sims["emulator"].get_probe_output(loihi_probe)
             # TODO: stop recomputing this all the time
-            del self._probe_outputs[probe][:]
+            self._probe_outputs[probe].clear()
             self._probe_outputs[probe].extend(data)
-            assert len(self._probe_outputs[probe]) == self.n_steps, (
-                len(self._probe_outputs[probe]),
-                self.n_steps,
-            )
 
     def _probe_step_time(self):
         self._time = self._n_steps * self.dt

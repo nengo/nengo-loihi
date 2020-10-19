@@ -153,6 +153,9 @@ class HardwareInterface:
             self.nxsdk_board, b"ZXhlY3V0b3I=", b"aGFzU3RhcnRlZA=="
         )
 
+    def clear_probes(self):
+        (self.snips if self.use_snips else self.no_snips).clear_probes()
+
     def close(self):
         if self.snips is not None and self.snips.connected:
             self.snips.close()
@@ -262,10 +265,25 @@ class HardwareInterface:
 
 class NoSnips:
     def __init__(self, dt, probe_map, spike_generator):
+        # We track the overall timestep of the simulation in `step` and the number of
+        # steps we've sent from the NxSDK probes in `sent_steps`. If the probes are
+        # cleared, `sent_steps` will be reset, but the timestep of the simulation.
+        self.step = 0
         self.sent_steps = 0
+
         self.dt = dt
         self.probe_map = probe_map
         self.spike_generator = spike_generator
+
+    def clear_probes(self):
+        for nxsdk_probes in self.probe_map.values():
+            for nxsdk_probe in nxsdk_probes:
+                for p in nxsdk_probe:
+                    data = d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")
+                    assert len(data) == self.sent_steps, "Cleared unsent data!"
+                    data.clear()
+
+        self.sent_steps = 0
 
     def chip2host(self, probes_receivers):
         increment = None
@@ -290,9 +308,10 @@ class NoSnips:
                 assert increment == len(x), "All x need same number of steps"
 
                 for j in range(len(x)):
-                    receiver.receive(self.dt * (self.sent_steps + j + 2), x[j])
+                    receiver.receive(self.dt * (self.step + j + 2), x[j])
 
         if increment is not None:
+            self.step += increment
             self.sent_steps += increment
 
     def host2chip(self, loihi_spikes):
@@ -408,6 +427,10 @@ class Snips:
     @property
     def connected(self):
         return self.host_snip is not None and self.host_snip.connected
+
+    def clear_probes(self):
+        for outputs in self.probe_data.values():
+            outputs.clear()
 
     def close(self):
         if self.host_snip is not None:

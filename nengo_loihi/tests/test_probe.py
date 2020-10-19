@@ -196,3 +196,60 @@ def test_probe_split_blocks(Simulator, seed, plt):
     # ensure split and unsplit simulators match
     for p in (probe, probe1, probe2, probe3):
         assert np.array_equal(sim1.data[p], sim2.data[p])
+
+
+def test_clear_probes(Simulator, plt, allclose):
+    n_pres = 5
+    values = np.linspace(-1, 1, n_pres)
+    pres_time = 0.1
+
+    with nengo.Network(seed=1) as net:
+        add_params(net)
+        inp = nengo.Node(nengo.processes.PresentInput(values, pres_time), size_out=1)
+        ens = nengo.Ensemble(100, 1)
+        nengo.Connection(inp, ens)
+
+        probe = nengo.Probe(ens, synapse=nengo.Alpha(0.01))
+        node = nengo.Node(size_in=1)
+        nengo.Connection(ens, node, synapse=nengo.Alpha(0.01))
+        node_probe = nengo.Probe(node)
+
+    outputs = {"probe": {False: [], True: []}, "node": {False: [], True: []}}
+    for precompute in (False, True):
+        with Simulator(net, precompute=precompute) as sim:
+            for i in range(n_pres):
+                sim.clear_probes()
+                sim.run(pres_time)
+                outputs["probe"][precompute].append(np.array(sim.data[probe][:, 0]))
+                outputs["node"][precompute].append(np.array(sim.data[node_probe][:, 0]))
+
+    outputs = {
+        key: {key2: np.array(val2) for key2, val2 in val.items()}
+        for key, val in outputs.items()
+    }
+    i = -1
+    for key, result in outputs.items():
+        for precompute, val in result.items():
+            i += 1
+            for k, line in enumerate(val):
+                plt.plot(
+                    line,
+                    color=("b", "r", "g", "m")[i % 4],
+                    linestyle=("-", "--", "-.", ":")[i % 4],
+                    label=("%s precompute=%s" % (key, precompute)) if k == 0 else None,
+                )
+    plt.legend(loc="best")
+
+    for key, result in outputs.items():
+        for precompute, output in result.items():
+            assert allclose(output[:, -1], values, atol=0.05, rtol=0.03)
+
+    for precompute in (False, True):
+        # node output is delayed, since it has DecodeNeurons, hence higher tolerance
+        assert allclose(
+            outputs["node"][precompute], outputs["probe"][precompute], atol=0.15
+        )
+
+    for key, result in outputs.items():
+        # outputs should be identical when changing the value of `precompute`
+        assert allclose(result[False], result[True], atol=1e-3)
