@@ -57,7 +57,6 @@ class EmulatorInterface:
         self.probes = ProbeState(self.block_info, list(model.probes), model.dt)
 
         self.t = 0
-        self._chip2host_sent_steps = 0
         self.closed = False
 
     def __enter__(self):
@@ -79,11 +78,9 @@ class EmulatorInterface:
     def chip2host(self, probes_receivers):
         increment = 0
         for probe, receiver in probes_receivers.items():
-            inc = self.probes.send(probe, self._chip2host_sent_steps, receiver)
+            inc = self.probes.send(self.t, probe, receiver)
             increment = inc if increment == 0 else increment
             assert inc == 0 or increment == inc
-
-        self._chip2host_sent_steps += increment
 
     def host2chip(self, spikes, errors):
         for spike_input, t, spike_idxs in spikes:
@@ -114,6 +111,9 @@ class EmulatorInterface:
         self.synapses.update_weights(self.t, self.rng)
         self.compartment.update(self.rng)
         self.probes.update(self.t, self.compartment)
+
+    def clear_probes(self):
+        self.probes.clear()
 
     def get_probe_output(self, probe):
         return self.probes[probe]
@@ -620,26 +620,37 @@ class ProbeState:
         self.filter_pos[probe] = i + k
         return filt_data
 
-    def send(self, probe, already_sent, receiver):
+    def clear(self):
+        for outputs in self.outputs.values():
+            for block_output in outputs:
+                block_output.clear()
+
+    def send(self, t, probe, receiver):
         """Send probed data to the receiver node.
 
         Returns
         -------
-        steps : int
+        n_send_steps : int
             The number of steps sent to the receiver.
         """
         # we don't currently filter here, so make sure the probe isn't expecting it
         assert probe.synapse is None, "Filtering should be done on host-side connection"
 
-        outputs = [block_output[already_sent:] for block_output in self.outputs[probe]]
+        outputs = self.outputs[probe]
+        n_send_steps = len(outputs[0])
+        if n_send_steps > 0:
+            assert t >= n_send_steps, (t, n_send_steps)
+            t0 = t - n_send_steps
 
-        n_timesteps = len(outputs[0])
-        if n_timesteps > 0:
             x = probe.weight_outputs(outputs)
             for j, xx in enumerate(x):
-                receiver.receive(self.dt * (already_sent + j + 2), xx)
+                receiver.receive(self.dt * (t0 + j + 2), xx)
 
-        return n_timesteps
+        # clear outputs
+        for block_output in outputs:
+            block_output.clear()
+
+        return n_send_steps
 
     def update(self, t, compartment):
         for probe, block_slices in self.probes.items():

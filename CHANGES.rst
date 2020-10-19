@@ -19,6 +19,17 @@ Release history
    - Removed
    - Fixed
 
+0.12.0 (unreleased)
+===================
+
+**Added**
+
+- Added ``Simulator.clear_probes`` to clear probe histories. This can help reduce memory
+  usage during long runs, by running for a segment of the full run time, recording the
+  relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
+
+.. _#303: https://github.com/nengo/nengo-loihi/pull/303
+
 0.11.0 (unreleased)
 ===================
 
