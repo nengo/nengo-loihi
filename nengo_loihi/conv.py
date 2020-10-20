@@ -4,6 +4,8 @@ from nengo.exceptions import ValidationError
 from nengo.transforms import ChannelShape, Convolution
 import numpy as np
 
+from nengo_loihi.compat import is_transform_type
+
 
 class ImageSlice:
     """Represents a slice of a larger image across rows/columns/channels.
@@ -136,20 +138,39 @@ def pixel_idxs(shape):
     )
 
 
-def conv2d_loihi_weights(transform):
+def conv2d_loihi_weights(transform):  # noqa: C901
     assert (
         transform.channels_last == transform.input_shape.channels_last
     ), "Transforms that switch the channel position not yet implemented"
+
+    transpose = is_transform_type(transform, "ConvolutionTranspose")
 
     input_rows, input_cols = transform.input_shape.spatial_shape
     n_channels = transform.input_shape.n_channels
     output_rows, output_cols = transform.output_shape.spatial_shape
     n_filters = transform.n_filters
     n_compartments = output_rows * output_cols * n_filters
+    kernel_rows, kernel_cols = transform.kernel_size
+    row_stride, col_stride = transform.strides
+
+    kernel = transform.init
+    assert isinstance(kernel, np.ndarray), "Should already have been sampled"
+    assert kernel.shape == (kernel_rows, kernel_cols, n_channels, n_filters)
+
+    # tranpose kernel to (in_channels, rows, cols, out_channels)
+    kernel = np.transpose(kernel, (2, 0, 1, 3))
+
+    if not transpose:
+        # flip weights to do correlation
+        kernel = kernel[:, ::-1, ::-1, :]
 
     # compute number of used input pixels
-    ri_max = (output_rows - 1) * transform.strides[0] + 1
-    rj_max = (output_cols - 1) * transform.strides[1] + 1
+    if not transpose:
+        ri_max = (output_rows - 1) * row_stride + 1
+        rj_max = (output_cols - 1) * col_stride + 1
+    else:
+        # compute number of used output pixels
+        ri_max, rj_max = transform.output_shape.spatial_shape
 
     weights = []
     indices = []
@@ -160,42 +181,67 @@ def conv2d_loihi_weights(transform):
     for i, j in itertools.product(range(input_rows), range(input_cols)):
         ij = i * input_cols + j
 
-        # unstrided compartment indices that this input axon would map to
-        # if strides == 1 and mode == 'full'
-        ri0, ri1 = i + 1 - transform.kernel_size[0], i + 1
-        rj0, rj1 = j + 1 - transform.kernel_size[1], j + 1
-        if transform.padding == "same":
-            # these paddings are based off the method used in `nengo._vendor.npconv2d`,
-            # to ensure we perform the same as Nengo transforms
-            pad_i = (
-                (output_rows - 1) * transform.strides[0]
-                + transform.kernel_size[0]
-                - input_rows
-            )
-            pad_j = (
-                (output_cols - 1) * transform.strides[1]
-                + transform.kernel_size[1]
-                - input_cols
-            )
-            ri0 += pad_i // 2
-            ri1 += pad_i // 2
-            rj0 += pad_j // 2
-            rj1 += pad_j // 2
+        if transpose:
+            # compartment indices that this input axon would map to if mode == 'valid'
+            i_st = i * row_stride
+            j_st = j * col_stride
+            ri0, ri1 = i_st, i_st + kernel_rows
+            rj0, rj1 = j_st, j_st + kernel_cols
+            if transform.padding == "same":
+                # these paddings are based off the method used in
+                # `nengo._vendor.npconv2d`, to ensure we perform the same
+                output_rows_min = (input_rows - 1) * row_stride + 1
+                output_cols_min = (input_cols - 1) * col_stride + 1
+                pad_i = min(
+                    max(output_rows + kernel_rows - 1 - output_rows_min, 0),
+                    (kernel_rows - 1) * 2,
+                )
+                pad_j = min(
+                    max(output_cols + kernel_cols - 1 - output_cols_min, 0),
+                    (kernel_cols - 1) * 2,
+                )
+                # use floor instead of the `ceil` used by `npconv2d.conv2d_gradx`, since
+                # this padding is applied to the output where the kernel is flipped
+                ri0 -= pad_i // 2
+                ri1 -= pad_i // 2
+                rj0 -= pad_j // 2
+                rj1 -= pad_j // 2
+        else:
+            # unstrided compartment indices that this input axon would map to
+            # if strides == 1 and mode == 'full'
+            ri0, ri1 = i + 1 - kernel_rows, i + 1
+            rj0, rj1 = j + 1 - kernel_cols, j + 1
+            if transform.padding == "same":
+                # these paddings are based off the method used in
+                # `nengo._vendor.npconv2d`, to ensure we perform the same
+                pad_i = (output_rows - 1) * row_stride + kernel_rows - input_rows
+                pad_j = (output_cols - 1) * col_stride + kernel_cols - input_cols
+                ri0 += pad_i // 2
+                ri1 += pad_i // 2
+                rj0 += pad_j // 2
+                rj1 += pad_j // 2
 
         ri = np.arange(ri0, ri1)
         rj = np.arange(rj0, rj1)
 
-        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % transform.strides[0] == 0)
-        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % transform.strides[1] == 0)
+        wmask_i = (ri >= 0) & (ri < ri_max)
+        wmask_j = (rj >= 0) & (rj < rj_max)
+        if transpose:
+            assert wmask_i.sum() > 0 and wmask_j.sum() > 0
+        else:
+            wmask_i &= ri % row_stride == 0
+            wmask_j &= rj % col_stride == 0
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
             # this axon is not needed, so indicate this in offsets and skip
             offsets[ij] = -1
             continue
 
-        assert ri[wmask_i][0] % transform.strides[0] == 0, "true if mode == 'valid'"
-        yi0 = ri[wmask_i][0] // transform.strides[0]
-        yj0 = rj[wmask_j][0] // transform.strides[1]
+        yi0, yj0 = ri[wmask_i][0], rj[wmask_j][0]
+        if not transpose:
+            yi0 = yi0 // row_stride
+            yj0 = yj0 // col_stride
+
         yij0 = yi0 * output_cols + yj0
         offset = yij0 * n_filters if transform.channels_last else yij0
 
@@ -208,12 +254,6 @@ def conv2d_loihi_weights(transform):
 
         weight_key = (tuple(wmask_i), tuple(wmask_j), index_offset)
         if weight_key not in weights_map:
-            # tranpose kernel to (in_channels, rows, cols, out_channels)
-            kernel = np.transpose(transform.init, (2, 0, 1, 3))
-
-            # flip weights to do correlation
-            kernel = kernel[:, ::-1, ::-1, :]
-
             w = kernel[:, wmask_i[:, None] * wmask_j, :]
             assert w.shape == (n_channels, wmask_i.sum() * wmask_j.sum(), n_filters)
 

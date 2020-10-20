@@ -289,3 +289,14 @@ class Builder(NengoBuilder):
     """
 
     builders = {}
+
+    @classmethod
+    def register(cls, nengo_class):
+        if nengo_class is None:
+
+            def null_decorator(build_fn):
+                return build_fn
+
+            return null_decorator
+
+        return super().register(nengo_class)

@@ -19,6 +19,15 @@ Release history
    - Removed
    - Fixed
 
+0.12.0 (unreleased)
+===================
+
+**Added**
+
+- Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
+
+.. _#300: https://github.com/nengo/nengo/pull/300
+
 0.11.0 (unreleased)
 ===================
 

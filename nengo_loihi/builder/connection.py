@@ -153,7 +153,7 @@ def build_host_to_chip(model, conn):
     rng = np.random.RandomState(model.seeds[conn])
     host = model.host_model(base_obj(conn.pre))
 
-    if is_transform_type(conn.transform, "Convolution"):
+    if is_transform_type(conn.transform, ("Convolution", "ConvolutionTranspose")):
         raise BuildError(
             "Conv2D transforms not supported for off-chip to "
             "on-chip connections where `pre` is not a Neurons object."
@@ -744,8 +744,9 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
 
 @Builder.register(nengo.Convolution)
+@Builder.register(getattr(nengo.transforms, "ConvolutionTranspose", None))
 def build_conv2d_connection(model, transform, conn):
-    assert is_transform_type(transform, "Convolution")
+    assert is_transform_type(transform, ("Convolution", "ConvolutionTranspose"))
 
     if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
