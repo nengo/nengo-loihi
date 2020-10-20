@@ -29,8 +29,10 @@ Release history
 **Added**
 
 - Added support for ``padding='same'`` on ``nengo.Convolution`` transforms. (`#297`_)
+- Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
 
 .. _#297: https://github.com/nengo/nengo-loihi/pull/297
+.. _#300: https://github.com/nengo/nengo-loihi/pull/300
 
 1.0.0 (January 20, 2021)
 ========================
