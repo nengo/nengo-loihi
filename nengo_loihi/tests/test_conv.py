@@ -45,28 +45,56 @@ def make_channel_shape(spatial_shape, n_channels, channels_last):
 @pytest.mark.parametrize("channels_last", [False, True])
 @pytest.mark.parametrize("padding", ["valid", "same"])
 @pytest.mark.parametrize("strides", [(1, 1), (2, 2), (3, 2)])
-@pytest.mark.parametrize("kernel_size", [(1, 1), (3, 3), (4, 4)])
+@pytest.mark.parametrize("kernel_size", [(1, 1), (3, 3), (6, 6)])
 @pytest.mark.parametrize("spatial_shape", [(6, 6), (7, 9)])
+@pytest.mark.parametrize("transpose", [False, True])
 def test_conv2d_loihi_weights(
-    spatial_shape, kernel_size, strides, padding, channels_last, rng, allclose
+    transpose,
+    spatial_shape,
+    kernel_size,
+    strides,
+    padding,
+    channels_last,
+    rng,
+    allclose,
 ):
-    spatial_shape = (4, 4)
+    if transpose and not hasattr(nengo.transforms, "ConvolutionTranspose"):
+        pytest.skip("Nengo version does not have ConvolutionTranspose")
+
     n_channels = 3
     n_filters = 4
 
     inp = rng.normal(size=spatial_shape + (n_channels,))
     kernel = rng.normal(size=kernel_size + (n_channels,) + (n_filters,))
 
-    transform = nengo.Convolution(
-        n_filters,
-        input_shape=make_channel_shape(spatial_shape, n_channels, channels_last),
-        kernel_size=kernel_size,
-        strides=strides,
-        padding=padding,
-        channels_last=channels_last,
-        init=kernel,
-    )
-    ref_out = np_conv2d(inp[None, ...], kernel, pad=padding.upper(), stride=strides)[0]
+    if transpose:
+        transform = nengo.transforms.ConvolutionTranspose(
+            n_filters,
+            input_shape=make_channel_shape(spatial_shape, n_channels, channels_last),
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            channels_last=channels_last,
+            init=kernel,
+        )
+        out_space = transform.output_shape.spatial_shape
+        ref_out = nengo._vendor.npconv2d.conv2d.conv2d_gradx(
+            kernel, inp[None, ...], xsize=out_space, pad=padding.upper(), stride=strides
+        )[0]
+    else:
+        transform = nengo.Convolution(
+            n_filters,
+            input_shape=make_channel_shape(spatial_shape, n_channels, channels_last),
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            channels_last=channels_last,
+            init=kernel,
+        )
+        ref_out = np_conv2d(
+            inp[None, ...], kernel, pad=padding.upper(), stride=strides
+        )[0]
+
     ref_out = ref_out if channels_last else np.transpose(ref_out, (2, 0, 1))
     assert ref_out.shape == transform.output_shape.shape
 
@@ -1406,3 +1434,96 @@ def test_conv_chip2host(Simulator):
     with pytest.raises(BuildError, match="'Convolution'.*on chip to host"):
         with Simulator(model):
             pass
+
+
+@pytest.mark.skipif(
+    not hasattr(nengo.transforms, "ConvolutionTranspose"),
+    reason="Nengo version does not have ConvolutionTranspose",
+)
+@pytest.mark.parametrize("channels_last", [True, False])
+@pytest.mark.parametrize("padding", ["valid", "same"])
+def test_upsample22(padding, channels_last, Simulator, rng, plt, allclose):
+    """Basic test of ConvolutionTranspose on Loihi"""
+
+    a_max_rate = b_max_rate = 50.0
+    a_neuron_type = b_neuron_type = nengo_loihi.LoihiSpikingRectifiedLinear()
+
+    # random input
+    input_space = (3, 3)
+    n_channels = 2
+    input_shape = make_channel_shape(
+        input_space, n_channels, channels_last=channels_last
+    )
+    x = rng.uniform(0, 1, size=input_shape.shape)
+
+    n_filters = 4
+    kern = rng.uniform(-0.5, 1, size=(3, 3, input_shape.n_channels, n_filters))
+
+    kernel_size = kern.shape[:2]
+    strides = (2, 2)
+
+    with nengo.Network() as net:
+        nengo_loihi.add_params(net)
+
+        u = nengo.Node(x.ravel())
+        a = nengo.Ensemble(
+            n_neurons=x.size,
+            dimensions=1,
+            neuron_type=a_neuron_type,
+            max_rates=nengo.dists.Choice([a_max_rate]),
+            intercepts=nengo.dists.Choice([0.0]),
+        )
+        net.config[a].on_chip = False
+        nengo.Connection(u, a.neurons, synapse=None)
+
+        transform = nengo.transforms.ConvolutionTranspose(
+            n_filters=n_filters,
+            input_shape=input_shape,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            channels_last=channels_last,
+            init=kern / a_max_rate,
+        )
+
+        output_shape = transform.output_shape
+        b = nengo.Ensemble(
+            n_neurons=transform.output_shape.size,
+            dimensions=1,
+            neuron_type=b_neuron_type,
+            max_rates=nengo.dists.Choice([b_max_rate]),
+            intercepts=nengo.dists.Choice([0.0]),
+        )
+        nengo.Connection(a.neurons, b.neurons, transform=transform, synapse=None)
+
+        bp = nengo.Probe(b.neurons)
+
+    # --- check transform results
+    simtime = 0.2
+    mean_steps = 100
+
+    with nengo.Simulator(net) as ref_sim:
+        ref_sim.run(simtime)
+
+    with Simulator(net) as loihi_sim:
+        loihi_sim.run(simtime)
+
+    y_ref = ref_sim.data[bp].reshape((ref_sim.n_steps,) + output_shape.shape)
+    y_loihi = loihi_sim.data[bp].reshape((loihi_sim.n_steps,) + output_shape.shape)
+
+    # average over time and normalize
+    y_ref = (y_ref[-mean_steps:] > 0).sum(axis=0)
+    y_loihi = (y_loihi[-mean_steps:] > 0).sum(axis=0)
+    y_max = y_ref.max()
+
+    # plots
+    plt.subplot(221)
+    plt.imshow(x[:, :, 0] if channels_last else x[0], vmin=0, vmax=1)
+    plt.subplot(222)
+    plt.imshow(y_ref[:, :, 0] if channels_last else y_ref[0], vmin=0, vmax=y_max)
+    plt.subplot(224)
+    plt.imshow(y_loihi[:, :, 0] if channels_last else y_loihi[0], vmin=0, vmax=y_max)
+
+    # check that output is within one spike of target
+    assert y_loihi.shape == y_ref.shape
+    assert allclose(y_loihi, y_ref, atol=1.001, rtol=0)

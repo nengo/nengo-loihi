@@ -33,6 +33,7 @@ Release history
   usage during long runs, by running for a segment of the full run time, recording the
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
 - Added support for ``padding='same'`` on ``nengo.Convolution`` transforms. (`#297`_)
+- Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
 
 **Changed**
 

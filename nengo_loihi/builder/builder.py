@@ -285,8 +285,18 @@ class Builder(NengoBuilder):
 
     We cannot use the Nengo builder as is because we make normal Nengo
     networks for host-to-chip and chip-to-host communication. To keep
-    Nengo and NengoLoihi builders separate, we make a blank subclass,
-    which effectively copies the class.
+    Nengo and NengoLoihi builders separate, we make a subclass.
     """
 
     builders = {}
+
+    @classmethod
+    def register(cls, nengo_class):
+        if nengo_class is None:
+
+            def null_decorator(build_fn):
+                return build_fn
+
+            return null_decorator
+
+        return super().register(nengo_class)
