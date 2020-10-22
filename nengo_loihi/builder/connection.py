@@ -606,13 +606,19 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             if isinstance(rule_type, nengo.PES):
                 if not isinstance(rule_type.pre_synapse, nengo.synapses.Lowpass):
                     raise ValidationError(
-                        "Loihi only supports `Lowpass` pre-synapses for "
-                        "learning rules",
+                        "Loihi only supports `Lowpass` pre-synapses for learning rules",
                         attr="pre_synapse",
                         obj=rule_type,
                     )
 
-                tracing_tau = rule_type.pre_synapse.tau / model.dt
+                pre_tau = rule_type.pre_synapse.tau
+                float_tracing_tau = pre_tau / model.dt
+                tracing_tau = int(round(float_tracing_tau))
+                if not np.allclose(float_tracing_tau, tracing_tau):
+                    warnings.warn(
+                        f"PES learning rule `pre_synapse.tau` ({pre_tau}) is not an "
+                        f"integer multiple of `dt` ({model.dt}). Rounding."
+                    )
 
                 # Nengo builder scales PES learning rate by `dt / n_neurons`
                 n_neurons = (

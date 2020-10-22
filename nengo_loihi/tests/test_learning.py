@@ -316,15 +316,23 @@ def test_learning_seed(Simulator, seed):
 
 
 def test_pes_pre_synapse_type_error(Simulator):
-    with nengo.Network() as model:
-        pre = nengo.Ensemble(10, 1)
-        post = nengo.Node(size_in=1)
-        rule_type = nengo.PES(pre_synapse=nengo.Alpha(0.005))
-        conn = nengo.Connection(pre, post, learning_rule_type=rule_type)
-        nengo.Connection(post, conn.learning_rule)
+    def make_network(rule_type):
+        with nengo.Network() as net:
+            pre = nengo.Ensemble(10, 1)
+            post = nengo.Node(size_in=1)
+            conn = nengo.Connection(pre, post, learning_rule_type=rule_type)
+            nengo.Connection(post, conn.learning_rule)
 
+        return net
+
+    net = make_network(nengo.PES(pre_synapse=nengo.Alpha(0.005)))
     with pytest.raises(ValidationError, match="pre-synapses for learning"):
-        with Simulator(model):
+        with Simulator(net):
+            pass
+
+    net = make_network(nengo.PES(pre_synapse=nengo.Lowpass(0.0015)))
+    with pytest.warns(UserWarning, match="pre_synapse.tau.*integer multiple"):
+        with Simulator(net):
             pass
 
 
