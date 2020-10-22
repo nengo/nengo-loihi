@@ -616,6 +616,14 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                     )
 
                 tracing_tau = rule_type.pre_synapse.tau / model.dt
+                if not np.allclose(round(tracing_tau), tracing_tau):
+                    raise ValidationError(
+                        "PES learning rule `pre_synapse.tau` must be an integer "
+                        "multiple of `dt` (%s). Got %s."
+                        % (model.dt, rule_type.pre_synapse.tau),
+                        attr="pre_synapse.tau",
+                        obj=rule_type,
+                    )
 
                 # Nengo builder scales PES learning rate by `dt / n_neurons`
                 n_neurons = (

@@ -124,8 +124,8 @@ def test_lossy_shift(lossy_shift, rng):
 
 def test_bad_weight_exponent_error(Simulator):
     with nengo.Network() as net:
-        a = nengo.Ensemble(5, 1)
-        b = nengo.Ensemble(5, 1, neuron_type=LoihiLIF(tau_rc=5.0))
+        a = nengo.Ensemble(5, 1, label="ens_a")
+        b = nengo.Ensemble(5, 1, neuron_type=LoihiLIF(tau_rc=5.0), label="ens_b")
         nengo.Connection(
             a.neurons, b.neurons, transform=1e-8 * np.ones((5, 5)), synapse=5.0
         )
@@ -136,7 +136,7 @@ def test_bad_weight_exponent_error(Simulator):
 
 
 def test_bad_bias_scaling_error(Simulator):
-    block = LoihiBlock(10)
+    block = LoihiBlock(10, label="myblock")
     block.compartment.configure_lif(tau_rc=5.0, vth=1e8)
     block.compartment.bias[:] = 1000.0
 

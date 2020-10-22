@@ -382,6 +382,11 @@ def test_pes_pre_synapse_type_error(Simulator):
         with Simulator(model):
             pass
 
+    conn.learning_rule_type = nengo.PES(pre_synapse=nengo.Lowpass(0.0015))
+    with pytest.raises(ValidationError, match="must be an integer multiple"):
+        with Simulator(model):
+            pass
+
 
 def test_pes_trace_increment_clip_warning(seed, Simulator):
     dims = 2
