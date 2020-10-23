@@ -201,6 +201,8 @@ setup_cfg:
         no ensembles onchip
       test_simulator.py::test_steps:
         no ensembles onchip
+      test_simulator.py::test_sim_reopen:
+        no ensembles onchip
       test_simulator.py::test_time_absolute:
         no ensembles onchip
       test_simulator.py::test_trange*:
@@ -234,6 +236,8 @@ setup_cfg:
       utils/*test_neurons.py::test_rates_*:
         no ensembles onchip
       test_transforms.py::test_convolution*:
+        no ensembles onchip
+      test_transforms_conv.py::test_convolution[*:
         no ensembles onchip
       test_synapses.py::test_combined_delay:
         no ensembles onchip
@@ -443,10 +447,18 @@ setup_cfg:
       # unsupported neuron types
       test_neurons.py::test_sigmoid_invalid:
         Sigmoid neurons unsupported
+      test_neurons.py::test_spiking_types[base_type0]:
+        LIFRate neurons unsupported
+      test_neurons.py::test_spiking_types[base_type1]:
+        RectifiedLinear neurons unsupported
+      test_neurons.py::test_spiking_types[base_type2]:
+        Tanh neurons unsupported
 
-      # 1D conv not supported
+      # unsupported convolution features
       test_solvers.py::test_non_compositional_solver_transform_error:
         1D convolution not supported
+      test_transforms_conv.py::test_convolution_nef[*:
+        non-identical neuron gains not supported for convolution
 
       # sparse transforms not supported
       test_transforms.py::test_sparse[*:
@@ -497,12 +509,16 @@ travis_yml:
   jobs:
     - stage: basic
       script: emulator
+    - script: emulator
+      env:
+        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git"
     - script: static
     - stage: advanced
       script: hardware
       python: 3.6.8
       env:
         NXSDK_VERSION: 1.0.0
+        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git"
     - script: docs
       python: 3.7
       apt_install:
