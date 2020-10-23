@@ -172,6 +172,34 @@ def conv2d_loihi_weights(transform):  # noqa: C901
         # compute number of used output pixels
         ri_max, rj_max = transform.output_shape.spatial_shape
 
+    # --- determine padding
+    pad_i, pad_j = 0, 0
+    if transform.padding == "same":
+        if transpose:
+            # these paddings are based off the method used in
+            # `nengo._vendor.npconv2d`, to ensure we perform the same
+            output_rows_min = (input_rows - 1) * row_stride + 1
+            output_cols_min = (input_cols - 1) * col_stride + 1
+            pad_i = min(
+                max(output_rows + kernel_rows - 1 - output_rows_min, 0),
+                (kernel_rows - 1) * 2,
+            )
+            pad_j = min(
+                max(output_cols + kernel_cols - 1 - output_cols_min, 0),
+                (kernel_cols - 1) * 2,
+            )
+            # use floor instead of the `ceil` used by `npconv2d.conv2d_gradx`, since
+            # this padding is applied to the output where the kernel is flipped
+            pad_i, pad_j = pad_i // 2, pad_j // 2
+            pad_i, pad_j = -pad_i, -pad_j
+        else:
+            # these paddings are based off the method used in
+            # `nengo._vendor.npconv2d`, to ensure we perform the same
+            pad_i = (output_rows - 1) * row_stride + kernel_rows - input_rows
+            pad_j = (output_cols - 1) * col_stride + kernel_cols - input_cols
+            pad_i, pad_j = pad_i // 2, pad_j // 2
+
+    # --- determine weights and indices
     weights = []
     indices = []
     # compartment offset (aka. compartment base) for each axon
@@ -183,46 +211,16 @@ def conv2d_loihi_weights(transform):  # noqa: C901
 
         if transpose:
             # compartment indices that this input axon would map to if mode == 'valid'
-            i_st = i * row_stride
-            j_st = j * col_stride
-            ri0, ri1 = i_st, i_st + kernel_rows
-            rj0, rj1 = j_st, j_st + kernel_cols
-            if transform.padding == "same":
-                # these paddings are based off the method used in
-                # `nengo._vendor.npconv2d`, to ensure we perform the same
-                output_rows_min = (input_rows - 1) * row_stride + 1
-                output_cols_min = (input_cols - 1) * col_stride + 1
-                pad_i = min(
-                    max(output_rows + kernel_rows - 1 - output_rows_min, 0),
-                    (kernel_rows - 1) * 2,
-                )
-                pad_j = min(
-                    max(output_cols + kernel_cols - 1 - output_cols_min, 0),
-                    (kernel_cols - 1) * 2,
-                )
-                # use floor instead of the `ceil` used by `npconv2d.conv2d_gradx`, since
-                # this padding is applied to the output where the kernel is flipped
-                ri0 -= pad_i // 2
-                ri1 -= pad_i // 2
-                rj0 -= pad_j // 2
-                rj1 -= pad_j // 2
+            ri0 = i * row_stride + pad_i
+            rj0 = j * col_stride + pad_j
         else:
             # unstrided compartment indices that this input axon would map to
             # if strides == 1 and mode == 'full'
-            ri0, ri1 = i + 1 - kernel_rows, i + 1
-            rj0, rj1 = j + 1 - kernel_cols, j + 1
-            if transform.padding == "same":
-                # these paddings are based off the method used in
-                # `nengo._vendor.npconv2d`, to ensure we perform the same
-                pad_i = (output_rows - 1) * row_stride + kernel_rows - input_rows
-                pad_j = (output_cols - 1) * col_stride + kernel_cols - input_cols
-                ri0 += pad_i // 2
-                ri1 += pad_i // 2
-                rj0 += pad_j // 2
-                rj1 += pad_j // 2
+            ri0 = i + pad_i + 1 - kernel_rows
+            rj0 = j + pad_j + 1 - kernel_cols
 
-        ri = np.arange(ri0, ri1)
-        rj = np.arange(rj0, rj1)
+        ri = np.arange(ri0, ri0 + kernel_rows)
+        rj = np.arange(rj0, rj0 + kernel_cols)
 
         wmask_i = (ri >= 0) & (ri < ri_max)
         wmask_j = (rj >= 0) & (rj < rj_max)
