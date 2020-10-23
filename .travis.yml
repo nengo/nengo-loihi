@@ -38,20 +38,20 @@ jobs:
       SCRIPT="static"
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       SCRIPT="emulator"
     stage: advanced
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       NXSDK_VERSION="0.9.9"
       SCRIPT="hardware"
     python: 3.6.8
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       SCRIPT="docs"
     addons:
