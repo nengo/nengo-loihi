@@ -16,6 +16,7 @@ from nengo_loihi.block import (
     LoihiBlock,
     Synapse,
 )
+from nengo_loihi.builder.builder import ValidationLevel
 from nengo_loihi.config import BlockShape
 from nengo_loihi.inputs import SpikeInput
 
@@ -106,7 +107,9 @@ def split_model(model):  # noqa: C901
     synapse_map = {}
 
     for old_block in model.blocks:
-        new_blocks = split_block(old_block, model.block_shapes)
+        new_blocks = split_block(
+            old_block, model.block_shapes, validate=model.validation_level
+        )
         block_map[old_block] = new_blocks
 
         if len(new_blocks) == 1:
@@ -117,7 +120,9 @@ def split_model(model):  # noqa: C901
         else:
             # break apart synapses
             for old_synapse in old_block.synapses:
-                new_synapse_axons = split_synapse(old_block, old_synapse, new_blocks)
+                new_synapse_axons = split_synapse(
+                    old_block, old_synapse, new_blocks, validate=model.validation_level
+                )
                 synapse_map[old_synapse] = new_synapse_axons
 
     for old_block in model.blocks:
@@ -127,7 +132,7 @@ def split_model(model):  # noqa: C901
         split_input_axons(input, block_map, synapse_map)
 
     for probe in model.probes:
-        split_probe(probe, block_map, synapse_map)
+        split_probe(probe, block_map, synapse_map, validate=model.validation_level)
 
     new_blocks = [block for group in block_map.values() for block in group]
 
@@ -145,7 +150,7 @@ def split_model(model):  # noqa: C901
     return block_map
 
 
-def split_probe(probe, block_map, synapse_map):
+def split_probe(probe, block_map, synapse_map, validate=ValidationLevel.MINIMAL):
     """Modify probe in place to target new blocks"""
     assert len(probe.target) == len(probe.slice) == len(probe.weights) == 1
     old_block = probe.target[0]
@@ -205,7 +210,8 @@ def split_probe(probe, block_map, synapse_map):
 
     ids = np.array([i for ii in ids for i in ii])
     assert ids.shape == old_comp_ids.shape
-    assert np.array_equal(np.unique(ids), old_comp_ids)
+    if validate >= ValidationLevel.MINIMAL:
+        assert np.array_equal(np.unique(ids), old_comp_ids)
 
     if is_transformed or np.array_equal(ids, old_comp_ids):
         # weighted probes don't need reindexing because summed outputs are ordered
@@ -319,7 +325,7 @@ def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
     return new_axons
 
 
-def split_block(old_block, block_shapes):
+def split_block(old_block, block_shapes, validate=ValidationLevel.MINIMAL):
     """Break a block apart into smaller blocks, each able to fit on one core"""
     n_compartments = old_block.compartment.n_compartments
     n_in_axons = sum(synapse.n_axons for synapse in old_block.synapses)
@@ -361,7 +367,8 @@ def split_block(old_block, block_shapes):
     assert len(new_block_inds) > 0
     if len(new_block_inds) == 1:
         # if block can fit on one core, just return the current block
-        assert new_block_inds[0].set == set(range(n_compartments))
+        if validate >= ValidationLevel.MINIMAL:
+            assert new_block_inds[0].set == set(range(n_compartments))
         new_blocks = [old_block]
         return OrderedDict(zip(new_blocks, new_block_inds))
 
@@ -421,7 +428,7 @@ def split_block(old_block, block_shapes):
     return OrderedDict(zip(new_blocks, new_block_inds))
 
 
-def split_synapse(old_block, old_synapse, new_blocks):
+def split_synapse(old_block, old_synapse, new_blocks, validate=ValidationLevel.MINIMAL):
     """Break a synapse apart to work with new blocks
 
     Parameters
@@ -462,9 +469,10 @@ def split_synapse(old_block, old_synapse, new_blocks):
     for axon_idx in range(old_synapse.n_axons):
         weight_idx = old_synapse.axon_weight_idx(axon_idx)
         indices = old_synapse.indices[weight_idx]
-        assert all(
-            np.array_equal(i, indices[0]) for i in indices[1:]
-        ), "All atoms must target same indices"
+        if validate >= ValidationLevel.MINIMAL:
+            assert all(
+                np.array_equal(i, indices[0]) for i in indices[1:]
+            ), "All atoms must target same indices"
         indices = indices[0]
 
         base = old_synapse.axon_compartment_base(axon_idx)
@@ -514,6 +522,7 @@ def split_synapse(old_block, old_synapse, new_blocks):
             block_comp_ids,
             axon_overlaps,
             axon_ids,
+            validate=validate,
         )
 
     logger.info(
@@ -530,7 +539,13 @@ def split_synapse(old_block, old_synapse, new_blocks):
 
 
 def set_new_synapse_weights(
-    old_synapse, old_input_axons, new_synapse, block_comp_ids, axon_overlaps, axon_ids
+    old_synapse,
+    old_input_axons,
+    new_synapse,
+    block_comp_ids,
+    axon_overlaps,
+    axon_ids,
+    validate=ValidationLevel.MINIMAL,
 ):
     has_shared_weights = old_synapse.axon_to_weight_map is not None
 
@@ -543,7 +558,8 @@ def set_new_synapse_weights(
     new_axon_compartment_bases = []
 
     compartment_map = dict(zip(block_comp_ids, range(len(block_comp_ids))))
-    new_block_comp_idxs = IndicesList(range(len(block_comp_ids)))
+    if validate >= ValidationLevel.FULL:
+        new_block_comp_idxs = IndicesList(range(len(block_comp_ids)))
 
     # iterate over all old axon ids that will also input to this new synapse
     for old_axon_id in axon_ids:
@@ -557,7 +573,7 @@ def set_new_synapse_weights(
             valid_comp_ids = old_axon_comp_ids
         else:
             i_valid = np.array(
-                [i in block_comp_ids for i in old_axon_comp_ids], dtype=bool
+                [i in block_comp_ids.set for i in old_axon_comp_ids.flat], dtype=bool
             )
             ww = old_weights[:, i_valid]
             ii = old_indices[:, i_valid]
@@ -599,8 +615,11 @@ def set_new_synapse_weights(
             weight_idx_map[key] = len(weights)
             weights.append(ww)
             indices.append(new_ii)
-            assert all(new_base + i in new_block_comp_idxs for i in new_ii.flat)
-        else:
+
+            if validate >= ValidationLevel.FULL:
+                check_inds = new_base + new_ii
+                assert set(check_inds.flat).issubset(new_block_comp_idxs.set)
+        elif validate >= ValidationLevel.FULL:
             # we have these weights/indices in memory, double check they're the same
             weight_idx = weight_idx_map[key]
             assert np.array_equal(ww, weights[weight_idx])

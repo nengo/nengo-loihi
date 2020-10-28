@@ -296,8 +296,8 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
 
     logger.debug("Building %s on core.id=%d", block, nxsdk_core.id)
 
-    for i, bias in enumerate(block.compartment.bias):
-        bman, bexp = bias_to_manexp(bias)
+    bmans, bexps = bias_to_manexp(block.compartment.bias)
+    for i, (bman, bexp) in enumerate(zip(bmans, bexps)):
         icomp = core.compartment_cfg_idxs[block][i]
         ivth = core.vth_cfg_idxs[block][i]
 

@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict, defaultdict
+from enum import IntEnum
 
 import numpy as np
 from nengo import Ensemble, Network, Node, Probe
@@ -13,6 +14,12 @@ from nengo_loihi.decode_neurons import OnOffDecodeNeurons, Preset10DecodeNeurons
 from nengo_loihi.inputs import LoihiInput
 
 logger = logging.getLogger(__name__)
+
+
+class ValidationLevel(IntEnum):
+    NONE = 1
+    MINIMAL = 2
+    FULL = 3
 
 
 class Model:
@@ -62,6 +69,9 @@ class Model:
         Learning weight exponent (base 2) for PES learning connections. This
         controls the maximum weight magnitude (where a larger exponent means
         larger potential weights, but lower weight resolution).
+    validation_level : ValidationLevel
+        Level of validation to do during the build process.
+        Defaults to ValidationLevel.MINIMAL.
     vth_nonspiking : float
         Voltage threshold for non-spiking neurons (i.e. voltage decoders).
 
@@ -99,6 +109,9 @@ class Model:
     seeds : dict
         Mapping from objects to the integer seed assigned to that object.
     """
+
+    # TODO: move this to an RC file or something like an RC file
+    default_validation_level = ValidationLevel.MINIMAL
 
     def __init__(self, dt=0.001, label=None, builder=None):
         self.dt = dt
@@ -143,6 +156,8 @@ class Model:
         self.seeded = {}
 
         # --- other (typically standard) parameters
+        self.validation_level = self.default_validation_level
+
         # Filter on decode neurons
         self.decode_tau = 0.005
         # ^TODO: how to choose this filter? Even though the input is spikes,

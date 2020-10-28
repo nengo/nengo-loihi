@@ -9,6 +9,7 @@ import pytest
 from pytest_allclose import report_rmses
 
 import nengo_loihi
+from nengo_loihi.builder.builder import Model, ValidationLevel
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.tests import make_test_sim
 
@@ -18,6 +19,7 @@ def pytest_configure(config):
     EmulatorInterface.strict = True
 
     nengo_loihi.set_defaults()
+    Model.default_validation_level = ValidationLevel.FULL
 
     config.addinivalue_line(
         "markers", "target_sim: mark test as only running on emulator"

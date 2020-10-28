@@ -8,9 +8,13 @@ from nengo_loihi.block import (
     MAX_SYNAPSE_BITS,
     Synapse,
 )
+from nengo_loihi.builder.builder import ValidationLevel
 
 
 def validate_model(model):
+    if model.validation_level is ValidationLevel.NONE:
+        return
+
     if len(model.blocks) == 0:
         raise BuildError(
             "No neurons marked for execution on-chip. "
