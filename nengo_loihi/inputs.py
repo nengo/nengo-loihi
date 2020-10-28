@@ -1,4 +1,4 @@
-from nengo_loihi.compat import is_integer
+from nengo.utils.numpy import is_integer
 
 
 class LoihiInput:
@@ -12,7 +12,7 @@ class LoihiInput:
 
 class SpikeInput(LoihiInput):
     def __init__(self, n_neurons, label=None):
-        super(SpikeInput, self).__init__(label=label)
+        super().__init__(label=label)
         self.n_neurons = n_neurons
         self.spikes = {}  # map sim timestep index to list of spike inds
 

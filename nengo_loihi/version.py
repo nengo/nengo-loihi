@@ -1,4 +1,4 @@
-"""Nengo Loihi version information.
+"""NengoLoihi version information.
 
 We use semantic versioning (see http://semver.org/).
 and conform to PEP440 (see https://www.python.org/dev/peps/pep-0440/).
@@ -38,7 +38,7 @@ version = "{v}{dev}".format(
 
 # --- Nengo version compatibility
 # oldest nengo version we are compatible with (test on release)
-minimum_nengo_version_info = (2, 7, 0)
+minimum_nengo_version_info = (3, 1, 0)
 minimum_nengo_version = info2string(minimum_nengo_version_info)
 
 # newest nengo version we are compatible with (set to latest released nengo

@@ -557,7 +557,7 @@ def set_new_synapse_weights(
             valid_comp_ids = old_axon_comp_ids
         else:
             i_valid = np.array(
-                [i in block_comp_ids for i in old_axon_comp_ids], dtype=bool
+                [i in block_comp_ids.set for i in old_axon_comp_ids.flat], dtype=bool
             )
             ww = old_weights[:, i_valid]
             ii = old_indices[:, i_valid]
@@ -599,12 +599,14 @@ def set_new_synapse_weights(
             weight_idx_map[key] = len(weights)
             weights.append(ww)
             indices.append(new_ii)
-            assert all(new_base + i in new_block_comp_idxs for i in new_ii.flat)
+
+            # check_inds = new_base + new_ii
+            # assert set(check_inds.flat).issubset(new_block_comp_idxs.set)
         else:
             # we have these weights/indices in memory, double check they're the same
             weight_idx = weight_idx_map[key]
-            assert np.array_equal(ww, weights[weight_idx])
-            assert np.array_equal(new_ii, indices[weight_idx])
+            # assert np.array_equal(ww, weights[weight_idx])
+            # assert np.array_equal(new_ii, indices[weight_idx])
 
         # add the weight memory index and compartment base for this axon
         new_axon_weight_map.append(weight_idx_map[key])

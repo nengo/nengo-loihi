@@ -62,7 +62,7 @@ class HardwareInterface:
 
     connection_retries = 3
     min_nxsdk_version = parse_nxsdk_version("0.8.7")
-    max_nxsdk_version = parse_nxsdk_version("0.9.5")
+    max_nxsdk_version = parse_nxsdk_version("0.9.9")
 
     def __init__(
         self,
@@ -668,7 +668,9 @@ class ChipSnips:
 
         # write c file using template
         Snips.render_template(
-            "nengo_learn.c", c_path, header_file=h_filename,
+            "nengo_learn.c",
+            c_path,
+            header_file=h_filename,
         )
 
         # write header file using template

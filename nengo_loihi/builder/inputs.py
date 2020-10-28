@@ -9,9 +9,7 @@ class HostSendNode(Node):
 
     def __init__(self, dimensions, label=Default):
         self.queue = []
-        super(HostSendNode, self).__init__(
-            self.update, size_in=dimensions, size_out=0, label=label
-        )
+        super().__init__(self.update, size_in=dimensions, size_out=0, label=label)
 
     def update(self, t, x):
         assert len(self.queue) == 0 or t > self.queue[-1][0]
@@ -24,9 +22,7 @@ class HostReceiveNode(Node):
     def __init__(self, dimensions, label=Default):
         self.queue = [(0, np.zeros(dimensions))]
         self.queue_index = 0
-        super(HostReceiveNode, self).__init__(
-            self.update, size_in=0, size_out=dimensions, label=label
-        )
+        super().__init__(self.update, size_in=0, size_out=dimensions, label=label)
 
     def update(self, t):
         while (
@@ -54,9 +50,7 @@ class ChipReceiveNode(Node):
     def __init__(self, dimensions, size_out, label=Default):
         self.raw_dimensions = dimensions
         self.spike_target = None
-        super(ChipReceiveNode, self).__init__(
-            self.update, size_in=0, size_out=size_out, label=label
-        )
+        super().__init__(self.update, size_in=0, size_out=size_out, label=label)
 
     def update(self, t):
         raise SimulationError("{} should not be run".format(type(self).__name__))
@@ -75,7 +69,7 @@ class ChipReceiveNeurons(ChipReceiveNode):
 
     def __init__(self, dimensions, neuron_type=None, label=Default):
         self.neuron_type = neuron_type
-        super(ChipReceiveNeurons, self).__init__(dimensions, dimensions, label=label)
+        super().__init__(dimensions, dimensions, label=label)
 
 
 class PESModulatoryTarget:
@@ -89,5 +83,5 @@ class PESModulatoryTarget:
     """
 
     def __init__(self, target):
-        super(PESModulatoryTarget, self).__init__()
+        super().__init__()
         self.error_target = target

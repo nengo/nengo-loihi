@@ -177,3 +177,15 @@ Hardware
    nengo_loihi.hardware.HardwareInterface
 
 .. autoclass:: nengo_loihi.hardware.HardwareInterface
+
+Allocators
+----------
+
+.. autosummary::
+
+   nengo_loihi.hardware.allocators.Greedy
+   nengo_loihi.hardware.allocators.RoundRobin
+
+.. autoclass:: nengo_loihi.hardware.allocators.Greedy
+
+.. autoclass:: nengo_loihi.hardware.allocators.RoundRobin

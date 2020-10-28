@@ -1,6 +1,6 @@
-***********
-Nengo Loihi
-***********
+**********
+NengoLoihi
+**********
 
 A backend for running Nengo models on Intel's Loihi architecture.
 

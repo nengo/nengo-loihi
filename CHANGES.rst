@@ -19,10 +19,20 @@ Release history
    - Removed
    - Fixed
 
+0.12.0 (unreleased)
+===================
+
+**Added**
+
+- Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
+
+.. _#300: https://github.com/nengo/nengo/pull/300
+
 0.11.0 (unreleased)
 ===================
 
-*Compatible with NxSDK 0.8.7 - 0.9.5*
+*Compatible with Nengo 3.1.0*
+*Compatible with NxSDK 0.8.7 - 0.9.9*
 
 **Added**
 
@@ -61,6 +71,14 @@ Release history
   showing how to directly convert a Keras convolutional network to run on Loihi
   using the NengoDL Keras Converter.
   (`#281 <https://github.com/nengo/nengo-loihi/pull/281>`__)
+- Added support for NxSDK 0.9.8 and 0.9.9.
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
+- Added support for the ``nengo.RegularSpiking`` neuron type, when using ``LIFRate``
+  or ``RectifiedLinear`` as the base type (these are equivalent to ``LIF`` and
+  ``SpikingRectifiedLinear``, respectively).
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
+- Added support for ``padding='same'`` on ``nengo.Convolution`` transforms.
+  (`#297 <https://github.com/nengo/nengo-loihi/pull/297>`__)
 
 **Changed**
 
@@ -94,8 +112,10 @@ Release history
 - Allocators like ``RoundRobin`` no longer accept the ``n_chips`` parameter.
   Instead, the ``__call__`` method accepts ``n_chips``.
   (`#266 <https://github.com/nengo/nengo-loihi/pull/266>`__)
-- Nengo Loihi now supports NxSDK version 0.9.5.rc1.
+- NengoLoihi now supports NxSDK version 0.9.5.rc1.
   (`#272 <https://github.com/nengo/nengo-loihi/pull/272>`__)
+- NengoLoihi now supports Nengo version 3.1. Support for Nengo 3.0 has been dropped.
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
 
 **Removed**
 

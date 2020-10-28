@@ -110,7 +110,7 @@ def test_split_probe(allclose, n_neurons, plt, seed, Simulator):
     nengo_mean = np.mean(nengo_sim.data[probe], axis=1)
     loihi_mean = np.mean(loihi_sim.data[probe], axis=1)
     plt.plot(t, nengo_mean, label="Nengo core")
-    plt.plot(t, loihi_mean, label="Nengo Loihi")
+    plt.plot(t, loihi_mean, label="NengoLoihi")
     plt.legend()
 
     assert len(loihi_sim.model.objs[ens]["out"]) == (2 if n_neurons >= 200 else 1)

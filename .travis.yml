@@ -22,6 +22,7 @@ env:
     - SCRIPT="test"
     - TEST_ARGS=""
     - BRANCH_NAME="${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}"
+    - PIP_USE_FEATURE="2020-resolver"
     - NENGO_VERSION="nengo[tests]"
     - NENGO_DL_VERSION="nengo-dl"
 
@@ -29,7 +30,7 @@ jobs:
   include:
   -
     env:
-      NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
+      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
       SCRIPT="emulator"
     stage: basic
   -
@@ -37,20 +38,20 @@ jobs:
       SCRIPT="static"
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       SCRIPT="emulator"
     stage: advanced
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
-      NXSDK_VERSION="0.9"
+      NXSDK_VERSION="0.9.9"
       SCRIPT="hardware"
-    python: 3.5.2
+    python: 3.6.8
   -
     env:
-      NENGO_VERSION="git+https://github.com/nengo/nengo.git#egg=nengo[tests]"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       NENGO_DL_VERSION="git+https://github.com/nengo/nengo-dl.git#egg=nengo-dl"
       SCRIPT="docs"
     addons:

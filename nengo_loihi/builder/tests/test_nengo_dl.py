@@ -7,9 +7,9 @@ from nengo_loihi.builder import nengo_dl as builder_nengo_dl
 
 
 def test_installer_with_no_dl(caplog, monkeypatch):
-    """Ensures that the installer works as expected with no Nengo DL.
+    """Ensures that the installer works as expected with no NengoDL.
 
-    If Nengo DL is installed, other tests will test the installer as
+    If NengoDL is installed, other tests will test the installer as
     it is used in ``Simulator.__init__``.
     """
     monkeypatch.setattr(builder_nengo_dl, "HAS_DL", False)

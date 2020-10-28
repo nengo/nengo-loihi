@@ -5,15 +5,16 @@ import warnings
 import nengo
 from nengo import Ensemble, Connection, Node, Probe as NengoProbe
 from nengo.builder.connection import (
-    build_no_solver as _build_no_solver,
     BuiltConnection,
     get_eval_points,
     get_targets,
 )
+from nengo.builder.transforms import multiply
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
-from nengo.solvers import NoSolver, Solver
+from nengo.solvers import Solver
+import nengo.utils.numpy as npext
 import numpy as np
 import scipy.sparse
 
@@ -32,10 +33,7 @@ from nengo_loihi.builder.sparse_matrix import (
     stack_matrices,
 )
 from nengo_loihi.compat import (
-    conn_solver,
     is_transform_type,
-    multiply,
-    nengo_transforms,
     sample_transform,
 )
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
@@ -48,8 +46,13 @@ logger = logging.getLogger(__name__)
 
 
 def _inherit_seed(dest_model, dest_obj, src_model, src_obj):
-    dest_model.seeded[dest_obj] = src_model.seeded[src_obj]
-    dest_model.seeds[dest_obj] = src_model.seeds[src_obj]
+    _set_seed(dest_model, dest_obj, src_model.seeds[src_obj], src_model.seeded[src_obj])
+
+
+def _set_seed(dest_model, dest_obj, seed, seeded):
+    seed = seed.randint(npext.maxint) if hasattr(seed, "randint") else seed
+    dest_model.seeded[dest_obj] = seeded
+    dest_model.seeds[dest_obj] = seed
 
 
 def _inherit_config(dest_model, dest_obj, src_model, src_obj):
@@ -150,7 +153,7 @@ def build_host_to_chip(model, conn):
     rng = np.random.RandomState(model.seeds[conn])
     host = model.host_model(base_obj(conn.pre))
 
-    if is_transform_type(conn.transform, "Convolution"):
+    if is_transform_type(conn.transform, ("Convolution", "ConvolutionTranspose")):
         raise BuildError(
             "Conv2D transforms not supported for off-chip to "
             "on-chip connections where `pre` is not a Neurons object."
@@ -167,9 +170,7 @@ def build_host_to_chip(model, conn):
     if isinstance(conn.post_obj, Ensemble):
         weights = weights / conn.post_obj.radius
 
-    if nengo_transforms is None:  # pragma: no cover
-        transform = weights
-    elif is_transform_type(conn.transform, "NoTransform"):
+    if is_transform_type(conn.transform, "NoTransform"):
         transform = weights  # weights are 1 / (post ensemble radius), if applicable
     else:
         # copy the Transform information, setting `init` to the sampled weights
@@ -212,7 +213,7 @@ def build_host_to_chip(model, conn):
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
     ens = model.node_neurons.get_ensemble(dim, add_to_container=False)
     ens.label = None if conn.label is None else "%s_ens" % conn.label
-    _inherit_seed(host, ens, model, conn)
+    _set_seed(host, ens, seed=rng, seeded=model.seeded[conn])
     host.build(ens)
 
     pre2ens = Connection(
@@ -251,6 +252,12 @@ def build_host_to_chip(model, conn):
 
 
 def build_chip_to_host(model, conn):
+    if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
+        raise BuildError(
+            "nengo-loihi does not yet support %r transforms "
+            "on chip to host connections" % (type(conn.transform).__name__,)
+        )
+
     rng = np.random.RandomState(model.seeds[conn])
     dim = conn.size_out
     host = model.host_model(base_obj(conn.post))
@@ -397,9 +404,7 @@ def solve_for_decoders(conn, gain, bias, x, targets, rng, dt):
             "ranges of any neurons." % (conn, conn.pre_obj)
         )
 
-    # CHANGE: backwards compatibility for solvers
-    # decoders, solver_info = conn.solver(activities, targets, rng=rng)
-    decoders, solver_info = conn_solver(conn.solver, activities, targets, rng=rng)
+    decoders, solver_info = conn.solver(activities, targets, rng=rng)
 
     return decoders, solver_info
 
@@ -421,14 +426,6 @@ def build_decode_neuron_encoders(model, ens, kind="decode_neuron_encoders"):
 @Builder.register(Solver)
 def build_solver(model, solver, conn, rng, sampled_transform):
     return build_decoders(model, conn, rng, sampled_transform)
-
-
-@Builder.register(NoSolver)
-def build_no_solver(model, solver, conn, rng, sampled_transform):
-    args = (model, solver, conn, rng)
-    if nengo_transforms is None:  # pragma: no cover
-        args += (sampled_transform,)
-    return _build_no_solver(*args)
 
 
 def build_chip_connection(model, conn):
@@ -483,10 +480,9 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         raise NotImplementedError()
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         if isinstance(transform, scipy.sparse.spmatrix):
-            warnings.warn(
-                "Converting Sparse transform to Dense to combine with decoders"
+            raise BuildError(
+                "Applying a sparse transform to a decoded connection is not supported"
             )
-            transform = transform.toarray()
 
         eval_points, decoders, solver_info = model.build(
             conn.solver, conn, rng, transform
@@ -620,6 +616,14 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                     )
 
                 tracing_tau = rule_type.pre_synapse.tau / model.dt
+                if not np.allclose(round(tracing_tau), tracing_tau):
+                    raise ValidationError(
+                        "PES learning rule `pre_synapse.tau` must be an integer "
+                        "multiple of `dt` (%s). Got %s."
+                        % (model.dt, rule_type.pre_synapse.tau),
+                        attr="pre_synapse.tau",
+                        obj=rule_type,
+                    )
 
                 # Nengo builder scales PES learning rate by `dt / n_neurons`
                 n_neurons = (
@@ -739,28 +743,13 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     )
 
 
-def register_transform_builder(attr):
-    if nengo_transforms is not None:
-        transform = getattr(nengo_transforms, attr)
-        return Builder.register(transform)
-    else:  # pragma: no cover
-
-        def register_builder(build_fn):
-            return build_fn
-
-        return register_builder
-
-
-@register_transform_builder("Convolution")
+@Builder.register(nengo.Convolution)
+@Builder.register(getattr(nengo.transforms, "ConvolutionTranspose", None))
 def build_conv2d_connection(model, transform, conn):
-    assert is_transform_type(transform, "Convolution")
+    assert is_transform_type(transform, ("Convolution", "ConvolutionTranspose"))
 
     if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
-    if transform.padding != "valid":
-        raise NotImplementedError(
-            "nengo-loihi only supports convolution with 'valid' padding"
-        )
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
@@ -820,6 +809,12 @@ def build_conv2d_connection(model, transform, conn):
     )
     post_obj.add_synapse(synapse)
     model.objs[conn]["weights"] = synapse
+    if synapse.atom_bits_extra() > 0:
+        warnings.warn(
+            "Using more than 32 'populations' (e.g. convolutional filters) with "
+            "`pop_type=16` axons has not yet been implemented in NxSDK. This feature "
+            "is therefore emulator-only."
+        )
 
     target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
     target_axons[conn.pre_slice] = pixel_idxs(input_shape)

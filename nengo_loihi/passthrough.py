@@ -1,14 +1,14 @@
 from collections import OrderedDict
 import warnings
 
-from nengo import Connection, Lowpass, Node, Probe
+from nengo import Connection, Dense, Lowpass, Node, Probe
 from nengo.base import ObjView
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, NengoException
 import numpy as np
 
-from nengo_loihi.compat import is_transform_type, nengo_transforms, transform_array
+from nengo_loihi.compat import is_transform_type
 
 
 def is_passthrough(obj):
@@ -76,7 +76,7 @@ class Cluster:
             if is_transform_type(transform, "NoTransform"):
                 transform = np.array(1.0)
             elif is_transform_type(transform, "Dense"):
-                transform = transform_array(transform)
+                transform = transform.init
             else:
                 raise NotImplementedError(
                     "Mergeable transforms must be Dense; "
@@ -105,10 +105,7 @@ class Cluster:
             np.dot(mid_t, format_transform(sizes[0], transforms[0])),
         )
 
-        if nengo_transforms is None:  # pragma: no cover
-            return transform
-        else:
-            return nengo_transforms.Dense(transform.shape, init=transform)
+        return Dense(transform.shape, init=transform)
 
     def merge_synapses(self, syn1, syn2):
         """Return an equivalent synapse for the two provided synapses."""
@@ -147,10 +144,7 @@ class Cluster:
             # this Node has a Probe, so we need to keep it around and create
             # a new Connection that goes to it, as the original Connections
             # will get removed
-            if nengo_transforms is not None:
-                trans1 = nengo_transforms.Dense((obj.size_out, obj.size_out), init=1.0)
-            else:  # pragma: no cover
-                trans1 = np.array(1.0)
+            trans1 = Dense((obj.size_out, obj.size_out), init=1.0)
             yield (slice(None), trans1, None, obj)
 
         for c in outputs[obj]:
@@ -208,7 +202,7 @@ class Cluster:
                     [c.post_slice, pre_slice],
                 )
 
-                if not np.allclose(transform_array(trans), 0):
+                if not np.allclose(trans.init, 0):
                     yield Connection(
                         pre=c.pre,
                         post=post,

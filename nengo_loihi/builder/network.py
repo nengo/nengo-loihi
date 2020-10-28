@@ -1,11 +1,11 @@
 from nengo.builder.network import build_network as nengo_build_network
+from nengo.builder.network import seed_network
 from nengo.network import Network
 
 from nengo_loihi.builder import Builder
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.builder.split_blocks import split_model
 from nengo_loihi.builder.validate import validate_model
-from nengo_loihi.compat import seed_network
 from nengo_loihi.splitter import Split
 
 
@@ -34,8 +34,7 @@ def build_network(
         # Build the extra passthrough connections into the model
         passthrough = model.split.passthrough
         for conn in passthrough.to_add:
-            # Note: connections added by the passthrough splitter do not
-            # respect seeds
+            # Note: connections added by the passthrough splitter do not have seeds
             model.seeds[conn] = None
             model.seeded[conn] = False
             model.build(conn)

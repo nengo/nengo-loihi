@@ -8,14 +8,14 @@ Making models fit on Loihi
 Splitting large Ensembles
 -------------------------
 
-By default, Nengo Loihi will split ``Ensemble`` objects
+By default, NengoLoihi will split ``Ensemble`` objects
 that are too large to fit on a single Loihi core
 into smaller pieces to distribute across multiple cores.
 For some networks (e.g. most densely-connected networks),
 this can happen by itself without any guidance from the user.
 
 For networks that use `nengo.Convolution` transforms, such as image processing networks,
-some assistance is usually required to tell Nengo Loihi *how* to split an ensemble.
+some assistance is usually required to tell NengoLoihi *how* to split an ensemble.
 This is because grouping the neurons sequentially is rarely ideal for such networks.
 For example, if an ``Ensemble`` is representing a 32 x 32 x 4 image
 (that is 32 rows, 32 columns, and 4 channels),
@@ -308,7 +308,7 @@ Remote port tunneling
 
 Tunneling a remote port to your local machine
 allows you to run the Jupyter notebook server
-or the Nengo GUI server on the superhost or host,
+or the NengoGUI server on the superhost or host,
 but access the web-based interface
 on your local machine.
 
@@ -326,7 +326,7 @@ in which you can start the process
 that will communicate over ``<remote port>``.
 
 **Example 1**:
-Starting a Nengo GUI server on port 8000
+Starting a NengoGUI server on port 8000
 of ``superhost-1``,
 which has a ``loihi`` conda environment.
 
@@ -341,7 +341,7 @@ which has a ``loihi`` conda environment.
 
 On your local machine,
 open ``http://localhost:8000/``
-and you should see the Nengo GUI interface.
+and you should see the NengoGUI interface.
 
 **Example 2**:
 Starting a Jupyter notebook server on port 8080

@@ -2,10 +2,10 @@ import logging
 import warnings
 
 from nengo.exceptions import BuildError
+from nengo.utils.numpy import is_iterable
 import numpy as np
 
 from nengo_loihi.block import SynapseConfig
-from nengo_loihi.compat import is_iterable
 from nengo_loihi.nxsdk_obfuscation import d
 
 VTH_MAN_MAX = d(b"MTMxMDcx", int)
@@ -311,7 +311,9 @@ def discretize_compartment(comp, w_max):
             if (vth <= vth_max).all() and (np.abs(bias) <= BIAS_MAX).all():
                 break
         else:
-            raise BuildError("Could not find appropriate weight exponent")
+            raise BuildError(
+                "Could not find appropriate weight exponent (block=%s)" % comp.label
+            )
     elif b_max > 1e-8:
         b_scale = BIAS_MAX / b_max
         while b_scale * b_max > 1:
@@ -324,7 +326,9 @@ def discretize_compartment(comp, w_max):
 
             b_scale /= 2.0
         else:
-            raise BuildError("Could not find appropriate bias scaling")
+            raise BuildError(
+                "Could not find appropriate bias scaling (block=%s)" % comp.label
+            )
     else:
         # reduce vth_max in this case to avoid overflow since we're setting
         # all vth to vth_max (esp. in learning with zeroed initial weights)

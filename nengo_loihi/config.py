@@ -3,9 +3,8 @@ from nengo import Ensemble
 from nengo.config import InstanceParams
 from nengo.exceptions import ValidationError
 from nengo.params import Parameter
+from nengo.utils.numpy import is_integer
 import numpy as np
-
-from nengo_loihi.compat import is_integer, nengo_transforms
 
 
 class BlockShapeParam(Parameter):
@@ -94,9 +93,7 @@ class BlockShape:
 
     def __init__(self, shape, ensemble_shape_or_transform):
         self.ensemble_shape = ensemble_shape_or_transform
-        if nengo_transforms is not None and isinstance(
-            ensemble_shape_or_transform, nengo_transforms.Convolution
-        ):
+        if isinstance(ensemble_shape_or_transform, nengo.Convolution):
             self.ensemble_shape = ensemble_shape_or_transform.output_shape.shape
         self.shape = shape
 
@@ -189,3 +186,6 @@ def set_defaults():
     """
     nengo.Ensemble.max_rates.default = nengo.dists.Uniform(100, 120)
     nengo.Ensemble.intercepts.default = nengo.dists.Uniform(-1.0, 0.5)
+    nengo.Ensemble.neuron_type.default = nengo.LIF(
+        initial_state={"voltage": nengo.dists.Choice([0])}
+    )

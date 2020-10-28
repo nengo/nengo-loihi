@@ -6,11 +6,11 @@ import warnings
 
 import nengo
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
+from nengo.simulator import SimulationData as NengoSimulationData
 import nengo.utils.numpy as npext
 import numpy as np
 
 from nengo_loihi.builder import Model
-from nengo_loihi.compat import NengoSimulationData
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class Simulator:
-    """Nengo Loihi simulator for Loihi hardware and emulator.
+    """NengoLoihi simulator for Loihi hardware and emulator.
 
     The simulator takes a `nengo.Network` and builds internal data structures
     to run the model defined by that network on Loihi emulator or hardware.
@@ -571,7 +571,7 @@ class Timers(Mapping):
         del self._last_start[key]
 
 
-class SimulationData(NengoSimulationData):
+class SimulationData(NengoSimulationData):  # pylint: disable=too-many-ancestors
     """Map from Probe -> ndarray
 
     This is more like a view on the dict that the simulator manipulates.
@@ -581,7 +581,7 @@ class SimulationData(NengoSimulationData):
     """
 
     def __init__(self, raw):
-        super(SimulationData, self).__init__(raw=raw)
+        super().__init__(raw=raw)
         self.fallbacks = []
 
     def add_fallback(self, fallback):

@@ -19,7 +19,7 @@ class LoihiBlock:
     """Class holding Loihi objects that can be placed on the chip.
 
     This class can be thought of as a block of the Loihi board, and is how
-    Nengo Loihi keeps track of how Loihi Neuron cores will be configured.
+    NengoLoihi keeps track of how Loihi Neuron cores will be configured.
     Generally, the job of the build process is to convert Nengo objects
     (ensembles, connections, and nodes) to LoihiBlocks, which will then
     be used by the `.EmulatorInterface` or `.HardwareInterface`.
@@ -521,13 +521,14 @@ class SynapseConfig(Config):
 
         synapse_idx_bits = d(b"NA==", int)
         n_synapses_bits = d(b"Ng==", int)
+        bits_per_memunit = d(b"NjQ=", int)
         bits = 0
         synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
             bits_i = n * bits_per_weight + synapse_idx_bits + n_synapses_bits
             # round up to nearest memory unit
-            bits_i = -d(b"NjQ=", int) * (-bits_i // d(b"NjQ=", int))
+            bits_i = -bits_per_memunit * (-bits_i // bits_per_memunit)
             bits += bits_i
 
         return bits
