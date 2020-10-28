@@ -517,13 +517,14 @@ class SynapseConfig(Config):
 
         synapse_idx_bits = 4
         n_synapses_bits = 6
+        bits_per_memunit = 64
         bits = 0
         synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
             bits_i = n * bits_per_weight + synapse_idx_bits + n_synapses_bits
             # round up to nearest memory unit
-            bits_i = -64 * (-bits_i // 64)
+            bits_i = -bits_per_memunit * (-bits_i // bits_per_memunit)
             bits += bits_i
 
         return bits
