@@ -21,8 +21,8 @@
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
         pip install nxsdk-$NXSDK_VERSION.tar.gz
 
-        pip install $NENGO_VERSION
-        pip install $NENGO_DL_VERSION jupyter
+        pip install "$NENGO_VERSION"
+        pip install "$NENGO_DL_VERSION" jupyter
         pip install -e .[tests]
 {% endblock %}
 
