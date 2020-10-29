@@ -261,6 +261,10 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
     """
 
+    # TODO: why does this scale factor help? Found it empirically in
+    # test_decode_neurons.test_add_inputs (see there for a description)
+    scale_factor = 1.05
+
     def __init__(self, dt=0.001, rate=None):
         super().__init__(pairs_per_dim=5, dt=dt, rate=rate)
 
@@ -270,14 +274,12 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
         gain, bias = self.neuron_type.gain_bias(max_rates, intercepts)
 
         target_point = 0.85
-        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias))
-        self.scale = 1.08 * target_point / (self.dt * target_rate)
-        # ^ TODO: why does this 1.08 factor help? found it empirically in
-        # test_decode_neurons.test_add_inputs
+        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias, dt=dt))
+        self.scale = self.scale_factor * target_point / (self.dt * target_rate)
 
+        # repeat gains/biases for on/off neurons
         self.gain = gain.repeat(2)
         self.bias = bias.repeat(2)
-        # ^ repeat for on/off neurons
 
     def __str__(self):
         return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)
@@ -290,6 +292,10 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
     """
 
+    # TODO: why does this scale factor help? Found it empirically in
+    # test_decode_neurons.test_add_inputs (see there for a description)
+    scale_factor = 1.05
+
     def __init__(self, dt=0.001, rate=None):
         super().__init__(pairs_per_dim=10, dt=dt, rate=rate)
 
@@ -300,14 +306,12 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
         gain, bias = self.neuron_type.gain_bias(max_rates, intercepts)
 
         target_point = 1.0
-        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias))
-        self.scale = 1.05 * target_point / (self.dt * target_rate)
-        # ^ TODO: why does this 1.05 factor help? found it empirically in
-        # test_decode_neurons.test_add_inputs
+        target_rate = np.sum(self.neuron_type.rates(target_point, gain, bias, dt=dt))
+        self.scale = self.scale_factor * target_point / (self.dt * target_rate)
 
+        # repeat gains/biases for on/off neurons
         self.gain = gain.repeat(2)
         self.bias = bias.repeat(2)
-        # ^ repeat for on/off neurons
 
     def __str__(self):
         return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)

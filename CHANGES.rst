@@ -44,10 +44,12 @@ Release history
   is deleted. (`#312`_)
 - Fixed probe filters such that multiple ``Simulator.run`` calls now results in
   the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
+- Fixed handling of ``dt`` within ``DecodeNeurons`` for ``dt != 0.001``. (`#309`_)
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
 .. _#289: https://github.com/nengo/nengo-loihi/pull/289
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
+.. _#309: https://github.com/nengo/nengo-loihi/pull/309
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 .. _#320: https://github.com/nengo/nengo-loihi/pull/320
