@@ -23,6 +23,15 @@ from nengo_loihi.decode_neurons import (
     ],
 )
 def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
+    """Test the addition of two inputs with DecodeNeurons.
+
+    Note: This test forms the basis for the scale factors for Preset5DecodeNeurons
+    and Preset10DecodeNeurons. It is unclear exactly why these scale factors help.
+    The best values depend on the exact inputs below, as well as the seed used for
+    this test. More testing is needed to find optimal scale factors, or (ideally)
+    get rid of them completely if we can better understand the underlying mechanics.
+    """
+
     sim_time = 2.0
     pres_time = sim_time / 4
     eval_time = sim_time / 8
@@ -35,6 +44,8 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
     stim_fn_b = nengo.processes.Piecewise(
         {t: stim_values[i][1] for i, t in enumerate(stim_times)}
     )
+
+    probe_solver = nengo.solvers.LstsqL2nz(reg=0.01)
 
     with nengo.Network(seed=seed) as model:
         stim_a = nengo.Node(stim_fn_a)
@@ -54,9 +65,9 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
         stim_synapse = out_synapse.combine(nengo.Alpha(0.005)).combine(
             nengo.Alpha(0.005)
         )
-        p_stim_a = nengo.Probe(stim_a, synapse=stim_synapse)
-        p_stim_b = nengo.Probe(stim_b, synapse=stim_synapse)
-        p_c = nengo.Probe(c, synapse=out_synapse)
+        p_stim_a = nengo.Probe(stim_a, synapse=stim_synapse, solver=probe_solver)
+        p_stim_b = nengo.Probe(stim_b, synapse=stim_synapse, solver=probe_solver)
+        p_c = nengo.Probe(c, synapse=out_synapse, solver=probe_solver)
 
     build_model = Model()
     build_model.decode_neurons = decode_neurons
