@@ -49,6 +49,10 @@ class LoihiBlock:
         self.synapses = []
         self.named_synapses = {}
 
+    @property
+    def discretize_info(self):
+        return self.compartment.discretize_info
+
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
 
@@ -177,6 +181,8 @@ class Compartment:
         self.noise_offset = 0
         self.noise_exp = 0
         self.noise_at_membrane = 0
+
+        self.discretize_info = None
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")

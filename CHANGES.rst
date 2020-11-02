@@ -34,6 +34,8 @@ Release history
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
 - Added support for ``padding='same'`` on ``nengo.Convolution`` transforms. (`#297`_)
 - Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
+- ``Block`` and ``Compartment`` now have ``.discretize_info`` attributes that store
+  parameters used for discretizing that block and compartment. (`#309`_)
 
 **Changed**
 
