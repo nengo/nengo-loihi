@@ -32,6 +32,8 @@ Release history
 - Added ``Simulator.clear_probes`` to clear probe histories. This can help reduce memory
   usage during long runs, by running for a segment of the full run time, recording the
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
+- ``Block`` now has a ``.discretize_info`` attribute that stores parameters used
+  for discretizing that block. (`#309`_)
 
 **Changed**
 
