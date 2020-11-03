@@ -374,27 +374,29 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
 
     logger.debug("Building %s on core.id=%d", block, nxsdk_core.id)
 
-    for i, bias in enumerate(block.compartment.bias):
-        bman, bexp = bias_to_manexp(bias)
+    nxsdk_core_cx = d_get(nxsdk_core, b"Y3hDZmc=")
+    nxsdk_core_metastate = d_get(nxsdk_core, b"Y3hNZXRhU3RhdGU=")
+    bman_attr = d(b"Ymlhcw==")
+    bexp_attr = d(b"Ymlhc0V4cA==")
+    vth_cfg_attr = d(b"dnRoUHJvZmlsZQ==")
+    comp_cfg_attr = d(b"Y3hQcm9maWxl")
+    phasex_strs = [d(b"cGhhc2UlZA==") % i for i in range(4)]
+
+    bman, bexp = bias_to_manexp(block.compartment.bias)
+    for i, _ in enumerate(bman):
         icomp = core.compartment_cfg_idxs[block][i]
         ivth = core.vth_cfg_idxs[block][i]
 
         ii = compartment_idxs[i]
-        d_func(
-            d_get(nxsdk_core, b"Y3hDZmc=")[ii],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"Ymlhcw==": bman,
-                b"Ymlhc0V4cA==": bexp,
-                b"dnRoUHJvZmlsZQ==": ivth,
-                b"Y3hQcm9maWxl": icomp,
-            },
+        nxsdk_core_cx[ii].configure(
+            **{
+                bman_attr: bman[i],
+                bexp_attr: bexp[i],
+                vth_cfg_attr: ivth,
+                comp_cfg_attr: icomp,
+            }
         )
-
-        phasex = d(b"cGhhc2UlZA==") % (ii % 4,)
-        d_get(d_get(nxsdk_core, b"Y3hNZXRhU3RhdGU=")[ii // 4], b"Y29uZmlndXJl")(
-            **{phasex: 2}
-        )
+        nxsdk_core_metastate[ii // 4].configure(**{phasex_strs[ii % 4]: 2})
 
     logger.debug("- Building %d synapses", len(block.synapses))
     for synapse in block.synapses:
@@ -569,15 +571,11 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         if synapse.pop_type == 0:  # discrete
             assert atom == 0
             assert n_atoms == 1
-            d_func(
-                nxsdk_core,
-                b"Y3JlYXRlRGlzY3JldGVBeG9u",
-                kwargs={
-                    b"c3JjQ3hJZA==": compartment_id,
-                    b"ZHN0Q2hpcElk": tchip_id,
-                    b"ZHN0Q29yZUlk": tcore_id,
-                    b"ZHN0U3luTWFwSWQ=": taxon_id,
-                },
+            nxsdk_core.createDiscreteAxon(
+                srcCxId=compartment_id,
+                dstChipId=tchip_id,
+                dstCoreId=tcore_id,
+                dstSynMapId=taxon_id,
             )
 
         elif synapse.pop_type in (16, 32):
@@ -598,18 +596,18 @@ def build_axons(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
                 pop_id_map[compartment_id] = pop_id_map[pop_key]
             pop_id = pop_id_map[compartment_id]
 
-            kwargs = {
-                b"cG9wSWQ=": pop_id,
-                b"c3JjQ3hJZA==": compartment_id,
-                b"c3JjUmVsQ3hJZA==": atom,
-                b"ZHN0Q2hpcElk": tchip_id,
-                b"ZHN0Q29yZUlk": tcore_id,
-                b"ZHN0U3luTWFwSWQ=": taxon_id,
-            }
+            kwargs = dict(
+                popId=pop_id,
+                srcCxId=compartment_id,
+                srcRelCxId=atom,
+                dstChipId=tchip_id,
+                dstCoreId=tcore_id,
+                dstSynMapId=taxon_id,
+            )
             if synapse.pop_type == 16:
-                d_func(nxsdk_core, b"Y3JlYXRlUG9wMTZBeG9u", kwargs=kwargs)
+                nxsdk_core.createPop16Axon(**kwargs)
             else:
-                d_func(nxsdk_core, b"Y3JlYXRlUG9wMzJBeG9u", kwargs=kwargs)
+                nxsdk_core.createPop32Axon(**kwargs)
         else:
             raise BuildError("Axon: unrecognized pop_type: %s" % (synapse.pop_type,))
 

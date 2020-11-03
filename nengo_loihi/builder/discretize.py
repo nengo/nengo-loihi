@@ -25,6 +25,8 @@ LEARN_BITS = d(b"MTU=", int)
 # extra least-significant bits added to weights for learning
 LEARN_FRAC = d(b"Nw==", int)
 
+TRACING_MAG_FRAC_SCALE = d(b"MTI4", int)
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +116,7 @@ def bias_to_manexp(bias):
 def tracing_mag_int_frac(mag):
     """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    mag_frac = int(d(b"MTI4", int) * (mag - mag_int))
+    mag_frac = int(TRACING_MAG_FRAC_SCALE * (mag - mag_int))
     return mag_int, mag_frac
 
 
@@ -477,7 +479,7 @@ def discretize_weights(
         the valid range for weights on the chip (-256 to 255).
     """
     s = synapse_cfg.shift_bits
-    m = 2 ** (d(b"OA==", int) - s) - 1
+    m = 2 ** (8 - s) - 1
 
     w = np.round(w / 2.0 ** s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
@@ -491,13 +493,13 @@ def discretize_weights(
             w = (np.round(w * 2.0 ** s2) / 2 ** s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
-        np.left_shift(w, d(b"Ng==", int), out=w)
+        np.left_shift(w, 6, out=w)
     else:
-        shift(w, d(b"Ng==", int) + s2, out=w)
+        shift(w, 6 + s2, out=w)
 
     if check_result:
         ws = w // synapse_cfg.scale
-        assert np.all(ws <= d(b"MjU1", int)) and np.all(ws >= d(b"LTI1Ng==", int))
+        assert np.all(ws <= 255) and np.all(ws >= -256)
 
     return w
 
