@@ -477,7 +477,7 @@ def discretize_weights(
         the valid range for weights on the chip (-256 to 255).
     """
     s = synapse_cfg.shift_bits
-    m = 2 ** (d(b"OA==", int) - s) - 1
+    m = 2 ** (8 - s) - 1
 
     w = np.round(w / 2.0 ** s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
@@ -491,13 +491,13 @@ def discretize_weights(
             w = (np.round(w * 2.0 ** s2) / 2 ** s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
-        np.left_shift(w, d(b"Ng==", int), out=w)
+        np.left_shift(w, 6, out=w)
     else:
-        shift(w, d(b"Ng==", int) + s2, out=w)
+        shift(w, 6 + s2, out=w)
 
     if check_result:
         ws = w // synapse_cfg.scale
-        assert np.all(ws <= d(b"MjU1", int)) and np.all(ws >= d(b"LTI1Ng==", int))
+        assert np.all(ws <= 255) and np.all(ws >= -256)
 
     return w
 
