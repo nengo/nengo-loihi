@@ -480,7 +480,7 @@ class SynapseConfig(Config):
 
     @classmethod
     def get_real_weight_exp(cls, weight_exp):
-        return d(b"Ng==", int) + weight_exp
+        return 6 + weight_exp
 
     @classmethod
     def get_scale(cls, weight_exp):
@@ -509,7 +509,7 @@ class SynapseConfig(Config):
     @property
     def shift_bits(self):
         """Number of bits the weight is right-shifted by."""
-        return d(b"OA==", int) - self.real_weight_bits + self.is_mixed
+        return 8 - self.real_weight_bits + self.is_mixed
 
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
@@ -604,17 +604,17 @@ class Synapse:
         """Number of extra bits needed for the atom for incoming pop16 spikes."""
         if self.pop_type == 16:
             atom_bits = self.atom_bits()
-            assert atom_bits <= d(b"OQ==", int), "Too many atom bits"
-            return max(atom_bits - d(b"NQ==", int), 0)
+            assert atom_bits <= 9, "Too many atom bits"
+            return max(atom_bits - 5, 0)
         else:
             return 0  # meaningless if pop_type != 16
 
     def axon_bits(self):
         """Number of bits available to represent the target axon on incoming spikes."""
         if self.pop_type == 16:
-            return d(b"MTA=", int) - self.atom_bits_extra()
+            return 10 - self.atom_bits_extra()
         else:
-            return d(b"MTI=", int)
+            return 12
 
     def axon_compartment_base(self, axon_idx):
         """Offset for compartment indices for a particular axon.
@@ -672,7 +672,7 @@ class Synapse:
 
     def idxs_per_synapse(self):
         """The number of axon indices (slots) required for each incoming axon."""
-        return d(b"Mg==", int) if self.learning else d(b"MQ==", int)
+        return 2 if self.learning else 1
 
     def max_abs_weight(self):
         """The maximum absolute value of all the weights in this Synapse."""
