@@ -37,6 +37,8 @@ Release history
 
 - Build errors specify the associated objects, making them easier to debug. (`#289`_)
 - Deobfuscated NxSDK API calls. (`#320`_)
+- The builder now respects the `precision.bits`_ attribute in ``nengorc`` files,
+  allowing for reduced-precision builds to save memory. (`#309`_)
 
 **Fixed**
 
@@ -53,6 +55,7 @@ Release history
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 .. _#320: https://github.com/nengo/nengo-loihi/pull/320
+.. _precision.bits: https://www.nengo.ai/nengo/nengorc.html#configuration-options
 
 1.0.0 (January 20, 2021)
 ========================
