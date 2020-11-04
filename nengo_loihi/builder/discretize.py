@@ -25,6 +25,8 @@ LEARN_BITS = d(b"MTU=", int)
 # extra least-significant bits added to weights for learning
 LEARN_FRAC = d(b"Nw==", int)
 
+TRACING_MAG_FRAC_SCALE = d(b"MTI4", int)
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +116,7 @@ def bias_to_manexp(bias):
 def tracing_mag_int_frac(mag):
     """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    mag_frac = int(d(b"MTI4", int) * (mag - mag_int))
+    mag_frac = int(TRACING_MAG_FRAC_SCALE * (mag - mag_int))
     return mag_int, mag_frac
 
 
