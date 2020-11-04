@@ -2,7 +2,7 @@ from collections import OrderedDict
 import warnings
 
 from nengo.exceptions import BuildError
-
+from nengo.rc import rc
 import numpy as np
 import scipy.sparse
 
@@ -155,22 +155,23 @@ class Compartment:
     # threshold at which U/V scaling is allowed
     DECAY_SCALE_TH = 0.5 / d(b"NDA5Ng==", int)  # half of decay scaling unit
 
-    def __init__(self, n_compartments, label=None):
+    def __init__(self, n_compartments, label=None, dtype=None):
         self.n_compartments = n_compartments
         self.label = label
+        self.dtype = rc.float_dtype if dtype is None else dtype
 
         # parameters specific to compartments/block
-        self.decay_u = np.ones(n_compartments, dtype=np.float32)
+        self.decay_u = np.ones(n_compartments, dtype=self.dtype)
         # ^ default to no filter
-        self.decay_v = np.zeros(n_compartments, dtype=np.float32)
+        self.decay_v = np.zeros(n_compartments, dtype=self.dtype)
         # ^ default to integration
         self.tau_s = None
         self.scale_u = True
         self.scale_v = False
 
         self.refract_delay = np.zeros(n_compartments, dtype=np.int32)
-        self.vth = np.zeros(n_compartments, dtype=np.float32)
-        self.bias = np.zeros(n_compartments, dtype=np.float32)
+        self.vth = np.zeros(n_compartments, dtype=self.dtype)
+        self.bias = np.zeros(n_compartments, dtype=self.dtype)
         self.enable_noise = np.zeros(n_compartments, dtype=bool)
 
         # parameters common to core
@@ -689,9 +690,10 @@ class Synapse:
         self,
         weights,
         indices=None,
-        weight_dtype=np.float32,
+        weight_dtype=None,
         compression=d(b"MA==", int),
     ):
+        weight_dtype = rc.float_dtype if weight_dtype is None else weight_dtype
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
         ]
@@ -740,7 +742,7 @@ class Synapse:
             weights = weights_by_row
             indices = idxs_by_row
         else:
-            weights = np.array(weights, copy=False, dtype=np.float32)
+            weights = np.array(weights, copy=False, dtype=rc.float_dtype)
             assert weights.ndim == 2
             indices = None
 
