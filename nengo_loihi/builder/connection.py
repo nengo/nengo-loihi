@@ -527,6 +527,10 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     if neuron_type is not None and hasattr(neuron_type, "amplitude"):
         weights = scale_matrix(weights, neuron_type.amplitude)
 
+    # to proper dtype
+    transform = transform.astype(nengo.rc.float_dtype)
+    weights = weights.astype(nengo.rc.float_dtype)
+
     # loihi_weights has shape (in, out), to match the shape by block.Synapses
     loihi_weights = weights.T
 
@@ -546,7 +550,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             # use the same scaling as the ensemble does, to get good
             #  decodes.  Note that this assumes that the decoded value
             #  is in the range -radius to radius, which is usually true.
-            gain = 1.0 / conn.pre_obj.radius
+            gain = np.array(1.0 / conn.pre_obj.radius, dtype=nengo.rc.float_dtype)
 
             decoder_block = LoihiBlock(2 * d, label="%s" % conn)
             decoder_block.compartment.configure_nonspiking(
@@ -569,7 +573,8 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             # use spiking decode neurons for on-chip connection
             if isinstance(conn.post_obj, Ensemble):
                 # loihi encoders don't include radius, so handle scaling here
-                loihi_weights = scale_matrix(loihi_weights, 1.0 / conn.post_obj.radius)
+                gain = np.array(1.0 / conn.post_obj.radius, dtype=nengo.rc.float_dtype)
+                loihi_weights = scale_matrix(loihi_weights, gain)
 
             post_d = conn.post_obj.size_in
             post_inds = np.arange(post_d, dtype=np.int32)[post_slice]
@@ -589,7 +594,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         decoder_block.compartment.configure_filter(tau_s, dt=model.dt)
         post_tau = model.decode_tau
 
-        target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
+        target_axons = -np.ones(pre_obj.n_neurons, dtype=np.int32)
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         pre_slice = slice(None)
 
@@ -674,7 +679,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn
 
-        target_axons = -np.ones(mid_obj.n_neurons, dtype=int)
+        target_axons = -np.ones(mid_obj.n_neurons, dtype=np.int32)
         target_axons[pre_slice] = np.arange(target_axons[pre_slice].size)
         assert target_axons[pre_slice].size == n1
 
@@ -696,7 +701,8 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         assert post_obj.n_neurons == n2
 
         # loihi encoders don't include radius, so handle scaling here
-        loihi_weights = scale_matrix(loihi_weights, 1.0 / conn.post_obj.radius)
+        scale = np.array(1.0 / conn.post_obj.radius, dtype=nengo.rc.float_dtype)
+        loihi_weights = scale_matrix(loihi_weights, scale)
 
         syn = Synapse(n1, label="%s::decoder_weights" % conn)
         syn.set_weights(loihi_weights)
@@ -792,6 +798,7 @@ def build_conv2d_connection(model, transform, conn):
             obj=conn.post_obj.ensemble,
         )
     kernel = kernel * gain[0]
+    kernel = kernel.astype(nengo.rc.float_dtype)
 
     pop_type = model.config[conn].pop_type
     new_transform = copy.copy(transform)
@@ -811,9 +818,9 @@ def build_conv2d_connection(model, transform, conn):
             "is therefore emulator-only."
         )
 
-    target_axons = -np.ones(pre_obj.n_neurons, dtype=int)
+    target_axons = -np.ones(pre_obj.n_neurons, dtype=np.int32)
     target_axons[conn.pre_slice] = pixel_idxs(input_shape)
-    atoms = np.zeros(pre_obj.n_neurons, dtype=int)
+    atoms = np.zeros(pre_obj.n_neurons, dtype=np.int32)
     atoms[conn.pre_slice] = channel_idxs(input_shape)
 
     ax = Axon(np.prod(input_shape.spatial_shape), label="conv2d_weights")

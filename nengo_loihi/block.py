@@ -154,19 +154,21 @@ class Compartment:
     def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
         self.label = label
+        # dtype must be float32, because of how we discretize in place to int32
+        self.dtype = np.float32
 
         # parameters specific to compartments/block
-        self.decay_u = np.ones(n_compartments, dtype=np.float32)
+        self.decay_u = np.ones(n_compartments, dtype=self.dtype)
         # ^ default to no filter
-        self.decay_v = np.zeros(n_compartments, dtype=np.float32)
+        self.decay_v = np.zeros(n_compartments, dtype=self.dtype)
         # ^ default to integration
         self.tau_s = None
         self.scale_u = True
         self.scale_v = False
 
         self.refract_delay = np.zeros(n_compartments, dtype=np.int32)
-        self.vth = np.zeros(n_compartments, dtype=np.float32)
-        self.bias = np.zeros(n_compartments, dtype=np.float32)
+        self.vth = np.zeros(n_compartments, dtype=self.dtype)
+        self.bias = np.zeros(n_compartments, dtype=self.dtype)
         self.enable_noise = np.zeros(n_compartments, dtype=bool)
 
         # parameters common to core
@@ -683,9 +685,11 @@ class Synapse:
         self,
         weights,
         indices=None,
-        weight_dtype=np.float32,
+        weight_dtype=None,
         compression=0,
     ):
+        weight_dtype = np.dtype(np.float32 if weight_dtype is None else weight_dtype)
+        assert weight_dtype.name in ("float32", "int32")
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
         ]

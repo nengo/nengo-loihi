@@ -652,7 +652,7 @@ def test_population_input(request, allclose):
     spikes = [(input, ti, inds) for ti, inds in spike_times_inds]
 
     input_axon = Axon(n_axons)
-    target_axons = np.zeros(n_inputs, dtype=int)
+    target_axons = np.zeros(n_inputs, dtype=np.int32)
     atoms = np.arange(n_inputs)
     input_axon.set_compartment_axon_map(target_axons, atoms=atoms)
     input.add_axon(input_axon)
@@ -664,9 +664,9 @@ def test_population_input(request, allclose):
 
     synapse = Synapse(n_axons)
     weights = 0.1 * np.array([[[1, 2], [2, 3], [4, 5]]], dtype=float)
-    indices = np.array([[[0, 1], [0, 1], [0, 1]]], dtype=int)
-    axon_to_weight_map = np.zeros(n_axons, dtype=int)
-    bases = np.zeros(n_axons, dtype=int)
+    indices = np.array([[[0, 1], [0, 1], [0, 1]]], dtype=np.int32)
+    axon_to_weight_map = np.zeros(n_axons, dtype=np.int32)
+    bases = np.zeros(n_axons, dtype=np.int32)
     synapse.set_population_weights(
         weights, indices, axon_to_weight_map, bases, pop_type=32
     )

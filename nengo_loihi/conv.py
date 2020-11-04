@@ -114,7 +114,7 @@ def channel_idxs(shape):
     shape : `nengo.transforms.ChannelShape` (default: True)
         Output shape of convolution
     """
-    idxs = np.arange(shape.size, dtype=int)
+    idxs = np.arange(shape.size, dtype=np.int32)
     return (
         (idxs % shape.n_channels)
         if shape.channels_last
@@ -130,7 +130,7 @@ def pixel_idxs(shape):
     shape : `nengo.transforms.ChannelShape` (default: True)
         Output shape of convolution
     """
-    idxs = np.arange(shape.size, dtype=int)
+    idxs = np.arange(shape.size, dtype=np.int32)
     return (
         (idxs // shape.n_channels)
         if shape.channels_last
@@ -203,8 +203,8 @@ def conv2d_loihi_weights(transform):  # noqa: C901
     weights = []
     indices = []
     # compartment offset (aka. compartment base) for each axon
-    offsets = np.zeros(input_rows * input_cols, dtype=int)
-    axon_to_weight_map = np.zeros(input_rows * input_cols, dtype=int)
+    offsets = np.zeros(input_rows * input_cols, dtype=np.int32)
+    axon_to_weight_map = np.zeros(input_rows * input_cols, dtype=np.int32)
     weights_map = {}
     for i, j in itertools.product(range(input_rows), range(input_cols)):
         ij = i * input_cols + j
@@ -257,10 +257,10 @@ def conv2d_loihi_weights(transform):  # noqa: C901
 
             # --- determine indices
             # channel inds are zero, since we use same indices for each channel
-            channel_inds = np.zeros(n_channels, dtype=int)
-            row_inds = np.arange(wmask_i.sum(), dtype=int)
-            col_inds = np.arange(wmask_j.sum(), dtype=int)
-            filter_inds = np.arange(n_filters, dtype=int)
+            channel_inds = np.zeros(n_channels, dtype=np.int32)
+            row_inds = np.arange(wmask_i.sum(), dtype=np.int32)
+            col_inds = np.arange(wmask_j.sum(), dtype=np.int32)
+            filter_inds = np.arange(n_filters, dtype=np.int32)
 
             order = [channel_inds, row_inds, col_inds, filter_inds]
             shape = [n_channels, output_rows, output_cols, n_filters]
@@ -271,7 +271,7 @@ def conv2d_loihi_weights(transform):  # noqa: C901
                 shape = [shape[i] for i in (0, 3, 1, 2)]
 
             n = len(shape)
-            strides = [np.prod(shape[i + 1 :], dtype=int) for i in range(n)]
+            strides = [np.prod(shape[i + 1 :], dtype=np.int32) for i in range(n)]
 
             # inds[i_0,...,i_{n-1}] = sum_{k=0}^{n-1} strides[k] * order[k][i_k]
             strided_inds = [

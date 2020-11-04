@@ -22,7 +22,7 @@ def compute_cfgs(core, list_cfgs):
     cfgs = list(set(p for plist in cfg_lists for p in plist))
     cfg_idxs = {}
     for block, plist in zip(core.blocks, cfg_lists):
-        cfg_idxs[block] = np.zeros(len(plist), dtype=int)
+        cfg_idxs[block] = np.zeros(len(plist), dtype=np.int32)
         for k, cfg in enumerate(cfgs):
             cfg_idxs[block][[p == cfg for p in plist]] = k
 
