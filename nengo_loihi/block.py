@@ -155,7 +155,7 @@ class Compartment:
     # threshold at which U/V scaling is allowed
     DECAY_SCALE_TH = 0.5 / d(b"NDA5Ng==", int)  # half of decay scaling unit
 
-    def __init__(self, n_compartments, label=None, dtype=None):
+    def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
         self.label = label
         # dtype must be float32, because of how we discretize in place to int32
