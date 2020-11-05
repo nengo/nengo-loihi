@@ -158,7 +158,8 @@ class Compartment:
     def __init__(self, n_compartments, label=None, dtype=None):
         self.n_compartments = n_compartments
         self.label = label
-        self.dtype = rc.float_dtype if dtype is None else dtype
+        # dtype must be float32, because of how we discretize in place to int32
+        self.dtype = np.float32
 
         # parameters specific to compartments/block
         self.decay_u = np.ones(n_compartments, dtype=self.dtype)
@@ -693,7 +694,8 @@ class Synapse:
         weight_dtype=None,
         compression=d(b"MA==", int),
     ):
-        weight_dtype = rc.float_dtype if weight_dtype is None else weight_dtype
+        # must be float32, because of how we discretize in place to int32
+        weight_dtype = np.float32 if weight_dtype is None else weight_dtype
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
         ]
@@ -742,7 +744,7 @@ class Synapse:
             weights = weights_by_row
             indices = idxs_by_row
         else:
-            weights = np.array(weights, copy=False, dtype=rc.float_dtype)
+            weights = np.array(weights, copy=False, dtype=np.float32)
             assert weights.ndim == 2
             indices = None
 
