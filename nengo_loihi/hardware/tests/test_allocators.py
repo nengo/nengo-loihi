@@ -7,7 +7,14 @@ from nengo.utils.numpy import rms
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
-from nengo_loihi.hardware.allocators import Greedy, RoundRobin, core_stdp_pre_cfgs
+from nengo_loihi.hardware.allocators import (
+    Greedy,
+    GreedyComms,
+    RoundRobin,
+    core_stdp_pre_cfgs,
+    ens_to_block_rates,
+    measure_interchip_conns,
+)
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput
 
@@ -161,6 +168,52 @@ def test_greedy_chip_allocator_cfg_check():
 
     with pytest.raises(ValueError, match="Chips cannot have more than 128 cores"):
         Greedy(cores_per_chip=130)(model, n_chips=4)
+
+
+@pytest.mark.parametrize("Allocator", [GreedyComms])
+def test_comms_allocators(Allocator, Simulator):
+    rng = np.random.RandomState(1)  # same seed for all allocators, to compare
+    with nengo.Network(seed=0) as net:
+        n_ensembles = 256
+        n_neurons = rng.randint(64, 256, size=n_ensembles)
+        ensembles = [nengo.Ensemble(n, dimensions=1) for n in n_neurons]
+
+        conn_pairs = rng.randint(0, n_ensembles, size=(2 * n_ensembles, 2))
+        for i, j in conn_pairs:
+            ei, ej = ensembles[i].neurons, ensembles[j].neurons
+            nengo.Connection(
+                ei,
+                ej,
+                transform=rng.uniform(-0.1, 0.1, size=(ej.size_in, ei.size_out)),
+            )
+
+    ens_rates = {
+        ensemble: rng.uniform(1, 100, size=1)
+        * rng.uniform(0.9, 1, size=ensemble.n_neurons)
+        for ensemble in ensembles
+    }
+
+    with Simulator(net, target="sim") as sim:
+        model = sim.model
+        n_chips = 3
+        block_rates = ens_to_block_rates(model, ens_rates)
+        board_norates = Allocator()(model, n_chips=n_chips)
+        board_rates = Allocator(ensemble_rates=ens_rates)(model, n_chips=n_chips)
+
+    norates_axons = measure_interchip_conns(board_norates)
+    norates_spikes = measure_interchip_conns(board_norates, block_rates=block_rates)
+    rates_axons = measure_interchip_conns(board_rates)
+    rates_spikes = measure_interchip_conns(board_rates, block_rates=block_rates)
+
+    print(
+        f"No rates: {norates_axons['interchip']} axons, "
+        f"{norates_spikes['interchip']} spikes"
+    )
+    print(
+        f"Rates: {rates_axons['interchip']} axons, {rates_spikes['interchip']} spikes"
+    )
+    assert norates_axons["interchip"] < rates_axons["interchip"]
+    assert rates_spikes["interchip"] < norates_spikes["interchip"]
 
 
 @pytest.mark.slow
