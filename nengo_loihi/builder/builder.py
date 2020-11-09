@@ -51,9 +51,6 @@ class Model:
 
     Attributes
     ----------
-    connection_decode_neurons : dict of {Connection: Ensemble}
-        Map of each `nengo.Connection` that requires DecodeNeurons, to the
-        `nengo.Ensemble` that implements said DecodeNeurons.
 
     Build parameters
 
@@ -86,11 +83,14 @@ class Model:
         Mapping from Loihi blocks to `.BlockShape` instances.
     builder : Builder
         The build functions used by this model.
-    dt : float
-        The length of a simulator timestep, in seconds.
+    connection_decode_neurons : dict of {Connection: Ensemble}
+        Map of each `nengo.Connection` that requires DecodeNeurons, to the
+        `nengo.Ensemble` that implements said DecodeNeurons.
     chip2host_params : dict
         Mapping from Nengo objects to any additional parameters associated
         with those objects for use during the build process.
+    dt : float
+        The length of a simulator timestep, in seconds.
     inputs : list of LoihiInput
         List of inputs to this model.
     label : str or None
@@ -142,6 +142,7 @@ class Model:
         self.blocks = OrderedDict()
         self.block_shapes = {}
         self.probes = []
+        self.block_comp_map = {}
 
         self.connection_decode_neurons = {}
 

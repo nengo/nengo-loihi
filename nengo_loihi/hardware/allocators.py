@@ -214,3 +214,246 @@ class RoundRobin(Allocator):
         logger.info("Round-robin allocation across %d chips", board.n_chips)
 
         return board
+
+
+def ensemble_to_block_rates(model, ensemble_rates):
+    """Associates target ensemble firing rates with the correct blocks.
+
+    Parameters
+    ----------
+    model : Model
+        The model containing the blocks to match.
+    ensemble_rates : dict
+        Mapping from a `nengo.Ensemble` to its neurons' target firing rates.
+    """
+    block_rates = {}
+    for ens, rates in ensemble_rates.items():
+        if ens not in model.objs:
+            if ens in model.host_pre.sig or ens in model.host.sig:
+                continue  # this ensemble is not on chip, so skip it
+
+            raise ValueError(f"Ensemble {ens} does not appear in the model")
+
+        assert len(rates) == ens.n_neurons
+        blocks = model.objs[ens]["out"]
+        blocks = blocks if isinstance(blocks, (list, tuple)) else [blocks]
+
+        for block in blocks:
+            comp_idxs = model.block_comp_map.get(block, None)
+            if comp_idxs is None:
+                assert len(blocks) == 1
+                assert block.compartment.n_compartments == ens.n_neurons
+                block_rates[block] = rates
+            else:
+                block_rates[block] = rates[comp_idxs]
+
+    return block_rates
+
+
+def estimate_interblock_activity(block_map, block_rates=None):
+    """Estimate the amount of activity projected from one block to another.
+
+    If ``block_rates`` is not provided, we assume all axons are active.
+
+    Parameters
+    ----------
+    block_map : dict
+        Mapping from a unique int (block ID) to a block.
+    block_rates : dict, optional
+        Mapping from a `LoihiBlock` to target firing rates for the block's neurons.
+
+    Returns
+    -------
+    interblock_activity : dict of dicts
+        For each block ID, a mapping from block IDs to an estimate of
+        the relative activity between the two blocks.
+    """
+
+    activity = {k: {} for k in block_map}
+
+    synapse_block_map = {}
+    for i, block_i in block_map.items():
+        for synapse in block_i.synapses:
+            assert id(synapse) not in synapse_block_map
+            synapse_block_map[id(synapse)] = i
+
+    for i, block_i in block_map.items():
+        for axon in block_i.axons:
+            j = synapse_block_map[id(axon.target)]
+
+            if i == j:
+                continue  # ignore self connections
+
+            # Use a non-zero value as default, so that even if all rates are zero,
+            # this still gets recognized as a connection from i to j
+            activity[i].setdefault(j, 1e-16)
+
+            if block_rates is None:
+                val = axon.n_axons
+            elif block_i not in block_rates:
+                raise KeyError(f"block {block_i} not in block_rates")
+            else:
+                rates = block_rates[block_i]
+                comp_idxs = np.arange(block_i.compartment.n_compartments)
+                axon_ids = axon.map_axon(comp_idxs)
+                assert axon_ids.size == rates.size
+                val = np.sum(rates[axon_ids >= 0])
+
+            activity[i][j] += val
+
+    return activity
+
+
+def estimate_interchip_activity(board, block_rates=None):
+    """Estimate the overall amount of interchip (and intrachip) activity.
+
+    If ``block_rates`` is not provided, we assume all axons are active.
+
+    Parameters
+    ----------
+    board : NxsdkBoard
+        The board from which to get blocks and chip assignments.
+    block_rates : dict, optional
+        Mapping from a `LoihiBlock` to target firing rates for the block's neurons.
+
+    Returns
+    -------
+    interblock_activity : dict of dicts
+        For each block ID, a mapping from block IDs to an estimate of
+        the relative activity between the two blocks.
+    """
+    block_map = {}
+    block_chip = {}
+    for chip in board.chips:
+        chip_idx = board.chip_idxs[chip]
+        for core in chip.cores:
+            for block in core.blocks:
+                block_map[len(block_map)] = block
+                block_chip[len(block_chip)] = chip_idx
+
+    interblock_activity = estimate_interblock_activity(block_map, block_rates)
+
+    stats = {"interchip": 0, "intrachip": 0}
+    stats["interchip_pairs"] = []
+    stats["intrachip_pairs"] = []
+    for i, block in block_map.items():
+        chip_idx_i = block_chip[i]
+        for j, activity in interblock_activity[i].items():
+            assert (
+                i != j
+            ), "estimate_interblock_activity should skip recurrent connections"
+            chip_idx_j = block_chip[j]
+            key = "intrachip" if chip_idx_i == chip_idx_j else "interchip"
+            stats[key] += activity
+            stats[f"{key}_pairs"].append((block_map[i], block_map[j]))
+
+    return stats
+
+
+class GreedyInterchip(Greedy):
+    """A variant of the `.Greedy` allocator that also minimizes interchip activity.
+
+    Starts by arbitrarily assigning a block to a chip. Then adds the block that has the
+    most communication with the first block to that same chip. Continue adding blocks
+    with the most communication to already placed blocks, until the chip is full. Then
+    start a new chip using the block with the least communication.
+
+    Parameters
+    ----------
+    cores_per_chip : int, optional (Default: 128)
+        Number of cores to use on each chip.
+    ensemble_rates : dict, optional
+        Mapping from a `nengo.Ensemble` to its neurons' target firing rates.
+    """
+
+    def __init__(self, cores_per_chip=128, ensemble_rates=None):
+        super().__init__(cores_per_chip=cores_per_chip)
+        self.ensemble_rates = ensemble_rates
+
+    def __call__(self, model, n_chips):  # noqa: C901
+        block_map = dict(enumerate(model.blocks))
+        block_rates = (
+            ensemble_to_block_rates(model, self.ensemble_rates)
+            if self.ensemble_rates is not None
+            else None
+        )
+        block_conns_out = estimate_interblock_activity(
+            block_map, block_rates=block_rates
+        )
+        block_conns_in = {
+            i: {j: block_conns_out[j][i] for j in block_map if i in block_conns_out[j]}
+            for i in block_map
+        }
+
+        # find blocks with no pre block
+        no_pre_blocks = []
+        for i in block_map:
+            if sum(v for v in block_conns_in[i].values()) == 0:
+                no_pre_blocks.append(i)
+
+        # --- create board
+        board = Board()
+
+        # add inputs to board
+        for input in model.inputs:
+            self.input_to_board(input, board)
+
+        # --- add blocks to chips
+        chip = None
+        unallocated_blocks = set(block_map)
+
+        while len(unallocated_blocks) > 0:
+            if chip is None or len(chip.cores) == self.cores_per_chip:
+                assert (
+                    len(board.chips) < n_chips
+                ), f"The network needs more chips than requested ({n_chips})"
+
+                # start a new chip
+                chip = board.new_chip()
+
+                # choose a no-pre block, if possible
+                for block_idx in no_pre_blocks:
+                    if block_idx in unallocated_blocks:
+                        break
+                else:
+                    block_idx = next(iter(unallocated_blocks))
+
+                chip_blocks = set()
+            else:
+                # choose the block with the largest connection to blocks on this chip
+                block_idx = -1
+                max_conn = 0
+                for i in chip_blocks:
+                    for j in unallocated_blocks.intersection(block_conns_out[i]):
+                        ij = block_conns_out[i][j]
+                        if ij > max_conn:
+                            max_conn = ij
+                            block_idx = j
+
+                    for j in unallocated_blocks.intersection(block_conns_in[i]):
+                        ij = block_conns_in[i][j]
+                        if ij > max_conn:
+                            max_conn = ij
+                            block_idx = j
+
+                if block_idx < 0:
+                    # none of the remaining blocks connect to blocks on this chip,
+                    # so pick a no-pre block if possible, otherwise any block will do.
+                    for block_idx in no_pre_blocks:
+                        if block_idx in unallocated_blocks:
+                            break
+                    else:
+                        block_idx = next(iter(unallocated_blocks))
+
+            block = block_map[block_idx]
+            self.block_to_new_core(block, chip)
+
+            chip_blocks.add(block_idx)
+            unallocated_blocks.remove(block_idx)
+
+        # add probes
+        board.probes.extend(model.probes)
+
+        logger.info("GreedyInterchip allocation across %d chips", board.n_chips)
+
+        return board
