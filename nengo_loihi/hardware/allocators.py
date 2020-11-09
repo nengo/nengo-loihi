@@ -215,3 +215,105 @@ class RoundRobin(Allocator):
         logger.info("Round-robin allocation across %d chips", board.n_chips)
 
         return board
+
+
+class GreedyComms(Greedy):
+    """Assigns each block to a core, using as few chips as possible, minimizing comms.
+
+    A variant of the `.Greedy` allocator that also minimizes inter-chip communication.
+
+    Starts by arbitrarily assigning a block to a chip. Then adds the block that has the
+    most communication with the first block to that same chip. Continue adding blocks
+    with the most communication to already placed blocks, until the chip is full. Then
+    start a new chip using the block with the least communication.
+    """
+
+    def __call__(self, model, n_chips):
+        block_map = {k: block for k, block in enumerate(model.blocks)}
+
+        # --- store number of axons from block i to block j
+        block_conns = {k: {} for k in block_map}
+
+        synapse_block_map = {}
+        for i, block_i in block_map.items():
+            for synapse in block_i.synapses:
+                assert id(synapse) not in synapse_block_map
+                synapse_block_map[id(synapse)] = i
+
+        for i, block_i in block_map.items():
+            for axon in block_i.axons:
+                j = synapse_block_map[id(axon.target)]
+
+                if i == j:
+                    # don't care about self connections
+                    block_conns[i][j] = 0
+                    continue
+
+                block_conns[i][j] = axon.n_axons
+
+        # find blocks with no pre block
+        no_pre_blocks = []
+        for j in block_map:
+            if sum(block_conns[i].get(j, 0) for i in block_map) == 0:
+                no_pre_blocks.append(j)
+
+        print("No-pre blocks: %s" % (no_pre_blocks,))
+
+        # --- create board
+        board = Board()
+
+        # add inputs to board
+        for input in model.inputs:
+            self.input_to_board(input, board)
+
+        # --- add blocks to chips
+        chip = None
+        unallocated_blocks = set(block_map)
+
+        while len(unallocated_blocks) > 0:
+            if chip is None or len(chip.cores) == self.cores_per_chip:
+                assert len(board.chips) < n_chips, (
+                    "The network needs more chips than requested (%d)" % n_chips,
+                )
+
+                # start a new chip
+                chip = board.new_chip()
+
+                # choose a no-pre block, if possible
+                for block_idx in no_pre_blocks:
+                    if block_idx in unallocated_blocks:
+                        break
+                else:
+                    block_idx = next(iter(unallocated_blocks))
+
+                chip_blocks = [block_idx]
+            else:
+                # choose the block with the largest connection to blocks on this chip
+                block_idx = -1
+                max_conn = 0
+                for i in chip_blocks:
+                    for j in unallocated_blocks:
+                        max_ij = max(block_conns[i].get(j, 0), block_conns[j].get(i, 0))
+                        if max_ij > max_conn:
+                            max_conn = max_ij
+                            block_idx = j
+
+                if block_idx < 0:
+                    # none of the remaining blocks connect to blocks on this chip,
+                    # so pick a no-pre block if possible, otherwise any block will do.
+                    for block_idx in no_pre_blocks:
+                        if block_idx in unallocated_blocks:
+                            break
+                    else:
+                        block_idx = next(iter(unallocated_blocks))
+
+            block = block_map[block_idx]
+            self.block_to_new_core(block, chip)
+            unallocated_blocks.remove(block_idx)
+
+        # add probes
+        board.probes.extend(model.probes)
+
+        logger.info("Greedy allocation across %d chips", board.n_chips)
+
+        return board
