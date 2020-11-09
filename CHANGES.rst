@@ -37,6 +37,8 @@ Release history
 - ``Model`` now has a ``connection_decode_neurons`` attribute that maps ``Connection``
   objects that require decode neurons to the corresponding ``Ensemble`` objects
   implementing them. (`#309`_)
+- Added the ``GreedyComms`` allocator, which reduces inter-chip communication, speeding
+  up networks with high traffic between chips. (`#309`_)
 
 **Changed**
 

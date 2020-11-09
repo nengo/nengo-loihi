@@ -129,6 +129,7 @@ class Model:
         self.blocks = OrderedDict()
         self.block_shapes = {}
         self.probes = []
+        self.block_comp_map = {}
 
         self.connection_decode_neurons = {}
 
