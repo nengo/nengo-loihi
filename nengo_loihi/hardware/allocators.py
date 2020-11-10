@@ -257,8 +257,6 @@ class GreedyComms(Greedy):
             if sum(block_conns[i].get(j, 0) for i in block_map) == 0:
                 no_pre_blocks.append(j)
 
-        print("No-pre blocks: %s" % (no_pre_blocks,))
-
         # --- create board
         board = Board()
 

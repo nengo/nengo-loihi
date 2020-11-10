@@ -133,4 +133,4 @@ with nengo_loihi.Simulator(net, target="sim") as sim:
             for block_idx, block in enumerate(core.blocks):
                 block_labels.append(block.label)
 
-        print(block_labels)
+        print(sorted(block_labels))
