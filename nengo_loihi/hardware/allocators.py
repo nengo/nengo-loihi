@@ -286,7 +286,7 @@ class GreedyComms(Greedy):
                 else:
                     block_idx = next(iter(unallocated_blocks))
 
-                chip_blocks = [block_idx]
+                chip_blocks = []
             else:
                 # choose the block with the largest connection to blocks on this chip
                 block_idx = -1
@@ -309,6 +309,8 @@ class GreedyComms(Greedy):
 
             block = block_map[block_idx]
             self.block_to_new_core(block, chip)
+
+            chip_blocks.append(block_idx)
             unallocated_blocks.remove(block_idx)
 
         # add probes

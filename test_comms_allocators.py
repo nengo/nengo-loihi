@@ -2,6 +2,7 @@ import nengo
 from nengo.transforms import ChannelShape
 import nengo_loihi
 from nengo_loihi.hardware.allocators import Greedy, GreedyComms
+import numpy as np
 
 
 def conv_layer(x, n_filters, input_shape, strides=1, label="conv", **kwargs):
@@ -24,7 +25,7 @@ def conv_layer(x, n_filters, input_shape, strides=1, label="conv", **kwargs):
     return ens, transform
 
 
-def make_network(size=None, channels=3):
+def make_conv_network(size=None, channels=3):
 
     with nengo.Network(seed=0) as net:
         # the input node that will be used to feed in input images
@@ -70,16 +71,58 @@ def make_network(size=None, channels=3):
     return net
 
 
-net = make_network(size=16)
+def make_pairs_network(n_pairs=50, factor=20):
+    n_neurons = 100
+    dim = 1
+    gain = np.ones((n_neurons))
+    neuron_type = nengo_loihi.LoihiSpikingRectifiedLinear(amplitude=1)
+    transform = np.eye(n_neurons)
+    rng = np.random.RandomState(1)
+
+    with nengo.Network(seed=0) as net:
+        for n in range(n_pairs):
+            bias = rng.uniform(0.1, 1.0, size=(n_neurons)) * 10 * factor
+
+            x = nengo.Ensemble(
+                n_neurons,
+                dim,
+                gain=gain,
+                bias=bias,
+                neuron_type=neuron_type,
+                label="a%d" % n,
+            )
+            y = nengo.Ensemble(
+                n_neurons,
+                dim,
+                neuron_type=neuron_type,
+                gain=gain,
+                bias=np.zeros((n_neurons)),
+                label="b%d" % n,
+            )
+            nengo.Connection(
+                x.neurons,
+                y.neurons,
+                transform=transform,
+                synapse=0.001,
+            )
+
+    return net
+
+
+# net = make_conv_network(size=16)
+net = make_pairs_network(n_pairs=50)
 
 n_chips = 2
 # n_chips = 4
-cores_per_chip = 32
+
+# cores_per_chip = 32
+cores_per_chip = 64
+
 # allocator = Greedy(cores_per_chip=cores_per_chip)
 allocator = GreedyComms(cores_per_chip=cores_per_chip)
 
 
-with nengo_loihi.Simulator(net) as sim:
+with nengo_loihi.Simulator(net, target="sim") as sim:
     board = allocator(sim.model, n_chips=n_chips)
 
     for chip_idx, chip in enumerate(board.chips):
