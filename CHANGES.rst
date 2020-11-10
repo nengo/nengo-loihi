@@ -37,6 +37,9 @@ Release history
 - ``Model`` now has a ``connection_decode_neurons`` attribute that maps ``Connection``
   objects that require decode neurons to the corresponding ``Ensemble`` objects
   implementing them. (`#309`_)
+- Added the ``LoihiRectifiedLinear`` neuron type to train deep networks for Loihi using
+  Nengo or NengoDL. It is a rate neuron type and thus must ultimitely be swapped for
+  ``LoihiSpikingRectifiedLinear`` to run on Loihi. (`#309`_)
 
 **Changed**
 
