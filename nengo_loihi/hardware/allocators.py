@@ -217,6 +217,99 @@ class RoundRobin(Allocator):
         return board
 
 
+def ens_to_block_rates(model, ens_rates):
+    block_rates = {}
+    for ens, rates in ens_rates.items():
+        if ens not in model.objs:
+            if ens in model.host_pre.sig or ens in model.host.sig:
+                continue  # this ensemble is not on chip, so skip it
+            else:
+                raise ValueError("Ensemble %s does not appear in the model" % (ens,))
+
+        assert len(rates) == ens.n_neurons
+        blocks = model.objs[ens]["out"]
+        blocks = blocks if isinstance(blocks, (list, tuple)) else [blocks]
+
+        for block in blocks:
+            comp_idxs = model.block_comp_map.get(block, None)
+            if comp_idxs is None:
+                assert len(blocks) == 1
+                assert block.compartment.n_compartments == ens.n_neurons
+                block_rates[block] = rates
+            else:
+                block_rates[block] = rates[comp_idxs]
+
+    return block_rates
+
+
+def compute_block_conns(block_map, block_rates=None):
+    # --- store number of axons from block i to block j
+    block_conns = {k: {} for k in block_map}
+
+    synapse_block_map = {}
+    for i, block_i in block_map.items():
+        for synapse in block_i.synapses:
+            assert id(synapse) not in synapse_block_map
+            synapse_block_map[id(synapse)] = i
+
+    for i, block_i in block_map.items():
+        for axon in block_i.axons:
+            j = synapse_block_map[id(axon.target)]
+
+            if i == j:
+                # don't care about self connections
+                continue
+
+            # use non-zero value as default, so that even if all rates are zero, this
+            # still gets recognized as a connection from i to j
+            block_conns[i].setdefault(j, 1e-16)
+
+            if block_rates is None:
+                block_conns[i][j] += axon.n_axons
+            elif block_i not in block_rates:
+                raise KeyError("block %s not in block_rates" % (block_i,))
+            else:
+                rates = block_rates[block_i]
+                comp_idxs = np.arange(block_i.compartment.n_compartments)
+                axon_ids = axon.map_axon(comp_idxs)
+                assert axon_ids.size == rates.size
+                block_conns[i][j] += rates[axon_ids >= 0].sum()
+
+    return block_conns
+
+
+def measure_interchip_conns(board, block_rates=None):
+    i = 0
+    block_map = {}
+    block_chip = {}
+    for chip in board.chips:
+        chip_idx = board.chip_idxs[chip]
+        for core in chip.cores:
+            # core_idx = chip.core_idxs[core]
+            for block in core.blocks:
+                block_map[i] = block
+                block_chip[i] = chip_idx
+                i += 1
+
+    block_conns = compute_block_conns(block_map, block_rates=block_rates)
+
+    stats = {"interchip": 0, "intrachip": 0}
+    stats["interchip_pairs"] = []
+    stats["intrachip_pairs"] = []
+    for i, block in block_map.items():
+        chip_idx_i = block_chip[i]
+        for j, weight in block_conns[i].items():
+            if i == j:
+                continue
+
+            chip_idx_j = block_chip[j]
+            key = "intrachip" if chip_idx_i == chip_idx_j else "interchip"
+            stats[key] += weight
+            stats["%s_pairs" % (key,)].append((block_map[i], block_map[j]))
+
+    return stats
+
+
 class GreedyComms(Greedy):
     """Assigns each block to a core, using as few chips as possible, minimizing comms.
 
@@ -228,28 +321,18 @@ class GreedyComms(Greedy):
     start a new chip using the block with the least communication.
     """
 
+    def __init__(self, cores_per_chip=128, ensemble_rates=None):
+        super().__init__(cores_per_chip=cores_per_chip)
+        self.ensemble_rates = ensemble_rates
+
     def __call__(self, model, n_chips):
         block_map = {k: block for k, block in enumerate(model.blocks)}
-
-        # --- store number of axons from block i to block j
-        block_conns = {k: {} for k in block_map}
-
-        synapse_block_map = {}
-        for i, block_i in block_map.items():
-            for synapse in block_i.synapses:
-                assert id(synapse) not in synapse_block_map
-                synapse_block_map[id(synapse)] = i
-
-        for i, block_i in block_map.items():
-            for axon in block_i.axons:
-                j = synapse_block_map[id(axon.target)]
-
-                if i == j:
-                    # don't care about self connections
-                    block_conns[i][j] = 0
-                    continue
-
-                block_conns[i][j] = axon.n_axons
+        block_rates = (
+            ens_to_block_rates(model, self.ensemble_rates)
+            if self.ensemble_rates is not None
+            else None
+        )
+        block_conns = compute_block_conns(block_map, block_rates=block_rates)
 
         # find blocks with no pre block
         no_pre_blocks = []
