@@ -1,7 +1,12 @@
 import nengo
 from nengo.transforms import ChannelShape
 import nengo_loihi
-from nengo_loihi.hardware.allocators import Greedy, GreedyComms
+from nengo_loihi.hardware.allocators import (
+    Greedy,
+    GreedyComms,
+    RoundRobin,
+    measure_interchip_conns,
+)
 import numpy as np
 
 
@@ -53,9 +58,7 @@ def make_conv_network(size=None, channels=3):
             strides=2,
             label="layer1",
         )
-        net.config[x].block_shape = nengo_loihi.BlockShape(
-            (4, 4, 2), transform.input_shape.shape
-        )
+        net.config[x].block_shape = nengo_loihi.BlockShape((4, 4, 2), transform)
 
         x, transform = conv_layer(
             x.neurons,
@@ -64,9 +67,16 @@ def make_conv_network(size=None, channels=3):
             kernel_size=(3, 3),
             label="layer2",
         )
-        net.config[x].block_shape = nengo_loihi.BlockShape(
-            (4, 4, 2), transform.input_shape.shape
+        net.config[x].block_shape = nengo_loihi.BlockShape((4, 4, 2), transform)
+
+        x, transform = conv_layer(
+            x.neurons,
+            n_filters=32,
+            input_shape=transform.output_shape,
+            kernel_size=(3, 3),
+            label="layer3",
         )
+        net.config[x].block_shape = nengo_loihi.BlockShape((4, 4, 8), transform)
 
     return net
 
@@ -109,8 +119,10 @@ def make_pairs_network(n_pairs=50, factor=20):
     return net
 
 
-# net = make_conv_network(size=16)
-net = make_pairs_network(n_pairs=50)
+rng = np.random.RandomState(0)
+
+net = make_conv_network(size=16)
+# net = make_pairs_network(n_pairs=50)
 
 n_chips = 2
 # n_chips = 4
@@ -118,11 +130,19 @@ n_chips = 2
 # cores_per_chip = 32
 cores_per_chip = 64
 
-# allocator = Greedy(cores_per_chip=cores_per_chip)
-allocator = GreedyComms(cores_per_chip=cores_per_chip)
-
-
 with nengo_loihi.Simulator(net, target="sim") as sim:
+    # --- make up firing rates
+    block_rates = {}
+    for block in sim.model.blocks:
+        r = 100 if "layer1" in block.label else 10
+        block_rates[block] = r * np.ones(block.compartment.n_compartments)
+        # block_rates[block] = rng.uniform(0, r, size=block.compartment.n_compartments)
+
+    # allocator = Greedy(cores_per_chip=cores_per_chip)
+    # allocator = RoundRobin()
+    allocator = GreedyComms(cores_per_chip=cores_per_chip)
+    # allocator = GreedyComms(cores_per_chip=cores_per_chip, block_rates=block_rates)
+
     board = allocator(sim.model, n_chips=n_chips)
 
     for chip_idx, chip in enumerate(board.chips):
@@ -134,3 +154,17 @@ with nengo_loihi.Simulator(net, target="sim") as sim:
                 block_labels.append(block.label)
 
         print(sorted(block_labels))
+
+    stats = measure_interchip_conns(board)
+    print(
+        "Interchip: %0.2f, Intrachip: %0.2f" % (stats["interchip"], stats["intrachip"])
+    )
+
+    stats = measure_interchip_conns(board, block_rates=block_rates)
+    print(
+        "Interchip: %0.2f, Intrachip: %0.2f" % (stats["interchip"], stats["intrachip"])
+    )
+
+    print("Interchip pairs:")
+    for a, b in stats["interchip_pairs"]:
+        print("  %s: %s" % (a.label, b.label))
