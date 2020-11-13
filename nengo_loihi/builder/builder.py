@@ -126,6 +126,7 @@ class Model:
         self.blocks = OrderedDict()
         self.block_shapes = {}
         self.probes = []
+        self.block_comp_map = {}
 
         # Will be filled in by the simulator __init__
         self.split = None

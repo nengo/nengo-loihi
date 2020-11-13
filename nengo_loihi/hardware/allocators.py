@@ -217,6 +217,25 @@ class RoundRobin(Allocator):
         return board
 
 
+def ens_to_block_rates(model, ens_rates):
+    block_rates = {}
+    for ens, rates in ens_rates.items():
+        assert len(rates) == ens.n_neurons
+        blocks = model.objs[ens]["out"]
+        blocks = blocks if isinstance(blocks, (list, tuple)) else [blocks]
+
+        for block in blocks:
+            comp_idxs = model.block_comp_map.get(block, None)
+            if comp_idxs is None:
+                assert len(blocks) == 1
+                assert block.compartment.n_compartments == ens.n_neurons
+                block_rates[block] = rates
+            else:
+                block_rates[block] = rates[comp_idxs]
+
+    return block_rates
+
+
 def compute_block_conns(block_map, block_rates=None):
     # --- store number of axons from block i to block j
     block_conns = {k: {} for k in block_map}
@@ -248,9 +267,6 @@ def compute_block_conns(block_map, block_rates=None):
                 comp_idxs = np.arange(block_i.compartment.n_compartments)
                 axon_ids = axon.map_axon(comp_idxs)
                 assert axon_ids.size == rates.size
-
-                print((i, j, rates[axon_ids >= 0].sum()))
-
                 block_conns[i][j] += rates[axon_ids >= 0].sum()
 
     return block_conns
