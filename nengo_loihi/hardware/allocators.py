@@ -220,6 +220,12 @@ class RoundRobin(Allocator):
 def ens_to_block_rates(model, ens_rates):
     block_rates = {}
     for ens, rates in ens_rates.items():
+        if ens not in model.objs:
+            if ens in model.host_pre.sig or ens in model.host.sig:
+                continue  # this ensemble is not on chip, so skip it
+            else:
+                raise ValueError("Ensemble %s does not appear in the model" % (ens,))
+
         assert len(rates) == ens.n_neurons
         blocks = model.objs[ens]["out"]
         blocks = blocks if isinstance(blocks, (list, tuple)) else [blocks]
@@ -315,13 +321,18 @@ class GreedyComms(Greedy):
     start a new chip using the block with the least communication.
     """
 
-    def __init__(self, cores_per_chip=128, block_rates=None):
+    def __init__(self, cores_per_chip=128, ensemble_rates=None):
         super().__init__(cores_per_chip=cores_per_chip)
-        self.block_rates = block_rates
+        self.ensemble_rates = ensemble_rates
 
     def __call__(self, model, n_chips):
         block_map = {k: block for k, block in enumerate(model.blocks)}
-        block_conns = compute_block_conns(block_map, block_rates=self.block_rates)
+        block_rates = (
+            ens_to_block_rates(model, self.ensemble_rates)
+            if self.ensemble_rates is not None
+            else None
+        )
+        block_conns = compute_block_conns(block_map, block_rates=block_rates)
 
         # find blocks with no pre block
         no_pre_blocks = []

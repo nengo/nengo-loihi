@@ -141,8 +141,6 @@ with nengo_loihi.Simulator(net, target="sim") as sim:
         r = 100 if "layer1" in ens.label else 10
         ens_rates[ens] = r * np.ones(ens.n_neurons)
 
-    block_rates = ens_to_block_rates(sim.model, ens_rates)
-
     # block_rates = {}
     # for block in sim.model.blocks:
     #     r = 100 if "layer1" in block.label else 10
@@ -152,7 +150,7 @@ with nengo_loihi.Simulator(net, target="sim") as sim:
     # allocator = Greedy(cores_per_chip=cores_per_chip)
     # allocator = RoundRobin()
     # allocator = GreedyComms(cores_per_chip=cores_per_chip)
-    allocator = GreedyComms(cores_per_chip=cores_per_chip, block_rates=block_rates)
+    allocator = GreedyComms(cores_per_chip=cores_per_chip, ensemble_rates=ens_rates)
 
     board = allocator(sim.model, n_chips=n_chips)
 
@@ -171,6 +169,7 @@ with nengo_loihi.Simulator(net, target="sim") as sim:
         "Interchip: %0.2f, Intrachip: %0.2f" % (stats["interchip"], stats["intrachip"])
     )
 
+    block_rates = ens_to_block_rates(sim.model, ens_rates)
     stats = measure_interchip_conns(board, block_rates=block_rates)
     print(
         "Interchip: %0.2f, Intrachip: %0.2f" % (stats["interchip"], stats["intrachip"])
