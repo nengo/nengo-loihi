@@ -9,6 +9,7 @@ from nengo_loihi.neurons import (
     discretize_tau_rc,
     discretize_tau_ref,
     LoihiLIF,
+    LoihiRectifiedLinear,
     LoihiSpikingRectifiedLinear,
     LowpassRCNoise,
 )
@@ -17,7 +18,11 @@ if HAS_DL:
     import tensorflow as tf
 
     import nengo_dl
-    from nengo_dl.neuron_builders import LIFBuilder, SpikingRectifiedLinearBuilder
+    from nengo_dl.neuron_builders import (
+        LIFBuilder,
+        SpikingRectifiedLinearBuilder,
+        TFNeuronBuilder,
+    )
 else:  # pragma: no cover
     # Empty classes so that we can define the subclasses even though
     # we will never use them, as they are only used in the `install`
@@ -26,6 +31,9 @@ else:  # pragma: no cover
         pass
 
     class SpikingRectifiedLinearBuilder:
+        pass
+
+    class TFNeuronBuilder:
         pass
 
 
@@ -261,8 +269,8 @@ class LoihiLIFBuilder(LIFBuilder):
         )
 
 
-class LoihiSpikingRectifiedLinearBuilder(SpikingRectifiedLinearBuilder):
-    """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type."""
+class LoihiRectifiedLinearBuilder(TFNeuronBuilder):
+    """nengo_dl builder for the LoihiRectifiedLinear neuron type."""
 
     def build_pre(self, signals, config):
         super().build_pre(signals, config)
@@ -277,7 +285,7 @@ class LoihiSpikingRectifiedLinearBuilder(SpikingRectifiedLinearBuilder):
         self.zero = signals.zero
         self.one = signals.one
 
-    def training_step(self, J, dt, **state):
+    def step(self, J, dt):
         # Since LoihiLIF takes `ceil(period/dt)` the firing rate is
         # always below the LIF rate. Using `tau_ref1` in LIF curve makes
         # it the average of the LoihiLIF curve (rather than upper bound).
@@ -298,6 +306,23 @@ class LoihiSpikingRectifiedLinearBuilder(SpikingRectifiedLinearBuilder):
         #     loihi_rates on forward pass, rates on backwards
         return rates + tf.stop_gradient(loihi_rates - rates)
 
+
+class LoihiSpikingRectifiedLinearBuilder(LoihiRectifiedLinearBuilder):
+    """nengo_dl builder for the LoihiSpikingRectifiedLinear neuron type."""
+
+    def build_pre(self, signals, config):
+        super().build_pre(signals, config)
+
+        self.zeros = tf.zeros(
+            (signals.minibatch_size,) + self.J_data.shape, signals.dtype
+        )
+
+        self.epsilon = tf.constant(1e-15, dtype=signals.dtype)
+
+        # copy these so that they're easily accessible in _step functions
+        self.zero = signals.zero
+        self.one = signals.one
+
     def step(self, J, dt, voltage):
         voltage += J * dt
         spiked = voltage > self.one
@@ -308,6 +333,9 @@ class LoihiSpikingRectifiedLinearBuilder(SpikingRectifiedLinearBuilder):
         # propagated through the cond even if the spiking version isn't
         # being used at all)
         return tf.stop_gradient(spikes), tf.stop_gradient(voltage)
+
+    def training_step(self, J, dt, **state):
+        return super().step(J, dt)
 
 
 class Installer:
@@ -324,6 +352,9 @@ class Installer:
             nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
                 LoihiLIF
             ] = LoihiLIFBuilder
+            nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
+                LoihiRectifiedLinear
+            ] = LoihiRectifiedLinearBuilder
             nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
                 LoihiSpikingRectifiedLinear
             ] = LoihiSpikingRectifiedLinearBuilder

@@ -12,6 +12,7 @@ from nengo_loihi.neurons import (
     discretize_tau_ref,
     loihi_rates,
     LoihiLIF,
+    LoihiRectifiedLinear,
     LoihiSpikingRectifiedLinear,
     LowpassRCNoise,
     nengo_rates,
@@ -107,19 +108,35 @@ def test_loihi_rates_other_type(neuron_type, allclose):
     assert allclose(rates, ref_rates)
 
 
-@pytest.mark.parametrize("neuron_type", [LoihiLIF(), LoihiSpikingRectifiedLinear()])
-def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
+@pytest.mark.parametrize(
+    "NeuronType", [LoihiLIF, LoihiRectifiedLinear, LoihiSpikingRectifiedLinear]
+)
+@pytest.mark.parametrize("inference_only", [True, False] if HAS_DL else [None])
+def test_loihi_neurons(
+    NeuronType, inference_only, Simulator, plt, allclose, monkeypatch
+):
+    if HAS_DL:
+        # "uninstall" NengoDL builders to make sure each neuron type reinstalls them
+        monkeypatch.setattr(install_dl_builders, "installed", False)
+
+    neuron_type = NeuronType()
+    if HAS_DL:
+        assert install_dl_builders.installed
+
     dt = 0.0007
 
     n = 256
     encoders = np.ones((n, 1))
     gain = np.zeros(n)
-    if isinstance(neuron_type, nengo.SpikingRectifiedLinear):
+    if isinstance(neuron_type, nengo.RectifiedLinear):
         bias = np.linspace(0, 1001, n)
     else:
         bias = np.linspace(0, 30, n)
 
     with nengo.Network() as model:
+        if HAS_DL:
+            nengo_dl.configure_settings(inference_only=inference_only)
+
         ens = nengo.Ensemble(
             n, 1, neuron_type=neuron_type, encoders=encoders, gain=gain, bias=bias
         )
@@ -129,69 +146,43 @@ def test_loihi_neurons(neuron_type, Simulator, plt, allclose):
     with nengo.Simulator(model, dt=dt) as nengo_sim:
         nengo_sim.run(t_final)
 
-    with Simulator(model, dt=dt) as loihi_sim:
-        loihi_sim.run(t_final)
+    rates_nengosim = nengo_sim.data[probe].mean(axis=0)
 
-    rates_nengosim = np.sum(nengo_sim.data[probe] > 0, axis=0) / t_final
-    rates_loihisim = np.sum(loihi_sim.data[probe] > 0, axis=0) / t_final
+    rates_dlsim = None
+    if HAS_DL:
+        with nengo_dl.Simulator(model, dt=dt) as dl_sim:
+            dl_sim.run(t_final)
 
-    rates_ref = neuron_type.rates(0.0, gain, bias, dt=dt).squeeze()
-    plt.plot(bias, rates_loihisim, "r", label="loihi sim")
-    plt.plot(bias, rates_nengosim, "b-.", label="nengo sim")
-    plt.plot(bias, rates_ref, "k--", label="ref")
-    plt.legend(loc="best")
+        rates_dlsim = dl_sim.data[probe].mean(axis=0)
 
-    assert rates_ref.shape == rates_nengosim.shape == rates_loihisim.shape
-    atol = 1.0 / t_final  # the fundamental unit for our rates
-    assert allclose(rates_nengosim, rates_ref, atol=atol, rtol=0, xtol=1)
-    assert allclose(rates_loihisim, rates_ref, atol=atol, rtol=0, xtol=1)
+    rates_loihisim = None
+    if type(neuron_type) in (LoihiLIF, LoihiSpikingRectifiedLinear):
+        with Simulator(model, dt=dt) as loihi_sim:
+            loihi_sim.run(t_final)
 
-
-@pytest.mark.skipif(not HAS_DL, reason="requires nengo-dl")
-@pytest.mark.parametrize("neuron_type", [LoihiLIF(), LoihiSpikingRectifiedLinear()])
-@pytest.mark.parametrize("inference_only", (True, False))
-def test_nengo_dl_neurons(neuron_type, inference_only, Simulator, plt, allclose):
-    install_dl_builders()
-
-    dt = 0.0007
-
-    n = 256
-    encoders = np.ones((n, 1))
-    gain = np.zeros(n)
-    if isinstance(neuron_type, nengo.SpikingRectifiedLinear):
-        bias = np.linspace(0, 1001, n)
-    else:
-        bias = np.linspace(0, 30, n)
-
-    with nengo.Network() as model:
-        nengo_dl.configure_settings(inference_only=inference_only)
-
-        a = nengo.Ensemble(
-            n, 1, neuron_type=neuron_type, encoders=encoders, gain=gain, bias=bias
-        )
-        ap = nengo.Probe(a.neurons)
-
-    t_final = 1.0
-    with nengo_dl.Simulator(model, dt=dt) as dl_sim:
-        dl_sim.run(t_final)
-
-    with Simulator(model, dt=dt) as loihi_sim:
-        loihi_sim.run(t_final)
-
-    rates_dlsim = (dl_sim.data[ap] > 0).sum(axis=0) / t_final
-    rates_loihisim = (loihi_sim.data[ap] > 0).sum(axis=0) / t_final
+        rates_loihisim = loihi_sim.data[probe].mean(axis=0)
 
     zeros = np.zeros((1, gain.size))
     rates_ref = neuron_type.rates(zeros, gain, bias, dt=dt).squeeze(axis=0)
-    plt.plot(bias, rates_loihisim, "r", label="loihi sim")
-    plt.plot(bias, rates_dlsim, "b-.", label="dl sim")
+
+    # plot
+    if rates_loihisim is not None:
+        plt.plot(bias, rates_loihisim, "r", label="loihi sim")
+    if rates_dlsim is not None:
+        plt.plot(bias, rates_dlsim, "g-.", label="dl sim")
+    plt.plot(bias, rates_nengosim, "b:", label="nengo sim")
     plt.plot(bias, rates_ref, "k--", label="rates_ref")
     plt.legend(loc="best")
 
     atol = 1.0 / t_final  # the fundamental unit for our rates
-    assert rates_ref.shape == rates_dlsim.shape == rates_loihisim.shape
-    assert allclose(rates_dlsim, rates_ref, atol=atol, rtol=0, xtol=1)
-    assert allclose(rates_loihisim, rates_ref, atol=atol, rtol=0, xtol=1)
+    assert rates_ref.shape == rates_nengosim.shape
+    assert allclose(rates_nengosim, rates_ref, atol=atol, rtol=0, xtol=1)
+    if rates_dlsim is not None:
+        assert rates_ref.shape == rates_dlsim.shape
+        assert allclose(rates_dlsim, rates_ref, atol=atol, rtol=0, xtol=1)
+    if rates_loihisim is not None:
+        assert rates_ref.shape == rates_loihisim.shape
+        assert allclose(rates_loihisim, rates_ref, atol=atol, rtol=0, xtol=1)
 
 
 def test_lif_min_voltage(Simulator, plt, allclose):

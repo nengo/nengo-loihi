@@ -187,7 +187,7 @@ class LoihiLIF(LIF):
 class LoihiRectifiedLinear(RectifiedLinear):
     def __init__(self, amplitude=1, **kwargs):
         super().__init__(amplitude=amplitude, **kwargs)
-        # _install_dl_builders()
+        _install_dl_builders()
 
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
