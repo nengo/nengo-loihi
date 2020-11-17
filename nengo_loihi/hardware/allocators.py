@@ -242,9 +242,11 @@ def ens_to_block_rates(model, ens_rates):
     return block_rates
 
 
-def compute_block_conns(block_map, block_rates=None):
+def compute_block_conns(block_map, block_rates=None, conns_in=False):
     # --- store number of axons from block i to block j
     block_conns = {k: {} for k in block_map}
+    if conns_in:
+        block_conns_in = {k: {} for k in block_map}
 
     synapse_block_map = {}
     for i, block_i in block_map.items():
@@ -263,9 +265,11 @@ def compute_block_conns(block_map, block_rates=None):
             # use non-zero value as default, so that even if all rates are zero, this
             # still gets recognized as a connection from i to j
             block_conns[i].setdefault(j, 1e-16)
+            if conns_in:
+                block_conns_in[j].setdefault(i, 1e-16)
 
             if block_rates is None:
-                block_conns[i][j] += axon.n_axons
+                val = axon.n_axons
             elif block_i not in block_rates:
                 raise KeyError("block %s not in block_rates" % (block_i,))
             else:
@@ -273,9 +277,13 @@ def compute_block_conns(block_map, block_rates=None):
                 comp_idxs = np.arange(block_i.compartment.n_compartments)
                 axon_ids = axon.map_axon(comp_idxs)
                 assert axon_ids.size == rates.size
-                block_conns[i][j] += rates[axon_ids >= 0].sum()
+                val = rates[axon_ids >= 0].sum()
 
-    return block_conns
+            block_conns[i][j] += val
+            if conns_in:
+                block_conns_in[j][i] += val
+
+    return (block_conns, block_conns_in) if conns_in else block_conns
 
 
 def measure_interchip_conns(board, block_rates=None):
@@ -332,13 +340,15 @@ class GreedyComms(Greedy):
             if self.ensemble_rates is not None
             else None
         )
-        block_conns = compute_block_conns(block_map, block_rates=block_rates)
+        block_conns_out, block_conns_in = compute_block_conns(
+            block_map, block_rates=block_rates, conns_in=True
+        )
 
         # find blocks with no pre block
         no_pre_blocks = []
-        for j in block_map:
-            if sum(block_conns[i].get(j, 0) for i in block_map) == 0:
-                no_pre_blocks.append(j)
+        for i in block_map:
+            if sum(v for v in block_conns_in[i].values()) == 0:
+                no_pre_blocks.append(i)
 
         # --- create board
         board = Board()
@@ -367,16 +377,22 @@ class GreedyComms(Greedy):
                 else:
                     block_idx = next(iter(unallocated_blocks))
 
-                chip_blocks = []
+                chip_blocks = set()
             else:
                 # choose the block with the largest connection to blocks on this chip
                 block_idx = -1
                 max_conn = 0
                 for i in chip_blocks:
-                    for j in unallocated_blocks:
-                        max_ij = max(block_conns[i].get(j, 0), block_conns[j].get(i, 0))
-                        if max_ij > max_conn:
-                            max_conn = max_ij
+                    for j in unallocated_blocks.intersection(block_conns_out[i]):
+                        ij = block_conns_out[i][j]
+                        if ij > max_conn:
+                            max_conn = ij
+                            block_idx = j
+
+                    for j in unallocated_blocks.intersection(block_conns_in[i]):
+                        ij = block_conns_in[i][j]
+                        if ij > max_conn:
+                            max_conn = ij
                             block_idx = j
 
                 if block_idx < 0:
@@ -391,7 +407,7 @@ class GreedyComms(Greedy):
             block = block_map[block_idx]
             self.block_to_new_core(block, chip)
 
-            chip_blocks.append(block_idx)
+            chip_blocks.add(block_idx)
             unallocated_blocks.remove(block_idx)
 
         # add probes
