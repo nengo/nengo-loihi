@@ -10,6 +10,7 @@ from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.hardware.allocators import (
     Greedy,
     GreedyComms,
+    PartitionComms,
     RoundRobin,
     core_stdp_pre_cfgs,
     ens_to_block_rates,
@@ -170,8 +171,11 @@ def test_greedy_chip_allocator_cfg_check():
         Greedy(cores_per_chip=130)(model, n_chips=4)
 
 
-@pytest.mark.parametrize("Allocator", [GreedyComms])
+@pytest.mark.parametrize("Allocator", [GreedyComms, PartitionComms])
 def test_comms_allocators(Allocator, Simulator):
+    if Allocator is PartitionComms:
+        pytest.importorskip("nxmetis")
+
     rng = np.random.RandomState(1)  # same seed for all allocators, to compare
     with nengo.Network(seed=0) as net:
         n_ensembles = 256
