@@ -40,8 +40,10 @@ Release history
 - Added the ``LoihiRectifiedLinear`` neuron type to train deep networks for Loihi using
   Nengo or NengoDL. It is a rate neuron type and thus must ultimitely be swapped for
   ``LoihiSpikingRectifiedLinear`` to run on Loihi. (`#309`_)
-- Added the ``GreedyComms`` allocator, which reduces inter-chip communication, speeding
-  up networks with high traffic between chips. (`#309`_)
+- Added the ``GreedyComms`` and ``PartitionComms`` allocators, which reduce inter-chip
+  communication, speeding up networks with high traffic between chips.
+  ``PartitionComms`` typically finds a more optimal partitioning than ``GreedyComms``,
+  but does require the ``nxmetis`` package. (`#309`_)
 
 **Changed**
 
