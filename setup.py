@@ -48,7 +48,9 @@ docs_req = [
     "sphinx>=1.8",
     "tensorflow-probability>=0.8.0",
 ]
-optional_req = []
+optional_req = [
+    "networkx-metis>=1.0",
+]
 tests_req = [
     "coverage>=4.3",
     "nengo-extras",

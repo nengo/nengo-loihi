@@ -41,6 +41,9 @@ Release history
   implementing them. (`#309`_)
 - Added the ``GreedyInterchip`` allocator, which reduces inter-chip communication,
   speeding up networks with high traffic between chips. (`#309`_)
+- Added the ``PartitionInterchip`` allocator, which reduces inter-chip communication
+  with better partitioning than ``GreedyInterchip``. Requires the ``nxmetis``
+  package. (`#309`_)
 
 **Changed**
 

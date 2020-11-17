@@ -11,6 +11,16 @@ from nengo_loihi.hardware.nxsdk_objects import (
     VthConfig,
 )
 
+try:
+    import networkx
+    import nxmetis
+
+    HAS_NXMETIS = True
+except ImportError:
+    networkx = nxmetis = None
+    HAS_NXMETIS = False
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -455,5 +465,85 @@ class GreedyInterchip(Greedy):
         board.probes.extend(model.probes)
 
         logger.info("GreedyInterchip allocation across %d chips", board.n_chips)
+
+        return board
+
+
+class PartitionInterchip(Allocator):
+    """Spreads blocks equally across cores and minimizes inter-chip communication.
+
+    This allocator uses the METIS partitioner, which requires
+    `nxmetis <https://networkx-metis.readthedocs.io/en/latest/install.html>`_.
+    """
+
+    # TODO:
+    # - Potentially allow more blocks on one chip (i.e. unbalanced partitioning),
+    #   if it will improve communication. Unclear if nxmetis supports this.
+    # - Check that partitioning is always balanced, and that no chips
+    #   will have too many cores. Initial tests show that it is always balanced.
+
+    def __init__(self, ensemble_rates=None, rate_scale=1):
+        if not HAS_NXMETIS:
+            raise ImportError("networkx-metis is required for PartitionInterchip")
+
+        super().__init__()
+        self.ensemble_rates = ensemble_rates
+        self.rate_scale = rate_scale
+
+    def __call__(self, model, n_chips):
+        block_map = dict(enumerate(model.blocks))
+
+        block_rates = None
+        if self.ensemble_rates is not None:
+            block_rates = ensemble_to_block_rates(model, self.ensemble_rates)
+            block_rates = {
+                block: np.round(rate * self.rate_scale)
+                for block, rate in block_rates.items()
+            }
+
+        block_conns = estimate_interblock_activity(block_map, block_rates=block_rates)
+
+        # partition graph
+        G = networkx.Graph()
+        G.add_nodes_from(block_map.keys())
+
+        edge_map = set()
+        for i in block_map:
+            for j, val in block_conns[i].items():
+                if (i, j) in edge_map or (j, i) in edge_map:
+                    continue
+
+                val = val + block_conns[j].get(i, 0)
+                G.add_edge(i, j, weight=int(round(val)))  # weights must be integers
+                edge_map.add((i, j))
+                edge_map.add((j, i))
+
+        _, parts = nxmetis.partition(G, nparts=int(n_chips))
+
+        for i, part in enumerate(parts):
+            if len(part) > 128:
+                raise ValueError(
+                    f"Partition {i} has {len(part)} cores, "
+                    "which exceeds the available 128 cores"
+                )
+
+        # --- create board
+        board = Board()
+
+        # add inputs to board
+        for input in model.inputs:
+            self.input_to_board(input, board)
+
+        # blocks to chips
+        for part in parts:
+            chip = board.new_chip()
+            for block_idx in part:
+                block = block_map[block_idx]
+                self.block_to_new_core(block, chip)
+
+        # add probes
+        board.probes.extend(model.probes)
+
+        logger.info("METIS allocation across %d chips", board.n_chips)
 
         return board

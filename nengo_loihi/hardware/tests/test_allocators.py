@@ -8,8 +8,10 @@ from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.hardware.allocators import (
+    HAS_NXMETIS,
     Greedy,
     GreedyInterchip,
+    PartitionInterchip,
     RoundRobin,
     core_stdp_pre_cfgs,
     ensemble_to_block_rates,
@@ -170,8 +172,11 @@ def test_greedy_chip_allocator_cfg_check():
         Greedy(cores_per_chip=130)(model, n_chips=4)
 
 
-@pytest.mark.parametrize("Allocator", [GreedyInterchip])
+@pytest.mark.parametrize("Allocator", [GreedyInterchip, PartitionInterchip])
 def test_interchip_allocators(Allocator, Simulator):
+    if Allocator is PartitionInterchip:
+        pytest.importorskip("nxmetis")
+
     rng = np.random.RandomState(1)  # same seed for all allocators, to compare
     with nengo.Network(seed=0) as net:
         n_ensembles = 256
@@ -268,7 +273,7 @@ def test_interchip_helpers(Simulator, rng):
         with pytest.raises(ValueError, match="Ensemble.*does not appear in the model"):
             ensemble_to_block_rates(sim.model, ens_rates)
 
-        # --- test compute_block_conns error
+        # --- test estimate_interblock_activity error
         partial_ens_rates = {a: ens_rates[a]}
         with pytest.raises(KeyError, match="block.*not in block_rates"):
             GreedyInterchip(ensemble_rates=partial_ens_rates)(sim.model, n_chips=2)
@@ -308,6 +313,8 @@ def test_allocator_integration_consistency(Simulator, seed, allclose):
         (8, ceil_div(n_blocks, 5), Greedy(cores_per_chip=5)),
         (6, ceil_div(n_blocks, 4), GreedyInterchip(cores_per_chip=4)),
     ]
+    if HAS_NXMETIS:
+        allocation.append((6, 6, PartitionInterchip()))
 
     for n_chips, n_chips_used, allocator in allocation:
         with Simulator(
