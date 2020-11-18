@@ -1,7 +1,7 @@
 import nengo
-from nengo.exceptions import BuildError
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError
 
 from nengo_loihi.decode_neurons import OnOffDecodeNeurons
 from nengo_loihi.passthrough import PassthroughSplit

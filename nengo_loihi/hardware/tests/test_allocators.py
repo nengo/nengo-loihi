@@ -1,13 +1,13 @@
 import nengo
-from nengo.exceptions import ValidationError
-from nengo.utils.numpy import rms
 import numpy as np
 import pytest
+from nengo.exceptions import ValidationError
+from nengo.utils.numpy import rms
 
-from nengo_loihi.block import LoihiBlock, Synapse, Axon
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
-from nengo_loihi.hardware.allocators import core_stdp_pre_cfgs, Greedy, RoundRobin
+from nengo_loihi.hardware.allocators import Greedy, RoundRobin, core_stdp_pre_cfgs
 from nengo_loihi.hardware.nxsdk_objects import Board
 from nengo_loihi.inputs import LoihiInput
 

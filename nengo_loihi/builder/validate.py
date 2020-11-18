@@ -1,5 +1,5 @@
-from nengo.exceptions import BuildError
 import numpy as np
+from nengo.exceptions import BuildError
 
 from nengo_loihi.block import (
     MAX_COMPARTMENTS,

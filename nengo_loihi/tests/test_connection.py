@@ -1,9 +1,9 @@
 import nengo
-from nengo.exceptions import BuildError
-from nengo.utils.matplotlib import rasterplot
 import numpy as np
 import pytest
 import scipy.sparse
+from nengo.exceptions import BuildError
+from nengo.utils.matplotlib import rasterplot
 
 from nengo_loihi.config import add_params
 from nengo_loihi.neurons import nengo_rates

@@ -1,5 +1,5 @@
-from nengo.utils.numpy import is_iterable
 import numpy as np
+from nengo.utils.numpy import is_iterable
 
 from nengo_loihi.block import LoihiBlock
 

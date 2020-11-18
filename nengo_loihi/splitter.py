@@ -1,11 +1,11 @@
 from collections import defaultdict
 
 from nengo import Direct, Ensemble, Node, Probe
-from nengo.exceptions import BuildError
 from nengo.connection import LearningRule
+from nengo.exceptions import BuildError
 
 from nengo_loihi.config import add_params
-from nengo_loihi.passthrough import base_obj, PassthroughSplit
+from nengo_loihi.passthrough import PassthroughSplit, base_obj
 
 
 class PrecomputableSplit:

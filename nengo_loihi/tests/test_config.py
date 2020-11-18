@@ -1,8 +1,8 @@
 import nengo
-from nengo.exceptions import ValidationError
 import pytest
+from nengo.exceptions import ValidationError
 
-from nengo_loihi.config import add_params, BlockShape
+from nengo_loihi.config import BlockShape, add_params
 
 
 def test_block_shape_errors():

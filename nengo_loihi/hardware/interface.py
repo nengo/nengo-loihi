@@ -1,16 +1,16 @@
-from collections import OrderedDict
 import logging
 import os
-from select import select
 import socket
 import struct
 import tempfile
 import time
 import warnings
+from collections import OrderedDict
+from select import select
 
 import jinja2
-from nengo.exceptions import SimulationError
 import numpy as np
+from nengo.exceptions import SimulationError
 
 from nengo_loihi.builder.discretize import scale_pes_errors
 from nengo_loihi.compat import make_process_step
@@ -18,11 +18,11 @@ from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import (
+    SnipPhase,
+    SpikeProbe,
     assert_nxsdk,
     nxsdk,
     parse_nxsdk_version,
-    SnipPhase,
-    SpikeProbe,
 )
 from nengo_loihi.hardware.validate import validate_board
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get

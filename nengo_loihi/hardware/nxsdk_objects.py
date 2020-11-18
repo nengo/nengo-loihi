@@ -5,7 +5,6 @@ import numpy as np
 from nengo_loihi.block import Config
 from nengo_loihi.nxsdk_obfuscation import d, d_get
 
-
 MAX_COMPARTMENT_CFGS = d(b"MzI=", int)
 MAX_VTH_CFGS = d(b"OA==", int)
 MAX_SYNAPSE_CFGS = d(b"OA==", int)

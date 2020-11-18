@@ -1,6 +1,6 @@
-from nengo.exceptions import BuildError
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder.validate import validate_block

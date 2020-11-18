@@ -8,7 +8,6 @@ from nengo_loihi.builder.sparse_matrix import (
     stack_matrices,
 )
 
-
 matrix_types = [np.ndarray, scipy.sparse.spmatrix]
 
 

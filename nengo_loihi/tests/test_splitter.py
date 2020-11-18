@@ -1,7 +1,7 @@
-import pytest
 import nengo
-from nengo.exceptions import BuildError
 import numpy as np
+import pytest
+from nengo.exceptions import BuildError
 
 from nengo_loihi.config import add_params
 from nengo_loihi.splitter import Split

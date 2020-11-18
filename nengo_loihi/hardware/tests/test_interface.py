@@ -1,9 +1,9 @@
 import socket
 
 import nengo
-from nengo.exceptions import SimulationError
 import numpy as np
 import pytest
+from nengo.exceptions import SimulationError
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder.builder import Model

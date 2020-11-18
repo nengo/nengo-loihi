@@ -1,7 +1,7 @@
 import nengo
-from nengo.exceptions import BuildError
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError
 
 from nengo_loihi.builder import Model
 from nengo_loihi.neurons import nengo_rates

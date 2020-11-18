@@ -1,3 +1,4 @@
+import numpy as np
 from nengo.dists import Choice
 from nengo.neurons import (
     LIF,
@@ -6,7 +7,6 @@ from nengo.neurons import (
     RegularSpiking,
     SpikingRectifiedLinear,
 )
-import numpy as np
 
 from nengo_loihi.compat import HAS_TF, tf
 

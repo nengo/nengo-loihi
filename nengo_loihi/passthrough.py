@@ -1,12 +1,12 @@
-from collections import OrderedDict
 import warnings
+from collections import OrderedDict
 
+import numpy as np
 from nengo import Connection, Dense, Lowpass, Node, Probe
 from nengo.base import ObjView
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, NengoException
-import numpy as np
 
 from nengo_loihi.compat import is_transform_type
 

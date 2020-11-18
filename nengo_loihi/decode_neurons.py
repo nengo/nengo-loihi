@@ -1,10 +1,10 @@
+import numpy as np
 from nengo import Ensemble, SpikingRectifiedLinear
 from nengo.dists import Choice
-import numpy as np
 
 from nengo_loihi.block import LoihiBlock, Synapse
-from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 from nengo_loihi.builder.sparse_matrix import scale_matrix, stack_matrices
+from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 
 
 class DecodeNeurons:

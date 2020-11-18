@@ -2,9 +2,9 @@ import inspect
 import re
 
 import nengo
-from nengo.exceptions import BuildError, ReadonlyError, ValidationError
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError, ReadonlyError, ValidationError
 
 import nengo_loihi
 from nengo_loihi.block import Axon, LoihiBlock, Synapse

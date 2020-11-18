@@ -6,17 +6,16 @@ import numpy as np
 from nengo_loihi.compat import HAS_DL
 from nengo_loihi.neurons import (
     AlphaRCNoise,
-    discretize_tau_rc,
-    discretize_tau_ref,
     LoihiLIF,
     LoihiSpikingRectifiedLinear,
     LowpassRCNoise,
+    discretize_tau_rc,
+    discretize_tau_ref,
 )
 
 if HAS_DL:
-    import tensorflow as tf
-
     import nengo_dl
+    import tensorflow as tf
     from nengo_dl.neuron_builders import LIFBuilder, SpikingRectifiedLinearBuilder
 else:  # pragma: no cover
     # Empty classes so that we can define the subclasses even though

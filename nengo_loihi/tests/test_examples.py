@@ -13,6 +13,7 @@ except ImportError:
 
     def load_notebook(nb_path):
         import io  # pylint: disable=import-outside-toplevel
+
         from nengo.utils.ipython import (  # pylint: disable=import-outside-toplevel
             nbformat,
         )
@@ -22,9 +23,9 @@ except ImportError:
         return nb
 
 
+import _pytest.capture
 import numpy as np
 import pytest
-import _pytest.capture
 
 # Monkeypatch _pytest.capture.DontReadFromInput
 #  If we don't do this, importing IPython will choke as it reads the current

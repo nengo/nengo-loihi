@@ -1,19 +1,19 @@
 import nengo
-from nengo_extras.neurons import SoftLIFRate
 import numpy as np
 import pytest
+from nengo_extras.neurons import SoftLIFRate
 
+from nengo_loihi import neurons
 from nengo_loihi.builder.nengo_dl import install_dl_builders
 from nengo_loihi.compat import HAS_DL, nengo_dl
-from nengo_loihi import neurons
 from nengo_loihi.neurons import (
     AlphaRCNoise,
-    discretize_tau_rc,
-    discretize_tau_ref,
-    loihi_rates,
     LoihiLIF,
     LoihiSpikingRectifiedLinear,
     LowpassRCNoise,
+    discretize_tau_rc,
+    discretize_tau_ref,
+    loihi_rates,
     nengo_rates,
 )
 

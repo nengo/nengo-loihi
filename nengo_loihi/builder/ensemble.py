@@ -1,12 +1,12 @@
 import warnings
 
 import nengo
+import nengo.utils.numpy as npext
+import numpy as np
 from nengo import Ensemble
 from nengo.builder.ensemble import BuiltEnsemble, gen_eval_points
 from nengo.dists import Distribution, get_samples
 from nengo.exceptions import BuildError
-import nengo.utils.numpy as npext
-import numpy as np
 
 from nengo_loihi.block import LoihiBlock
 from nengo_loihi.builder.builder import Builder

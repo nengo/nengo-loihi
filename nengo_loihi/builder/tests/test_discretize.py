@@ -1,10 +1,10 @@
 import logging
 
 import nengo
-from nengo.exceptions import BuildError
-from nengo.utils.numpy import rms
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError
+from nengo.utils.numpy import rms
 
 from nengo_loihi.block import LoihiBlock, SynapseConfig
 from nengo_loihi.builder import Model

@@ -3,28 +3,25 @@ import logging
 import warnings
 
 import nengo
-from nengo import Ensemble, Connection, Node, Probe as NengoProbe
-from nengo.builder.connection import (
-    BuiltConnection,
-    get_eval_points,
-    get_targets,
-)
+import nengo.utils.numpy as npext
+import numpy as np
+import scipy.sparse
+from nengo import Connection, Ensemble, Node
+from nengo import Probe as NengoProbe
+from nengo.builder.connection import BuiltConnection, get_eval_points, get_targets
 from nengo.builder.transforms import multiply
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError, ValidationError
 from nengo.solvers import Solver
-import nengo.utils.numpy as npext
-import numpy as np
-import scipy.sparse
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder.builder import Builder
 from nengo_loihi.builder.inputs import (
-    ChipReceiveNode,
     ChipReceiveNeurons,
-    HostSendNode,
+    ChipReceiveNode,
     HostReceiveNode,
+    HostSendNode,
     PESModulatoryTarget,
 )
 from nengo_loihi.builder.sparse_matrix import (
@@ -32,10 +29,7 @@ from nengo_loihi.builder.sparse_matrix import (
     scale_matrix,
     stack_matrices,
 )
-from nengo_loihi.compat import (
-    is_transform_type,
-    sample_transform,
-)
+from nengo_loihi.compat import is_transform_type, sample_transform
 from nengo_loihi.conv import channel_idxs, conv2d_loihi_weights, pixel_idxs
 from nengo_loihi.inputs import LoihiInput
 from nengo_loihi.neurons import loihi_rates

@@ -1,8 +1,8 @@
-from nengo.exceptions import BuildError
 import numpy as np
 import pytest
+from nengo.exceptions import BuildError
 
-from nengo_loihi.block import Axon, LoihiBlock, MAX_COMPARTMENTS, Synapse
+from nengo_loihi.block import MAX_COMPARTMENTS, Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface

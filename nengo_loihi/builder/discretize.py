@@ -1,9 +1,9 @@
 import logging
 import warnings
 
+import numpy as np
 from nengo.exceptions import BuildError
 from nengo.utils.numpy import is_iterable
-import numpy as np
 
 from nengo_loihi.block import SynapseConfig
 from nengo_loihi.nxsdk_obfuscation import d

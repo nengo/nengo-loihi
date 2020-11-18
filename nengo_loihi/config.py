@@ -1,10 +1,10 @@
 import nengo
+import numpy as np
 from nengo import Ensemble
 from nengo.config import InstanceParams
 from nengo.exceptions import ValidationError
 from nengo.params import Parameter
 from nengo.utils.numpy import is_integer
-import numpy as np
 
 
 class BlockShapeParam(Parameter):

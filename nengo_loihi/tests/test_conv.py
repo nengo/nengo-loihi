@@ -2,23 +2,23 @@ import os
 import pickle
 
 import nengo
-from nengo.dists import Choice, Uniform
-from nengo.exceptions import ValidationError
-from nengo_extras.matplotlib import tile, imshow
-from nengo_extras.vision import Gabor
 import numpy as np
 import pytest
 import scipy.signal
+from nengo.dists import Choice, Uniform
+from nengo.exceptions import ValidationError
+from nengo_extras.matplotlib import imshow, tile
+from nengo_extras.vision import Gabor
 
 import nengo_loihi
-from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi import conv
+from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
-from nengo_loihi.neurons import loihi_rates, LoihiLIF, LoihiSpikingRectifiedLinear
+from nengo_loihi.neurons import LoihiLIF, LoihiSpikingRectifiedLinear, loihi_rates
 from nengo_loihi.probe import LoihiProbe
 from nengo_loihi.tests import require_partition
 

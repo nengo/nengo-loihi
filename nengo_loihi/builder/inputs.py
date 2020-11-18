@@ -1,7 +1,7 @@
+import numpy as np
 from nengo import Node
 from nengo.exceptions import SimulationError
 from nengo.params import Default
-import numpy as np
 
 
 class HostSendNode(Node):

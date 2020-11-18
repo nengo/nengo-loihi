@@ -1,8 +1,8 @@
-import pytest
 import nengo
 import numpy as np
+import pytest
 
-from nengo_loihi import add_params, BlockShape
+from nengo_loihi import BlockShape, add_params
 
 
 def test_spike_units(Simulator, seed):

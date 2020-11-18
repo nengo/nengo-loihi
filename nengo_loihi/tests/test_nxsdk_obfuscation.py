@@ -1,12 +1,12 @@
 import pytest
 
 from nengo_loihi.nxsdk_obfuscation import (
-    obfuscate,
-    deobfuscate,
+    d_func,
     d_get,
     d_import,
-    d_func,
     d_set,
+    deobfuscate,
+    obfuscate,
 )
 
 
@@ -36,9 +36,8 @@ def test_d_import():
     imported0 = d_import(
         obfuscate("nengo_loihi.emulator.interface"), attr=obfuscate("EmulatorInterface")
     )
-    from nengo_loihi.emulator.interface import (  # pylint: disable=import-outside-toplevel
-        EmulatorInterface as imported1,
-    )
+    # pylint: disable=import-outside-toplevel
+    from nengo_loihi.emulator.interface import EmulatorInterface as imported1
 
     assert imported0 is imported1
 

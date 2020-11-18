@@ -1,19 +1,19 @@
 """Break apart LoihiBlocks too large to fit on a single core. """
 
-from collections import OrderedDict
-from collections.abc import Sequence
 import itertools
 import logging
+from collections import OrderedDict
+from collections.abc import Sequence
 
 import numpy as np
 
 from nengo_loihi.block import (
-    Axon,
-    LoihiBlock,
     MAX_COMPARTMENTS,
     MAX_IN_AXONS,
     MAX_OUT_AXONS,
     MAX_SYNAPSE_BITS,
+    Axon,
+    LoihiBlock,
     Synapse,
 )
 from nengo_loihi.config import BlockShape

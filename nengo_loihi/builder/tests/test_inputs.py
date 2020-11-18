@@ -1,6 +1,6 @@
 import nengo
-from nengo.exceptions import SimulationError
 import pytest
+from nengo.exceptions import SimulationError
 
 from nengo_loihi.builder.inputs import ChipReceiveNode
 

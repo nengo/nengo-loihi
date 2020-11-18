@@ -1,19 +1,19 @@
-from collections import OrderedDict
 import logging
 import warnings
+from collections import OrderedDict
 
-from nengo.exceptions import SimulationError, ValidationError
 import numpy as np
+from nengo.exceptions import SimulationError, ValidationError
 
 from nengo_loihi.builder.discretize import (
-    decay_int,
     LEARN_FRAC,
+    Q_BITS,
+    U_BITS,
+    decay_int,
     learn_overflow_bits,
     overflow_signed,
     scale_pes_errors,
     shift,
-    Q_BITS,
-    U_BITS,
 )
 from nengo_loihi.compat import make_process_step
 from nengo_loihi.probe import LoihiProbe

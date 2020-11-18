@@ -1,8 +1,8 @@
 import itertools
 
+import numpy as np
 from nengo.exceptions import ValidationError
 from nengo.transforms import ChannelShape, Convolution
-import numpy as np
 
 
 class ImageSlice:

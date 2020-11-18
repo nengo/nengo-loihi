@@ -1,13 +1,11 @@
-from collections import OrderedDict
 import warnings
-
-from nengo.exceptions import BuildError
+from collections import OrderedDict
 
 import numpy as np
 import scipy.sparse
+from nengo.exceptions import BuildError
 
 from nengo_loihi.nxsdk_obfuscation import d
-
 
 MAX_COMPARTMENTS = d(b"MTAyNA==", int)
 MAX_IN_AXONS = d(b"NDA5Ng==", int)

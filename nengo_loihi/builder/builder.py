@@ -1,15 +1,15 @@
-from collections import defaultdict, OrderedDict
 import logging
+from collections import OrderedDict, defaultdict
 
+import numpy as np
 from nengo import Ensemble, Network, Node, Probe
 from nengo.builder import Model as NengoModel
 from nengo.builder.builder import Builder as NengoBuilder
 from nengo.cache import NoDecoderCache
-import numpy as np
 
 from nengo_loihi.block import LoihiBlock
 from nengo_loihi.config import add_params
-from nengo_loihi.decode_neurons import Preset10DecodeNeurons, OnOffDecodeNeurons
+from nengo_loihi.decode_neurons import OnOffDecodeNeurons, Preset10DecodeNeurons
 from nengo_loihi.inputs import LoihiInput
 
 logger = logging.getLogger(__name__)

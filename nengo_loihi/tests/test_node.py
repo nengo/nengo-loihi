@@ -1,5 +1,5 @@
-import numpy as np
 import nengo
+import numpy as np
 import pytest
 
 

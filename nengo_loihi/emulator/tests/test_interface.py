@@ -1,11 +1,11 @@
-from nengo.exceptions import SimulationError
-from nengo.synapses import Lowpass
 import numpy as np
 import pytest
+from nengo.exceptions import SimulationError
+from nengo.synapses import Lowpass
 
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
-from nengo_loihi.builder.discretize import discretize_model, VTH_MAX
+from nengo_loihi.builder.discretize import VTH_MAX, discretize_model
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.emulator.interface import (
     BlockInfo,

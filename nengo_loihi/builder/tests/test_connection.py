@@ -1,8 +1,8 @@
 import nengo
-from nengo.exceptions import BuildError
 import numpy as np
-from packaging.version import parse as parse_version
 import pytest
+from nengo.exceptions import BuildError
+from packaging.version import parse as parse_version
 
 
 @pytest.mark.skipif(

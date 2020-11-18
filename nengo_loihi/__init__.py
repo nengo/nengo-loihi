@@ -1,16 +1,18 @@
 import logging
 
-from .version import check_nengo_version, version as __version__
+from .version import check_nengo_version
+from .version import version as __version__
 
 check_nengo_version()
 del check_nengo_version
 
-from .simulator import Simulator
-from .config import add_params, BlockShape, set_defaults
-from .neurons import LoihiLIF, LoihiSpikingRectifiedLinear
-
 # Import builders so they are registered
 from . import builder
+
+# Import into top-level namespace
+from .config import BlockShape, add_params, set_defaults
+from .neurons import LoihiLIF, LoihiSpikingRectifiedLinear
+from .simulator import Simulator
 
 logger = logging.getLogger(__name__)
 try:

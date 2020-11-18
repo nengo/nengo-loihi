@@ -1,9 +1,9 @@
 import nengo
-from nengo import Ensemble, Connection, Node
+import numpy as np
+from nengo import Connection, Ensemble, Node
 from nengo.connection import LearningRule
 from nengo.ensemble import Neurons
 from nengo.exceptions import BuildError
-import numpy as np
 
 from nengo_loihi.builder.builder import Builder
 from nengo_loihi.probe import LoihiProbe

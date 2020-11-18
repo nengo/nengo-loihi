@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from nengo_loihi.neurons import LoihiLIF
 from nengo_loihi.builder import nengo_dl as builder_nengo_dl
+from nengo_loihi.neurons import LoihiLIF
 
 
 def test_installer_with_no_dl(caplog, monkeypatch):

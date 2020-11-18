@@ -1,18 +1,18 @@
+import logging
+import warnings
 from collections import OrderedDict
 from collections.abc import Mapping
-import logging
 from timeit import default_timer
-import warnings
 
 import nengo
-from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
-from nengo.simulator import SimulationData as NengoSimulationData
 import nengo.utils.numpy as npext
 import numpy as np
+from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
+from nengo.simulator import SimulationData as NengoSimulationData
 
 from nengo_loihi.builder import Model
 from nengo_loihi.emulator import EmulatorInterface
-from nengo_loihi.hardware import HardwareInterface, HAS_NXSDK
+from nengo_loihi.hardware import HAS_NXSDK, HardwareInterface
 
 logger = logging.getLogger(__name__)
 
