@@ -36,6 +36,9 @@ Release history
 - Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
 - ``Block`` and ``Compartment`` now have ``.discretize_info`` attributes that store
   parameters used for discretizing that block and compartment. (`#309`_)
+- ``Model`` now has a ``connection_decode_neurons`` attribute that maps ``Connection``
+  objects that require decode neurons to the corresponding ``Ensemble`` objects
+  implementing them. (`#309`_)
 
 **Changed**
 
