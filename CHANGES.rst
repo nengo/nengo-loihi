@@ -45,6 +45,7 @@ Release history
   is deleted. (`#312`_)
 - Fixed probe filters such that multiple ``Simulator.run`` calls now results in
   the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
+- Convolution with 1 x 1 kernels now works as expected. (`#297`_)
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
 .. _#289: https://github.com/nengo/nengo-loihi/pull/289

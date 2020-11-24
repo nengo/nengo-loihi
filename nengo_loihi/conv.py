@@ -146,11 +146,23 @@ def conv2d_loihi_weights(transform):
     output_rows, output_cols = transform.output_shape.spatial_shape
     n_filters = transform.n_filters
     n_compartments = output_rows * output_cols * n_filters
+    kernel_rows, kernel_cols = transform.kernel_size
+    row_stride, col_stride = transform.strides
 
     # compute number of used input pixels
-    ri_max = (output_rows - 1) * transform.strides[0] + 1
-    rj_max = (output_cols - 1) * transform.strides[1] + 1
+    ri_max = (output_rows - 1) * row_stride + 1
+    rj_max = (output_cols - 1) * col_stride + 1
 
+    # --- determine padding
+    pad_i, pad_j = 0, 0
+    if transform.padding == "same":
+        # these paddings are based off the method used in
+        # `nengo._vendor.npconv2d`, to ensure we perform the same
+        pad_i = max((output_rows - 1) * row_stride + kernel_rows - input_rows, 0)
+        pad_j = max((output_cols - 1) * col_stride + kernel_cols - input_cols, 0)
+        pad_i, pad_j = pad_i // 2, pad_j // 2
+
+    # --- determine weights and indices
     weights = []
     indices = []
     # compartment offset (aka. compartment base) for each axon
@@ -162,31 +174,14 @@ def conv2d_loihi_weights(transform):
 
         # unstrided compartment indices that this input axon would map to
         # if strides == 1 and mode == 'full'
-        ri0, ri1 = i + 1 - transform.kernel_size[0], i + 1
-        rj0, rj1 = j + 1 - transform.kernel_size[1], j + 1
-        if transform.padding == "same":
-            # these paddings are based off the method used in `nengo._vendor.npconv2d`,
-            # to ensure we perform the same as Nengo transforms
-            pad_i = (
-                (output_rows - 1) * transform.strides[0]
-                + transform.kernel_size[0]
-                - input_rows
-            )
-            pad_j = (
-                (output_cols - 1) * transform.strides[1]
-                + transform.kernel_size[1]
-                - input_cols
-            )
-            ri0 += pad_i // 2
-            ri1 += pad_i // 2
-            rj0 += pad_j // 2
-            rj1 += pad_j // 2
+        ri0 = i + pad_i + 1 - kernel_rows
+        rj0 = j + pad_j + 1 - kernel_cols
 
-        ri = np.arange(ri0, ri1)
-        rj = np.arange(rj0, rj1)
+        ri = np.arange(ri0, ri0 + kernel_rows)
+        rj = np.arange(rj0, rj0 + kernel_cols)
 
-        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % transform.strides[0] == 0)
-        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % transform.strides[1] == 0)
+        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % row_stride == 0)
+        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % col_stride == 0)
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
             # this axon is not needed, so indicate this in offsets and skip

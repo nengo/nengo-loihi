@@ -46,7 +46,7 @@ def make_channel_shape(spatial_shape, n_channels, channels_last):
 @pytest.mark.parametrize("channels_last", [False, True])
 @pytest.mark.parametrize("padding", ["valid", "same"])
 @pytest.mark.parametrize("strides", [(1, 1), (2, 2), (3, 2)])
-@pytest.mark.parametrize("kernel_size", [(3, 3), (4, 4)])
+@pytest.mark.parametrize("kernel_size", [(1, 1), (3, 3), (4, 4)])
 @pytest.mark.parametrize("spatial_shape", [(6, 6), (7, 9)])
 def test_conv2d_loihi_weights(
     spatial_shape, kernel_size, strides, padding, channels_last, rng, allclose
