@@ -195,8 +195,8 @@ def conv2d_loihi_weights(transform):  # noqa: C901
         else:
             # these paddings are based off the method used in
             # `nengo._vendor.npconv2d`, to ensure we perform the same
-            pad_i = (output_rows - 1) * row_stride + kernel_rows - input_rows
-            pad_j = (output_cols - 1) * col_stride + kernel_cols - input_cols
+            pad_i = max((output_rows - 1) * row_stride + kernel_rows - input_rows, 0)
+            pad_j = max((output_cols - 1) * col_stride + kernel_cols - input_cols, 0)
             pad_i, pad_j = pad_i // 2, pad_j // 2
 
     # --- determine weights and indices
