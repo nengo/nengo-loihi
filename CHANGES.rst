@@ -34,6 +34,9 @@ Release history
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
 - ``Block`` now has a ``.discretize_info`` attribute that stores parameters used
   for discretizing that block. (`#309`_)
+- ``Model`` now has a ``connection_decode_neurons`` attribute that maps ``Connection``
+  objects that require decode neurons to the corresponding ``Ensemble`` objects
+  implementing them. (`#309`_)
 
 **Changed**
 
