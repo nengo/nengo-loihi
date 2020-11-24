@@ -216,6 +216,7 @@ def build_host_to_chip(model, conn):
     ens.label = None if conn.label is None else "%s_ens" % conn.label
     _set_seed(host, ens, seed=rng, seeded=model.seeded[conn])
     host.build(ens)
+    model.connection_decode_neurons[conn] = ens
 
     pre2ens = Connection(
         conn.pre,
@@ -561,8 +562,6 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                 dt=model.dt, vth=model.vth_nonspiking
             )
             decoder_block.compartment.bias[:] = 0
-            model.add_block(decoder_block)
-            model.objs[conn]["decoded"] = decoder_block
 
             dec_syn = Synapse(n, label="probe_decoders")
             weights2 = stack_matrices(
@@ -572,7 +571,6 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
             dec_syn.set_weights(weights2)
             decoder_block.add_synapse(dec_syn)
-            model.objs[conn]["decoders"] = dec_syn
         else:
             # use spiking decode neurons for on-chip connection
             if isinstance(conn.post_obj, Ensemble):
@@ -590,9 +588,10 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                 loihi_weights, block_label="%s" % conn, syn_label="decoders"
             )
 
-            model.add_block(decoder_block)
-            model.objs[conn]["decoded"] = decoder_block
-            model.objs[conn]["decoders"] = dec_syn
+        model.add_block(decoder_block)
+        model.objs[conn]["decoded"] = decoder_block
+        model.objs[conn]["decoders"] = dec_syn
+        model.connection_decode_neurons[conn] = decoder_block
 
         # use tau_s for filter into decode neurons, decode_tau for filter out
         decoder_block.compartment.configure_filter(tau_s, dt=model.dt)
