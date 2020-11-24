@@ -26,7 +26,7 @@ Release history
 
 - Added support for ``nengo.transforms.ConvolutionTranspose``. (`#300`_)
 
-.. _#300: https://github.com/nengo/nengo/pull/300
+.. _#300: https://github.com/nengo/nengo-loihi/pull/300
 
 0.11.0 (unreleased)
 ===================
