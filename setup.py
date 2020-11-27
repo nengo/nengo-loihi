@@ -41,7 +41,7 @@ docs_req = [
     "matplotlib>=2.0",
     "nbsphinx",
     "nbconvert",
-    "nengo-dl>=3.3.0",
+    "nengo-dl>=3.4.0",
     "nengo-extras",
     "nengo_sphinx_theme>=0.7",
     "numpydoc>=0.6",

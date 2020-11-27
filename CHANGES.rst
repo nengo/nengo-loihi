@@ -105,6 +105,8 @@ Release history
   (`#272 <https://github.com/nengo/nengo-loihi/pull/272>`__)
 - NengoLoihi now supports Nengo version 3.1. Support for Nengo 3.0 has been dropped.
   (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
+- Minimum NengoDL version is now 3.4.0.
+  (`#296 <https://github.com/nengo/nengo-loihi/pull/296>`__)
 
 **Removed**
 
