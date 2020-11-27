@@ -18,3 +18,9 @@
 {{ super() }}
         SLURM=1 pytest nengo_loihi --target loihi --no-hang -v --durations 50 --color=yes -n 2 --cov=nengo_loihi --cov-report=xml --cov-report=term-missing || REMOTE_STATUS=1
 {% endblock %}
+
+{% block after_script %}
+    exe scp "{{ host }}:./tmp/{{ pkg }}-$TRAVIS_JOB_NUMBER/{{ pkg }}/coverage.xml" coverage.xml
+    eval "bash <(curl -s https://codecov.io/bash)"
+{{ super() }}
+{% endblock %}
