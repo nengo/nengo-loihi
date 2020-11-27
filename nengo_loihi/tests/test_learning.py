@@ -403,7 +403,9 @@ def test_drop_trace_spikes(Simulator, seed):
         )
         b = nengo.Node(size_in=1)
 
-        conn = nengo.Connection(a, b, learning_rule_type=nengo.PES(1))
+        conn = nengo.Connection(
+            a, b, transform=[[100]], learning_rule_type=nengo.PES(1)
+        )
 
         nengo.Connection(b, conn.learning_rule)
 
