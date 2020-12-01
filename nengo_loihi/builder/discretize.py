@@ -294,6 +294,8 @@ def discretize_compartment(comp, w_max):
     # Lowering w_exp_max can let us keep vth_max higher, but overflow
     # is still be possible on connections with many small inputs (uncommon)
     vth_max = VTH_MAX
+    vth_max = 2**Q_BITS - 1
+    # vth_max = 2**(Q_BITS - 1) - 1
     w_exp_max = 0
 
     b_max = np.abs(comp.bias).max()
