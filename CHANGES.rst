@@ -23,6 +23,7 @@ Release history
 ===================
 
 *Compatible with Nengo 3.1.0*
+
 *Compatible with NxSDK 0.8.7 - 0.9.9*
 
 **Added**
@@ -152,6 +153,8 @@ Release history
 0.10.0 (November 25, 2019)
 ==========================
 
+*Compatible with Nengo 3.0.0*
+
 *Compatible with NxSDK 0.8.7 - 0.9.0*
 
 **Changed**
@@ -161,6 +164,8 @@ Release history
 
 0.9.0 (November 20, 2019)
 =========================
+
+*Compatible with Nengo 3.0.0*
 
 *Compatible with NxSDK 0.8.5*
 
@@ -196,6 +201,8 @@ Release history
 0.8.0 (June 23, 2019)
 =====================
 
+*Compatible with Nengo 2.8.0*
+
 *Compatible with NxSDK 0.8.5*
 
 **Changed**
@@ -205,6 +212,8 @@ Release history
 
 0.7.0 (June 21, 2019)
 =====================
+
+*Compatible with Nengo 2.8.0*
 
 *Compatible with NxSDK 0.8.0 - 0.8.1*
 
