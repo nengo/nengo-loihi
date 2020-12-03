@@ -484,6 +484,8 @@ docs_conf_py:
     examples/oscillator_nonlinear.html: examples/oscillator-nonlinear.html
 
 travis_yml:
+  # TODO: remove this when we drop Python 3.5 support
+  bones_install: git+https://github.com/nengo/nengo-bones@python-3.5#egg=nengo-bones
   python: 3.6
   global_vars:
     NENGO_VERSION: nengo[tests]
