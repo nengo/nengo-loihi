@@ -541,6 +541,7 @@ ci_scripts:
       - $NENGO_DL_VERSION
       - cython
       - tensorflow<2.4
+      - tensorflow-probability<0.12
   - template: deploy
 
 codecov_yml: {}
