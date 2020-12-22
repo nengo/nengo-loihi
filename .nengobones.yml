@@ -540,6 +540,7 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - cython
+      - tensorflow<2.4
   - template: deploy
 
 codecov_yml: {}
