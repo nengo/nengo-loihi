@@ -167,9 +167,9 @@ class DVSFileChipNode(ChipReceiveNeurons):
 
         events_t = events[:]["t"]
         events_idx = (
-            (events[:]["y"] // pool_y) * stride_y
-            + (events[:]["x"] // pool_x) * stride_x
-            + events[:]["p"] * stride_p
+            (events[:]["y"].astype(np.int32) // pool_y) * stride_y
+            + (events[:]["x"].astype(np.int32) // pool_x) * stride_x
+            + events[:]["p"].astype(np.int32) * stride_p
         )
         return events_t, events_idx
 
