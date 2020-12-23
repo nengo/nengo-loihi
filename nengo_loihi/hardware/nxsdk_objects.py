@@ -136,6 +136,9 @@ class Core:
 
         self.learning_coreid = None
 
+        # hacky parameters to control building
+        self.build_axons_only = False
+
     @property
     def board(self):
         return self.chip.board
@@ -373,14 +376,15 @@ class CompartmentConfig(Config):
     DECAY_V_MAX = d(b"NDA5NQ==", int)
     REFRACT_DELAY_MAX = d(b"NjM=", int)
 
-    params = ("decay_u", "decay_v", "refract_delay", "enable_noise")
+    params = ("decay_u", "decay_v", "refract_delay", "enable_noise", "bap_action")
 
-    def __init__(self, decay_v, decay_u, refract_delay, enable_noise):
-        super().__init__()
+    def __init__(self, decay_v, decay_u, refract_delay, enable_noise, bap_action=1):
+        super(CompartmentConfig, self).__init__()
         self.decay_v = decay_v
         self.decay_u = decay_u
         self.refract_delay = refract_delay
         self.enable_noise = enable_noise
+        self.bap_action = bap_action
 
 
 class VthConfig(Config):

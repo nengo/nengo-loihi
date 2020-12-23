@@ -4,6 +4,7 @@ from nengo import Direct, Ensemble, Node, Probe
 from nengo.connection import LearningRule
 from nengo.exceptions import BuildError
 
+from nengo_loihi.builder.inputs import ChipReceiveNode
 from nengo_loihi.config import add_params
 from nengo_loihi.passthrough import PassthroughSplit, base_obj
 
@@ -142,9 +143,16 @@ class HostChipSplit:
         self._place_probes(network)
 
     def _place_nodes(self, network):
-        """Place nodes. Currently, all nodes go on the host."""
+        """Place nodes.
 
-        self.host_objs.update(network.all_nodes)
+        Nodes go on the host, unless they are `.ChipReceiveNode`.
+        """
+
+        for node in network.all_nodes:
+            if isinstance(node, ChipReceiveNode):
+                self.chip_objs.add(node)
+            else:
+                self.host_objs.add(node)
 
     def _place_ensembles(self, network):
         """Place ensembles.

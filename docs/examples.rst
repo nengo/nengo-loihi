@@ -23,3 +23,4 @@ We compare performance with Nengo core where appropriate.
    examples/keras-to-loihi
    examples/adaptive-motor-control
    examples/lmu
+   examples/dvs-from-file

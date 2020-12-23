@@ -1,0 +1,8 @@
+{% extends "templates/docs.sh.template" %}
+
+{% block install %}
+    # ffmpeg required for `matplotlib.animation.Animation.to_html5_video`
+    exe sudo apt-get install ffmpeg
+
+{{ super() }}
+{% endblock %}

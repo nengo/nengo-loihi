@@ -11,12 +11,13 @@ from nengo_loihi.hardware.nxsdk_objects import (
     LoihiSpikeInput,
 )
 from nengo_loihi.hardware.nxsdk_shim import (
+    DVS,
     NxsdkBoard,
     SpikeGen,
     TraceConfigGenerator,
     micro_gen,
 )
-from nengo_loihi.inputs import SpikeInput
+from nengo_loihi.inputs import DVSInput, SpikeInput
 from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get, d_set
 
 logger = logging.getLogger(__name__)
@@ -30,13 +31,21 @@ def build_board(board, use_snips=False, seed=None):
     n_chips = board.n_chips
     n_cores_per_chip = board.n_cores_per_chip
     n_synapses_per_core = board.n_synapses_per_core
+
+    if any(isinstance(x, DVSInput) for x in board.chips[0].inputs):
+        # Set the synapses for each DVS core (first 85) to some nominal value.
+        # Here, we use 5 synapses per neuron, but strangely it works with zero.
+        for i in range(85):
+            n_synapses_per_core[0][i] = 1024 * 5
+
     nxsdk_board = NxsdkBoard(
         board.board_id, n_chips, n_cores_per_chip, n_synapses_per_core
     )
 
     # add our own attribute for storing our spike generator
     assert not hasattr(nxsdk_board, "global_spike_generator")
-    nxsdk_board.global_spike_generator = None if use_snips else SpikeGen(nxsdk_board)
+    nxsdk_board.global_spike_generator = None
+    nxsdk_board.dvs_spike_generator = None
 
     # custom attr for storing SpikeInputs (filled in build_input)
     assert not hasattr(nxsdk_board, "spike_inputs")
@@ -76,15 +85,30 @@ def build_chip(nxsdk_chip, chip, seed=None):
 def build_input(nxsdk_board, board, input):
     if isinstance(input, SpikeInput):
         build_spike_input(nxsdk_board, board, input)
+    elif isinstance(input, DVSInput):
+        build_dvs_input(nxsdk_board, board, input)
     else:
         raise NotImplementedError(
             "Input type %s not implemented" % type(input).__name__
         )
 
 
+def build_dvs_input(nxsdk_board, board, dvs_input):
+    assert dvs_input.file_node is None, "File DVS should not get here"
+    assert nxsdk_board.dvs_spike_generator is None, "One DVS only"
+    assert nxsdk_board.global_spike_generator is None, "Cannot have both"
+    dvs = DVS(dimX=240, dimY=180, dimP=2)
+    dvs.setupSnips(nxsdk_board)
+    nxsdk_board.dvs_spike_generator = dvs
+
+
 def build_spike_input(nxsdk_board, board, spike_input):
     assert isinstance(spike_input, SpikeInput)
     assert len(spike_input.axons) > 0
+
+    if nxsdk_board.global_spike_generator is None:
+        assert nxsdk_board.dvs_spike_generator is None, "Cannot have both"
+        nxsdk_board.global_spike_generator = SpikeGen(nxsdk_board)
 
     loihi_input = LoihiSpikeInput()
     loihi_input.set_axons(board, nxsdk_board, spike_input)
@@ -107,6 +131,13 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
     assert len(core.compartment_cfgs) < MAX_COMPARTMENT_CFGS
     assert len(core.vth_cfgs) < MAX_VTH_CFGS
 
+    if core.build_axons_only:
+        for block, cx_idxs, ax_range in core.iterate_blocks():
+            pop_id_map = {}
+            for axon in block.axons:
+                build_axons(nxsdk_core, core, block, axon, cx_idxs, pop_id_map)
+        return
+
     logger.debug("- Configuring compartments")
     for i, cfg in enumerate(core.compartment_cfgs):
         d_func(
@@ -117,7 +148,7 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
                 b"ZGVjYXlV": cfg.decay_u,
                 b"cmVmcmFjdERlbGF5": cfg.refract_delay,
                 b"ZW5hYmxlTm9pc2U=": cfg.enable_noise,
-                b"YmFwQWN0aW9u": 1,
+                b"YmFwQWN0aW9u": cfg.bap_action,
             },
         )
 

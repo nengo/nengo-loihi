@@ -10,6 +10,7 @@ del check_nengo_version
 from . import builder
 
 # Import into top-level namespace
+from .builder.inputs import DVSFileChipNode
 from .config import BlockShape, add_params, set_defaults
 from .neurons import LoihiLIF, LoihiSpikingRectifiedLinear
 from .simulator import Simulator
