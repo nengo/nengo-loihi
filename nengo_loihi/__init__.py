@@ -21,4 +21,4 @@ try:
 except AttributeError:  # pragma: no cover
     pass
 
-__copyright__ = "2018, Applied Brain Research"
+__copyright__ = "2018-2021, Applied Brain Research"
