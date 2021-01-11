@@ -47,10 +47,11 @@ class ChipReceiveNode(Node):
         Spike input that will inject the spikes from the sender onto the chip.
     """
 
-    def __init__(self, dimensions, size_out, label=Default):
+    def __init__(self, dimensions, size_out, label=Default, output=None):
         self.raw_dimensions = dimensions
         self.spike_target = None
-        super().__init__(self.update, size_in=0, size_out=size_out, label=label)
+        output = self.update if output is None else output
+        super().__init__(output, size_in=0, size_out=size_out, label=label)
 
     def update(self, t):
         raise SimulationError("{} should not be run".format(type(self).__name__))
@@ -67,9 +68,9 @@ class ChipReceiveNeurons(ChipReceiveNode):
         Spike input that will inject the spikes from the sender onto the chip.
     """
 
-    def __init__(self, dimensions, neuron_type=None, label=Default):
+    def __init__(self, dimensions, neuron_type=None, label=Default, output=None):
         self.neuron_type = neuron_type
-        super().__init__(dimensions, dimensions, label=label)
+        super().__init__(dimensions, dimensions, label=label, output=output)
 
 
 class PESModulatoryTarget:

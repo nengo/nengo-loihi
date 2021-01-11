@@ -137,7 +137,6 @@ def pixel_idxs(shape):
 
 
 def conv2d_loihi_weights(transform):
-    assert transform.padding == "valid", "Only 'valid' padding currently implemented"
     assert (
         transform.channels_last == transform.input_shape.channels_last
     ), "Transforms that switch the channel position not yet implemented"
@@ -147,11 +146,23 @@ def conv2d_loihi_weights(transform):
     output_rows, output_cols = transform.output_shape.spatial_shape
     n_filters = transform.n_filters
     n_compartments = output_rows * output_cols * n_filters
+    kernel_rows, kernel_cols = transform.kernel_size
+    row_stride, col_stride = transform.strides
 
     # compute number of used input pixels
-    ri_max = (output_rows - 1) * transform.strides[0] + 1
-    rj_max = (output_cols - 1) * transform.strides[1] + 1
+    ri_max = (output_rows - 1) * row_stride + 1
+    rj_max = (output_cols - 1) * col_stride + 1
 
+    # --- determine padding
+    pad_i, pad_j = 0, 0
+    if transform.padding == "same":
+        # these paddings are based off the method used in
+        # `nengo._vendor.npconv2d`, to ensure we perform the same
+        pad_i = max((output_rows - 1) * row_stride + kernel_rows - input_rows, 0)
+        pad_j = max((output_cols - 1) * col_stride + kernel_cols - input_cols, 0)
+        pad_i, pad_j = pad_i // 2, pad_j // 2
+
+    # --- determine weights and indices
     weights = []
     indices = []
     # compartment offset (aka. compartment base) for each axon
@@ -163,14 +174,14 @@ def conv2d_loihi_weights(transform):
 
         # unstrided compartment indices that this input axon would map to
         # if strides == 1 and mode == 'full'
-        ri0, ri1 = i + 1 - transform.kernel_size[0], i + 1
-        rj0, rj1 = j + 1 - transform.kernel_size[1], j + 1
-        ri = np.arange(ri0, ri1)
-        rj = np.arange(rj0, rj1)
-        # ^ TODO: padding
+        ri0 = i + pad_i + 1 - kernel_rows
+        rj0 = j + pad_j + 1 - kernel_cols
 
-        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % transform.strides[0] == 0)
-        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % transform.strides[1] == 0)
+        ri = np.arange(ri0, ri0 + kernel_rows)
+        rj = np.arange(rj0, rj0 + kernel_cols)
+
+        wmask_i = (ri >= 0) & (ri < ri_max) & (ri % row_stride == 0)
+        wmask_j = (rj >= 0) & (rj < rj_max) & (rj % col_stride == 0)
 
         if wmask_i.sum() == 0 or wmask_j.sum() == 0:
             # this axon is not needed, so indicate this in offsets and skip
@@ -204,9 +215,9 @@ def conv2d_loihi_weights(transform):
             # --- determine indices
             # channel inds are zero, since we use same indices for each channel
             channel_inds = np.zeros(n_channels, dtype=int)
-            row_inds = np.arange(wmask_i.sum())
-            col_inds = np.arange(wmask_j.sum())
-            filter_inds = np.arange(n_filters)
+            row_inds = np.arange(wmask_i.sum(), dtype=int)
+            col_inds = np.arange(wmask_j.sum(), dtype=int)
+            filter_inds = np.arange(n_filters, dtype=int)
 
             order = [channel_inds, row_inds, col_inds, filter_inds]
             shape = [n_channels, output_rows, output_cols, n_filters]
@@ -217,7 +228,7 @@ def conv2d_loihi_weights(transform):
                 shape = [shape[i] for i in (0, 3, 1, 2)]
 
             n = len(shape)
-            strides = [np.prod(shape[i + 1 :]) for i in range(n)]
+            strides = [np.prod(shape[i + 1 :], dtype=int) for i in range(n)]
 
             # inds[i_0,...,i_{n-1}] = sum_{k=0}^{n-1} strides[k] * order[k][i_k]
             strided_inds = [

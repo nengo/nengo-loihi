@@ -500,6 +500,9 @@ travis_yml:
       env:
         NXSDK_VERSION: 0.9.9
     - script: docs
+      apt_install:
+      - pandoc
+      - ffmpeg  # ffmpeg required for matplotlib's `to_html5_video`
   pypi_user: tbekolay
   deploy_dists:
     - sdist
