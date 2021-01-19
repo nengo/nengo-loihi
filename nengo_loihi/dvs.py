@@ -14,7 +14,7 @@ class DVSFileChipProcess(ChipProcess):
     ----------
     file_path : string
         The path of the file to read from. Can be a ``.aedat`` or ``.events`` file.
-    kind : "aedat" or "events" or None, optional
+    file_fmt : "aedat" or "events" or None, optional
         The format of the file. If ``None`` (default), this will be detected from the
         file extension.
     t_start : float, optional
@@ -58,7 +58,7 @@ class DVSFileChipProcess(ChipProcess):
     def __init__(
         self,
         file_path,
-        format=None,
+        file_fmt=None,
         t_start=0,
         rel_time=None,
         pool=(1, 1),
@@ -68,7 +68,7 @@ class DVSFileChipProcess(ChipProcess):
         **kwargs
     ):
         self.file_path = file_path
-        self.format = format
+        self.file_fmt = file_fmt
         self.t_start = t_start
         self.rel_time = rel_time
 
@@ -118,7 +118,9 @@ class DVSFileChipProcess(ChipProcess):
         """Helper function to read events from the target file."""
 
         dvs_events = DVSEvents()
-        dvs_events.read_file(self.file_path, kind=self.format, rel_time=self.rel_time)
+        dvs_events.read_file(
+            self.file_path, file_fmt=self.file_fmt, rel_time=self.rel_time
+        )
         events = dvs_events.events
 
         pool_y, pool_x = self.pool
@@ -218,14 +220,14 @@ class DVSEvents:
         else:
             self.events = np.zeros(n_events, dtype=self.events_dtype)
 
-    def read_file(self, file_path, kind=None, rel_time=None):
+    def read_file(self, file_path, file_fmt=None, rel_time=None):
         """Read events from a file.
 
         Parameters
         ----------
         file_path : str
             The path to the events file.
-        kind : "aedat" or "events" or None, optional
+        file_fmt : "aedat" or "events" or None, optional
             The file format of the events file. If ``None``, will be detected
             based on the file extension.
         rel_time : bool, optional
@@ -233,24 +235,24 @@ class DVSEvents:
         """
         assert os.path.exists(file_path), "File does not exist: %r" % (file_path,)
 
-        if kind is None:
-            kind = self._get_extension(file_path)
-            if kind == "":
+        if file_fmt is None:
+            file_fmt = self._get_extension(file_path)
+            if file_fmt == "":
                 raise ValueError(
                     "Events file %r has no extension. Could not detect file format. "
-                    "Please pass a value for `kind` to specify the format."
+                    "Please pass a value for `file_fmt` to specify the format."
                     % (file_path,)
                 )
 
-        if kind == "aedat":
+        if file_fmt == "aedat":
             io = AEDatFileIO(file_path)
             io.read_events(dvs_events=self, rel_time=rel_time)
-        elif kind == "events":
+        elif file_fmt == "events":
             io = EventsFileIO(file_path)
             io.read_events(dvs_events=self, rel_time=rel_time)
         else:
             raise ValueError(
-                "Unrecognized file format %r for file %r" % (kind, file_path)
+                "Unrecognized file format %r for file %r" % (file_fmt, file_path)
             )
 
     def write_file(self, file_path):
@@ -264,19 +266,19 @@ class DVSEvents:
             The path to the events file.
         """
 
-        kind = self._get_extension(file_path)
-        if kind == "":
+        file_fmt = self._get_extension(file_path)
+        if file_fmt == "":
             raise ValueError(
                 "The provided path %r has no extension. Please use the '.events' "
                 "extension." % (file_path,)
             )
 
-        if kind == "events":
+        if file_fmt == "events":
             io = EventsFileIO(file_path)
             io.write_events(self)
         else:
             raise ValueError(
-                "Unsupported file format %r for writing events files" % (kind,)
+                "Unsupported file format %r for writing events files" % (file_fmt,)
             )
 
     def _get_extension(self, file_path):

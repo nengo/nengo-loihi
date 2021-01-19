@@ -246,12 +246,12 @@ def test_dvs_errors(tmpdir):
         with open(path, "w") as fh:
             fh.write(" ")
 
-    no_ext_path = tmpdir.join("dvs")
+    no_ext_path = str(tmpdir.join("dvs"))
     empty_file(no_ext_path)
     with pytest.raises(ValueError, match="Events file .* has no extension"):
         DVSEvents.from_file(no_ext_path)
 
-    bad_ext_path = tmpdir.join("dvs.what")
+    bad_ext_path = str(tmpdir.join("dvs.what"))
     empty_file(bad_ext_path)
     with pytest.raises(ValueError, match="Unrecognized file format 'what'"):
         DVSEvents.from_file(bad_ext_path)
@@ -271,7 +271,7 @@ def test_dvs_errors(tmpdir):
         dvs_events.write_file(bad_ext_path)
 
     # mangled last event
-    mangled_path = tmpdir.join("dvs.aedat")
+    mangled_path = str(tmpdir.join("dvs.aedat"))
     write_aedat_file(mangled_path, dvs_events, mangle_last=True)
     with pytest.warns(UserWarning, match="Mangled event at end"):
         DVSEvents.from_file(mangled_path)
