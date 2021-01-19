@@ -24,7 +24,7 @@ Release history
 
 *Compatible with Nengo 3.1.0*
 
-*Compatible with NxSDK 0.8.7 - 0.9.9*
+*Compatible with NxSDK 0.9.0 - 0.9.9*
 
 **Added**
 

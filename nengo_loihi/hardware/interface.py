@@ -61,7 +61,7 @@ class HardwareInterface:
     """
 
     connection_retries = 3
-    min_nxsdk_version = parse_nxsdk_version("0.8.7")
+    min_nxsdk_version = parse_nxsdk_version("0.9.0")
     max_nxsdk_version = parse_nxsdk_version("0.9.9")
 
     def __init__(
