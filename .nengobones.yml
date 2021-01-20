@@ -60,7 +60,7 @@ setup_py:
     - pytest-xdist<1.28.0
     - matplotlib>=2.0
   classifiers:
-    - "Development Status :: 3 - Alpha"
+    - "Development Status :: 4 - Beta"
     - "Framework :: Nengo"
     - "Intended Audience :: Science/Research"
     - "License :: Free for non-commercial use"
@@ -502,7 +502,7 @@ travis_yml:
       apt_install:
       - pandoc
       - ffmpeg  # ffmpeg required for matplotlib's `to_html5_video`
-  pypi_user: tbekolay
+  pypi_user: __token__
   deploy_dists:
     - sdist
     - bdist_wheel

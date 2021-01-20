@@ -92,7 +92,7 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Framework :: Nengo",
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
