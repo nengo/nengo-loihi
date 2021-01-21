@@ -1,0 +1,1575 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CIFAR-10 convolutional network &#8212; NengoLoihi 1.0.0 docs</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Google Tag Manager -->
+<script>
+ (function (w, d, s, l, i) {
+   w[l] = w[l] || [];
+   w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+   var f = d.getElementsByTagName(s)[0],
+       j = d.createElement(s),
+       dl = l != "dataLayer" ? "&l=" + l : "";
+   j.async = true;
+   j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+   f.parentNode.insertBefore(j, f);
+ })(window, document, "script", "dataLayer", "GTM-KWCR2HN");
+</script>
+<!-- End Google Tag Manager -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+  
+  
+<script src="../_static/underscore.js"></script>
+  
+  
+<script src="../_static/doctools.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+  
+<script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+  
+<script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Converting a Keras model to an SNN on Loihi" href="keras-to-loihi.html" />
+    <link rel="prev" title="MNIST convolutional network" href="mnist-convnet.html" />
+<link rel="stylesheet" type="text/css" href="../_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">NengoGUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">NengoDL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">NengoSPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">NengoExtras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/keras-spiking">KerasSpiking</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/pytorch-spiking">PyTorchSpiking</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">NengoFPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">NengoLoihi</a>
+            <a class="dropdown-item" href="https://labs.nengo.ai/nengo-ocl/">NengoOCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">NengoSpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo-labs/nengo-mpi">NengoMPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="../index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="NengoLoihi"
+      />
+    </a>
+  </h3>
+<form class="px-5 py-3 my-0 border-bottom" action="../search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form><div class="p-5 toctree">
+  
+    <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Example models</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="communication-channel.html">Communication channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator.html">Integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator-multi-d.html">Multidimensional integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator.html">Simple oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator-nonlinear.html">Nonlinear oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neuron-to-neuron.html">Neuron to neuron connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="learn-communication-channel.html">PES learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keyword-spotting.html">Keyword spotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mnist-convnet.html">MNIST convolutional network</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CIFAR-10 convolutional network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Preliminaries">Preliminaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Load-the-dataset">Load the dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Create-Nengo-Network">Create Nengo Network</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Train-network-using-NengoDL">Train network using NengoDL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Run-the-spiking-neural-network-on-Loihi">Run the spiking neural network on Loihi</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="keras-to-loihi.html">Converting a Keras model to an SNN on Loihi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adaptive-motor-control.html">Nonlinear adaptive control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lmu.html">Legendre Memory Units on Loihi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dvs-from-file.html">DVS from file</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup/index.html">Hardware setup</a></li>
+</ul>
+
+  
+  </div>
+  
+  <form class="p-5 my-0 border-top">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../../examples/cifar10-convnet.html">latest</option>
+        
+        
+          
+        <option selected>v1.0.0</option>
+          
+        
+          
+        <option value="../../v0.10.0/examples/cifar10-convnet.html">
+          v0.10.0
+        </option>
+          
+        
+          
+        <option value="../../v0.9.0/examples/cifar10-convnet.html">
+          v0.9.0
+        </option>
+          
+        
+          
+        <option value="../../v0.8.0/examples/cifar10-convnet.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../../v0.7.0/examples/cifar10-convnet.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+</div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+              
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="CIFAR-10-convolutional-network">
+<h1>CIFAR-10 convolutional network<a class="headerlink" href="#CIFAR-10-convolutional-network" title="Permalink to this headline">¶</a></h1>
+<p>This is a small CIFAR-10 convolutional neural network designed to run on one Loihi chip. Because of these size constraints, it is not particularly powerful, and does not achieve anywhere near state-of-the-art results on the task. Nevertheless, the network performs well enough to demonstrate that Loihi is capable of hosting larger, more powerful object recognition networks than MNIST.</p>
+<p>The main libraries we’ll be using in this tutorial are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">nengo</span></code> to create the network</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nengo_dl</span></code> to train the network (<code class="docutils literal notranslate"><span class="pre">nengo_dl</span></code> uses <code class="docutils literal notranslate"><span class="pre">tensorflow</span></code> under the hood, so we also import that, along with the <code class="docutils literal notranslate"><span class="pre">tensorflow_probability</span></code> extension package, to define the loss function)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nengo_loihi</span></code> to run the network on the Loihi hardware (or simulate Loihi if hardware is not available)</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">urllib.request</span> <span class="kn">import</span> <span class="n">urlretrieve</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">nengo</span>
+<span class="kn">import</span> <span class="nn">nengo_dl</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">tensorflow_probability</span> <span class="k">as</span> <span class="nn">tfp</span>
+
+<span class="kn">import</span> <span class="nn">nengo_loihi</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="Preliminaries">
+<h2>Preliminaries<a class="headerlink" href="#Preliminaries" title="Permalink to this headline">¶</a></h2>
+<p>First, we’ll make some preliminary definitions that will help us throughout the rest of the training process. Understanding these in detail is not necessary to understand the example, so feel free to skip them and come back later, or ignore them completely.</p>
+<p>We define a function called <code class="docutils literal notranslate"><span class="pre">percentile_l2_loss_range</span></code>, which we will use to help regularize our neuron firing rates so that they fall in our desired range. The input <code class="docutils literal notranslate"><span class="pre">y</span></code> to our function is the firing rates of all neurons across all examples in the batch. We compute a percentile on these firing rates for each neuron, across all the examples. If this percentile is outside our desired range of <code class="docutils literal notranslate"><span class="pre">min</span></code> to <code class="docutils literal notranslate"><span class="pre">max</span></code>, then it contributes to the squared loss.</p>
+<p><code class="docutils literal notranslate"><span class="pre">slice_data_dict</span></code> applies a slice to the first dimension of all arrays in a data dictionary, to make it easy to select a subset of data for testing.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">percentile_l2_loss_range</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_rate</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mf">99.0</span>
+<span class="p">):</span>
+    <span class="c1"># y axes are (batch examples, time (==1), neurons)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="n">rates</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">percentile</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">low_error</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">min_rate</span> <span class="o">-</span> <span class="n">rates</span><span class="p">)</span>
+    <span class="n">high_error</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">rates</span> <span class="o">-</span> <span class="n">max_rate</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">l2_loss</span><span class="p">(</span><span class="n">low_error</span> <span class="o">+</span> <span class="n">high_error</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">sample_weight</span> <span class="o">*</span> <span class="n">loss</span><span class="p">)</span> <span class="k">if</span> <span class="n">sample_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">loss</span>
+
+
+<span class="k">def</span> <span class="nf">slice_data_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">slice_</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">slice_</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</pre></div>
+</div>
+</div>
+<p>We also define a custom class for iterating an image dataset and returning dictionaries that can be used by NengoDL for training. Much of this is a re-implementation of <code class="docutils literal notranslate"><span class="pre">tf.keras.preprocessing.image.NumpyArrayIterator</span></code>, with the additional features of (a) allowing us to return dictionaries with the provided keys, rather than just lists of Numpy arrays, and (b) allowing multiple <code class="docutils literal notranslate"><span class="pre">y</span></code> values to be returned.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">class</span> <span class="nc">NengoImageIterator</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">Iterator</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image_data_generator</span><span class="p">,</span>
+        <span class="n">x_keys</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">y_keys</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">sample_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">subset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">subset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Not Implemented&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_keys</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y_keys</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_keys</span> <span class="o">=</span> <span class="n">x_keys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_keys</span> <span class="o">=</span> <span class="n">y_keys</span>
+
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">x</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;All of the arrays in `x` should have the same length. &quot;</span>
+            <span class="s2">&quot;[len(xx) for xx in x] = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="n">x</span><span class="p">],)</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">yy</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span> <span class="k">for</span> <span class="n">yy</span> <span class="ow">in</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;All of the arrays in `y` should have the same length as `x`. &quot;</span>
+            <span class="s2">&quot;len(x[0]) = </span><span class="si">%d</span><span class="s2">, [len(yy) for yy in y] = </span><span class="si">%s</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">),</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">yy</span><span class="p">)</span> <span class="k">for</span> <span class="n">yy</span> <span class="ow">in</span> <span class="n">y</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_keys</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_keys</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">sample_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_weight</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;`x[0]` (images tensor) and `sample_weight` &quot;</span>
+                <span class="s2">&quot;should have the same length. &quot;</span>
+                <span class="s2">&quot;Found: x.shape = </span><span class="si">%s</span><span class="s2">, sample_weight.shape = </span><span class="si">%s</span><span class="s2">&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sample_weight</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">xx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Input data in `NumpyArrayIterator` &quot;</span>
+                <span class="s2">&quot;should have rank 4. You passed an array &quot;</span>
+                <span class="s2">&quot;with shape&quot;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">yy</span><span class="p">)</span> <span class="k">for</span> <span class="n">yy</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_weight</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="kc">None</span> <span class="k">if</span> <span class="n">sample_weight</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sample_weight</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_data_generator</span> <span class="o">=</span> <span class="n">image_data_generator</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_batches_of_transformed_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index_array</span><span class="p">):</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">images</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index_array</span><span class="p">)</span>
+        <span class="n">batch_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,)</span> <span class="o">+</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">index_array</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_data_generator</span><span class="o">.</span><span class="n">get_random_transform</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_data_generator</span><span class="o">.</span><span class="n">apply_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_data_generator</span><span class="o">.</span><span class="n">standardize</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">batch_x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">batch_x_miscs</span> <span class="o">=</span> <span class="p">[</span><span class="n">xx</span><span class="p">[</span><span class="n">index_array</span><span class="p">]</span> <span class="k">for</span> <span class="n">xx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+        <span class="n">batch_y_miscs</span> <span class="o">=</span> <span class="p">[</span><span class="n">yy</span><span class="p">[</span><span class="n">index_array</span><span class="p">]</span> <span class="k">for</span> <span class="n">yy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span>
+
+        <span class="n">x_pairs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_postprocess</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_keys</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_x</span><span class="p">]</span> <span class="o">+</span> <span class="n">batch_x_miscs</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">y_pairs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_postprocess</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_keys</span><span class="p">,</span> <span class="n">batch_y_miscs</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span><span class="n">x_pairs</span><span class="p">),</span>
+            <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span><span class="n">y_pairs</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_weight</span><span class="p">[</span><span class="n">index_array</span><span class="p">],)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="k">def</span> <span class="nf">x_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;n_steps&quot;</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">y_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Load-the-dataset">
+<h2>Load the dataset<a class="headerlink" href="#Load-the-dataset" title="Permalink to this headline">¶</a></h2>
+<p>We load the CIFAR-10 dataset using TensorFlow. The data comes as <code class="docutils literal notranslate"><span class="pre">numpy.uint8</span></code> values in the range [0, 255], so we rescale the data to the range [-1, 1]. We create one-hot representations of the labels to use during training, as well as “flat” versions of the data where the images are flattened into vectors. Finally, we define an <code class="docutils literal notranslate"><span class="pre">input_shape</span></code> object that describes the image shape in a format that Nengo can use.</p>
+<p>One variable that occurs a number of times here is the <code class="docutils literal notranslate"><span class="pre">channels_last</span></code> option, which can be set to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>. This option dictates whether the image (color) channels are stored as the last (i.e. least-significant) index in each image (<code class="docutils literal notranslate"><span class="pre">True</span></code>), or the first (i.e. most-significant) index (<code class="docutils literal notranslate"><span class="pre">False</span></code>). This will also dictate how the images will be represented on Loihi, and can have effects on the number of axons and weights required on the chip.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">channels_last</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">),</span> <span class="p">(</span><span class="n">test_x</span><span class="p">,</span> <span class="n">test_y</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">cifar10</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+
+<span class="n">n_classes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">train_y</span><span class="p">))</span>
+
+<span class="c1"># TensorFlow does not include the label names, so define them manually</span>
+<span class="n">label_names</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;airplane&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;automobile&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;bird&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cat&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;deer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dog&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;frog&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;horse&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ship&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;truck&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="k">assert</span> <span class="n">n_classes</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_names</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">channels_last</span><span class="p">:</span>
+    <span class="n">train_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">test_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">test_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="c1"># convert the images to float32, and rescale to [-1, 1]</span>
+<span class="n">train_x</span> <span class="o">=</span> <span class="n">train_x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">127.5</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="n">test_x</span> <span class="o">=</span> <span class="n">test_x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">127.5</span> <span class="o">-</span> <span class="mi">1</span>
+
+<span class="n">train_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">train_y</span><span class="p">,</span> <span class="n">n_classes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">test_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">test_y</span><span class="p">,</span> <span class="n">n_classes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="n">train_y</span> <span class="o">=</span> <span class="n">train_y</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+<span class="n">test_y</span> <span class="o">=</span> <span class="n">test_y</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
+<span class="n">train_x_flat</span> <span class="o">=</span> <span class="n">train_x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">train_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">train_t_flat</span> <span class="o">=</span> <span class="n">train_t</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">train_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="n">test_x_flat</span> <span class="o">=</span> <span class="n">test_x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">test_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">test_t_flat</span> <span class="o">=</span> <span class="n">test_t</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">test_t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="n">input_shape</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">ChannelShape</span><span class="p">(</span>
+    <span class="n">test_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">channels_last</span><span class="o">=</span><span class="n">channels_last</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="n">input_shape</span><span class="o">.</span><span class="n">n_channels</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">train_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">test_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">input_shape</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Downloading data from https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
+170500096/170498071 [==============================] - 3s 0us/step
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Create-Nengo-Network">
+<h2>Create Nengo Network<a class="headerlink" href="#Create-Nengo-Network" title="Permalink to this headline">¶</a></h2>
+<p>Next, we create the Nengo network that we will train to classify the data.</p>
+<p>First, we specify some configuration parameters: - <code class="docutils literal notranslate"><span class="pre">max_rate</span></code> is the target maximum firing rate for all ensembles. We pick 150 because above 150 Hz, the quantization error in Loihi neurons becomes significant. - The amplitude of our neurons is chosen as <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">max_rate</span></code>, so that neuron outputs are generally between 0 and 1; this helps to match the scaling of the initial weights. - <code class="docutils literal notranslate"><span class="pre">rate_reg</span></code> is the amount of regularization on the firing rates. We pick it empirically to be high enough to
+achieve the desired firing rates during training, and low enough to not have a significant adverse effect on accuracy. - The <code class="docutils literal notranslate"><span class="pre">rate_target</span></code> is the target value used in the loss functions; it includes the amplitude scaling, since the neuron outputs received by the loss functions will also include the amplitude scaling.</p>
+<p>We also define two neuron types we will use in our model. One is a standard <code class="docutils literal notranslate"><span class="pre">nengo.SpikingRectifiedLinear</span></code> neuron, which we use for our input neurons that are run off-chip. The other is a <code class="docutils literal notranslate"><span class="pre">LoihiLIF</span></code> neuron type, used for the on-chip neurons. This type takes into account the quantization error in Loihi neurons, so by training with this neuron type in NengoDL, our model is better able to deal with the quantization error.</p>
+<p>To simplify the configuration, we define the configurable layer parameters in a list of dictionaries called <code class="docutils literal notranslate"><span class="pre">layer_confs</span></code>. When we create the network, we loop through these entries, and create one layer for each dictionary.</p>
+<p>The Nengo network has three main parts:</p>
+<ol class="arabic simple">
+<li><p>Input neurons that are run off-chip to turn the input into spikes. This is the first entry in <code class="docutils literal notranslate"><span class="pre">layer_confs</span></code>. It is a 1x1 convolutional layer with 4 filters, meaning that for each pixel (which has 3 color values), it will apply a (learned) linear transform to turn those 3 values into 4 values, and then pass that into <code class="docutils literal notranslate"><span class="pre">SpikingRectifiedLinear</span></code> neurons to generate spikes. The reason we don’t just use the raw color channels is that they can have both positive and negative values, and we would
+have to figure out a way to transform them to work with firing rates that can only have positive values. One possible transform would be to use an on/off neuron pair to represent each pixel, resulting in 6 neurons per pixel. Rather than force this specific encoding, though, we find it easier to let the system learn the encoding via the 1x1 convolutional layer. We could use a higher maximum firing rate for neurons in this layer (up to <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">dt</span></code>, where <code class="docutils literal notranslate"><span class="pre">dt</span></code> is the simulation timestep),
+because these neurons are simulated off-chip and thus not subject to the same quantization error as on-chip neurons.</p></li>
+<li><p>Convolutional and dense neural layers that are run on the chip (Loihi). We specify these as in a normal convolutional neural network, with any entry that begins with a <code class="docutils literal notranslate"><span class="pre">filters</span></code> parameter describing a convolutional layer, and any entry that begins with an <code class="docutils literal notranslate"><span class="pre">n_neurons</span></code> parameter describing a dense layer. One special parameter that we have is the <code class="docutils literal notranslate"><span class="pre">block</span></code> parameter. This describes the size of representation that will go on one “block” (i.e. Loihi core), in <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">columns,</span> <span class="pre">channels)</span></code>
+format. Loihi cores are limited to 1024 neurons, so the product of the rows, columns, and channels must be <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">1024</span></code>. We also choose the block shape to minimize the number of input and output axons to and from each core (since these are also constrained on Loihi). Multiple filters on a core can use the same axons, so we try to increase the number of filters per core. One approach is to have each layer represent the entire spacial extent of the image, but only a fraction of the filters. For
+this network, we found that this approach was creating too many output axons in earlier layers in the network, so we decided to also split the image spatially. For example, in the first layer on the chip (the second entry in <code class="docutils literal notranslate"><span class="pre">layer_confs</span></code>), the shape of the image being represented is <code class="docutils literal notranslate"><span class="pre">(15,</span> <span class="pre">15,</span> <span class="pre">64)</span></code> (that is, 15 rows and columns, and 64 channels). We make the block shape <code class="docutils literal notranslate"><span class="pre">(8,</span> <span class="pre">8,</span> <span class="pre">8)</span></code>, which means that blocks will have to be tiled twice both row-wise and column-wise to represent the
+spatial extent of the image. However, the number of times we have to tile blocks in the channel direction (to cover all 64 channels) goes down, as compared with e.g. a block size of <code class="docutils literal notranslate"><span class="pre">(15,</span> <span class="pre">15,</span> <span class="pre">4)</span></code>, and the number of axons is reduced. More information on configuring the block size can be found <a class="reference external" href="https://www.nengo.ai/nengo-loihi/tips.html#splitting-large-ensembles">here</a>.</p></li>
+<li><p>The final part of the network is the last layer, which collects the output. Like the first layer, it runs off-chip, and allows us to get data off the board. We have intentionally made the layer right before it (the last layer on the chip) only have 100 neurons, so that we only have to record from 100 neurons to get data off the chip.</p></li>
+</ol>
+<p>As we create each layer in the network, we print some information about the layer, which is shown as the output to this code block.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">max_rate</span> <span class="o">=</span> <span class="mi">150</span>
+<span class="n">amp</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">max_rate</span>
+<span class="n">rate_reg</span> <span class="o">=</span> <span class="mf">1e-3</span>
+<span class="n">rate_target</span> <span class="o">=</span> <span class="n">max_rate</span> <span class="o">*</span> <span class="n">amp</span>  <span class="c1"># must be in amplitude scaled units</span>
+
+<span class="n">relu</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">SpikingRectifiedLinear</span><span class="p">(</span><span class="n">amplitude</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+<span class="n">chip_neuron</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiLIF</span><span class="p">(</span><span class="n">amplitude</span><span class="o">=</span><span class="n">amp</span><span class="p">)</span>
+
+<span class="n">layer_confs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input-layer&quot;</span><span class="p">,</span>
+        <span class="n">filters</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">strides</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">neuron</span><span class="o">=</span><span class="n">relu</span><span class="p">,</span>
+        <span class="n">on_chip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv-layer1&quot;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv-layer2&quot;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="mi">72</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv-layer3&quot;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">12</span><span class="p">)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv-layer4&quot;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">24</span><span class="p">)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv-layer5&quot;</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">24</span><span class="p">)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dense-layer&quot;</span><span class="p">,</span> <span class="n">n_neurons</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">block</span><span class="o">=</span><span class="p">(</span><span class="mi">50</span><span class="p">,)),</span>
+    <span class="nb">dict</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;output-layer&quot;</span><span class="p">,</span> <span class="n">n_neurons</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">neuron</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">on_chip</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="c1"># Create a PresentInput process to show images from the training set sequentially.</span>
+<span class="c1"># Each image is presented for `presentation_time` seconds.</span>
+<span class="c1"># NOTE: this is not used during training, since we get `nengo_dl` to override the</span>
+<span class="c1"># output of this node with the training data.</span>
+<span class="n">presentation_time</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="n">present_images</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">processes</span><span class="o">.</span><span class="n">PresentInput</span><span class="p">(</span><span class="n">test_x_flat</span><span class="p">,</span> <span class="n">presentation_time</span><span class="p">)</span>
+
+<span class="n">total_n_neurons</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">total_n_weights</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">with</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Network</span><span class="p">()</span> <span class="k">as</span> <span class="n">net</span><span class="p">:</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">]</span><span class="o">.</span><span class="n">max_rates</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Choice</span><span class="p">([</span><span class="n">max_rate</span><span class="p">])</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">]</span><span class="o">.</span><span class="n">intercepts</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Choice</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">]</span><span class="o">.</span><span class="n">synapse</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># add a configurable keep_history option to Probes (we&#39;ll set this</span>
+    <span class="c1"># to False for some probes below)</span>
+    <span class="n">nengo_dl</span><span class="o">.</span><span class="n">configure_settings</span><span class="p">(</span><span class="n">keep_history</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># this is an optimization to improve the training speed,</span>
+    <span class="c1"># since we won&#39;t require stateful behaviour in this example</span>
+    <span class="n">nengo_dl</span><span class="o">.</span><span class="n">configure_settings</span><span class="p">(</span><span class="n">stateful</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># this sets the amount of smoothing used on the LIF neurons during training</span>
+    <span class="n">nengo_dl</span><span class="o">.</span><span class="n">configure_settings</span><span class="p">(</span><span class="n">lif_smoothing</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="c1"># this allows us to set `nengo_loihi` parameters like `on_chip` and `block_shape`</span>
+    <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>
+
+    <span class="c1"># the input node that will be used to feed in input images</span>
+    <span class="n">inp</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">present_images</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;input_node&quot;</span><span class="p">)</span>
+
+    <span class="n">connections</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">transforms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">layer_probes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">shape_in</span> <span class="o">=</span> <span class="n">input_shape</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">inp</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">layer_conf</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layer_confs</span><span class="p">):</span>
+        <span class="n">layer_conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">layer_conf</span><span class="p">)</span>  <span class="c1"># copy, so we don&#39;t modify the original</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+        <span class="n">neuron_type</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;neuron&quot;</span><span class="p">,</span> <span class="n">chip_neuron</span><span class="p">)</span>
+        <span class="n">on_chip</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;on_chip&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;block&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">channels_last</span><span class="p">:</span>
+            <span class="c1"># move channels to first index</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span> <span class="o">+</span> <span class="n">block</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># --- create layer transform</span>
+        <span class="k">if</span> <span class="s2">&quot;filters&quot;</span> <span class="ow">in</span> <span class="n">layer_conf</span><span class="p">:</span>
+            <span class="c1"># convolutional layer</span>
+            <span class="n">n_filters</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;filters&quot;</span><span class="p">)</span>
+            <span class="n">kernel_size</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;kernel_size&quot;</span><span class="p">)</span>
+            <span class="n">strides</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;strides&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_conf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Unused fields in conv layer: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">layer_conf</span>
+            <span class="p">)</span>
+
+            <span class="n">kernel_size</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">kernel_size</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kernel_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">kernel_size</span>
+            <span class="p">)</span>
+            <span class="n">strides</span> <span class="o">=</span> <span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="n">strides</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="n">strides</span>
+
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Convolution</span><span class="p">(</span>
+                <span class="n">n_filters</span><span class="o">=</span><span class="n">n_filters</span><span class="p">,</span>
+                <span class="n">input_shape</span><span class="o">=</span><span class="n">shape_in</span><span class="p">,</span>
+                <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+                <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span>
+                <span class="n">channels_last</span><span class="o">=</span><span class="n">channels_last</span><span class="p">,</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">nengo_dl</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Glorot</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">kernel_size</span><span class="p">)),</span>
+            <span class="p">)</span>
+            <span class="n">shape_out</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">output_shape</span>
+
+            <span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;chip&quot;</span> <span class="k">if</span> <span class="n">on_chip</span> <span class="k">else</span> <span class="s2">&quot;host&quot;</span>
+            <span class="n">n_neurons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape_out</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">n_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">kernel_shape</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">: conv </span><span class="si">%s</span><span class="s2">, stride </span><span class="si">%s</span><span class="s2">, output </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%d</span><span class="s2"> neurons, </span><span class="si">%d</span><span class="s2"> weights)&quot;</span>
+                <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">loc</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">kernel_size</span><span class="p">,</span>
+                    <span class="n">strides</span><span class="p">,</span>
+                    <span class="n">shape_out</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">n_neurons</span><span class="p">,</span>
+                    <span class="n">n_weights</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># dense layer</span>
+            <span class="n">n_neurons</span> <span class="o">=</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;n_neurons&quot;</span><span class="p">)</span>
+
+            <span class="n">shape_out</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">transforms</span><span class="o">.</span><span class="n">ChannelShape</span><span class="p">((</span><span class="n">n_neurons</span><span class="p">,))</span>
+            <span class="n">transform</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">shape_out</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">shape_in</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                <span class="n">init</span><span class="o">=</span><span class="n">nengo_dl</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">Glorot</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+            <span class="n">loc</span> <span class="o">=</span> <span class="s2">&quot;chip&quot;</span> <span class="k">if</span> <span class="n">on_chip</span> <span class="k">else</span> <span class="s2">&quot;host&quot;</span>
+            <span class="n">n_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">: dense </span><span class="si">%d</span><span class="s2">, output </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%d</span><span class="s2"> neurons, </span><span class="si">%d</span><span class="s2"> weights)&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">n_neurons</span><span class="p">,</span> <span class="n">shape_out</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">n_neurons</span><span class="p">,</span> <span class="n">n_weights</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_conf</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Unused fields in </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">layer_conf</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">total_n_neurons</span> <span class="o">+=</span> <span class="n">n_neurons</span>
+        <span class="n">total_n_weights</span> <span class="o">+=</span> <span class="n">n_weights</span>
+
+        <span class="c1"># --- create layer output (Ensemble or Node)</span>
+        <span class="k">assert</span> <span class="n">on_chip</span> <span class="ow">or</span> <span class="n">block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;`block` must be None if off-chip&quot;</span>
+
+        <span class="k">if</span> <span class="n">neuron_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="n">on_chip</span><span class="p">,</span> <span class="s2">&quot;Nodes can only be run off-chip&quot;</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">size_in</span><span class="o">=</span><span class="n">shape_out</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ens</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="n">shape_out</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">neuron_type</span><span class="o">=</span><span class="n">neuron_type</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens</span><span class="p">]</span><span class="o">.</span><span class="n">on_chip</span> <span class="o">=</span> <span class="n">on_chip</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">ens</span><span class="o">.</span><span class="n">neurons</span>
+
+            <span class="k">if</span> <span class="n">block</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens</span><span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">(</span>
+                    <span class="n">block</span><span class="p">,</span>
+                    <span class="n">shape_out</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="c1"># add a probe so we can measure individual layer rates</span>
+            <span class="n">probe</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_p&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span><span class="o">.</span><span class="n">keep_history</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">layer_probes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Connection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span>
+        <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">conn</span><span class="p">]</span><span class="o">.</span><span class="n">pop_type</span> <span class="o">=</span> <span class="mi">32</span>
+
+        <span class="n">transforms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+        <span class="n">connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="n">shape_in</span> <span class="o">=</span> <span class="n">shape_out</span>
+
+    <span class="n">output_p</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;output_p&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TOTAL: </span><span class="si">%d</span><span class="s2"> neurons, </span><span class="si">%d</span><span class="s2"> weights&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">total_n_neurons</span><span class="p">,</span> <span class="n">total_n_weights</span><span class="p">))</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">layer_confs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transforms</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">connections</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+host: input-layer: conv (1, 1), stride (1, 1), output (32, 32, 4) (4096 neurons, 12 weights)
+chip: conv-layer1: conv (3, 3), stride (2, 2), output (15, 15, 64) (14400 neurons, 2304 weights)
+chip: conv-layer2: conv (3, 3), stride (1, 1), output (13, 13, 72) (12168 neurons, 41472 weights)
+chip: conv-layer3: conv (3, 3), stride (2, 2), output (6, 6, 256) (9216 neurons, 165888 weights)
+chip: conv-layer4: conv (1, 1), stride (1, 1), output (6, 6, 256) (9216 neurons, 65536 weights)
+chip: conv-layer5: conv (1, 1), stride (1, 1), output (6, 6, 64) (2304 neurons, 16384 weights)
+chip: dense-layer: dense 100, output (100,) (100 neurons, 230400 weights)
+host: output-layer: dense 10, output (10,) (10 neurons, 1000 weights)
+TOTAL: 51510 neurons, 522996 weights
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Train-network-using-NengoDL">
+<h2>Train network using NengoDL<a class="headerlink" href="#Train-network-using-NengoDL" title="Permalink to this headline">¶</a></h2>
+<p>First, we check the output of all layers with the initial parameters. This helps us to tell whether the layers have been initialized well, or if we need to fine-tune the initialization parameters a bit more (for example, by changing their magnitudes slightly). Layers that have zero (or very small) output, or very large output, are red-flags that the initialization is not good, and training may not progress well.</p>
+<p>We use <code class="docutils literal notranslate"><span class="pre">tf.keras.backend.learning_phase_scope(1)</span></code> to make sure that the simulator always runs our neurons in rate mode (as opposed to spiking mode), allowing us to evaluate the network as an ANN. We will only use spiking neurons when we run the network on Loihi.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># define input and target dictionaries to pass to NengoDL</span>
+<span class="n">train_inputs</span> <span class="o">=</span> <span class="p">{</span><span class="n">inp</span><span class="p">:</span> <span class="n">train_x_flat</span><span class="p">}</span>
+<span class="n">train_targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">output_p</span><span class="p">:</span> <span class="n">train_t_flat</span><span class="p">}</span>
+
+<span class="n">test_inputs</span> <span class="o">=</span> <span class="p">{</span><span class="n">inp</span><span class="p">:</span> <span class="n">test_x_flat</span><span class="p">}</span>
+<span class="n">test_targets</span> <span class="o">=</span> <span class="p">{</span><span class="n">output_p</span><span class="p">:</span> <span class="n">test_t_flat</span><span class="p">}</span>
+<span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">layer_probes</span><span class="p">:</span>
+    <span class="n">train_targets</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">train_t_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">test_targets</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">test_t_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># --- evaluate layers</span>
+<span class="c1"># use rate neurons always by setting learning_phase_scope</span>
+<span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">learning_phase_scope</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span>
+    <span class="n">net</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">progress_bar</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">conf</span><span class="p">,</span> <span class="n">conn</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">layer_confs</span><span class="p">,</span> <span class="n">connections</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">sig</span><span class="p">[</span><span class="n">conn</span><span class="p">][</span><span class="s2">&quot;weights&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">initial_value</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: initial weights: </span><span class="si">%0.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">conf</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()))</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">run_steps</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="n">inp</span><span class="p">:</span> <span class="n">train_x_flat</span><span class="p">[:</span><span class="mi">100</span><span class="p">]})</span>
+
+<span class="k">for</span> <span class="n">conf</span><span class="p">,</span> <span class="n">layer_probe</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">layer_confs</span><span class="p">,</span> <span class="n">layer_probes</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">layer_probe</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: initial rates: </span><span class="si">%0.3f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">conf</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">out</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:From &lt;ipython-input-1-432830d80d5b&gt;:3: learning_phase_scope (from tensorflow.python.keras.backend) is deprecated and will be removed after 2020-10-11.
+Instructions for updating:
+Simply pass a True/False value to the `training` argument of the `__call__` method of your layer or model.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/nengo_dl/simulator.py:461: UserWarning: No GPU support detected. See https://www.nengo.ai/nengo-dl/installation.html#installing-tensorflow for instructions on setting up TensorFlow with GPU support.
+  &#34;No GPU support detected. See &#34;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+input-layer: initial weights: 0.495
+conv-layer1: initial weights: 0.049
+conv-layer2: initial weights: 0.035
+conv-layer3: initial weights: 0.023
+conv-layer4: initial weights: 0.054
+conv-layer5: initial weights: 0.068
+dense-layer: initial weights: 0.025
+output-layer: initial weights: 0.114
+input-layer: initial rates: 0.247
+conv-layer1: initial rates: 0.000
+conv-layer2: initial rates: 0.000
+conv-layer3: initial rates: 0.000
+conv-layer4: initial rates: 0.000
+conv-layer5: initial rates: 0.000
+dense-layer: initial rates: 0.000
+</pre></div></div>
+</div>
+<p>Since everything looks good, we go ahead and train with NengoDL.</p>
+<p>We create an <code class="docutils literal notranslate"><span class="pre">ImageDataGenerator</span></code> that will generate augmented (shifted, rotated, and flipped) versions of the data.</p>
+<p>We define our loss function and metrics. Our loss function has one entry for the output probe (<code class="docutils literal notranslate"><span class="pre">output_p</span></code>) that computes the cross-entropy on our outputs (to reduce our classification error), and entries for each of our layer rate outputs (<code class="docutils literal notranslate"><span class="pre">layer_probes</span></code>) that push the layer firing rates to their target ranges. The total loss is the sum of all these individual losses.</p>
+<p>Our metrics are organized in the same way as our losses. We measure classification error for our output, and the 99.9th percentile firing rate for each neuron. These metrics will be printed during training, so that we can track accuracy and firing rates to make sure training is progressing as expected.</p>
+<p>To speed up this example we have provided some pre-trained weights that will be downloaded. Set <code class="docutils literal notranslate"><span class="pre">do_training</span> <span class="pre">=</span> <span class="pre">True</span></code> to run the training yourself.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">do_training</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">checkpoint_base</span> <span class="o">=</span> <span class="s2">&quot;./cifar10_convnet_params&quot;</span>
+
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">256</span>
+
+<span class="n">train_idg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">preprocessing</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">ImageDataGenerator</span><span class="p">(</span>
+    <span class="n">width_shift_range</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">height_shift_range</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">rotation_range</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">horizontal_flip</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">data_format</span><span class="o">=</span><span class="s2">&quot;channels_last&quot;</span> <span class="k">if</span> <span class="n">channels_last</span> <span class="k">else</span> <span class="s2">&quot;channels_first&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">train_idg</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">)</span>
+
+<span class="c1"># use rate neurons always by setting learning_phase_scope</span>
+<span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">backend</span><span class="o">.</span><span class="n">learning_phase_scope</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span>
+    <span class="n">net</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="o">=</span><span class="n">batch_size</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+
+    <span class="n">percentile</span> <span class="o">=</span> <span class="mf">99.9</span>
+
+    <span class="k">def</span> <span class="nf">rate_metric</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+        <span class="c1"># take percentile over all examples, for each neuron</span>
+        <span class="n">top_rates</span> <span class="o">=</span> <span class="n">tfp</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">percentile</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">top_rates</span><span class="p">)</span> <span class="o">/</span> <span class="n">amp</span>
+
+    <span class="n">losses</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">loss_weights</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="n">losses</span><span class="p">[</span><span class="n">output_p</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span><span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="n">output_p</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;accuracy&quot;</span>
+    <span class="n">loss_weights</span><span class="p">[</span><span class="n">output_p</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="k">for</span> <span class="n">probe</span><span class="p">,</span> <span class="n">layer_conf</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">layer_probes</span><span class="p">,</span> <span class="n">layer_confs</span><span class="p">):</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">rate_metric</span>
+
+        <span class="k">if</span> <span class="n">layer_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;on_chip&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+            <span class="n">losses</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">percentile_l2_loss_range</span><span class="p">,</span>
+                <span class="n">min_rate</span><span class="o">=</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">rate_target</span><span class="p">,</span>
+                <span class="n">max_rate</span><span class="o">=</span><span class="n">rate_target</span><span class="p">,</span>
+                <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">loss_weights</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">rate_reg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">losses</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">percentile_l2_loss_range</span><span class="p">,</span>
+                <span class="n">min_rate</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">max_rate</span><span class="o">=</span><span class="n">rate_target</span><span class="p">,</span>
+                <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">loss_weights</span><span class="p">[</span><span class="n">probe</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">rate_reg</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="n">loss</span><span class="o">=</span><span class="n">losses</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">(),</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+        <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">do_training</span><span class="p">:</span>
+        <span class="c1"># --- train</span>
+        <span class="n">steps_per_epoch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_x</span><span class="p">)</span> <span class="o">//</span> <span class="n">batch_size</span>
+
+        <span class="c1"># Create a NengoImageIterator that will return the appropriate dictionaries</span>
+        <span class="c1"># with augmented images. Since we are using a generator, we need to include</span>
+        <span class="c1"># the `n_steps` parameter so that NengoDL knows how many timesteps are in</span>
+        <span class="c1"># each example (in our case, since we just have static images, it&#39;s one).</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">steps_per_epoch</span> <span class="o">*</span> <span class="n">batch_size</span>
+        <span class="n">n_steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="n">NengoImageIterator</span><span class="p">(</span>
+            <span class="n">image_data_generator</span><span class="o">=</span><span class="n">train_idg</span><span class="p">,</span>
+            <span class="n">x_keys</span><span class="o">=</span><span class="p">[</span><span class="n">inp</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;n_steps&quot;</span><span class="p">],</span>
+            <span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="n">train_x</span><span class="p">[:</span><span class="n">n</span><span class="p">],</span> <span class="n">n_steps</span><span class="p">],</span>
+            <span class="n">y_keys</span><span class="o">=</span><span class="p">[</span><span class="n">output_p</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">probe</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">layer_probes</span><span class="p">],</span>
+            <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="n">train_t</span><span class="p">[:</span><span class="n">n</span><span class="p">]]</span>
+            <span class="o">+</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">layer_probes</span><span class="p">],</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">n_epochs</span> <span class="o">=</span> <span class="mi">100</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_epochs</span><span class="p">):</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+                <span class="n">train_data</span><span class="p">,</span>
+                <span class="n">steps_per_epoch</span><span class="o">=</span><span class="n">steps_per_epoch</span><span class="p">,</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># report test data statistics</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">test_inputs</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">test_targets</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Epoch </span><span class="si">%d</span><span class="s2"> test: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">outputs</span><span class="p">))</span>
+
+            <span class="c1"># save the parameters to the checkpoint</span>
+            <span class="n">savefile</span> <span class="o">=</span> <span class="n">checkpoint_base</span>
+            <span class="n">sim</span><span class="o">.</span><span class="n">save_params</span><span class="p">(</span><span class="n">savefile</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Saved params to </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">savefile</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">urlretrieve</span><span class="p">(</span>
+            <span class="s2">&quot;https://drive.google.com/uc?export=download&amp;&quot;</span>
+            <span class="s2">&quot;id=1jvP8IsdqGH2kn0OJOykJxjBsJLgk8GsY&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.npz&quot;</span> <span class="o">%</span> <span class="n">checkpoint_base</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="n">checkpoint_base</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loaded params </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">checkpoint_base</span><span class="p">)</span>
+
+    <span class="c1"># copy the learned/loaded parameters back to the network, for Loihi simulator</span>
+    <span class="n">sim</span><span class="o">.</span><span class="n">freeze_params</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>
+
+    <span class="c1"># run the network on some of the train and test data to benchmark performance</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">train_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="n">train_outputs</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">slice_data_dict</span><span class="p">(</span><span class="n">train_inputs</span><span class="p">,</span> <span class="n">train_slice</span><span class="p">),</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">slice_data_dict</span><span class="p">(</span><span class="n">train_targets</span><span class="p">,</span> <span class="n">train_slice</span><span class="p">),</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final train:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">train_outputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+
+        <span class="c1"># test_slice = slice(None)</span>
+        <span class="n">test_slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="n">test_outputs</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">slice_data_dict</span><span class="p">(</span><span class="n">test_inputs</span><span class="p">,</span> <span class="n">test_slice</span><span class="p">),</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">slice_data_dict</span><span class="p">(</span><span class="n">test_targets</span><span class="p">,</span> <span class="n">test_slice</span><span class="p">),</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final test:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">test_outputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Could not compute ANN values on this machine: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Build finished in 0:00:00
+Optimization finished in 0:00:00
+Construction finished in 0:00:00
+Loaded params &#39;./cifar10_convnet_params&#39;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/nengo_dl/simulator.py:1930: UserWarning: Number of elements in input data (1000) is not evenly divisible by Simulator.minibatch_size (256); input data will be truncated.
+  % (data_batch, self.minibatch_size)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Could not compute ANN values on this machine: in user code:
+
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/training.py:1224 test_function  *
+        return step_function(self, iterator)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/training.py:1215 step_function  **
+        outputs = model.distribute_strategy.run(run_step, args=(data,))
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/distribute/distribute_lib.py:1211 run
+        return self._extended.call_for_each_replica(fn, args=args, kwargs=kwargs)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/distribute/distribute_lib.py:2585 call_for_each_replica
+        return self._call_for_each_replica(fn, args, kwargs)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/distribute/distribute_lib.py:2945 _call_for_each_replica
+        return fn(*args, **kwargs)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/training.py:1208 run_step  **
+        outputs = model.test_step(data)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/training.py:1177 test_step
+        y, y_pred, sample_weight, regularization_losses=self.losses)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/compile_utils.py:187 __call__
+        self.build(y_pred)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/compile_utils.py:140 build
+        self._losses = nest.map_structure(self._get_loss_object, self._losses)
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/util/nest.py:635 map_structure
+        structure[0], [func(*x) for x in entries],
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/util/nest.py:635 &lt;listcomp&gt;
+        structure[0], [func(*x) for x in entries],
+    /home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/tensorflow/python/keras/engine/compile_utils.py:265 _get_loss_object
+        loss_name = loss.__name__
+
+    AttributeError: &#39;functools.partial&#39; object has no attribute &#39;__name__&#39;
+
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Run-the-spiking-neural-network-on-Loihi">
+<h2>Run the spiking neural network on Loihi<a class="headerlink" href="#Run-the-spiking-neural-network-on-Loihi" title="Permalink to this headline">¶</a></h2>
+<p>Now, we run the spiking model on Loihi (or in the emulator if <code class="docutils literal notranslate"><span class="pre">nxsdk</span></code> is not installed). For demonstration purposes, we only run 10 examples, but feel free to run 100 or more examples if you wish to get a better idea of the network accuracy.</p>
+<p>The first thing we do is remove the probes on the individual layers. This is because probing neurons takes resources on Loihi, and we cannot afford to probe all the neurons in the model. The probe on the output layer will remain; this is how we will get our results.</p>
+<p>We also add synapses to all our connections. This provides some filtering, to help deal with the variability introduced when we switch to using spiking neurons.</p>
+<p>Before running the network, we print some information about the blocks that have been created. One block corresponds to one Loihi core, so this gives us information about how much each core is being used.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># remove layer probes</span>
+<span class="k">for</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">layer_probes</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">probe</span> <span class="ow">in</span> <span class="n">net</span><span class="o">.</span><span class="n">probes</span><span class="p">:</span>
+        <span class="n">net</span><span class="o">.</span><span class="n">probes</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+<span class="c1"># add synapses to connections</span>
+<span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="n">net</span><span class="o">.</span><span class="n">all_connections</span><span class="p">:</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">synapse</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">synapses</span><span class="o">.</span><span class="n">Lowpass</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+<span class="n">n_images</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">sim_time</span> <span class="o">=</span> <span class="n">n_images</span> <span class="o">*</span> <span class="n">presentation_time</span>
+
+<span class="k">with</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">net</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+    <span class="c1"># print information about how cores are being utilized</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">utilization_summary</span><span class="p">()))</span>
+
+    <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">sim_time</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[0]): 100.0% compartments, 7.1% in-axons, 35.6% out-axons, 8.1% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[1]): 100.0% compartments, 7.1% in-axons, 35.6% out-axons, 8.1% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[2]): 100.0% compartments, 7.1% in-axons, 35.6% out-axons, 8.1% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[3]): 100.0% compartments, 7.1% in-axons, 35.6% out-axons, 8.1% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[4]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.4% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[5]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.4% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[6]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.4% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[7]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.4% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[8]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[9]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[10]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[11]): 87.5% compartments, 6.2% in-axons, 31.6% out-axons, 7.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[12]): 76.6% compartments, 5.5% in-axons, 28.1% out-axons, 6.7% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[13]): 76.6% compartments, 5.5% in-axons, 28.1% out-axons, 6.7% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[14]): 76.6% compartments, 5.5% in-axons, 28.1% out-axons, 6.7% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer1&#34;&gt;[15]): 76.6% compartments, 5.5% in-axons, 28.1% out-axons, 6.7% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[0]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[1]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[2]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[3]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[4]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[5]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[6]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[7]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[8]): 38.3% compartments, 2.0% in-axons, 52.6% out-axons, 87.0% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[9]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[10]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[11]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[12]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[13]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[14]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[15]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[16]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[17]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[18]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[19]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[20]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[21]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[22]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[23]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[24]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[25]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[26]): 32.8% compartments, 1.8% in-axons, 45.1% out-axons, 76.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[27]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[28]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[29]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[30]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[31]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[32]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[33]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[34]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer2&#34;&gt;[35]): 28.1% compartments, 1.6% in-axons, 38.7% out-axons, 73.8% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[0]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[1]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[2]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[3]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[4]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[5]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[6]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[7]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[8]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[9]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[10]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[11]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[12]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[13]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[14]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[15]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[16]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[17]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[18]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[19]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[20]): 42.2% compartments, 4.1% in-axons, 19.3% out-axons, 59.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer3&#34;&gt;[21]): 14.1% compartments, 4.1% in-axons, 19.3% out-axons, 10.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[0]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[1]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[2]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[3]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[4]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[5]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[6]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[7]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[8]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[9]): 84.4% compartments, 0.9% in-axons, 5.3% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer4&#34;&gt;[10]): 56.2% compartments, 0.9% in-axons, 5.3% out-axons, 22.3% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer5&#34;&gt;[0]): 84.4% compartments, 0.9% in-axons, 42.2% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer5&#34;&gt;[1]): 84.4% compartments, 0.9% in-axons, 42.2% out-axons, 44.5% synapses
+LoihiBlock(&lt;Ensemble &#34;conv-layer5&#34;&gt;[2]): 56.2% compartments, 0.9% in-axons, 28.1% out-axons, 22.3% synapses
+LoihiBlock(&lt;Ensemble &#34;dense-layer&#34;&gt;[0:50:1]): 4.9% compartments, 56.2% in-axons, 0.0% out-axons, 98.4% synapses
+LoihiBlock(&lt;Ensemble &#34;dense-layer&#34;&gt;[50:100:1]): 4.9% compartments, 56.2% in-axons, 0.0% out-axons, 98.4% synapses
+Average (90 blocks): 51.4% compartments, 4.2% in-axons, 30.4% out-axons, 55.3% synapses
+</pre></div></div>
+</div>
+<p>Our output data is a timeseries of the output values at each timestep. We compute the number of steps each example is shown for (<code class="docutils literal notranslate"><span class="pre">pres_steps</span></code>), and specify the number of steps we want to use for classification (<code class="docutils literal notranslate"><span class="pre">class_steps</span></code>, the last 30% of the presentation). We then reshape the output to index the presentation as the first dimension, and the timesteps in each presentation as the second dimension. We average over the last <code class="docutils literal notranslate"><span class="pre">class_steps</span></code> of each presentation, and take the <code class="docutils literal notranslate"><span class="pre">argmax</span></code> to
+figure out the predicted class.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">pres_steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">presentation_time</span> <span class="o">/</span> <span class="n">sim</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+<span class="n">class_steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.3</span> <span class="o">*</span> <span class="n">pres_steps</span><span class="p">)</span>
+
+<span class="n">output</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">output_p</span><span class="p">]</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_images</span><span class="p">,</span> <span class="n">pres_steps</span><span class="p">)</span> <span class="o">+</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="p">[:,</span> <span class="o">-</span><span class="n">class_steps</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">preds</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">test_y</span><span class="p">[:</span><span class="n">n_images</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predictions: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">preds</span><span class="p">),))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actual:      </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">test_y</span><span class="p">[:</span><span class="n">n_images</span><span class="p">]),))</span>
+<span class="n">error</span> <span class="o">=</span> <span class="p">(</span><span class="n">preds</span> <span class="o">!=</span> <span class="n">test_y</span><span class="p">[:</span><span class="n">n_images</span><span class="p">])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Accuracy: </span><span class="si">%0.3f%%</span><span class="s2">, Error: </span><span class="si">%0.3f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">error</span><span class="p">),</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">error</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Predictions: [3, 8, 8, 0, 6, 6, 1, 6, 3, 9]
+Actual:      [3, 8, 8, 0, 6, 6, 1, 6, 3, 1]
+Accuracy: 90.000%, Error: 10.000%
+</pre></div></div>
+</div>
+<p>Finally, we make a plot to show the network output over time for each example.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">test_x</span> <span class="k">if</span> <span class="n">channels_last</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">test_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="n">nc</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+<span class="n">allimage</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ni</span><span class="p">,</span> <span class="n">nj</span> <span class="o">*</span> <span class="n">n_images</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">image</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">images</span><span class="p">[:</span><span class="n">n_images</span><span class="p">]):</span>
+    <span class="n">allimage</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">nj</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nj</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+<span class="k">if</span> <span class="n">allimage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">allimage</span> <span class="o">=</span> <span class="n">allimage</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">allimage</span> <span class="o">=</span> <span class="p">(</span><span class="n">allimage</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># scale to [0, 1]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">allimage</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">trange</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">output_p</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">([</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time [s]&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">label_names</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.18</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7f6aa9c2e8d0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_cifar10-convnet_20_1.png" src="../_images/examples_cifar10-convnet_20_1.png" />
+</div>
+</div>
+<p>We can see that we have successfully deployed the network we trained onto Loihi. As mentioned in the introduction, this is still a simplified example designed to fit on a single Loihi chip; we could achieve better performance with a larger model. But these same principles should apply to deploying any deep convolutional network onto Loihi.</p>
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>

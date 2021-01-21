@@ -1,0 +1,320 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Neuron to neuron connections\n",
+    "\n",
+    "While Nengo is often used with deep learning\n",
+    "and NEF style networks,\n",
+    "it can also be used for lower level models\n",
+    "in which each neuron to neuron connection\n",
+    "is explicitly specified.\n",
+    "\n",
+    "In these examples, we connect a `pre` population\n",
+    "to a `post` population with different sets of\n",
+    "specified connection weights."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "import numpy as np\n",
+    "\n",
+    "import nengo\n",
+    "from nengo.utils.matplotlib import rasterplot\n",
+    "import nengo_loihi"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Simple fan-out\n",
+    "\n",
+    "In this example,\n",
+    "a neuron is connected to several downstream neurons\n",
+    "with increasing synaptic strength.\n",
+    "\n",
+    "Synaptic strengths are defined through the `transform`\n",
+    "of a `nengo.Connection`.\n",
+    "While a `Connection` between two ensembles\n",
+    "operates on their vector representations,\n",
+    "a connection between two ensemble's neuron values\n",
+    "operates directly on neural activities (i.e., spikes)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Network() as model:\n",
+    "    pre = nengo.Ensemble(1, dimensions=1, gain=[1], bias=[1.05])\n",
+    "    post = nengo.Ensemble(6, dimensions=1, gain=np.ones(6), bias=np.zeros(6))\n",
+    "\n",
+    "    transform = np.linspace(0.01, 0.15, post.n_neurons)\n",
+    "    transform = transform.reshape((post.n_neurons, pre.n_neurons))\n",
+    "    nengo.Connection(pre.neurons, post.neurons, transform=transform)\n",
+    "\n",
+    "    pre_probe = nengo.Probe(pre.neurons)\n",
+    "    post_probe = nengo.Probe(post.neurons)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network in Nengo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_rasters(t, data):\n",
+    "    plt.figure(figsize=(10, 8))\n",
+    "    plt.subplot(2, 1, 1)\n",
+    "    rasterplot(t, data[pre_probe])\n",
+    "    plt.xticks(())\n",
+    "    plt.ylabel(\"pre neuron number\")\n",
+    "    plt.subplot(2, 1, 2)\n",
+    "    rasterplot(t, data[post_probe])\n",
+    "    plt.ylabel(\"post neuron number\")\n",
+    "    plt.xlabel(\"Time (s)\")\n",
+    "    plt.tight_layout()\n",
+    "\n",
+    "\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. One-to-one connections\n",
+    "\n",
+    "In this example, two populations of equal size\n",
+    "are connected one-to-one with random\n",
+    "biases in the `pre` population and\n",
+    "random excitatory connection weights."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rng = np.random.RandomState(seed=10)\n",
+    "n_neurons = 5\n",
+    "\n",
+    "with nengo.Network() as model:\n",
+    "    pre = nengo.Ensemble(\n",
+    "        n_neurons,\n",
+    "        1,\n",
+    "        gain=np.ones(n_neurons),\n",
+    "        bias=rng.uniform(low=1.0, high=1.5, size=n_neurons),\n",
+    "    )\n",
+    "    post = nengo.Ensemble(\n",
+    "        n_neurons, 1, gain=np.ones(n_neurons), bias=np.zeros(n_neurons)\n",
+    "    )\n",
+    "\n",
+    "    transform = np.zeros((n_neurons, n_neurons))\n",
+    "    di = np.diag_indices(n_neurons)\n",
+    "    transform[di] = rng.uniform(low=0.0, high=0.2, size=n_neurons)\n",
+    "    nengo.Connection(pre.neurons, post.neurons, transform=transform)\n",
+    "\n",
+    "    pre_probe = nengo.Probe(pre.neurons)\n",
+    "    post_probe = nengo.Probe(post.neurons)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network in Nengo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Fixed probability connections\n",
+    "\n",
+    "In this example, two populations are recurrently connected\n",
+    "(i.e., `post` is also connected back to `pre`).\n",
+    "There is a fixed probability of two neurons\n",
+    "being connected in either direction,\n",
+    "a fixed probability of an inhibitory connection,\n",
+    "and all connections have the same weight."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rng = np.random.RandomState(seed=100)\n",
+    "inhibitory = 0.5  # 50% inhibitory connections\n",
+    "connection_prob = 0.6  # 60% probability of being connected\n",
+    "n_neurons = 25\n",
+    "\n",
+    "with nengo.Network() as model:\n",
+    "    pre = nengo.Ensemble(\n",
+    "        n_neurons,\n",
+    "        1,\n",
+    "        gain=np.ones(n_neurons),\n",
+    "        bias=rng.uniform(low=-2, high=2, size=n_neurons),\n",
+    "    )\n",
+    "    post = nengo.Ensemble(\n",
+    "        n_neurons,\n",
+    "        1,\n",
+    "        gain=np.ones(n_neurons),\n",
+    "        bias=rng.uniform(low=-2, high=2, size=n_neurons),\n",
+    "    )\n",
+    "\n",
+    "    pre_post = np.ones((n_neurons, n_neurons)) * 0.05\n",
+    "    # Make some inhibitory\n",
+    "    pre_post[rng.rand(n_neurons, n_neurons) <= inhibitory] *= -1\n",
+    "    # Remove 1 - connection_prob connections\n",
+    "    pre_post[rng.rand(n_neurons, n_neurons) > connection_prob] = 0\n",
+    "    nengo.Connection(pre.neurons, post.neurons, transform=pre_post)\n",
+    "\n",
+    "    post_pre = np.ones((n_neurons, n_neurons)) * 0.05\n",
+    "    post_pre[rng.rand(n_neurons, n_neurons) <= inhibitory] *= -1\n",
+    "    post_pre[rng.rand(n_neurons, n_neurons) > connection_prob] = 0\n",
+    "    nengo.Connection(post.neurons, pre.neurons, transform=post_pre)\n",
+    "\n",
+    "    pre_probe = nengo.Probe(pre.neurons)\n",
+    "    post_probe = nengo.Probe(post.neurons)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network in Nengo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(1)\n",
+    "t = sim.trange()\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}

@@ -1,0 +1,1547 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Converting a Keras model to an SNN on Loihi &#8212; NengoLoihi 1.0.0 docs</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Google Tag Manager -->
+<script>
+ (function (w, d, s, l, i) {
+   w[l] = w[l] || [];
+   w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+   var f = d.getElementsByTagName(s)[0],
+       j = d.createElement(s),
+       dl = l != "dataLayer" ? "&l=" + l : "";
+   j.async = true;
+   j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+   f.parentNode.insertBefore(j, f);
+ })(window, document, "script", "dataLayer", "GTM-KWCR2HN");
+</script>
+<!-- End Google Tag Manager -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+  
+  
+<script src="../_static/underscore.js"></script>
+  
+  
+<script src="../_static/doctools.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+  
+<script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
+  
+<script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "document", "processClass": "math|output_area"}})</script>
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Nonlinear adaptive control" href="adaptive-motor-control.html" />
+    <link rel="prev" title="CIFAR-10 convolutional network" href="cifar10-convnet.html" />
+<link rel="stylesheet" type="text/css" href="../_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">NengoGUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">NengoDL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">NengoSPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">NengoExtras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/keras-spiking">KerasSpiking</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/pytorch-spiking">PyTorchSpiking</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">NengoFPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">NengoLoihi</a>
+            <a class="dropdown-item" href="https://labs.nengo.ai/nengo-ocl/">NengoOCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">NengoSpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo-labs/nengo-mpi">NengoMPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="../index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="NengoLoihi"
+      />
+    </a>
+  </h3>
+<form class="px-5 py-3 my-0 border-bottom" action="../search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form><div class="p-5 toctree">
+  
+    <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Example models</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="communication-channel.html">Communication channel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator.html">Integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrator-multi-d.html">Multidimensional integrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator.html">Simple oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="oscillator-nonlinear.html">Nonlinear oscillator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="neuron-to-neuron.html">Neuron to neuron connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="learn-communication-channel.html">PES learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="keyword-spotting.html">Keyword spotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mnist-convnet.html">MNIST convolutional network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cifar10-convnet.html">CIFAR-10 convolutional network</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Converting a Keras model to an SNN on Loihi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Implementing-the-network">Implementing the network</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Converting-to-a-spiking-neural-network">Converting to a spiking neural network</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Converting-to-SNN-using-Loihi-neurons">Converting to SNN using Loihi neurons</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Training-with-the-Loihi-neurons">Training with the Loihi neurons</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Running-your-SNN-on-Loihi">Running your SNN on Loihi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adaptive-motor-control.html">Nonlinear adaptive control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lmu.html">Legendre Memory Units on Loihi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dvs-from-file.html">DVS from file</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../setup/index.html">Hardware setup</a></li>
+</ul>
+
+  
+  </div>
+  
+  <form class="p-5 my-0 border-top">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../../examples/keras-to-loihi.html">latest</option>
+        
+        
+          
+        <option selected>v1.0.0</option>
+          
+        
+          
+        <option value="../../v0.10.0/examples/keras-to-loihi.html">
+          v0.10.0
+        </option>
+          
+        
+          
+        <option value="../../v0.9.0/examples/keras-to-loihi.html">
+          v0.9.0
+        </option>
+          
+        
+          
+        <option value="../../v0.8.0/examples/keras-to-loihi.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../../v0.7.0/examples/keras-to-loihi.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+</div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+              
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt a.copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<div class="section" id="Converting-a-Keras-model-to-an-SNN-on-Loihi">
+<h1>Converting a Keras model to an SNN on Loihi<a class="headerlink" href="#Converting-a-Keras-model-to-an-SNN-on-Loihi" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://colab.research.google.com/github/nengo/nengo-dl/blob/master/docs/examples/keras-to-loihi.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<p>This notebook describes how to train a network in Keras and convert it to a spiking neural network (SNN) to run on Loihi. Intel’s Loihi chip is a type of “neuromorphic” hardware—specialized neural network acceleration hardware that uses spike-based communication like neurons in the brain. In this tutorial, will look at how to set up our network to target and run on Intel’s Loihi chip using the NengoLoihi backend. While in general the Nengo ecosystem allows users to switch between backends
+without changes to their models, we will see how making some Loihi-specific changes during training and inference allow us to take full advantage of its capabilities.</p>
+<p>There are several ways to build SNNs to target NengoLoihi. The <a class="reference external" href="https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html">CIFAR-10 Loihi example</a> works through how to build up a deep spiking network to run on Loihi using the standard Nengo and NengoDL APIs. In NengoDL’s <a class="reference external" href="https://www.nengo.ai/nengo-dl/examples/keras-to-snn.html">Keras to SNN example</a>, we looked at converting a Keras model to an SNN. Here, we will extend the Keras to SNN example, tailoring the model for execution on
+Loihi.</p>
+<p>The goal of this notebook is to familiarize you with some of the nuances of running SNNs on the Loihi, and how to set these up starting from a neural network defined in Keras. The two focuses in this notebook are on adding a network layer that runs off-chip to transform the input images into spikes, and training using a Loihi neuron model that captures the unique behaviour of Loihi’s quantized neurons. We’ll add the network layer and train and test with normal ReLU neurons first to see what kind
+of performance we can expect without quantization constraints. Then we’ll train with the Loihi neurons to improve implementation performance, and finally we’ll run the model on Loihi to measure the final performance (we use a simulated Loihi if actual Loihi hardware is not available).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">nengo</span>
+<span class="kn">import</span> <span class="nn">nengo_dl</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">import</span> <span class="nn">nengo_loihi</span>
+
+<span class="c1"># ignore NengoDL warning about no GPU</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;No GPU&quot;</span><span class="p">,</span> <span class="n">module</span><span class="o">=</span><span class="s2">&quot;nengo_dl&quot;</span><span class="p">)</span>
+
+<span class="c1"># The results in this notebook should be reproducible across many random seeds.</span>
+<span class="c1"># However, some seed values may cause problems, particularly in the `to-spikes` layer</span>
+<span class="c1"># where poor initialization can result in no information being sent to the chip. We set</span>
+<span class="c1"># the seed to ensure that good results are reproducible without having to re-train.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>In this example we’ll use the standard <a class="reference external" href="http://yann.lecun.com/exdb/mnist/">MNIST dataset</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># load in MNIST dataset</span>
+<span class="p">(</span>
+    <span class="p">(</span><span class="n">train_images</span><span class="p">,</span> <span class="n">train_labels</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">test_images</span><span class="p">,</span> <span class="n">test_labels</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">mnist</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+
+<span class="c1"># flatten images and add time dimension</span>
+<span class="n">train_images</span> <span class="o">=</span> <span class="n">train_images</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">train_images</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">train_labels</span> <span class="o">=</span> <span class="n">train_labels</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">train_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">test_images</span> <span class="o">=</span> <span class="n">test_images</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">test_images</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">test_labels</span> <span class="o">=</span> <span class="n">test_labels</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">test_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">train_images</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">train_labels</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Downloading data from https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz
+11493376/11490434 [==============================] - 0s 0us/step
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_3_1.png" src="../_images/examples_keras-to-loihi_3_1.png" />
+</div>
+</div>
+<div class="section" id="Implementing-the-network">
+<h2>Implementing the network<a class="headerlink" href="#Implementing-the-network" title="Permalink to this headline">¶</a></h2>
+<p>We will start with the same network structure used in the <a class="reference external" href="https://www.nengo.ai/nengo-dl/examples/keras-to-snn.html">Keras to SNN example</a>: Two convolutional layers and a dense layer.</p>
+<p>The only way to communicate with the Loihi is by sending spikes. Usually, when we have a model that we want to run on neuromorphic hardware, we want the whole model that we’ve defined to run on the hardware. Communicating with Loihi, however, requires that we have at least one layer that runs <em>off</em>-chip to convert the input signal to spikes to send to the rest of the model running on Loihi.</p>
+<p>We’ll add a <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> layer to run off-chip and convert the input signal to spikes. This could also be an <code class="docutils literal notranslate"><span class="pre">Activation</span></code> layer. The advantage to the <code class="docutils literal notranslate"><span class="pre">Activation</span></code> layer is that it adds no extra parameters and minimizes off-chip computations. The <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> layer uses a few parameters, and requires a bit more off-chip computation, but gives the network much more flexibility as to how pixels are converted to spikes. An <code class="docutils literal notranslate"><span class="pre">Activation</span></code> layer would likely work well for simple images like MNIST, but
+for more complex images (e.g. with more than one color channel, or a wider range of intensity values) the flexibility of the <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> layer is important. We avoid layers like the <code class="docutils literal notranslate"><span class="pre">Dense</span></code> layer, as it significantly increases both the number of parameters and the number of computations that have to be run off-chip.</p>
+<p>On the output side of the network, we now have to worry about how many neurons are in the last layer run on the chip. We are limited in how many neurons we can record from on the board, so we add a <code class="docutils literal notranslate"><span class="pre">Dense</span></code> layer with 100 neurons between the last <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> layer and our 10-dimensional <code class="docutils literal notranslate"><span class="pre">Dense</span></code> output layer (which runs off-chip). This way, we only have to record from 100 neurons, rather than the 2,304 neurons we would need to record from if we connected directly from the last <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> layer
+to the 10-dimensional output. An added benefit is that the amount of off-chip computation is reduced, since the number of weights used by the off-chip output layer is 100 x 10 instead of 2304 x 10.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">inp</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">)</span>
+
+<span class="c1"># transform input signal to spikes using trainable 1x1 convolutional layer</span>
+<span class="n">to_spikes_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">(</span>
+    <span class="n">filters</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># 3 neurons per pixel</span>
+    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">strides</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+    <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;to-spikes&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">to_spikes</span> <span class="o">=</span> <span class="n">to_spikes_layer</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+
+<span class="c1"># on-chip convolutional layers</span>
+<span class="n">conv0_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">(</span>
+    <span class="n">filters</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">strides</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+    <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv0&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">conv0</span> <span class="o">=</span> <span class="n">conv0_layer</span><span class="p">(</span><span class="n">to_spikes</span><span class="p">)</span>
+
+<span class="n">conv1_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">(</span>
+    <span class="n">filters</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">strides</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+    <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;conv1&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">conv1</span> <span class="o">=</span> <span class="n">conv1_layer</span><span class="p">(</span><span class="n">conv0</span><span class="p">)</span>
+
+<span class="n">flatten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;flatten&quot;</span><span class="p">)(</span><span class="n">conv1</span><span class="p">)</span>
+
+<span class="n">dense0_layer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dense0&quot;</span><span class="p">)</span>
+<span class="n">dense0</span> <span class="o">=</span> <span class="n">dense0_layer</span><span class="p">(</span><span class="n">flatten</span><span class="p">)</span>
+
+<span class="c1"># since this final output layer has no activation function,</span>
+<span class="c1"># it will be converted to a `nengo.Node` and run off-chip</span>
+<span class="n">dense1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dense1&quot;</span><span class="p">)(</span><span class="n">dense0</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inp</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">dense1</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Model: &#34;functional_1&#34;
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #
+=================================================================
+input (InputLayer)           [(None, 28, 28, 1)]       0
+_________________________________________________________________
+to-spikes (Conv2D)           (None, 28, 28, 3)         3
+_________________________________________________________________
+conv0 (Conv2D)               (None, 13, 13, 32)        864
+_________________________________________________________________
+conv1 (Conv2D)               (None, 6, 6, 64)          18432
+_________________________________________________________________
+flatten (Flatten)            (None, 2304)              0
+_________________________________________________________________
+dense0 (Dense)               (None, 100)               230500
+_________________________________________________________________
+dense1 (Dense)               (None, 10)                1010
+=================================================================
+Total params: 250,809
+Trainable params: 250,809
+Non-trainable params: 0
+_________________________________________________________________
+</pre></div></div>
+</div>
+<div class="section" id="Training-the-networks">
+<h3>Training the networks<a class="headerlink" href="#Training-the-networks" title="Permalink to this headline">¶</a></h3>
+<p>As in the Keras-to-SNN notebook, once we create our model we’ll use the NengoDL Converter to translate it into a Nengo network, and then we’ll train.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">params_file</span><span class="o">=</span><span class="s2">&quot;./keras_to_loihi_params&quot;</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">converter</span> <span class="o">=</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">converter</span><span class="o">.</span><span class="n">net</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span> <span class="k">as</span> <span class="n">sim</span><span class="p">:</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+            <span class="n">optimizer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">(</span><span class="mf">0.001</span><span class="p">),</span>
+            <span class="n">loss</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">converter</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">dense1</span><span class="p">]:</span> <span class="n">tf</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">SparseCategoricalCrossentropy</span><span class="p">(</span>
+                    <span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="p">},</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="p">{</span><span class="n">converter</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">dense1</span><span class="p">]:</span> <span class="n">tf</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">sparse_categorical_accuracy</span><span class="p">},</span>
+        <span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">converter</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">inp</span><span class="p">]:</span> <span class="n">train_images</span><span class="p">},</span>
+            <span class="p">{</span><span class="n">converter</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">dense1</span><span class="p">]:</span> <span class="n">train_labels</span><span class="p">},</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save the parameters to file</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">save_params</span><span class="p">(</span><span class="n">params_file</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># train this network with normal ReLU neurons</span>
+<span class="n">train</span><span class="p">(</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">swap_activations</span><span class="o">=</span><span class="p">{</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">:</span> <span class="n">nengo</span><span class="o">.</span><span class="n">RectifiedLinear</span><span class="p">()},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Build finished in 0:00:00
+Optimization finished in 0:00:00
+Construction finished in 0:00:00
+Epoch 1/2
+300/300 [==============================] - 20s 68ms/step - loss: 0.1799 - probe_loss: 0.1799 - probe_sparse_categorical_accuracy: 0.9456
+Epoch 2/2
+300/300 [==============================] - 20s 67ms/step - loss: 0.0491 - probe_loss: 0.0491 - probe_sparse_categorical_accuracy: 0.9852
+</pre></div></div>
+</div>
+<p>After training for 2 epochs the non-spiking network achievs around 98% accuracy on the test data.</p>
+<p>Now that we have our trained weights, we can begin the conversion to spiking neurons. To help us in this process we’re going to first define a helper function that will build the network for us, load weights from a specified file, and make it easy to play around with some other features of the network.</p>
+</div>
+<div class="section" id="Evaluating-the-networks">
+<h3>Evaluating the networks<a class="headerlink" href="#Evaluating-the-networks" title="Permalink to this headline">¶</a></h3>
+<p>We will now define a general function to evaluate our network on the test dataset with various neural activation functions (both non-spiking and spiking). The function creates a new network with the desired activation function, loads the weights that we learned during training, runs the network on the test dataset, and reports accuracy and firing rate with both <code class="docutils literal notranslate"><span class="pre">print</span></code> statements and plots.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">run_network</span><span class="p">(</span>
+    <span class="n">activation</span><span class="p">,</span>
+    <span class="n">params_file</span><span class="o">=</span><span class="s2">&quot;./keras_to_loihi_params&quot;</span><span class="p">,</span>
+    <span class="n">n_steps</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_test</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">n_plots</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># convert the keras model to a nengo network</span>
+    <span class="n">nengo_converter</span> <span class="o">=</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">scale_firing_rates</span><span class="o">=</span><span class="n">scale_firing_rates</span><span class="p">,</span>
+        <span class="n">swap_activations</span><span class="o">=</span><span class="p">{</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">:</span> <span class="n">activation</span><span class="p">},</span>
+        <span class="n">synapse</span><span class="o">=</span><span class="n">synapse</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get input/output objects</span>
+    <span class="n">nengo_input</span> <span class="o">=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">inp</span><span class="p">]</span>
+    <span class="n">nengo_output</span> <span class="o">=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">dense1</span><span class="p">]</span>
+
+    <span class="c1"># add probes to layers to record activity</span>
+    <span class="k">with</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">net</span><span class="p">:</span>
+        <span class="n">probes</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">[</span><span class="n">to_spikes_layer</span><span class="p">,</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">to_spikes</span><span class="p">])],</span>
+                <span class="p">[</span><span class="n">conv0_layer</span><span class="p">,</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">conv0</span><span class="p">])],</span>
+                <span class="p">[</span><span class="n">conv1_layer</span><span class="p">,</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">conv1</span><span class="p">])],</span>
+                <span class="p">[</span><span class="n">dense0_layer</span><span class="p">,</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Probe</span><span class="p">(</span><span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">dense0</span><span class="p">])],</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="c1"># repeat inputs for some number of timesteps</span>
+    <span class="n">tiled_test_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">test_images</span><span class="p">[:</span><span class="n">n_test</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># set some options to speed up simulation</span>
+    <span class="k">with</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">net</span><span class="p">:</span>
+        <span class="n">nengo_dl</span><span class="o">.</span><span class="n">configure_settings</span><span class="p">(</span><span class="n">stateful</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># build network, load in trained weights, run inference on test images</span>
+    <span class="k">with</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span>
+        <span class="n">nengo_converter</span><span class="o">.</span><span class="n">net</span><span class="p">,</span> <span class="n">minibatch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">progress_bar</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">nengo_sim</span><span class="p">:</span>
+        <span class="n">nengo_sim</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="n">params_file</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">nengo_sim</span><span class="o">.</span><span class="n">predict</span><span class="p">({</span><span class="n">nengo_input</span><span class="p">:</span> <span class="n">tiled_test_images</span><span class="p">})</span>
+
+    <span class="c1"># compute accuracy on test data, using output of network on</span>
+    <span class="c1"># last timestep</span>
+    <span class="n">test_predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">nengo_output</span><span class="p">][:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;Test accuracy: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span>
+        <span class="o">%</span> <span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">test_predictions</span> <span class="o">==</span> <span class="n">test_labels</span><span class="p">[:</span><span class="n">n_test</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># plot the results</span>
+    <span class="n">mean_rates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_plots</span><span class="p">):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Input image&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">test_images</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)),</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+
+        <span class="n">n_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">probes</span><span class="p">)</span>
+        <span class="n">mean_rates_i</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">probes</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">probe</span> <span class="o">=</span> <span class="n">probes</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">n_layers</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="n">j</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Neural activities&quot;</span><span class="p">)</span>
+
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">probe</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># look at only at non-zero outputs</span>
+            <span class="n">nonzero</span> <span class="o">=</span> <span class="p">(</span><span class="n">outputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[:,</span> <span class="n">nonzero</span><span class="p">]</span> <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">nonzero</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">outputs</span>
+
+            <span class="c1"># undo neuron amplitude to get real firing rates</span>
+            <span class="n">outputs</span> <span class="o">/=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">ensemble</span><span class="o">.</span><span class="n">neuron_type</span><span class="o">.</span><span class="n">amplitude</span>
+
+            <span class="n">rates</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">mean_rate</span> <span class="o">=</span> <span class="n">rates</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">mean_rates_i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_rate</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot; mean firing rate (example </span><span class="si">%d</span><span class="s1">): </span><span class="si">%0.1f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">mean_rate</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">is_spiking_type</span><span class="p">(</span><span class="n">activation</span><span class="p">):</span>
+                <span class="n">outputs</span> <span class="o">*=</span> <span class="mf">0.001</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;# of Spikes&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Firing rates (Hz)&quot;</span><span class="p">)</span>
+
+            <span class="c1"># plot outputs of first 100 neurons</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">outputs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">100</span><span class="p">])</span>
+
+        <span class="n">mean_rates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_rates_i</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Timestep&quot;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Output predictions&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">nengo_output</span><span class="p">][</span><span class="n">i</span><span class="p">]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)],</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Timestep&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Probability&quot;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="c1"># take mean rates across all plotted examples</span>
+    <span class="n">mean_rates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">mean_rates</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mean_rates</span>
+
+
+<span class="k">def</span> <span class="nf">is_spiking_type</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">neuron_type</span><span class="p">,</span> <span class="p">(</span><span class="n">nengo</span><span class="o">.</span><span class="n">LIF</span><span class="p">,</span> <span class="n">nengo</span><span class="o">.</span><span class="n">SpikingRectifiedLinear</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># test the trained networks on test set</span>
+<span class="n">mean_rates</span> <span class="o">=</span> <span class="n">run_network</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="n">nengo</span><span class="o">.</span><span class="n">RectifiedLinear</span><span class="p">(),</span> <span class="n">n_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test accuracy: 100.00%
+&#34;to-spikes&#34; mean firing rate (example 0): 14.1
+&#34;conv0&#34; mean firing rate (example 0): 2.0
+&#34;conv1&#34; mean firing rate (example 0): 1.0
+&#34;dense0&#34; mean firing rate (example 0): 2.9
+&#34;to-spikes&#34; mean firing rate (example 1): 15.5
+&#34;conv0&#34; mean firing rate (example 1): 2.3
+&#34;conv1&#34; mean firing rate (example 1): 1.4
+&#34;dense0&#34; mean firing rate (example 1): 3.7
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_11_1.png" src="../_images/examples_keras-to-loihi_11_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_11_2.png" src="../_images/examples_keras-to-loihi_11_2.png" />
+</div>
+</div>
+<p>Note that we’re plotting the output over time for consistency with future plots, but since our network doesn’t have any temporal elements (e.g. spiking neurons), the output is constant for each digit. The firing rates here displayed in the middle graph are important to note for conversion to spikes, and may vary somewhat depending on the random initial conditions used for training. One of the important features visible here, which we’ll discuss shortly, is the decreasing mean firing rate as you
+move through the network. Note that these mean firing rates are computed across only the neurons that have non-zero activities; they are therefore the mean rates of the active neurons.</p>
+<p>Let’s continue with the comparison by moving into spikes.</p>
+</div>
+</div>
+<div class="section" id="Converting-to-a-spiking-neural-network">
+<h2>Converting to a spiking neural network<a class="headerlink" href="#Converting-to-a-spiking-neural-network" title="Permalink to this headline">¶</a></h2>
+<p>Using the NengoDL converter, we can swap all the <code class="docutils literal notranslate"><span class="pre">relu</span></code> activation functions to <code class="docutils literal notranslate"><span class="pre">nengo.SpikingRectifiedLinear</span></code>. Using the lessons that we learned in the Keras-&gt;SNN example notebook we’ll set <code class="docutils literal notranslate"><span class="pre">synapse=0.005</span></code> and <code class="docutils literal notranslate"><span class="pre">scale_firing_rates=100</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># test the trained networks using spiking neurons</span>
+<span class="n">run_network</span><span class="p">(</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">nengo</span><span class="o">.</span><span class="n">SpikingRectifiedLinear</span><span class="p">(),</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test accuracy: 100.00%
+&#34;to-spikes&#34; mean firing rate (example 0): 1420.9
+&#34;conv0&#34; mean firing rate (example 0): 185.4
+&#34;conv1&#34; mean firing rate (example 0): 87.2
+&#34;dense0&#34; mean firing rate (example 0): 140.0
+&#34;to-spikes&#34; mean firing rate (example 1): 1548.5
+&#34;conv0&#34; mean firing rate (example 1): 210.2
+&#34;conv1&#34; mean firing rate (example 1): 96.4
+&#34;dense0&#34; mean firing rate (example 1): 176.3
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([1484.677  ,  197.84457,   91.80095,  158.14815], dtype=float32)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_13_2.png" src="../_images/examples_keras-to-loihi_13_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_13_3.png" src="../_images/examples_keras-to-loihi_13_3.png" />
+</div>
+</div>
+<p>An important feature of SNNs is the time required to generate output. The larger your scaling factor, the quicker the network response to input will be. This is because more spikes will be generated at each layer, triggering a quicker response at the succeeding layer.</p>
+<p>For still images, where each successive image has no correlation with the previous image, this leads to a lag in generating output. SNNs are however much more efficient in a problem like processing a video stream, where there is high correlation between frames. In general, SNNs perform better in situations with temporal dynamics. For simplicity, though, we only examine the case of processing still images here.</p>
+<p>Let’s see what happens when we convert to an SNN using Loihi neurons.</p>
+</div>
+<div class="section" id="Converting-to-SNN-using-Loihi-neurons">
+<h2>Converting to SNN using Loihi neurons<a class="headerlink" href="#Converting-to-SNN-using-Loihi-neurons" title="Permalink to this headline">¶</a></h2>
+<p>To get a sense of how well our network will run on Loihi, we switch to using the <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code> activation profile.</p>
+<p>Note that the on-chip restrictions don’t apply to the input layer that we added to the network, because it won’t be running on the Loihi. Here, the performance differences are minimal so we just convert all neurons over to Loihi neurons. If you find that adding the input layer is causing a performance drop, you may want to build your network such that only the on-chip layers use the NengoLoihi neurons and the off-chip layer uses a standard spiking neuron model (i.e. <code class="docutils literal notranslate"><span class="pre">SpikingRectifiedLinear</span></code>).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># test the trained networks using spiking neurons</span>
+<span class="n">run_network</span><span class="p">(</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">(),</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test accuracy: 88.00%
+&#34;to-spikes&#34; mean firing rate (example 0): 792.1
+&#34;conv0&#34; mean firing rate (example 0): 92.6
+&#34;conv1&#34; mean firing rate (example 0): 47.0
+&#34;dense0&#34; mean firing rate (example 0): 34.7
+&#34;to-spikes&#34; mean firing rate (example 1): 834.5
+&#34;conv0&#34; mean firing rate (example 1): 102.5
+&#34;conv1&#34; mean firing rate (example 1): 49.6
+&#34;dense0&#34; mean firing rate (example 1): 36.5
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([813.3253  ,  97.535126,  48.28082 ,  35.615074], dtype=float32)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_15_2.png" src="../_images/examples_keras-to-loihi_15_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_15_3.png" src="../_images/examples_keras-to-loihi_15_3.png" />
+</div>
+</div>
+<p>If the training resulted a network with large differences between the firing rates (&gt; 10Hz) of the network layers, switching to <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code> neurons will cause a significant decrease in the performance of the network. What causes this?</p>
+<p>Basically, the issue is that each of the layers need different scaling terms. With large firing rate discrepancies between layers, we end up trying to balance between having a <code class="docutils literal notranslate"><span class="pre">scale_firing_rate</span></code> value for the network that 1) is high enough to achieve good performance from the network, but 2) is low enough to not induce multiple spikes per time step in any layer. The second point here is where we’re getting tripped up.</p>
+<p>Loihi neurons can only spike once per time step. Recall that while the <code class="docutils literal notranslate"><span class="pre">scale_firing_rates</span></code> term increases the gain on signals going into neurons, it also correspondingly decreases the <code class="docutils literal notranslate"><span class="pre">amplitude</span></code> of the neuron activity output. If <code class="docutils literal notranslate"><span class="pre">scale_firing_rates</span></code> is set high enough to expect three spikes per time step, but only one spike comes out, the effects will no longer balance out and performance will deteriorate.</p>
+<p>Instead of setting a single <code class="docutils literal notranslate"><span class="pre">scale_firing_rate</span></code> for the whole network, we can specify a scaling value for each layer. To figure out what range we want to put the firing rates into, let’s look at the Loihi neurons’ activation functions.</p>
+<div class="section" id="The-Loihi-activation-profile">
+<h3>The Loihi activation profile<a class="headerlink" href="#The-Loihi-activation-profile" title="Permalink to this headline">¶</a></h3>
+<p>The shape of the Loihi neuron activation profile is unique, and for high firing rates has strong discrepancies with standard <code class="docutils literal notranslate"><span class="pre">relu</span></code> and <code class="docutils literal notranslate"><span class="pre">lif</span></code> behaviour. This is due to the discretization required by the Loihi hardware. Let’s take a closer look.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">def</span> <span class="nf">plot_activation</span><span class="p">(</span><span class="n">neurons</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">min</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span>
+    <span class="n">fr</span> <span class="o">=</span> <span class="n">neurons</span><span class="o">.</span><span class="n">rates</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">bias</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">fr</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> with [gain=1, bias=0]&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">neurons</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Firing rate (Hz)&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Input signal&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;Standard&quot;</span><span class="p">,</span> <span class="s2">&quot;Loihi&quot;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">plot_activation</span><span class="p">(</span><span class="n">nengo</span><span class="o">.</span><span class="n">RectifiedLinear</span><span class="p">(),</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+<span class="n">plot_activation</span><span class="p">(</span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">(),</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">plot_activation</span><span class="p">(</span><span class="n">nengo</span><span class="o">.</span><span class="n">LIF</span><span class="p">(),</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+<span class="n">plot_activation</span><span class="p">(</span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiLIF</span><span class="p">(),</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_17_0.png" src="../_images/examples_keras-to-loihi_17_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_17_1.png" src="../_images/examples_keras-to-loihi_17_1.png" />
+</div>
+</div>
+<p>We can see that for lower firing rates the behaviour of the Loihi neurons approximates the normal <code class="docutils literal notranslate"><span class="pre">relu</span></code> and <code class="docutils literal notranslate"><span class="pre">lif</span></code> neurons relatively well, but for higher firing rates the discrepancy becomes larger. The discretization results in large plateus of input signal values where the output firing rate from the neuron stays the same, making different input values in this range indistinguishable. Also, as mentioned above, for input values above 1000 (not shown) the <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code>
+neuron will have a constant output of 1000 Hz (since this corresponds to one spike per timestep, the maximum firing rate on Loihi); the <code class="docutils literal notranslate"><span class="pre">SpikingRectifiedLinear</span></code> neuron, on the other hand, is able to fire faster than 1000 Hz by using multiple spikes per timestep.</p>
+<p>We can now return to our original question: How do we pick good firing rates for each layer? For outputs above 250 Hz, both Loihi activation functions show significant deviations from the non-Loihi activation profiles; they also become more discontinuous above this point. We therefore want to keep our maximum firing rates below 250 Hz. We also need the firing rate to be high enough to generate sufficient spikes, so that information can be transmitted from layer to layer in a reasonable time. For
+these reasons, we’ll choose a target mean firing rate for each layer to be 200. We’ll generate a scaling term for each layer individually to hit this target.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">target_mean</span> <span class="o">=</span> <span class="mi">200</span>
+<span class="n">scale_firing_rates</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">to_spikes_layer</span><span class="p">:</span> <span class="n">target_mean</span> <span class="o">/</span> <span class="n">mean_rates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">conv0_layer</span><span class="p">:</span> <span class="n">target_mean</span> <span class="o">/</span> <span class="n">mean_rates</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">conv1_layer</span><span class="p">:</span> <span class="n">target_mean</span> <span class="o">/</span> <span class="n">mean_rates</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+    <span class="n">dense0_layer</span><span class="p">:</span> <span class="n">target_mean</span> <span class="o">/</span> <span class="n">mean_rates</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="c1"># test the trained networks using spiking neurons</span>
+<span class="n">run_network</span><span class="p">(</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">(),</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="n">scale_firing_rates</span><span class="p">,</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test accuracy: 99.00%
+&#34;to-spikes&#34; mean firing rate (example 0): 169.2
+&#34;conv0&#34; mean firing rate (example 0): 123.0
+&#34;conv1&#34; mean firing rate (example 0): 91.2
+&#34;dense0&#34; mean firing rate (example 0): 41.0
+&#34;to-spikes&#34; mean firing rate (example 1): 191.0
+&#34;conv0&#34; mean firing rate (example 1): 137.3
+&#34;conv1&#34; mean firing rate (example 1): 94.9
+&#34;dense0&#34; mean firing rate (example 1): 42.3
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([180.12039 , 130.15698 ,  93.0778  ,  41.666664], dtype=float32)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_19_2.png" src="../_images/examples_keras-to-loihi_19_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_19_3.png" src="../_images/examples_keras-to-loihi_19_3.png" />
+</div>
+</div>
+<p>As we can see, when we individually scale the activity of each layer, we almost fully recover non-spiking performance. Note that the firing rates of some layers (the later layers in particular) do not quite meet the target mean firing rate of 200 Hz, though. This is because our mean firing rates were measured using the <code class="docutils literal notranslate"><span class="pre">RectifiedLinear</span></code> neuron type, and do not account for the difference between it and the <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code> activation function. For better results, we could go back
+and measure the mean firing rates using the Loihi neuron type, or hand-tune the scaling factors on each layer to achieve the desired firing rates.</p>
+<p>Alternatively, we can train our network using the <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code>. This will account both for the discretization in the activation profile, and the hard limit of 1 spike per time step. For larger or more complex networks this can save time tuning.</p>
+</div>
+</div>
+<div class="section" id="Training-with-the-Loihi-neurons">
+<h2>Training with the Loihi neurons<a class="headerlink" href="#Training-with-the-Loihi-neurons" title="Permalink to this headline">¶</a></h2>
+<p>We’re going to use another trick for training and set <code class="docutils literal notranslate"><span class="pre">scale_firing_rates=100</span></code> <em>while</em> training. What this does essentially is initiate the network with high firing rates, such that during training we’ll consistently find a local minima with higher firing rates that will work well when we swap in spiking neurons. It also reduces the discrepancy in firing rates between layers, starting them all off in a higher range.</p>
+<p>This is a low-overhead, ad-hoc means of increasing the firing rates of neurons in each layer, and does not guarantee that the network converges to a desired range of firing rates for each layer after training. The firing rate regularization method—shown in a basic form in the <a class="reference external" href="https://www.nengo.ai/nengo-dl/examples/keras-to-snn.html">Keras to SNN example</a> and in a more powerful form in the <a class="reference external" href="https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html">CIFAR-10 Loihi example</a>—is a more
+consistent way to achieve the desired range of firing rates in each layer.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># train this network with normal ReLU neurons</span>
+<span class="n">train</span><span class="p">(</span>
+    <span class="n">params_file</span><span class="o">=</span><span class="s2">&quot;./keras_to_loihi_loihineuron_params&quot;</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">swap_activations</span><span class="o">=</span><span class="p">{</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">:</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">()},</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Build finished in 0:00:00
+Optimization finished in 0:00:00
+Construction finished in 0:00:00
+Epoch 1/2
+300/300 [==============================] - 21s 68ms/step - loss: 0.1949 - probe_loss: 0.1949 - probe_sparse_categorical_accuracy: 0.9396
+Epoch 2/2
+300/300 [==============================] - 20s 68ms/step - loss: 0.0616 - probe_loss: 0.0616 - probe_sparse_categorical_accuracy: 0.9806
+</pre></div></div>
+</div>
+<p>Now when we run the network we need to be sure to again set the <code class="docutils literal notranslate"><span class="pre">scale_firing_rates</span></code> parameter so that the training conditions are replicated.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># test the trained networks using spiking neurons</span>
+<span class="n">run_network</span><span class="p">(</span>
+    <span class="n">activation</span><span class="o">=</span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">(),</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">params_file</span><span class="o">=</span><span class="s2">&quot;./keras_to_loihi_loihineuron_params&quot;</span><span class="p">,</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Test accuracy: 99.00%
+&#34;to-spikes&#34; mean firing rate (example 0): 887.2
+&#34;conv0&#34; mean firing rate (example 0): 138.2
+&#34;conv1&#34; mean firing rate (example 0): 85.9
+&#34;dense0&#34; mean firing rate (example 0): 90.9
+&#34;to-spikes&#34; mean firing rate (example 1): 880.8
+&#34;conv0&#34; mean firing rate (example 1): 143.3
+&#34;conv1&#34; mean firing rate (example 1): 84.5
+&#34;dense0&#34; mean firing rate (example 1): 118.9
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([884.02716, 140.79291,  85.17438, 104.914  ], dtype=float32)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_23_2.png" src="../_images/examples_keras-to-loihi_23_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_23_3.png" src="../_images/examples_keras-to-loihi_23_3.png" />
+</div>
+</div>
+<p>This is another way that we can recover normal ReLU performance using Loihi neurons.</p>
+<p>As discussed in the <a class="reference external" href="https://www.nengo.ai/nengo-dl/examples/keras-to-snn.html">Keras to SNN example</a>, we can also train up this network using an extra term added to the loss function as a way of getting neurons into the desired range of firing rates. This method has the benefit of being more precise in the resultant firing rates of neurons in the network. When we set <code class="docutils literal notranslate"><span class="pre">scale_firing_rates</span></code> to a large number during training, we’re simply instantiating the network with high firing rates and
+hoping it converges while maintaining these higher firing rates, but there is no guarantee. Adding the rate regularization term to the loss function ensures that the firing rates stay near their targets throughout the training process.</p>
+</div>
+<div class="section" id="Running-your-SNN-on-Loihi">
+<h2>Running your SNN on Loihi<a class="headerlink" href="#Running-your-SNN-on-Loihi" title="Permalink to this headline">¶</a></h2>
+<p>At this point we’re ready to test out our network on the Loihi. To actually run it on Loihi we have to set up a few more configuration parameters.</p>
+<p>We’ll start by converting our network same as before, using the same parameters on the Converter call:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="n">pres_time</span> <span class="o">=</span> <span class="mf">0.03</span>  <span class="c1"># how long to present each input, in seconds</span>
+<span class="n">n_test</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># how many images to test</span>
+
+<span class="c1"># convert the keras model to a nengo network</span>
+<span class="n">nengo_converter</span> <span class="o">=</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Converter</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">scale_firing_rates</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
+    <span class="n">swap_activations</span><span class="o">=</span><span class="p">{</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">:</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">neurons</span><span class="o">.</span><span class="n">LoihiSpikingRectifiedLinear</span><span class="p">()},</span>
+    <span class="n">synapse</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">net</span> <span class="o">=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">net</span>
+
+<span class="c1"># get input/output objects</span>
+<span class="n">nengo_input</span> <span class="o">=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">inp</span><span class="p">]</span>
+<span class="n">nengo_output</span> <span class="o">=</span> <span class="n">nengo_converter</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">dense1</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>The next thing we need to do is load in the trained parameters. This involves creating a NengoDL Simulator, loading in the weights, and then calling the <code class="docutils literal notranslate"><span class="pre">`freeze_params</span></code> &lt;<a class="reference external" href="https://www.nengo.ai/nengo-dl/reference.html#nengo_dl.Simulator.freeze_params">https://www.nengo.ai/nengo-dl/reference.html#nengo_dl.Simulator.freeze_params</a>&gt;`__ function to save the weights to the network object. This will then let us build a network with the trained weights inside the NengoLoihi Simulator.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># build network, load in trained weights, save to network</span>
+<span class="k">with</span> <span class="n">nengo_dl</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">net</span><span class="p">)</span> <span class="k">as</span> <span class="n">nengo_sim</span><span class="p">:</span>
+    <span class="n">nengo_sim</span><span class="o">.</span><span class="n">load_params</span><span class="p">(</span><span class="s2">&quot;keras_to_loihi_loihineuron_params&quot;</span><span class="p">)</span>
+    <span class="n">nengo_sim</span><span class="o">.</span><span class="n">freeze_params</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Build finished in 0:00:00
+Optimization finished in 0:00:00
+Construction finished in 0:00:00
+</pre></div></div>
+</div>
+<p>Before we build the network in NengoLoihi we need to make a few more changes.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">input</span></code> Node needs to altered to generate our test images as output:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">with</span> <span class="n">net</span><span class="p">:</span>
+    <span class="n">nengo_input</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">processes</span><span class="o">.</span><span class="n">PresentInput</span><span class="p">(</span>
+        <span class="n">test_images</span><span class="p">,</span> <span class="n">presentation_time</span><span class="o">=</span><span class="n">pres_time</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We specify that the <code class="docutils literal notranslate"><span class="pre">to_spikes</span></code> layer should run off-chip:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">with</span> <span class="n">net</span><span class="p">:</span>
+    <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>  <span class="c1"># allow on_chip to be set</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">to_spikes</span><span class="p">]</span><span class="o">.</span><span class="n">ensemble</span><span class="p">]</span><span class="o">.</span><span class="n">on_chip</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+</div>
+<p>At this point, if you try to build the network you will get an error &gt;BuildError: Total synapse bits (1103808) exceeded max (1048576)</p>
+<p>which means that too many connections are going into a single Loihi core. To fix this, we need to specify the <code class="docutils literal notranslate"><span class="pre">block_shape</span></code> parameter on the convnet layers that are running on the Loihi. This lets us break up our convnet layer across multiple cores and prevent us from overloading a single core. The first parameter specifies the target size of the representation per core with a (<code class="docutils literal notranslate"><span class="pre">rows</span></code>, <code class="docutils literal notranslate"><span class="pre">columns</span></code>, <code class="docutils literal notranslate"><span class="pre">channels</span></code>) tuple. The max neurons per core is 1024, so <code class="docutils literal notranslate"><span class="pre">rows</span> <span class="pre">*</span> <span class="pre">columns</span> <span class="pre">*</span> <span class="pre">channels</span></code> must
+be less than 1024.</p>
+<p>The second parameter is the size of the full layer. This <a class="reference external" href="https://en.wikipedia.org/wiki/Convolutional_neural_network#Convolutional_layer">can be calculated</a> with the <code class="docutils literal notranslate"><span class="pre">input_size</span></code>, <code class="docutils literal notranslate"><span class="pre">kernel_size</span></code>, <code class="docutils literal notranslate"><span class="pre">strides</span></code>, and <code class="docutils literal notranslate"><span class="pre">filters</span></code> parameters for the layer. We do this in the <code class="docutils literal notranslate"><span class="pre">calculate_size</span></code> function below.</p>
+<p>These parameters need to be tuned until the synapse and axon constraints are met. More details on <code class="docutils literal notranslate"><span class="pre">block_shape</span></code> can be found in the <code class="docutils literal notranslate"><span class="pre">`BlockShape</span></code> documentation &lt;<a class="reference external" href="https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.BlockShape">https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.BlockShape</a>&gt;`__, with details about how to choose good block shapes in the <a class="reference external" href="https://www.nengo.ai/nengo-loihi/tips.html#splitting-large-ensembles">tips and tricks section</a> of the documentation and in the <a class="reference external" href="https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html">CIFAR-10 Loihi
+example</a>.</p>
+<p>For this example, we are using the <code class="docutils literal notranslate"><span class="pre">(16,</span> <span class="pre">16,</span> <span class="pre">4)</span></code> for <code class="docutils literal notranslate"><span class="pre">conv0</span></code>, <code class="docutils literal notranslate"><span class="pre">(8,</span> <span class="pre">8,</span> <span class="pre">16)</span></code> for <code class="docutils literal notranslate"><span class="pre">conv1</span></code>, and <code class="docutils literal notranslate"><span class="pre">(50,)</span></code> for our <code class="docutils literal notranslate"><span class="pre">dense0</span></code> (which breaks it up into two 50 neuron ensembles) to fit our model on Loihi.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="k">with</span> <span class="n">net</span><span class="p">:</span>
+    <span class="n">conv0_shape</span> <span class="o">=</span> <span class="n">conv0_layer</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span>
+        <span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">conv0</span><span class="p">]</span><span class="o">.</span><span class="n">ensemble</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">((</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">conv0_shape</span><span class="p">)</span>
+
+    <span class="n">conv1_shape</span> <span class="o">=</span> <span class="n">conv1_layer</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span>
+        <span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">conv1</span><span class="p">]</span><span class="o">.</span><span class="n">ensemble</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">((</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="n">conv1_shape</span><span class="p">)</span>
+
+    <span class="n">dense0_shape</span> <span class="o">=</span> <span class="n">dense0_layer</span><span class="o">.</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span>
+        <span class="n">nengo_converter</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">dense0</span><span class="p">]</span><span class="o">.</span><span class="n">ensemble</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">((</span><span class="mi">50</span><span class="p">,),</span> <span class="n">dense0_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Now we’re ready to build the network and run it!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># build NengoLoihi Simulator and run network</span>
+<span class="k">with</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">net</span><span class="p">)</span> <span class="k">as</span> <span class="n">loihi_sim</span><span class="p">:</span>
+    <span class="n">loihi_sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">n_test</span> <span class="o">*</span> <span class="n">pres_time</span><span class="p">)</span>
+
+    <span class="c1"># get output (last timestep of each presentation period)</span>
+    <span class="n">pres_steps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">pres_time</span> <span class="o">/</span> <span class="n">loihi_sim</span><span class="o">.</span><span class="n">dt</span><span class="p">))</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">loihi_sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">nengo_output</span><span class="p">][</span><span class="n">pres_steps</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="n">pres_steps</span><span class="p">]</span>
+
+    <span class="c1"># compute the Loihi accuracy</span>
+    <span class="n">loihi_predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">correct</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loihi_predictions</span> <span class="o">==</span> <span class="n">test_labels</span><span class="p">[:</span><span class="n">n_test</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loihi accuracy: </span><span class="si">%.2f%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">correct</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loihi accuracy: 100.00%
+</pre></div></div>
+</div>
+<p>Our accuracy print-out is 100%, and we can also plot the results to see for ourselves:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre>
+<span></span><span class="c1"># plot the neural activity of the convnet layers</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="n">timesteps</span> <span class="o">=</span> <span class="n">loihi_sim</span><span class="o">.</span><span class="n">trange</span><span class="p">()</span> <span class="o">/</span> <span class="n">loihi_sim</span><span class="o">.</span><span class="n">dt</span>
+
+<span class="c1"># plot the presented MNIST digits</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">images</span> <span class="o">=</span> <span class="n">test_images</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[:</span><span class="n">n_test</span><span class="p">]</span>
+<span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="n">nc</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+<span class="n">allimage</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ni</span><span class="p">,</span> <span class="n">nj</span> <span class="o">*</span> <span class="n">n_test</span><span class="p">,</span> <span class="n">nc</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">images</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">image</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">images</span><span class="p">[:</span><span class="n">n_test</span><span class="p">]):</span>
+    <span class="n">allimage</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">nj</span> <span class="p">:</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nj</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
+<span class="k">if</span> <span class="n">allimage</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">allimage</span> <span class="o">=</span> <span class="n">allimage</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">allimage</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+
+<span class="c1"># plot the network predictions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timesteps</span><span class="p">,</span> <span class="n">loihi_sim</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">nengo_output</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)],</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Output predictions&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Timestep&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Probability&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;Probability&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;Figure size 864x288 with 0 Axes&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_keras-to-loihi_37_2.png" src="../_images/examples_keras-to-loihi_37_2.png" />
+</div>
+</div>
+</div>
+<div class="section" id="Conclusions">
+<h2>Conclusions<a class="headerlink" href="#Conclusions" title="Permalink to this headline">¶</a></h2>
+<p>In this example we’ve expanded on the process of converting a Keras model to an SNN with additional considerations that are important for SNN’s we want to implement on the Loihi. We then showed the additional steps required to prepare a network generated by the NengoDL Converter to run on Loihi, including modifying the input node and specifying the distribution of convnet layers across cores.</p>
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>

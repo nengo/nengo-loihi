@@ -1,0 +1,163 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Multidimensional integrator\n",
+    "\n",
+    "This demo implements an N-dimensional neural integrator.\n",
+    "\n",
+    "This example utilizes a recurrent network.\n",
+    "It shows how neurons can be used to implement stable dynamics.\n",
+    "Such dynamics are important for memory, noise cleanup,\n",
+    "statistical inference, and many other dynamic transformations.\n",
+    "\n",
+    "It employs the `EnsembleArray` network,\n",
+    "which provides a convenient method to act on\n",
+    "multiple low-dimensional ensembles as though\n",
+    "they were one high-dimensional ensemble."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "import numpy as np\n",
+    "\n",
+    "import nengo\n",
+    "from nengo.networks import EnsembleArray\n",
+    "from nengo.processes import Piecewise\n",
+    "import nengo_loihi\n",
+    "\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the network in Nengo\n",
+    "\n",
+    "Our model consists of one recurrently connected ensemble array,\n",
+    "and an input node for each dimension.\n",
+    "The input nodes will provide piecewise step functions as input\n",
+    "so that we can see the effects of recurrence."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dimensions = 3\n",
+    "tau = 0.1\n",
+    "\n",
+    "with nengo.Network(label=\"Integrator\") as model:\n",
+    "    ens = EnsembleArray(n_neurons=100, n_ensembles=dimensions)\n",
+    "    stims = [\n",
+    "        nengo.Node(\n",
+    "            Piecewise(\n",
+    "                {\n",
+    "                    0: 0,\n",
+    "                    0.2: np.random.uniform(low=0.5, high=3.0),\n",
+    "                    1: 0,\n",
+    "                    2: np.random.uniform(low=-3, high=-0.5),\n",
+    "                    3: 0,\n",
+    "                    4: np.random.uniform(low=-3, high=3),\n",
+    "                    5: 0,\n",
+    "                }\n",
+    "            )\n",
+    "        )\n",
+    "        for dim in range(dimensions)\n",
+    "    ]\n",
+    "    for i, stim in enumerate(stims):\n",
+    "        nengo.Connection(stim, ens.input[i], transform=[[tau]], synapse=tau)\n",
+    "\n",
+    "    # Connect the ensemble array to itself\n",
+    "    nengo.Connection(ens.output, ens.input, synapse=tau)\n",
+    "\n",
+    "    # Collect data for plotting\n",
+    "    stim_probes = [nengo.Probe(stim) for stim in stims]\n",
+    "    ens_probe = nengo.Probe(ens.output, synapse=0.01)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can use Nengo to see the desired model output."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(6)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_decoded(t, data):\n",
+    "    plt.figure()\n",
+    "    for stim_probe in stim_probes:\n",
+    "        plt.plot(t, data[stim_probe], color=\"b\")\n",
+    "    plt.plot(t, data[ens_probe], \"k\")\n",
+    "\n",
+    "\n",
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(6)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_decoded(t, sim.data)"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}

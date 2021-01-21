@@ -1,0 +1,169 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Nonlinear oscillator\n",
+    "\n",
+    "This example implements a nonlinear harmonic oscillator\n",
+    "in a 2D neural population.\n",
+    "Unlike the simple oscillator whose recurrent connection\n",
+    "implements a linear transformation,\n",
+    "this model approximates a nonlinear function\n",
+    "in the recurrent connection to yield oscillatory behavior."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "import numpy as np\n",
+    "\n",
+    "import nengo\n",
+    "import nengo_loihi\n",
+    "\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the network in Nengo\n",
+    "\n",
+    "Our model consists of one recurrently connected ensemble.\n",
+    "Unlike the simple oscillator,\n",
+    "we do not need to give this nonlinear oscillator\n",
+    "an initial kick."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tau = 0.1\n",
+    "\n",
+    "\n",
+    "def recurrent_func(x):\n",
+    "    x0, x1 = x\n",
+    "    r = np.sqrt(x0 ** 2 + x1 ** 2)\n",
+    "    a = np.arctan2(x1, x0)\n",
+    "    dr = -(r - 1)\n",
+    "    da = 3.0\n",
+    "    r = r + tau * dr\n",
+    "    a = a + tau * da\n",
+    "    return [r * np.cos(a), r * np.sin(a)]\n",
+    "\n",
+    "\n",
+    "with nengo.Network(label=\"Oscillator\") as model:\n",
+    "    ens = nengo.Ensemble(200, dimensions=2)\n",
+    "    nengo.Connection(ens, ens, function=recurrent_func, synapse=tau)\n",
+    "    ens_probe = nengo.Probe(ens, synapse=0.1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can use Nengo to see the desired model output."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(10)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_over_time(t, data):\n",
+    "    plt.figure()\n",
+    "    plt.plot(t, data[ens_probe])\n",
+    "    plt.xlabel(\"Time (s)\", fontsize=\"large\")\n",
+    "    plt.legend([\"$x_0$\", \"$x_1$\"])\n",
+    "\n",
+    "\n",
+    "plot_over_time(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_xy(data):\n",
+    "    plt.figure()\n",
+    "    plt.plot(data[ens_probe][:, 0], data[ens_probe][:, 1])\n",
+    "    plt.xlabel(\"$x_0$\", fontsize=\"x-large\")\n",
+    "    plt.ylabel(\"$x_1$\", fontsize=\"x-large\")\n",
+    "\n",
+    "\n",
+    "plot_xy(sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(10)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_over_time(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_xy(sim.data)"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}
