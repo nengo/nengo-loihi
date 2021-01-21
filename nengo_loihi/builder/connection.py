@@ -145,7 +145,7 @@ def build_host_to_chip(model, conn):
     rng = np.random.RandomState(model.seeds[conn])
     host = model.host_model(base_obj(conn.pre))
 
-    if is_transform_type(conn.transform, "Convolution"):
+    if is_transform_type(conn.transform, ("Convolution", "ConvolutionTranspose")):
         raise BuildError(
             "Conv2D transforms not supported for off-chip to "
             "on-chip connections where `pre` is not a Neurons object."
@@ -244,6 +244,12 @@ def build_host_to_chip(model, conn):
 
 
 def build_chip_to_host(model, conn):
+    if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
+        raise BuildError(
+            "nengo-loihi does not yet support %r transforms "
+            "on chip to host connections" % (type(conn.transform).__name__,)
+        )
+
     rng = np.random.RandomState(model.seeds[conn])
     dim = conn.size_out
     host = model.host_model(base_obj(conn.post))
@@ -607,6 +613,14 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                     )
 
                 tracing_tau = rule_type.pre_synapse.tau / model.dt
+                if not np.allclose(round(tracing_tau), tracing_tau):
+                    raise ValidationError(
+                        "PES learning rule `pre_synapse.tau` must be an integer "
+                        "multiple of `dt` (%s). Got %s."
+                        % (model.dt, rule_type.pre_synapse.tau),
+                        attr="pre_synapse.tau",
+                        obj=rule_type,
+                    )
 
                 # Nengo builder scales PES learning rate by `dt / n_neurons`
                 n_neurons = (
@@ -727,15 +741,12 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
 
 @Builder.register(nengo.Convolution)
+@Builder.register(getattr(nengo.transforms, "ConvolutionTranspose", None))
 def build_conv2d_connection(model, transform, conn):
-    assert is_transform_type(transform, "Convolution")
+    assert is_transform_type(transform, ("Convolution", "ConvolutionTranspose"))
 
     if transform.dimensions != 2:
         raise NotImplementedError("nengo-loihi only supports 2D convolution")
-    if transform.padding != "valid":
-        raise NotImplementedError(
-            "nengo-loihi only supports convolution with 'valid' padding"
-        )
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])
