@@ -428,29 +428,29 @@ class PartitionComms(Allocator):
     - Check that partitioning is always balanced, and no chips will have too many cores.
     """
 
-    def __init__(self, cores_per_chip=128, ensemble_rates=None):
+    def __init__(self, ensemble_rates=None, rate_scale=1):
         import networkx
         import nxmetis
 
         super().__init__()
         # super().__init__(cores_per_chip=cores_per_chip)
         self.ensemble_rates = ensemble_rates
-        if ensemble_rates is not None:
-            raise NotImplementedError(
-                "Rate-based optimization not implemented, since METIS requires "
-                "integer weights."
-            )
+        self.rate_scale = rate_scale
 
         self.networkx = networkx
         self.nxmetis = nxmetis
 
     def __call__(self, model, n_chips):
         block_map = {k: block for k, block in enumerate(model.blocks)}
-        block_rates = (
-            ens_to_block_rates(model, self.ensemble_rates)
-            if self.ensemble_rates is not None
-            else None
-        )
+
+        block_rates = None
+        if self.ensemble_rates is not None:
+            block_rates = ens_to_block_rates(model, self.ensemble_rates)
+            block_rates = {
+                block: np.round(rate * self.rate_scale)
+                for block, rate in block_rates.items()
+            }
+
         block_conns = compute_block_conns(block_map, block_rates=block_rates)
 
         # partition graph
