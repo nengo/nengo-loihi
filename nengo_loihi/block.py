@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import scipy.sparse
 from nengo.exceptions import BuildError
+from nengo.rc import rc
 
 from nengo_loihi.nxsdk_obfuscation import d
 
@@ -156,19 +157,21 @@ class Compartment:
     def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
         self.label = label
+        # dtype must be float32, because of how we discretize in place to int32
+        self.dtype = np.float32
 
         # parameters specific to compartments/block
-        self.decay_u = np.ones(n_compartments, dtype=np.float32)
+        self.decay_u = np.ones(n_compartments, dtype=self.dtype)
         # ^ default to no filter
-        self.decay_v = np.zeros(n_compartments, dtype=np.float32)
+        self.decay_v = np.zeros(n_compartments, dtype=self.dtype)
         # ^ default to integration
         self.tau_s = None
         self.scale_u = True
         self.scale_v = False
 
         self.refract_delay = np.zeros(n_compartments, dtype=np.int32)
-        self.vth = np.zeros(n_compartments, dtype=np.float32)
-        self.bias = np.zeros(n_compartments, dtype=np.float32)
+        self.vth = np.zeros(n_compartments, dtype=self.dtype)
+        self.bias = np.zeros(n_compartments, dtype=self.dtype)
         self.enable_noise = np.zeros(n_compartments, dtype=bool)
 
         # parameters common to core
@@ -177,6 +180,8 @@ class Compartment:
         self.noise_offset = 0
         self.noise_exp = 0
         self.noise_at_membrane = 0
+
+        self.discretize_info = None
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
@@ -476,7 +481,7 @@ class SynapseConfig(Config):
 
     @classmethod
     def get_real_weight_exp(cls, weight_exp):
-        return d(b"Ng==", int) + weight_exp
+        return 6 + weight_exp
 
     @classmethod
     def get_scale(cls, weight_exp):
@@ -505,7 +510,7 @@ class SynapseConfig(Config):
     @property
     def shift_bits(self):
         """Number of bits the weight is right-shifted by."""
-        return d(b"OA==", int) - self.real_weight_bits + self.is_mixed
+        return 8 - self.real_weight_bits + self.is_mixed
 
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
@@ -519,13 +524,14 @@ class SynapseConfig(Config):
 
         synapse_idx_bits = d(b"NA==", int)
         n_synapses_bits = d(b"Ng==", int)
+        bits_per_memunit = d(b"NjQ=", int)
         bits = 0
         synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
             bits_i = n * bits_per_weight + synapse_idx_bits + n_synapses_bits
             # round up to nearest memory unit
-            bits_i = -d(b"NjQ=", int) * (-bits_i // d(b"NjQ=", int))
+            bits_i = -bits_per_memunit * (-bits_i // bits_per_memunit)
             bits += bits_i
 
         return bits
@@ -599,17 +605,17 @@ class Synapse:
         """Number of extra bits needed for the atom for incoming pop16 spikes."""
         if self.pop_type == 16:
             atom_bits = self.atom_bits()
-            assert atom_bits <= d(b"OQ==", int), "Too many atom bits"
-            return max(atom_bits - d(b"NQ==", int), 0)
+            assert atom_bits <= 9, "Too many atom bits"
+            return max(atom_bits - 5, 0)
         else:
             return 0  # meaningless if pop_type != 16
 
     def axon_bits(self):
         """Number of bits available to represent the target axon on incoming spikes."""
         if self.pop_type == 16:
-            return d(b"MTA=", int) - self.atom_bits_extra()
+            return 10 - self.atom_bits_extra()
         else:
-            return d(b"MTI=", int)
+            return 12
 
     def axon_compartment_base(self, axon_idx):
         """Offset for compartment indices for a particular axon.
@@ -667,7 +673,7 @@ class Synapse:
 
     def idxs_per_synapse(self):
         """The number of axon indices (slots) required for each incoming axon."""
-        return d(b"Mg==", int) if self.learning else d(b"MQ==", int)
+        return 2 if self.learning else 1
 
     def max_abs_weight(self):
         """The maximum absolute value of all the weights in this Synapse."""
@@ -684,9 +690,11 @@ class Synapse:
         self,
         weights,
         indices=None,
-        weight_dtype=np.float32,
+        weight_dtype=None,
         compression=d(b"MA==", int),
     ):
+        # must be float32, because of how we discretize in place to int32
+        weight_dtype = np.float32 if weight_dtype is None else weight_dtype
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
         ]

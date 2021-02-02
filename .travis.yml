@@ -30,6 +30,7 @@ jobs:
   include:
   -
     env:
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       SCRIPT="emulator"
     stage: basic
   -
@@ -38,11 +39,13 @@ jobs:
   -
     env:
       NXSDK_VERSION="0.9.9"
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       SCRIPT="hardware"
     stage: advanced
     python: 3.6.8
   -
     env:
+      NENGO_VERSION="nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
       SCRIPT="docs"
     addons:
       apt:

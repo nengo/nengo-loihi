@@ -127,12 +127,13 @@ class Model:
         self.block_shapes = {}
         self.probes = []
 
-        # Will be filled in by the simulator __init__
-        self.split = None
+        self.block_comp_map = {}
+        self.connection_decode_neurons = {}
 
         # Will be filled in by the network builder
         self.toplevel = None
         self.config = None
+        self.split = None
 
         # Resources used by the build process
         self.objs = defaultdict(dict)  # maps Nengo objects to Loihi objects
@@ -289,3 +290,14 @@ class Builder(NengoBuilder):
     """
 
     builders = {}
+
+    @classmethod
+    def register(cls, nengo_class):
+        if nengo_class is None:
+
+            def null_decorator(build_fn):
+                return build_fn
+
+            return null_decorator
+
+        return super().register(nengo_class)

@@ -40,7 +40,12 @@ def build_network(
             model.build(conn)
 
         # Split blocks into blocks that will fit on cores
-        split_model(model)
+        block_map = split_model(model)
+        model.block_comp_map = {
+            new_block: comp_idxs
+            for old_block, new_blocks in block_map.items()
+            for new_block, comp_idxs in new_blocks.items()
+        }
 
         if discretize:
             discretize_model(model)

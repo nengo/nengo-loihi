@@ -492,16 +492,21 @@ travis_yml:
   jobs:
     - stage: basic
       script: emulator
+      env:
+        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
     - script: static
     - stage: advanced
       script: hardware
       python: 3.6.8
       env:
         NXSDK_VERSION: 0.9.9
+        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
     - script: docs
       apt_install:
       - pandoc
       - ffmpeg  # ffmpeg required for matplotlib's `to_html5_video`
+      env:
+        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git@convolution-transpose"
   pypi_user: __token__
   deploy_dists:
     - sdist

@@ -25,6 +25,8 @@ LEARN_BITS = d(b"MTU=", int)
 # extra least-significant bits added to weights for learning
 LEARN_FRAC = d(b"Nw==", int)
 
+TRACING_MAG_FRAC_SCALE = d(b"MTI4", int)
+
 logger = logging.getLogger(__name__)
 
 
@@ -114,7 +116,7 @@ def bias_to_manexp(bias):
 def tracing_mag_int_frac(mag):
     """Split trace magnitude into integer and fractional components for chip"""
     mag_int = int(mag)
-    mag_frac = int(d(b"MTI4", int) * (mag - mag_int))
+    mag_frac = int(TRACING_MAG_FRAC_SCALE * (mag - mag_int))
     return mag_int, mag_frac
 
 
@@ -147,7 +149,7 @@ def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
 
         x_i = floor(r x_{i-1})
 
-    where ``r = (2**bits - offset - decay)``.
+    where ``r = (2**bits - offset - decay) / 2**bits``.
 
     To simulate the effects of rounding in decay, we subtract an expected loss
     due to rounding (``q``) each iteration. Our estimated series is therefore::
@@ -243,10 +245,11 @@ def discretize_block(block):
     w_maxs = [s.max_abs_weight() for s in block.synapses]
     w_max = max(w_maxs) if len(w_maxs) > 0 else 0
 
-    p = discretize_compartment(block.compartment, w_max)
+    info = discretize_compartment(block.compartment, w_max)
     for synapse in block.synapses:
-        discretize_synapse(synapse, w_max, p["w_scale"], p["w_exp"])
-    return p["v_scale"]
+        discretize_synapse(synapse, w_max, info["w_scale"], info["w_exp"])
+
+    return info["v_scale"]
 
 
 def discretize_compartment(comp, w_max):
@@ -311,7 +314,9 @@ def discretize_compartment(comp, w_max):
             if (vth <= vth_max).all() and (np.abs(bias) <= BIAS_MAX).all():
                 break
         else:
-            raise BuildError("Could not find appropriate weight exponent")
+            raise BuildError(
+                "Could not find appropriate weight exponent (block=%s)" % comp.label
+            )
     elif b_max > 1e-8:
         b_scale = BIAS_MAX / b_max
         while b_scale * b_max > 1:
@@ -324,7 +329,9 @@ def discretize_compartment(comp, w_max):
 
             b_scale /= 2.0
         else:
-            raise BuildError("Could not find appropriate bias scaling")
+            raise BuildError(
+                "Could not find appropriate bias scaling (block=%s)" % comp.label
+            )
     else:
         # reduce vth_max in this case to avoid overflow since we're setting
         # all vth to vth_max (esp. in learning with zeroed initial weights)
@@ -363,7 +370,12 @@ def discretize_compartment(comp, w_max):
     vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
     comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
-    return dict(w_max=w_max, w_scale=w_scale, w_exp=w_exp, v_scale=v_scale)
+    info = dict(
+        w_max=w_max, w_exp=w_exp, v_scale=v_scale, b_scale=b_scale, w_scale=w_scale
+    )
+    comp.discretize_info = info
+
+    return info
 
 
 def discretize_synapse(synapse, w_max, w_scale, w_exp):
@@ -467,7 +479,7 @@ def discretize_weights(
         the valid range for weights on the chip (-256 to 255).
     """
     s = synapse_cfg.shift_bits
-    m = 2 ** (d(b"OA==", int) - s) - 1
+    m = 2 ** (8 - s) - 1
 
     w = np.round(w / 2.0 ** s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
@@ -481,13 +493,13 @@ def discretize_weights(
             w = (np.round(w * 2.0 ** s2) / 2 ** s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
-        np.left_shift(w, d(b"Ng==", int), out=w)
+        np.left_shift(w, 6, out=w)
     else:
-        shift(w, d(b"Ng==", int) + s2, out=w)
+        shift(w, 6 + s2, out=w)
 
     if check_result:
         ws = w // synapse_cfg.scale
-        assert np.all(ws <= d(b"MjU1", int)) and np.all(ws >= d(b"LTI1Ng==", int))
+        assert np.all(ws <= 255) and np.all(ws >= -256)
 
     return w
 

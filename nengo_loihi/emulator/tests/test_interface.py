@@ -82,8 +82,9 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
 
     assert EmulatorInterface.strict  # Tests should be run in strict mode
     monkeypatch.setattr(EmulatorInterface, "strict", False)
+    overflow_var = "q0" if n_axons == 1000 else "current"
     with EmulatorInterface(model) as emu:
-        with pytest.warns(UserWarning):
+        with pytest.warns(UserWarning, match="Overflow in %s" % overflow_var):
             emu.run_steps(nt)
         emu_u = emu.get_probe_output(probe_u)
         emu_v = emu.get_probe_output(probe_v)
