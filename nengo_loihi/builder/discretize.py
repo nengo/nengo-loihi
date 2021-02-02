@@ -146,7 +146,7 @@ def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
 
         x_i = floor(r x_{i-1})
 
-    where ``r = (2**bits - offset - decay)``.
+    where ``r = (2**bits - offset - decay) / 2**bits``.
 
     To simulate the effects of rounding in decay, we subtract an expected loss
     due to rounding (``q``) each iteration. Our estimated series is therefore::
