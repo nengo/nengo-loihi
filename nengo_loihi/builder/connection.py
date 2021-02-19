@@ -643,7 +643,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
     if isinstance(post_obj, LoihiProbe):
         assert post_obj.target == [None]
         assert post_slice == slice(None)
-        post_obj.target[0] = mid_obj
+        post_obj.target = [mid_obj]
         model.add_probe(post_obj)
     elif isinstance(conn.post_obj, Neurons):
         assert isinstance(post_obj, LoihiBlock)
