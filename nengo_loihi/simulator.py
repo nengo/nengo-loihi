@@ -248,6 +248,9 @@ class Simulator:
         for sim in self.sims.values():
             if not sim.closed:
                 sim.close()
+
+        self.model.clear()
+
         self._runner = None
         self.closed = True
 

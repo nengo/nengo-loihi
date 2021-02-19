@@ -20,9 +20,14 @@ class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
     def __init__(self, dimensions, label=Default):
-        self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
         super().__init__(self.update, size_in=0, size_out=dimensions, label=label)
+        self.queue = []
+        self.clear()
+
+    def clear(self):
+        self.queue.clear()
+        self.queue.append((0, np.zeros(self.size_out)))
+        self.queue_index = 0
 
     def update(self, t):
         while (
