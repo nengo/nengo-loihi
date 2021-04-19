@@ -1,0 +1,513 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Nonlinear adaptive control\n",
+    "\n",
+    "In this example, we will use the PES learning rule\n",
+    "to learn the effects of gravity, applied to a 2-joint arm.\n",
+    "\n",
+    "This example requires the `abr_control` library.\n",
+    "To install it,\n",
+    "\n",
+    "```\n",
+    "git clone https://github.com/abr/abr_control.git\n",
+    "pip install -e abr_control\n",
+    "```\n",
+    "\n",
+    "Note that while this example uses a simualted 2-joint arm,\n",
+    "the underlying network structure is identical\n",
+    "to the network previously used to\n",
+    "control a physical robot arm."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%matplotlib inline\n",
+    "from abr_control.arms import twojoint as arm\n",
+    "from abr_control.controllers import OSC\n",
+    "import matplotlib.pyplot as plt\n",
+    "import nengo\n",
+    "import numpy as np\n",
+    "\n",
+    "import nengo_loihi\n",
+    "\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the arm simulation and reaching framework\n",
+    "\n",
+    "The first thing to do is create the arm simulation\n",
+    "to simulate the dynamics of a two link arm,\n",
+    "and an operational space controller to calculate\n",
+    "what torques to apply to the joints\n",
+    "to move the hand in a straight line to the targets."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# set the initial position of the arm\n",
+    "robot_config = arm.Config(use_cython=True)\n",
+    "arm_sim = arm.ArmSim(robot_config=robot_config, dt=1e-3, q_init=[0.95, 2.0])\n",
+    "\n",
+    "# create an operational space controller\n",
+    "ctrlr = OSC(robot_config, kp=10, kv=7, vmax=[10, 10])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Next we create a set of targets for the arm to reach to.\n",
+    "In this task the hand will start at a center location,\n",
+    "then reach out and back to 4 targets around a circle."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create a set of targets to reach to\n",
+    "n_reaches = 4\n",
+    "distance = 0.75\n",
+    "center = [0, 2.0]\n",
+    "end_points = [\n",
+    "    [distance * np.cos(theta) + center[0], distance * np.sin(theta) + center[1]]\n",
+    "    for theta in np.linspace(0, 2 * np.pi, n_reaches + 1)\n",
+    "][:-1]\n",
+    "targets = np.vstack([[center, ep] for ep in end_points])\n",
+    "\n",
+    "plt.plot(center[0], center[1], \"bx\", mew=5, label=\"Start\")\n",
+    "for i, end_point in enumerate(end_points):\n",
+    "    plt.plot(end_point[0], end_point[1], \"x\", mew=5, label=\"Target %d\" % (i + 1))\n",
+    "plt.gca().set_aspect(\"equal\")\n",
+    "plt.legend()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def build_baseline_model():\n",
+    "    with nengo.Network(label=\"Nonlinear adaptive control\") as model:\n",
+    "\n",
+    "        # Create node that specifies target\n",
+    "        def gen_target(t):\n",
+    "            # Advance to the next target in the list every 2 seconds\n",
+    "            return targets[int(t / 2) % len(targets)]\n",
+    "\n",
+    "        target_node = nengo.Node(output=gen_target, size_out=2)\n",
+    "\n",
+    "        # Create node that calculates the OSC signal\n",
+    "        model.osc_node = nengo.Node(\n",
+    "            output=lambda t, x: ctrlr.generate(\n",
+    "                q=x[:2], dq=x[2:4], target=np.hstack([x[4:6], np.zeros(4)])\n",
+    "            ),\n",
+    "            size_in=6,\n",
+    "            size_out=2,\n",
+    "        )\n",
+    "\n",
+    "        # Create node that runs the arm simulation and gets feedback\n",
+    "        def arm_func(t, x):\n",
+    "            u = x[:2]  # the OSC signal\n",
+    "            u += x[2:4] * 10  # add in the adaptive control signal\n",
+    "            arm_sim.send_forces(u)  # step the arm simulation forward\n",
+    "            # return arm joint angles, joint velocities, and hand (x,y)\n",
+    "            return np.hstack([arm_sim.q, arm_sim.dq, arm_sim.x])\n",
+    "\n",
+    "        model.arm_node = nengo.Node(output=arm_func, size_in=4)\n",
+    "\n",
+    "        # hook up the OSC controller and arm simulation\n",
+    "        nengo.Connection(model.osc_node, model.arm_node[:2])\n",
+    "        nengo.Connection(model.arm_node[:4], model.osc_node[:4])\n",
+    "        # send in current target to the controller\n",
+    "        nengo.Connection(target_node, model.osc_node[4:6])\n",
+    "\n",
+    "        model.probe_target = nengo.Probe(target_node)  # track targets\n",
+    "        model.probe_hand = nengo.Probe(model.arm_node[4:6])  # track hand (x,y)\n",
+    "        model.probe_q = nengo.Probe(model.arm_node[:2])  # track joint angles\n",
+    "\n",
+    "    return model\n",
+    "\n",
+    "\n",
+    "baseline_model = build_baseline_model()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can now run the basic framework,\n",
+    "where the operational space controller\n",
+    "will drive the hand to the 4 targets around the circle."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# each reach is 2 seconds out + 2 seconds back in\n",
+    "runtime = n_reaches * 2 * 2 + 2\n",
+    "\n",
+    "arm_sim.reset()\n",
+    "with nengo.Simulator(baseline_model, progress_bar=False) as sim:\n",
+    "    sim.run(runtime)\n",
+    "baseline_t = sim.trange()\n",
+    "baseline_data = sim.data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The error is calculated as the difference\n",
+    "between the hand (x,y) position and the target.\n",
+    "Whenever the target changes, the error will jump up,\n",
+    "and then quickly decrease as the hand approaches the target."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def calculate_error(model, data):\n",
+    "    return data[model.probe_hand] - data[model.probe_target]\n",
+    "\n",
+    "\n",
+    "baseline_error = calculate_error(baseline_model, baseline_data)\n",
+    "\n",
+    "\n",
+    "def plot_data(t_set, data_set, label_set):\n",
+    "    plt.figure(figsize=(10, 6))\n",
+    "    plt.title(\"Distance to target\")\n",
+    "\n",
+    "    ax1 = plt.subplot(2, 1, 1)\n",
+    "    ax1.plot(t_set[0], np.zeros_like(t_set[0]), \"k--\")\n",
+    "    plt.xticks([])\n",
+    "    plt.ylabel(\"X error\")\n",
+    "\n",
+    "    ax2 = plt.subplot(2, 1, 2)\n",
+    "    ax2.plot(t_set[0], np.zeros_like(t_set[0]), \"k--\")\n",
+    "    plt.ylabel(\"Y error\")\n",
+    "    plt.xlabel(\"Time (s)\")\n",
+    "\n",
+    "    plt.tight_layout()\n",
+    "\n",
+    "    for t, data, label in zip(t_set, data_set, label_set):\n",
+    "        ax1.plot(t, data[:, 0], label=label)\n",
+    "        ax2.plot(t, data[:, 1], label=label)\n",
+    "\n",
+    "    ax1.legend(loc=1)\n",
+    "    ax2.legend(loc=1)\n",
+    "\n",
+    "\n",
+    "def plot_xy(t_set, data_set, label_set):\n",
+    "    tspace = 0.1\n",
+    "    ttol = 1e-5\n",
+    "\n",
+    "    plt.figure()\n",
+    "    ax = plt.subplot(111)\n",
+    "    ax.plot(center[0], center[1], \"kx\", mew=5, label=\"Start\")\n",
+    "    ax.plot(\n",
+    "        [p[0] for p in end_points],\n",
+    "        [p[1] for p in end_points],\n",
+    "        \"mx\",\n",
+    "        mew=5,\n",
+    "        label=\"Targets\",\n",
+    "    )\n",
+    "    for t, data, label in zip(t_set, data_set, label_set):\n",
+    "        tmask = (t + ttol) % tspace < 2 * ttol\n",
+    "        ax.plot(data[tmask, 0], data[tmask, 1], \".\", label=label)\n",
+    "    ax.legend(loc=1)\n",
+    "    ax.set_aspect(\"equal\")\n",
+    "\n",
+    "\n",
+    "plot_xy([baseline_t], [baseline_data[baseline_model.probe_hand]], [\"Baseline\"])\n",
+    "plot_data([baseline_t], [baseline_error], [\"Baseline\"])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Adding unexpected gravity\n",
+    "\n",
+    "Now we add gravity along the y-axis to the 2-link arm model,\n",
+    "which it is not expecting.\n",
+    "As a result, the error will be much greater\n",
+    "as it tries to reach to the various targets\n",
+    "relative to baseline performance.\n",
+    "Note that although gravity is only applied along the y-axis,\n",
+    "because the arm joints are not all oriented vertically,\n",
+    "the effect of gravity on the arm segments\n",
+    "also pulls the hand along the x-axis."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def add_gravity(model):\n",
+    "    with model:\n",
+    "        # calculate and add in gravity along y axis\n",
+    "        gravity = np.array([0, -9.8, 0, 0, 0, 0])\n",
+    "        M0g = np.dot(robot_config._M_LINKS[0], gravity)\n",
+    "        M1g = np.dot(robot_config._M_LINKS[1], gravity)\n",
+    "\n",
+    "        def gravity_func(t, q):\n",
+    "            g = np.dot(robot_config.J(\"link1\", q=q).T, M0g)\n",
+    "            g += np.dot(robot_config.J(\"link2\", q=q).T, M1g)\n",
+    "            return g\n",
+    "\n",
+    "        gravity_node = nengo.Node(gravity_func, size_in=2, size_out=2)\n",
+    "        # connect perturbation to arm\n",
+    "        nengo.Connection(model.arm_node[:2], gravity_node)\n",
+    "        nengo.Connection(gravity_node, model.arm_node[:2])\n",
+    "\n",
+    "    return model\n",
+    "\n",
+    "\n",
+    "gravity_model = add_gravity(build_baseline_model())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arm_sim.reset()\n",
+    "with nengo.Simulator(gravity_model, progress_bar=False) as sim:\n",
+    "    sim.run(runtime)\n",
+    "gravity_t = sim.trange()\n",
+    "gravity_data = sim.data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "gravity_error = calculate_error(gravity_model, gravity_data)\n",
+    "plot_xy([gravity_t], [gravity_data[gravity_model.probe_hand]], [\"Gravity\"])\n",
+    "plot_data(\n",
+    "    [baseline_t, gravity_t], [baseline_error, gravity_error], [\"Baseline\", \"Gravity\"]\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "As expected, the error is much worse, especially along the Y axis\n",
+    "(take note of the scale of the axes),\n",
+    "because gravity is affecting the system\n",
+    "and the operational space controller is not accounting for it."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Adding nonlinear adaptive control\n",
+    "\n",
+    "Now we add in an ensemble of neurons\n",
+    "to perform context sensitive error integration,\n",
+    "as presented in DeWolf, Stewart, Slotine, and Eliasmith, 2015.\n",
+    "We want the context for adaptation to be the joint angles of the arm.\n",
+    "For optimal performance, the input to the ensemble should be\n",
+    "in the range -1 to 1, so we need to look at\n",
+    "the expected range of joint angles\n",
+    "and transform the input signal accordingly."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "for ii in range(2):\n",
+    "    plt.subplot(2, 1, ii + 1)\n",
+    "    plt.plot(\n",
+    "        sim.trange(), baseline_data[baseline_model.probe_q][:, ii], label=\"Baseline\"\n",
+    "    )\n",
+    "    plt.plot(sim.trange(), gravity_data[gravity_model.probe_q][:, ii], label=\"Gravity\")\n",
+    "    plt.ylabel(\"Joint %i\" % ii)\n",
+    "    plt.legend()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Looking at this data, we can estimate the mean of Joint 0\n",
+    "across the two runs to be around .75, with a range\n",
+    "of .75 to either side of the mean.\n",
+    "For Joint 1 it's a bit more difficult;\n",
+    "we're going to err to the Baseline values\n",
+    "with the hope the adaptive controller helps keep us in that range.\n",
+    "So we'll choose a mean of 2 and range of 1 to either side of the mean."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def add_adaptation(model, learning_rate=1e-5):\n",
+    "    with model:\n",
+    "        # create ensemble to adapt to unmodeled dynamics\n",
+    "        adapt = nengo.Ensemble(n_neurons=1000, dimensions=2, radius=np.sqrt(2))\n",
+    "\n",
+    "        means = np.array([0.75, 2.25])\n",
+    "        scaling = np.array([0.75, 1.25])\n",
+    "        scale_node = nengo.Node(\n",
+    "            output=lambda t, x: (x - means) / scaling, size_in=2, size_out=2\n",
+    "        )\n",
+    "        # to send target info to ensemble\n",
+    "        nengo.Connection(model.arm_node[:2], scale_node)\n",
+    "        nengo.Connection(scale_node, adapt)\n",
+    "\n",
+    "        # create the learning connection from adapt to the arm simulation\n",
+    "        learn_conn = nengo.Connection(\n",
+    "            adapt,\n",
+    "            model.arm_node[2:4],\n",
+    "            function=lambda x: np.zeros(2),\n",
+    "            learning_rule_type=nengo.PES(learning_rate),\n",
+    "            synapse=0.05,\n",
+    "        )\n",
+    "        # connect up the osc signal as the training signal\n",
+    "        nengo.Connection(model.osc_node, learn_conn.learning_rule, transform=-1)\n",
+    "    return model\n",
+    "\n",
+    "\n",
+    "adapt_model = add_adaptation(add_gravity(build_baseline_model()))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arm_sim.reset()\n",
+    "with nengo.Simulator(adapt_model, progress_bar=False) as sim:\n",
+    "    sim.run(runtime)\n",
+    "adapt_t = sim.trange()\n",
+    "adapt_data = sim.data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "adapt_error = calculate_error(adapt_model, adapt_data)\n",
+    "plot_xy([adapt_t], [adapt_data[adapt_model.probe_hand]], [\"Adapt\"])\n",
+    "plot_data(\n",
+    "    [baseline_t, gravity_t, adapt_t],\n",
+    "    [baseline_error, gravity_error, adapt_error],\n",
+    "    [\"Baseline\", \"Gravity\", \"Gravity + Adapt\"],\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "And we can see that even in only one pass\n",
+    "through the target set the adaptive ensemble\n",
+    "has already significantly reduced the error.\n",
+    "To see further reductions,\n",
+    "change the run time of the simulation to be longer\n",
+    "so that the arm does multiple passes of the target set\n",
+    "(by changing `sim.run(runtime)` to `sim.run(runtime*2)`)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi\n",
+    "\n",
+    "Loihi has limits on the magnitude of the\n",
+    "error signal, so we need to adjust the\n",
+    "`pes_error_scale` parameter to avoid too much overflow."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arm_sim.reset()\n",
+    "\n",
+    "model = nengo_loihi.builder.Model()\n",
+    "model.pes_error_scale = 10\n",
+    "\n",
+    "with nengo_loihi.Simulator(adapt_model, model=model) as sim:\n",
+    "    sim.run(runtime)\n",
+    "adapt_loihi_t = sim.trange()\n",
+    "adapt_loihi_data = sim.data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "adapt_loihi_error = calculate_error(adapt_model, adapt_loihi_data)\n",
+    "plot_xy([adapt_loihi_t], [adapt_loihi_data[adapt_model.probe_hand]], [\"Adapt\"])\n",
+    "plot_data(\n",
+    "    [baseline_t, gravity_t, adapt_t, adapt_loihi_t],\n",
+    "    [baseline_error, gravity_error, adapt_error, adapt_loihi_error],\n",
+    "    [\"Baseline\", \"Gravity\", \"Gravity + Adapt\", \"Gravity + Adapt Loihi\"],\n",
+    ")"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  },
+  "widgets": {
+   "state": {},
+   "version": "1.1.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}
