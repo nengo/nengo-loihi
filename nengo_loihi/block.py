@@ -1,4 +1,5 @@
 import warnings
+import weakref
 from collections import OrderedDict
 
 import numpy as np
@@ -348,7 +349,7 @@ class Axon:
         self.n_axons = n_axons
         self.label = label
 
-        self.target = None
+        self._target = None
         self.compartment_map = None
         self.compartment_atoms = None
 
@@ -363,6 +364,14 @@ class Axon:
     def slots_per_axon(self):
         """The number of axon_cfg slots occupied by each axon."""
         return 2 if self.pop_type == 32 else 1
+
+    @property
+    def target(self):
+        return self._target() if self._target is not None else None
+
+    @target.setter
+    def target(self, target):
+        self._target = weakref.ref(target)
 
     def axon_slots(self):
         """The total number of axon_cfg slots used by all axons."""

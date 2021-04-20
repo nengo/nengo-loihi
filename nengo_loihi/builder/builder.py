@@ -1,3 +1,4 @@
+import itertools
 import logging
 from collections import OrderedDict, defaultdict
 
@@ -224,6 +225,16 @@ class Model:
         if self.build_callback is not None:
             self.build_callback(obj)
         return built
+
+    def clear(self):
+        """Clear any extra data; called when the nengo_loihi.Simulator closes."""
+        for receiver in itertools.chain(
+            self.chip2host_receivers.values(),
+            self.host2chip_senders.values(),
+            self.host2chip_pes_senders.values(),
+        ):
+            if hasattr(receiver, "clear"):
+                receiver.clear()
 
     def has_built(self, obj):
         return obj in self.params

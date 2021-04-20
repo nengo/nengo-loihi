@@ -1,5 +1,6 @@
 import logging
 import warnings
+import weakref
 from collections import OrderedDict
 from collections.abc import Mapping
 from timeit import default_timer
@@ -247,6 +248,9 @@ class Simulator:
         for sim in self.sims.values():
             if not sim.closed:
                 sim.close()
+
+        self.model.clear()
+
         self._runner = None
         self.closed = True
 
@@ -416,6 +420,9 @@ class StepRunner:
         spikes = []
         for sender, receiver in self.model.host2chip_senders.items():
             spike_target = receiver.spike_target
+            if isinstance(spike_target, weakref.ref):
+                spike_target = spike_target()
+
             assert spike_target is not None
 
             for t, x in sender.queue:

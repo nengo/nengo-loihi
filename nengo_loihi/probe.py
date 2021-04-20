@@ -1,3 +1,5 @@
+import weakref
+
 import numpy as np
 from nengo.utils.numpy import is_iterable
 
@@ -57,9 +59,8 @@ class LoihiProbe:
         self.synapse = synapse
 
         iterable_target = is_iterable(target)
-        self.target = (
-            [] if target is None else list(target) if iterable_target else [target]
-        )
+        self.target = target
+
         # targets can be LoihiBlock or None. `Model.add_probe` checks Nones are filled.
         assert all(isinstance(t, (LoihiBlock, type(None))) for t in self.target)
 
@@ -82,6 +83,15 @@ class LoihiProbe:
         assert len(self.weights) == len(self.target)
 
         self.reindexing = reindexing
+
+    @property
+    def target(self):
+        return [t() if isinstance(t, weakref.ref) else t for t in self._target]
+
+    @target.setter
+    def target(self, targs):
+        targs = [] if targs is None else list(targs) if is_iterable(targs) else [targs]
+        self._target = [weakref.ref(t) if t is not None else None for t in targs]
 
     @property
     def is_transformed(self):
