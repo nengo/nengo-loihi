@@ -43,3 +43,4 @@ docs/examples/mnist_convnet.py
 docs/examples/neuron_to_neuron.py
 docs/examples/oscillator.py
 docs/examples/oscillator_nonlinear.py
+docs/examples/cifar10_convnet_params.npz
