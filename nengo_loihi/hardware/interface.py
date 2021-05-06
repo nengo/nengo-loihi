@@ -62,7 +62,7 @@ class HardwareInterface:
 
     connection_retries = 3
     min_nxsdk_version = parse_nxsdk_version("0.9.0")
-    max_nxsdk_version = parse_nxsdk_version("0.9.9")
+    max_nxsdk_version = parse_nxsdk_version("1.0.0")
 
     def __init__(
         self,
@@ -353,7 +353,9 @@ class Snips:
 
         self.error_chip_map = {}  # maps synapses to core/chip locations for errors
         self.probe_data = OrderedDict()
-        self.tmp_snip_dir = tempfile.TemporaryDirectory()
+        self.tmp_snip_dir = (  # pylint: disable=consider-using-with
+            tempfile.TemporaryDirectory()
+        )
         self.host_snip = HostSnip(self.tmp_snip_dir.name)
         self.chip_snips = []
         # Map from probe to information to get outputs of that probe. Each tuple has:

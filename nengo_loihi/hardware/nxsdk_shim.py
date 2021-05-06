@@ -66,7 +66,7 @@ if HAS_NXSDK:  # noqa: C901
             So that multiple simulations can use the same snip files without running
             into problems.
             """
-            tmp = tempfile.TemporaryDirectory()
+            tmp = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
             self.nengo_tmp_dirs.append(tmp)
 
             os.mkdir(os.path.join(tmp.name, name))
@@ -127,7 +127,13 @@ if HAS_NXSDK:  # noqa: C901
             b"bnhzZGsuY29tcGlsZXIudHJhY2VjZmdnZW4udHJhY2VjZmdnZW4=", b"VHJhY2VDZmdHZW4="
         )
 
-    NxsdkBoard = d_import(b"bnhzZGsuZ3JhcGgubnhib2FyZA==", b"TjJCb2FyZA==")
+    try:
+        # try new location (nxsdk >= 1.0.0)
+        NxsdkBoard = d_import(b"bnhzZGsuYXJjaC5uMmEubjJib2FyZA==", b"TjJCb2FyZA==")
+    except ImportError:  # pragma: no cover
+        # try old location (nxsdk < 1.0.0)
+        NxsdkBoard = d_import(b"bnhzZGsuZ3JhcGgubnhib2FyZA==", b"TjJCb2FyZA==")
+
     SpikeGen = d_import(
         b"bnhzZGsuZ3JhcGgubnhpbnB1dGdlbi5ueGlucHV0Z2Vu", b"QmFzaWNTcGlrZUdlbmVyYXRvcg=="
     )
