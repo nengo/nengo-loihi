@@ -497,7 +497,7 @@ travis_yml:
       script: hardware
       python: 3.6.8
       env:
-        NXSDK_VERSION: 0.9.9
+        NXSDK_VERSION: 1.0.0
     - script: docs
       apt_install:
       - pandoc
