@@ -972,7 +972,7 @@ def test_conv_preslice(on_chip, Simulator, plt):
 
 
 def test_conv_onchip(Simulator, plt):
-    """Tests a fully on-chip conv connection. """
+    """Tests a fully on-chip conv connection."""
     conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
@@ -1042,7 +1042,7 @@ def test_conv_onchip(Simulator, plt):
 
 
 def test_conv_overlap_input(Simulator, plt):
-    """Tests a fully on-chip conv connection. """
+    """Tests a fully on-chip conv connection."""
     conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
 
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
