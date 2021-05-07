@@ -1,0 +1,149 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Integrator\n",
+    "\n",
+    "This demo implements a one-dimensional neural integrator.\n",
+    "\n",
+    "This example utilizes a recurrent network.\n",
+    "It shows how neurons can be used to implement stable dynamics.\n",
+    "Such dynamics are important for memory, noise cleanup,\n",
+    "statistical inference, and many other dynamic transformations."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "\n",
+    "import nengo\n",
+    "from nengo.processes import Piecewise\n",
+    "import nengo_loihi\n",
+    "\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the network in Nengo\n",
+    "\n",
+    "Our model consists of one recurrently connected ensemble,\n",
+    "and an input node.\n",
+    "The input node will provide a piecewise step function as input\n",
+    "so that we can see the effects of recurrence."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Network(label=\"Integrator\") as model:\n",
+    "    ens = nengo.Ensemble(n_neurons=120, dimensions=1)\n",
+    "    stim = nengo.Node(Piecewise({0: 0, 0.2: 1, 1: 0, 2: -2, 3: 0, 4: 1, 5: 0}))\n",
+    "\n",
+    "    # Connect the population to itself\n",
+    "    tau = 0.1\n",
+    "    nengo.Connection(ens, ens, transform=[[1]], synapse=tau)\n",
+    "    nengo.Connection(stim, ens, transform=[[tau]], synapse=tau)\n",
+    "\n",
+    "    # Collect data for plotting\n",
+    "    stim_probe = nengo.Probe(stim)\n",
+    "    ens_probe = nengo.Probe(ens, synapse=0.01)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can use Nengo to see the desired model output."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(6)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_decoded(t, data):\n",
+    "    plt.figure()\n",
+    "    plt.plot(t, data[stim_probe], label=\"Input\")\n",
+    "    plt.plot(t, data[ens_probe], \"k\", label=\"Integrator output\")\n",
+    "    plt.legend()\n",
+    "\n",
+    "\n",
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(6)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The network integrates its input,\n",
+    "but without input decays quicker than the Nengo model.\n",
+    "Likely the same workarounds\n",
+    "discussed in the communication channel example\n",
+    "will be useful here."
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}

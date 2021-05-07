@@ -1,0 +1,178 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# PES learning\n",
+    "\n",
+    "In this example, we will use the PES learning rule\n",
+    "to learn a communication channel."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "\n",
+    "import nengo\n",
+    "from nengo.processes import WhiteSignal\n",
+    "import nengo_loihi\n",
+    "\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the network in Nengo\n",
+    "\n",
+    "When creating a `nengo.Connection`,\n",
+    "you can specify a `learning_rule_type`.\n",
+    "When using the `nengo.PES` learning rule type,\n",
+    "the connection is modified such that\n",
+    "it can accept input in its `learning_rule` attribute.\n",
+    "That input is interpreted as an error signal\n",
+    "that the PES rule attempts to minimize over time\n",
+    "by adjusting decoders or connection weights."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Network(label=\"PES learning\") as model:\n",
+    "    # Randomly varying input signal\n",
+    "    stim = nengo.Node(WhiteSignal(60, high=5), size_out=1)\n",
+    "\n",
+    "    # Connect pre to the input signal\n",
+    "    pre = nengo.Ensemble(100, dimensions=1)\n",
+    "    nengo.Connection(stim, pre)\n",
+    "    post = nengo.Ensemble(100, dimensions=1)\n",
+    "\n",
+    "    # When connecting pre to post,\n",
+    "    # create the connection such that initially it will\n",
+    "    # always output 0. Usually this results in connection\n",
+    "    # weights that are also all 0.\n",
+    "    conn = nengo.Connection(\n",
+    "        pre,\n",
+    "        post,\n",
+    "        function=lambda x: [0],\n",
+    "        learning_rule_type=nengo.PES(learning_rate=2e-4),\n",
+    "    )\n",
+    "\n",
+    "    # Calculate the error signal with another ensemble\n",
+    "    error = nengo.Ensemble(100, dimensions=1)\n",
+    "\n",
+    "    # Error = actual - target = post - pre\n",
+    "    nengo.Connection(post, error)\n",
+    "    nengo.Connection(pre, error, transform=-1)\n",
+    "\n",
+    "    # Connect the error into the learning rule\n",
+    "    nengo.Connection(error, conn.learning_rule)\n",
+    "\n",
+    "    stim_p = nengo.Probe(stim)\n",
+    "    pre_p = nengo.Probe(pre, synapse=0.01)\n",
+    "    post_p = nengo.Probe(post, synapse=0.01)\n",
+    "    error_p = nengo.Probe(error, synapse=0.01)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can use Nengo to see the desired model output."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(10)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_decoded(t, data):\n",
+    "    plt.figure(figsize=(12, 12))\n",
+    "    plt.subplot(2, 1, 1)\n",
+    "    plt.plot(t, data[stim_p].T[0], label=\"Input\")\n",
+    "    plt.plot(t, data[pre_p].T[0], label=\"pre\")\n",
+    "    plt.plot(t, data[post_p].T[0], label=\"post\")\n",
+    "    plt.ylabel(\"Decoded output\")\n",
+    "    plt.legend(loc=\"best\")\n",
+    "    plt.subplot(2, 1, 2)\n",
+    "    plt.plot(t, data[error_p])\n",
+    "    plt.ylim(-1, 1)\n",
+    "    plt.legend((\"Error signal\",), loc=\"best\")\n",
+    "\n",
+    "\n",
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "While `post` initially only represents 0,\n",
+    "over time it comes to more closely track the value\n",
+    "represented in `pre`.\n",
+    "The error signal also decreases gradually over time\n",
+    "as the decoded values in `pre` and `post` get closer and closer."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model) as sim:\n",
+    "    sim.run(10)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_decoded(t, sim.data)"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}

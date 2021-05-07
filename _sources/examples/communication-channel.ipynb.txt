@@ -1,0 +1,283 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Communication channel\n",
+    "\n",
+    "This example demonstrates how to create a connection\n",
+    "from one neuronal ensemble to another\n",
+    "that behaves like a communication channel\n",
+    "(that is, it transmits information without changing it).\n",
+    "\n",
+    "An abstract input signal is fed into a first neuronal ensemble `pre`,\n",
+    "which then passes it on to another ensemble `post`.\n",
+    "The result is that spiking activity in ensemble `post`\n",
+    "encodes the value from the Input."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "%matplotlib inline\n",
+    "\n",
+    "import nengo\n",
+    "from nengo.utils.matplotlib import rasterplot\n",
+    "import nengo_loihi\n",
+    "\n",
+    "# All NengoLoihi models should call this before model construction\n",
+    "nengo_loihi.set_defaults()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating the network in Nengo\n",
+    "\n",
+    "Nengo provides five core objects\n",
+    "for building large scale models.\n",
+    "\n",
+    "- `nengo.Ensemble`:\n",
+    "  A group of neurons collectively representing a time-varying vector.\n",
+    "- `nengo.Node`:\n",
+    "  Non-neural aspects of the model, whether it be for input\n",
+    "  (e.g. an artificial input signal or data from a robot sensor),\n",
+    "  output (e.g. to send data to a socket or robot motor),\n",
+    "  or both (e.g. managing interfaces to a robot).\n",
+    "- `nengo.Connection`:\n",
+    "  Connections move information (vectors) from\n",
+    "  one object (e.g. node or ensemble) to another object.\n",
+    "  Connections can also transform vectors linearly or nonlinearly.\n",
+    "- `nengo.Probe`:\n",
+    "  Marks part of the simulation so that it will be recorded.\n",
+    "- `nengo.Network`:\n",
+    "  A container for ensembles, nodes, connections, and probes.\n",
+    "  Networks can also contain subnetworks,\n",
+    "  allowing for hierarchically organized models.\n",
+    "\n",
+    "For the communication channel,\n",
+    "we will use all five of these objects.\n",
+    "A node will be used to provide input to an ensemble\n",
+    "through a connection, which will be connected\n",
+    "to another ensemble.\n",
+    "By probing the input node and two ensembles,\n",
+    "we can see that the vector represented by\n",
+    "all three objects is the same,\n",
+    "even though the neuron properties\n",
+    "of the two ensembles differ\n",
+    "and the two ensembles are connected\n",
+    "through connection weights."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Network(label=\"Communication channel\") as model:\n",
+    "    stim = nengo.Node(lambda t: np.sin(2 * np.pi * t))\n",
+    "\n",
+    "    pre = nengo.Ensemble(n_neurons=80, dimensions=1)\n",
+    "    post = nengo.Ensemble(n_neurons=60, dimensions=1)\n",
+    "\n",
+    "    # Connect the stim input to the first ensemble\n",
+    "    nengo.Connection(stim, pre)\n",
+    "\n",
+    "    # Connect the first ensemble to the second\n",
+    "    # (this is the communication channel)\n",
+    "    nengo.Connection(pre, post)\n",
+    "\n",
+    "    stim_probe = nengo.Probe(stim)\n",
+    "    # Probing an ensemble gives the decoded value\n",
+    "    pre_probe = nengo.Probe(pre, synapse=0.01)\n",
+    "    post_probe = nengo.Probe(post, synapse=0.01)\n",
+    "    # We can also probe their neurons directly to see their firing patterns\n",
+    "    pre_n_probe = nengo.Probe(pre.neurons)\n",
+    "    post_n_probe = nengo.Probe(post.neurons)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network in Nengo\n",
+    "\n",
+    "We can use Nengo to see the desired model output."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo.Simulator(model) as sim:\n",
+    "    sim.run(2.0)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "As we can see below, both `pre` and `post` ensembles\n",
+    "faithfully represent the input signal."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_decoded(t, data):\n",
+    "    plt.figure(figsize=(5, 7))\n",
+    "    plt.subplot(3, 1, 1)\n",
+    "    plt.title(\"Input\")\n",
+    "    plt.plot(t, data[stim_probe])\n",
+    "    plt.xticks(())\n",
+    "    plt.subplot(3, 1, 2)\n",
+    "    plt.title(\"pre\")\n",
+    "    plt.plot(t, data[pre_probe])\n",
+    "    plt.xticks(())\n",
+    "    plt.subplot(3, 1, 3)\n",
+    "    plt.title(\"post\")\n",
+    "    plt.plot(t, data[post_probe])\n",
+    "    plt.xlabel(\"Time (s)\")\n",
+    "    plt.tight_layout()\n",
+    "\n",
+    "\n",
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "By looking at their raster plots,\n",
+    "we can see that these are two different ensembles\n",
+    "with different firing activities.\n",
+    "It is the encoding and decoding processes\n",
+    "that allow us to interpret them as representing\n",
+    "the same value."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def plot_rasters(t, data):\n",
+    "    plt.figure(figsize=(10, 10))\n",
+    "    plt.subplot(2, 1, 1)\n",
+    "    rasterplot(t, data[pre_n_probe])\n",
+    "    plt.title(\"pre ensemble, n_neurons={}\".format(pre.n_neurons))\n",
+    "    plt.ylabel(\"Neuron number\")\n",
+    "    plt.xticks(())\n",
+    "    plt.subplot(2, 1, 2)\n",
+    "    rasterplot(t, data[post_n_probe])\n",
+    "    plt.title(\"post ensemble, n_neurons={}\".format(post.n_neurons))\n",
+    "    plt.ylabel(\"Neuron number\")\n",
+    "    plt.xlabel(\"Time (s)\")\n",
+    "    plt.tight_layout()\n",
+    "\n",
+    "\n",
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Running the network with NengoLoihi\n",
+    "\n",
+    "To run the same model on a Loihi board,\n",
+    "we do not need to make any changes to the model itself\n",
+    "(aside from calling the\n",
+    "`nengo_loihi.set_defaults()` function earlier).\n",
+    "The only difference is that instead of using `nengo.Simulator`\n",
+    "to construct and run the model,\n",
+    "we use `nengo_loihi.Simulator`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with nengo_loihi.Simulator(model, precompute=True) as sim:\n",
+    "    sim.run(2.0)\n",
+    "t = sim.trange()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_decoded(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "While the `pre` output looks similar\n",
+    "to the output from the Nengo simulator,\n",
+    "`post` is significantly more noisy.\n",
+    "Looking at the spike raster gives some insight\n",
+    "into why that might be the case."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plot_rasters(t, sim.data)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "While `pre`'s spike raster resembles that of Nengo's,\n",
+    "we can see in the `post` spike raster\n",
+    "that several neurons have synchronized\n",
+    "(e.g., spikes co-occur for many neurons at just after 0.5 seconds).\n",
+    "\n",
+    "This occurs in Loihi but not Nengo because\n",
+    "Nengo's built in simulator keeps track of the\n",
+    "voltage overshoot when a LIF neuron spikes\n",
+    "so that the refractory period can effectively\n",
+    "start and end within a timestep,\n",
+    "instead of always rounding to the earliest timestep.\n",
+    "\n",
+    "The issue could be worked around in Loihi\n",
+    "by using a smaller timestep,\n",
+    "or by injecting noise to break the synchrony."
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python",
+   "pygments_lexer": "ipython3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 3
+}
