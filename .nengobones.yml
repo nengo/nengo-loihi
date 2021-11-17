@@ -24,7 +24,6 @@ manifest_in:
     - .ci/travis_rsa.enc
 
 setup_py:
-  python_requires: ">=3.5"
   entry_points:
     nengo.backends:
       - loihi = nengo_loihi:Simulator
@@ -52,12 +51,12 @@ setup_py:
   tests_req:
     - coverage>=4.3
     - nengo-extras
-    - pytest>=3.4,<4
+    - pytest>=5.0.0
     - pytest-allclose>=1.0.0
     - pytest-cov>=2.6.0
     - pytest-plt>=1.0.0
     - pytest-rng>=1.0.0
-    - pytest-xdist<1.28.0
+    - pytest-xdist>=2.0.0
     - matplotlib>=2.0
   classifiers:
     - "Development Status :: 4 - Beta"
@@ -65,11 +64,18 @@ setup_py:
     - "Intended Audience :: Science/Research"
     - "License :: Free for non-commercial use"
     - "Operating System :: OS Independent"
-    - "Programming Language :: Python :: 3.5"
     - "Programming Language :: Python :: 3.6"
+    - "Programming Language :: Python :: 3.7"
+    - "Programming Language :: Python :: 3.8"
+    - "Programming Language :: Python :: 3.9"
+    - "Programming Language :: Python :: 3.10"
     - "Topic :: Scientific/Engineering :: Artificial Intelligence"
 
 setup_cfg:
+  codespell:
+    ignore_words:
+      - alha
+      - hist
   coverage:
     exclude_lines:
       - "# Don't complain if non-runnable code isn't run:"
@@ -83,6 +89,7 @@ setup_cfg:
       - broad-except
       - cell-var-from-loop
       - consider-using-enumerate
+      - consider-using-f-string
       - consider-using-in
       - expression-not-assigned
       - inconsistent-return-statements
@@ -483,8 +490,6 @@ docs_conf_py:
     examples/oscillator_nonlinear.html: examples/oscillator-nonlinear.html
 
 travis_yml:
-  # TODO: remove this when we drop Python 3.5 support
-  bones_install: git+https://github.com/nengo/nengo-bones@python-3.5#egg=nengo-bones
   python: 3.6
   global_vars:
     NENGO_VERSION: nengo[tests]
@@ -499,6 +504,7 @@ travis_yml:
       env:
         NXSDK_VERSION: 0.9.9
     - script: docs
+      python: 3.7
       apt_install:
       - pandoc
       - ffmpeg  # ffmpeg required for matplotlib's `to_html5_video`
@@ -527,9 +533,6 @@ ci_scripts:
     coverage: true
     nengo_tests: true
   - template: static
-    codespell_ignore_words:
-        - alha
-        - hist
   - template: hardware
     travis_var_key: 2895d60e3414
     coverage: true
@@ -542,8 +545,6 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - cython
-      - tensorflow<2.4
-      - tensorflow-probability<0.12
   - template: deploy
 
 codecov_yml: {}

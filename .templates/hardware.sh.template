@@ -2,15 +2,13 @@
 
 {% block remote_install %}
 {{ super() }}
-        export PIP_USE_FEATURE="$PIP_USE_FEATURE"
-
         # NxSDK has a number of specific versions it "requires". However, these
         # requirements do not seem necessary, and they don't play nice with pytest,
         # so we install NxSDK first and then overwrite these requirements as necessary.
         cp /nfs/ncl/releases/$NXSDK_VERSION/nxsdk-$NXSDK_VERSION.tar.gz .
         pip install nxsdk-$NXSDK_VERSION.tar.gz
 
-        pip install $NENGO_VERSION $NENGO_DL_VERSION jupyter "tensorflow<2.4"
+        pip install $NENGO_VERSION $NENGO_DL_VERSION jupyter
         pip install -e .[tests]
 {% endblock %}
 
@@ -21,6 +19,14 @@
 
 {% block after_script %}
     exe scp "{{ host }}:./tmp/{{ pkg }}-$TRAVIS_JOB_NUMBER/{{ pkg }}/coverage.xml" coverage.xml
-    eval "bash <(curl -s https://codecov.io/bash)"
+    curl https://keybase.io/codecovsecurity/pgp_keys.asc \
+      | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+
+    codecov="https://uploader.codecov.io/latest/linux/codecov"
+    curl -O "$codecov" -O "$codecov.SHA256SUM" -O "$codecov.SHA256SUM.sig"
+    gpgv codecov.SHA256SUM.sig codecov.SHA256SUM \
+      && shasum -a 256 -c codecov.SHA256SUM \
+      && chmod +x codecov \
+      && ./codecov -f coverage.xml
 {{ super() }}
 {% endblock %}

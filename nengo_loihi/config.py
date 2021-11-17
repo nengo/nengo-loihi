@@ -8,27 +8,27 @@ from nengo.utils.numpy import is_integer
 
 
 class BlockShapeParam(Parameter):
-    def coerce(self, instance, block_shape):
+    def coerce(self, instance, value):
         if isinstance(instance, InstanceParams):
             instance = instance._configures
 
         assert isinstance(instance, Ensemble), "Not implemented for non-Ensembles"
-        self.check_type(instance, block_shape, BlockShape)
+        self.check_type(instance, value, BlockShape)
 
-        if instance.n_neurons != block_shape.ensemble_size:
+        if instance.n_neurons != value.ensemble_size:
             raise ValidationError(
                 "Block shape ensemble size (`prod(%s) = %d`) must match "
                 "number of ensemble neurons (%d)"
                 % (
-                    list(block_shape.ensemble_shape),
-                    block_shape.ensemble_size,
+                    list(value.ensemble_shape),
+                    value.ensemble_size,
                     instance.n_neurons,
                 ),
                 attr=self.name,
                 obj=instance,
             )
 
-        return super().coerce(instance, block_shape)
+        return super().coerce(instance, value)
 
 
 class BlockShape:

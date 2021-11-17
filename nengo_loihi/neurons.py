@@ -146,7 +146,7 @@ class LoihiLIF(LIF):
         min_voltage=0,
         amplitude=1,
         nengo_dl_noise=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             tau_rc=tau_rc,

@@ -243,7 +243,7 @@ def test_dvs_file_io(ext, relative_time, tmpdir, rng):
 
 def test_dvs_errors(tmpdir):
     def empty_file(path):
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             fh.write(" ")
 
     no_ext_path = str(tmpdir.join("dvs"))

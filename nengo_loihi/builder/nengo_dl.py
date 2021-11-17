@@ -225,7 +225,7 @@ class LoihiLIFBuilder(LIFBuilder):
             )
 
             rates = amplitude / (tau_ref1 + tau_rc * q)
-        else:
+        else:  # pragma: no cover
             rates = amplitude / (
                 tau_ref1
                 + tau_rc

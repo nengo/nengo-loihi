@@ -66,14 +66,16 @@ if HAS_NXSDK:  # noqa: C901
             So that multiple simulations can use the same snip files without running
             into problems.
             """
-            tmp = tempfile.TemporaryDirectory()
+            tmp = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
             self.nengo_tmp_dirs.append(tmp)
 
             os.mkdir(os.path.join(tmp.name, name))
 
             new_c_file = os.path.join(tmp.name, name, os.path.basename(c_file))
             shutil.copyfile(c_file, new_c_file)
-            with open(c_file) as f0, open(new_c_file) as f1:
+            with open(c_file, "r", encoding="utf-8") as f0, open(
+                new_c_file, "r", encoding="utf-8"
+            ) as f1:
                 src = f0.read()
                 dst = f1.read()
                 if src != dst:  # pragma: no cover

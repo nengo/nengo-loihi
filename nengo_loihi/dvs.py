@@ -65,7 +65,7 @@ class DVSFileChipProcess(ChipProcess):
         channels_last=True,
         dvs_height=180,
         dvs_width=240,
-        **kwargs
+        **kwargs,
     ):
         self.file_path = file_path
         self.file_fmt = file_fmt
@@ -297,7 +297,7 @@ class DVSFileIO:
     def read_events(self, rel_time=None):
         raise NotImplementedError()
 
-    def write_events(self, rel_time=None):
+    def write_events(self, dvs_events):
         raise NotImplementedError()
 
 
@@ -380,7 +380,7 @@ class AEDatFileIO(DVSFileIO):
 
         return dvs_events
 
-    def write_events(self, rel_time=None):
+    def write_events(self, dvs_events):
         raise NotImplementedError("Writing AEDat files not yet supported")
 
 

@@ -1,3 +1,5 @@
+from abc import ABCMeta
+
 from nengo import Process
 from nengo.utils.numpy import is_integer
 
@@ -31,7 +33,7 @@ class SpikeInput(LoihiInput):
         return self.spikes.get(ti, [])
 
 
-class ChipProcess(Process):
+class ChipProcess(Process, metaclass=ABCMeta):
     """Abstract base class for Node processes to be placed on the Loihi board.
 
     Such processes must then have a NengoLoihi builder to put them on the Loihi board.
