@@ -80,7 +80,7 @@ setup(
         "optional": optional_req,
         "tests": tests_req,
     },
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     entry_points={
         "nengo.backends": [
             "loihi = nengo_loihi:Simulator",
@@ -97,7 +97,6 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: Free for non-commercial use",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
