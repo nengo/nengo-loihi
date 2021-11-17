@@ -206,14 +206,14 @@ class Compartment:
         """
         if self.tau_s is not None and tau_s < self.tau_s:
             warnings.warn(
-                "tau_s is already set to %g, which is larger than "
-                "%g. Using %g." % (self.tau_s, tau_s, self.tau_s)
+                f"tau_s is already set to {self.tau_s:g}, which is larger than "
+                f"{tau_s:g}. Using {self.tau_s:g}."
             )
             return
         elif self.tau_s is not None and tau_s > self.tau_s:
             warnings.warn(
-                "tau_s is currently %g, which is smaller than %g. Overwriting "
-                "tau_s with %g." % (self.tau_s, tau_s, tau_s)
+                f"tau_s is currently {self.tau_s:g}, which is smaller than "
+                f"{tau_s:g}. Overwriting tau_s with {tau_s:g}."
             )
         self._configure_filter(tau_s, dt=dt)
         self.tau_s = tau_s

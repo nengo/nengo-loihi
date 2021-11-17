@@ -22,18 +22,17 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
     elif ens.gain is not None or ens.bias is not None:
         # TODO: handle this instead of error
         raise NotImplementedError(
-            "gain or bias set for %s, but not both. "
-            "Solving for one given the other is not "
-            "implemented yet." % ens
+            f"gain or bias set for {ens}, but not both. Solving for one given the other"
+            " is not implemented yet."
         )
     else:
         int_distorarray = ens.intercepts
         if isinstance(int_distorarray, nengo.dists.Uniform):
             if int_distorarray.high > intercept_limit:
                 warnings.warn(
-                    "Intercepts are larger than intercept limit (%g). "
-                    "High intercept values cause issues when discretizing "
-                    "the model for running on Loihi." % intercept_limit
+                    f"Intercepts are larger than intercept limit ({intercept_limit:g})."
+                    " High intercept values cause issues when discretizing the model "
+                    "for running on Loihi."
                 )
                 int_distorarray = nengo.dists.Uniform(
                     min(int_distorarray.low, intercept_limit),
@@ -46,19 +45,18 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
         if np.any(intercepts > intercept_limit):
             intercepts[intercepts > intercept_limit] = intercept_limit
             warnings.warn(
-                "Intercepts are larger than intercept limit (%g). "
-                "High intercept values cause issues when discretizing "
-                "the model for running on Loihi." % intercept_limit
+                f"Intercepts are larger than intercept limit ({intercept_limit:g}). "
+                "High intercept values cause issues when discretizing the model for "
+                "running on Loihi."
             )
 
         gain, bias = ens.neuron_type.gain_bias(max_rates, intercepts)
         if gain is not None and (not np.all(np.isfinite(gain)) or np.any(gain <= 0.0)):
             raise BuildError(
-                "The specified intercepts for %s lead to neurons with "
-                "negative or non-finite gain. Please adjust the intercepts so "
-                "that all gains are positive. For most neuron types (e.g., "
-                "LIF neurons) this is achieved by reducing the maximum "
-                "intercept value to below 1." % ens
+                f"The specified intercepts for {ens} lead to neurons with negative or "
+                "non-finite gain. Please adjust the intercepts so that all gains are "
+                "positive. For most neuron types (e.g., LIF neurons) this is achieved "
+                "by reducing the maximum intercept value to below 1."
             )
 
     return gain, bias, max_rates, intercepts
@@ -85,9 +83,9 @@ def build_ensemble(model, ens):
 
     if np.any(np.isnan(encoders)):
         raise BuildError(
-            "NaNs detected in %r encoders. This usually means that you had zero-length "
-            "encoders that were normalized, resulting in NaNs. Ensure all encoders "
-            "have non-zero length, or set `normalize_encoders=False`." % ens
+            f"NaNs detected in {ens!r} encoders. This usually means that you had "
+            "zero-length encoders that were normalized, resulting in NaNs. Ensure all "
+            "encoders have non-zero length, or set `normalize_encoders=False`."
         )
 
     # Build the neurons
@@ -134,11 +132,10 @@ def build_neurons(model, neurontype, neurons, block):
     # If we haven't registered a builder for a specific type, then it cannot
     # be simulated on Loihi.
     raise BuildError(
-        "The neuron type %r cannot be simulated on Loihi. Please either "
-        "switch to a supported neuron type like LIF or "
-        "SpikingRectifiedLinear, or explicitly mark ensembles using this "
-        "neuron type as off-chip with\n"
-        "  net.config[ensembles].on_chip = False" % type(neurontype).__name__
+        f"The neuron type {type(neurontype).__name__!r} cannot be simulated on Loihi. "
+        "Please either switch to a supported neuron type like LIF or "
+        "SpikingRectifiedLinear, or explicitly mark ensembles using this neuron type "
+        "as off-chip with\n  net.config[ensembles].on_chip = False"
     )
 
 
@@ -152,9 +149,9 @@ def check_state_zero(model, neuron_type, neurons, block):
         value = np.asarray(value)
         if not np.all(value == 0):
             warnings.warn(
-                "NengoLoihi does not support initial values for %r being non-zero on "
-                "%s neurons. On the chip, all values will be initialized to zero."
-                % (key, type(neuron_type).__name__)
+                f"NengoLoihi does not support initial values for {key!r} being "
+                "non-zero on {type(neuron_type).__name__} neurons. On the chip, all "
+                "values will be initialized to zero."
             )
 
 
@@ -180,11 +177,11 @@ def build_regularspiking(model, regularspiking, neurons, block):
     base = regularspiking.base_type
     if type(base) not in (nengo.LIFRate, nengo.RectifiedLinear):
         raise BuildError(
-            "RegularSpiking neurons with %r as a base type cannot be simulated on "
-            "Loihi. Please either switch to a supported base neuron type like "
-            "LIFRate or RectifiedLinear, or explicitly mark ensembles using this "
-            "neuron type as off-chip with\n"
-            "  net.config[ensembles].on_chip = False" % type(base).__name__
+            f"RegularSpiking neurons with {type(base).__name__!r} as a base type "
+            "cannot be simulated on Loihi. Please either switch to a supported base "
+            "neuron type like LIFRate or RectifiedLinear, or explicitly mark ensembles "
+            "using this neuron type as off-chip with\n"
+            "  net.config[ensembles].on_chip = False"
         )
 
     if base.amplitude != 1:

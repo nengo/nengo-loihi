@@ -179,8 +179,8 @@ def scale_pes_errors(error, scale=1.0):
     q = error > max_err
     if np.any(q):
         warnings.warn(
-            "Received PES error greater than chip max (%0.2e). "
-            "Consider changing `Model.pes_error_scale`." % (max_err / scale,)
+            f"Received PES error greater than chip max ({max_err / scale:0.2e}). "
+            "Consider changing `Model.pes_error_scale`."
         )
         logger.debug(
             "PES error %0.2e > %0.2e (chip max)", np.max(error) / scale, max_err / scale
@@ -189,8 +189,8 @@ def scale_pes_errors(error, scale=1.0):
     q = error < -max_err
     if np.any(q):
         warnings.warn(
-            "Received PES error less than chip min (%0.2e). "
-            "Consider changing `Model.pes_error_scale`." % (-max_err / scale,)
+            f"Received PES error less than chip min ({-max_err / scale:0.2e}). "
+            "Consider changing `Model.pes_error_scale`."
         )
         logger.debug(
             "PES error %0.2e < %0.2e (chip min)",

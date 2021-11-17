@@ -137,8 +137,8 @@ class HardwareInterface:
         nxsdk_version = parse_nxsdk_version(nxsdk)
         if nxsdk_version < cls.min_nxsdk_version:
             raise ImportError(
-                "nengo-loihi requires nxsdk>=%s, found %s"
-                % (cls.min_nxsdk_version, nxsdk_version)
+                f"nengo-loihi requires nxsdk>={cls.min_nxsdk_version}, "
+                f"found {nxsdk_version}"
             )
         elif nxsdk_version > cls.max_nxsdk_version:
             warnings.warn(

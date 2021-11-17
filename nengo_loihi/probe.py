@@ -165,9 +165,8 @@ class LoihiProbe:
             if self.reindexing is not None:
                 result = result[..., self.reindexing]
 
-        assert result.shape == (n_timesteps, nc), "%s != (%s, %s)" % (
-            result.shape,
+        assert result.shape == (
             n_timesteps,
             nc,
-        )
+        ), f"{result.shape} != ({n_timesteps}, {nc})"
         return result

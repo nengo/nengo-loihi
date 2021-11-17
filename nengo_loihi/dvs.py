@@ -205,11 +205,9 @@ class DVSEvents:
 
         if event_data is not None:
             n_events = len(event_data) if n_events is None else n_events
-            assert n_events == len(
-                event_data
-            ), "Specified number of events (%d) does not match length of data (%d)" % (
-                n_events,
-                len(event_data),
+            assert n_events == len(event_data), (
+                f"Specified number of events ({n_events}) does not match "
+                f"length of data ({len(event_data)})"
             )
 
         if self.events is not None:
@@ -239,9 +237,8 @@ class DVSEvents:
             file_fmt = self._get_extension(file_path)
             if file_fmt == "":
                 raise ValueError(
-                    "Events file %r has no extension. Could not detect file format. "
-                    "Please pass a value for `file_fmt` to specify the format."
-                    % (file_path,)
+                    f"Events file {file_path!r} has no extension. Could not detect file"
+                    " format. Please pass a value for `file_fmt` to specify the format."
                 )
 
         if file_fmt == "aedat":
@@ -269,8 +266,8 @@ class DVSEvents:
         file_fmt = self._get_extension(file_path)
         if file_fmt == "":
             raise ValueError(
-                "The provided path %r has no extension. Please use the '.events' "
-                "extension." % (file_path,)
+                f"The provided path {file_path!r} has no extension. "
+                "Please use the '.events' extension."
             )
 
         if file_fmt == "events":

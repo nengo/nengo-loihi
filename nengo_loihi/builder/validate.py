@@ -90,8 +90,8 @@ def validate_synapse(synapse):
     if synapse.pop_type == 16:
         if synapse.axon_compartment_bases is not None:
             assert all(b % 4 == 0 for b in synapse.axon_compartment_bases if b >= 0), (
-                "Pop16 axons must have all compartment bases modulo 4: %s"
-                % synapse.axon_compartment_bases
+                "Pop16 axons must have all compartment bases modulo 4: "
+                f"{synapse.axon_compartment_bases}"
             )
 
 

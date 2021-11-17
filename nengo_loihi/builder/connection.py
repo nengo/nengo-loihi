@@ -152,8 +152,8 @@ def build_host_to_chip(model, conn):
         )
     elif not is_transform_type(conn.transform, ("Dense", "NoTransform")):
         raise BuildError(
-            "nengo-loihi does not yet support %r transforms "
-            "on host to chip connections" % (type(conn.transform).__name__,)
+            f"nengo-loihi does not yet support {type(conn.transform).__name__!r} "
+            "transforms on host to chip connections"
         )
 
     # Scale the input spikes based on the radius of the target ensemble
@@ -288,7 +288,7 @@ def build_chip_to_host(model, conn):
         if not isinstance(conn.pre_obj, Ensemble):
             raise NotImplementedError(
                 "Learning rule presynaptic object must be an Ensemble "
-                "(got %r)" % type(conn.pre_obj).__name__
+                f"(got {type(conn.pre_obj).__name__!r})"
             )
         model.needs_sender[conn.learning_rule] = PESModulatoryTarget(probe)
 
@@ -297,9 +297,8 @@ def build_host_to_learning_rule(model, conn):
     if not is_transform_type(conn.transform, ("Dense", "NoTransform")):
         # TODO: What needs to be done to support this? It looks like it should just work
         raise BuildError(
-            "nengo-loihi does not yet support %r transforms "
-            "on host to chip learning rule connections"
-            % (type(conn.transform).__name__,)
+            f"nengo-loihi does not yet support {type(conn.transform).__name__!r} "
+            "transforms on host to chip learning rule connections"
         )
 
     dim = conn.size_out
@@ -385,9 +384,8 @@ def solve_for_decoders(conn, gain, bias, x, targets, rng, dt):
 
     if np.count_nonzero(activities) == 0:
         raise BuildError(
-            "Building %s: 'activities' matrix is all zero for %s. "
-            "This is because no evaluation points fall in the firing "
-            "ranges of any neurons." % (conn, conn.pre_obj)
+            f"Building {conn}: 'activities' matrix is all zero for {conn.pre_obj}. This"
+            " is because no evaluation points fall in the firing ranges of any neurons."
         )
 
     decoders, solver_info = conn.solver(activities, targets, rng=rng)
