@@ -220,19 +220,19 @@ class HostChipSplit:
             elif obj in self.chip_objs:
                 self.chip_objs.add(probe)
             else:
-                raise BuildError("Object (%r) is not a part of the network" % (obj,))
+                raise BuildError(f"Object ({obj!r}) is not a part of the network")
 
     def on_chip(self, obj):
         if not isinstance(obj, (Ensemble, Node, Probe)):
             raise BuildError(
                 "Locations are only established for ensembles ",
-                "nodes, and probes -- not for %r" % (obj,),
+                f"nodes, and probes -- not for {obj!r}",
             )
         if obj in self.chip_objs:
             return True
         elif obj in self.host_objs:
             return False
-        raise BuildError("Object (%r) is not a part of the network" % (obj,))
+        raise BuildError(f"Object ({obj!r}) is not a part of the network")
 
 
 class Split:

@@ -53,7 +53,7 @@ class ChipReceiveNode(Node):
         super().__init__(self.update, size_in=0, size_out=size_out, label=label)
 
     def update(self, t):
-        raise SimulationError("{} should not be run".format(type(self).__name__))
+        raise SimulationError(f"{type(self).__name__} should not be run")
 
 
 class ChipReceiveNeurons(ChipReceiveNode):

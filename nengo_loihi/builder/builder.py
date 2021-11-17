@@ -112,12 +112,12 @@ class Model:
         # built into them or configs set
         self.host_pre = NengoModel(
             dt=float(dt),
-            label="%s:host_pre, dt=%f" % (label, dt),
+            label=f"{label}:host_pre, dt={dt:f}",
             decoder_cache=NoDecoderCache(),
         )
         self.host = NengoModel(
             dt=float(dt),
-            label="%s:host, dt=%f" % (label, dt),
+            label=f"{label}:host, dt={dt:f}",
             decoder_cache=NoDecoderCache(),
         )
 
@@ -179,7 +179,7 @@ class Model:
         raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")
 
     def __str__(self):
-        return "%s(%s)" % (type(self).__name__, self.label)
+        return f"{type(self).__name__}({self.label})"
 
     def add_block(self, block):
         assert isinstance(block, LoihiBlock)
@@ -270,11 +270,11 @@ class Model:
             util_strs = []
             for k, v in util.items():
                 frac = v[0] / v[1]
-                util_strs.append("%0.1f%% %s" % (100 * frac, k))
+                util_strs.append(f"{100 * frac:0.1f}% {k}")
                 totals.setdefault(k, []).append(frac)
-            lines.append("%s: %s" % (block, ", ".join(util_strs)))
+            lines.append(f"{block}: {', '.join(util_strs)}")
 
-        means = ["%0.1f%% %s" % (100 * np.mean(v), k) for k, v in totals.items()]
+        means = [f"{100 * np.mean(v):0.1f}% {k}" for k, v in totals.items()]
         lines.append("Average (%d blocks): %s" % (len(self.blocks), ", ".join(means)))
         return lines
 

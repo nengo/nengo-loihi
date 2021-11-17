@@ -103,7 +103,7 @@ def build_host_neurons_to_chip(model, conn):
     receive = ChipReceiveNeurons(
         dim,
         neuron_type=conn.pre_obj.ensemble.neuron_type,
-        label=None if conn.label is None else "%s_neurons" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_neurons",
         add_to_container=False,
     )
     _inherit_seed(model, receive, model, conn)
@@ -114,7 +114,7 @@ def build_host_neurons_to_chip(model, conn):
         conn.post,
         transform=conn.transform,
         synapse=conn.synapse,
-        label=None if conn.label is None else "%s_chip" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_chip",
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
@@ -124,7 +124,7 @@ def build_host_neurons_to_chip(model, conn):
     logger.debug("Creating HostSendNode for %s", conn)
     send = HostSendNode(
         dim,
-        label=None if conn.label is None else "%s_send" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_send",
         add_to_container=False,
     )
     host.build(send)
@@ -133,7 +133,7 @@ def build_host_neurons_to_chip(model, conn):
         conn.pre,
         send,
         synapse=None,
-        label=None if conn.label is None else "%s_host" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_host",
         add_to_container=False,
     )
     model.host2chip_senders[send] = receive
@@ -185,7 +185,7 @@ def build_host_to_chip(model, conn):
     receive = ChipReceiveNode(
         dim * 2,
         size_out=dim,
-        label=None if conn.label is None else "%s_node" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_node",
         add_to_container=False,
     )
     model.builder.build(model, receive)
@@ -195,7 +195,7 @@ def build_host_to_chip(model, conn):
         conn.post,
         transform=chip_transform,
         synapse=model.decode_tau,
-        label=None if conn.label is None else "%s_chip" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_chip",
         add_to_container=False,
     )
     _inherit_seed(model, receive2post, model, conn)
@@ -204,7 +204,7 @@ def build_host_to_chip(model, conn):
 
     logger.debug("Creating DecodeNeuron ensemble for %s", conn)
     ens = model.node_neurons.get_ensemble(dim, add_to_container=False)
-    ens.label = None if conn.label is None else "%s_ens" % conn.label
+    ens.label = None if conn.label is None else f"{conn.label}_ens"
     _inherit_seed(host, ens, model, conn)
     host.build(ens)
 
@@ -217,7 +217,7 @@ def build_host_to_chip(model, conn):
         scale_eval_points=conn.scale_eval_points,
         synapse=conn.synapse,
         transform=host_transform,
-        label=None if conn.label is None else "%s_enc" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_enc",
         add_to_container=False,
     )
     _inherit_seed(host, pre2ens, model, conn)
@@ -226,7 +226,7 @@ def build_host_to_chip(model, conn):
     logger.debug("Creating HostSendNode for %s", conn)
     send = HostSendNode(
         dim * 2,
-        label=None if conn.label is None else "%s_send" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_send",
         add_to_container=False,
     )
     host.build(send)
@@ -235,7 +235,7 @@ def build_host_to_chip(model, conn):
         ens.neurons,
         send,
         synapse=None,
-        label=None if conn.label is None else "%s_host" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_host",
         add_to_container=False,
     )
     _inherit_seed(host, ensneurons2send, model, conn)
@@ -251,7 +251,7 @@ def build_chip_to_host(model, conn):
     logger.debug("Creating HostReceiveNode for %s", conn)
     receive = HostReceiveNode(
         dim,
-        label=None if conn.label is None else "%s_receive" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_receive",
         add_to_container=False,
     )
     host.build(receive)
@@ -260,7 +260,7 @@ def build_chip_to_host(model, conn):
         receive,
         conn.post,
         synapse=conn.synapse,
-        label=None if conn.label is None else "%s_host" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_host",
         add_to_container=False,
     )
     _inherit_seed(host, receive2post, model, conn)
@@ -278,7 +278,7 @@ def build_chip_to_host(model, conn):
         eval_points=conn.eval_points,
         scale_eval_points=conn.scale_eval_points,
         transform=transform,
-        label=None if conn.label is None else "%s_probe" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_probe",
     )
     model.chip2host_receivers[probe] = receive
     _inherit_seed(model, probe, model, conn)
@@ -308,7 +308,7 @@ def build_host_to_learning_rule(model, conn):
     logger.debug("Creating HostSendNode for %s", conn)
     send = HostSendNode(
         dim,
-        label=None if conn.label is None else "%s_send" % conn.label,
+        label=None if conn.label is None else f"{conn.label}_send",
         add_to_container=False,
     )
     host.build(send)
@@ -516,7 +516,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         if isinstance(conn.post_obj, Ensemble):
             needs_decode_neurons = True
     else:
-        raise NotImplementedError("Connection from type %r" % (type(conn.pre_obj),))
+        raise NotImplementedError(f"Connection from type {type(conn.pre_obj)!r}")
 
     if neuron_type is not None and hasattr(neuron_type, "amplitude"):
         weights = scale_matrix(weights, neuron_type.amplitude)
@@ -542,7 +542,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
             #  is in the range -radius to radius, which is usually true.
             gain = 1.0 / conn.pre_obj.radius
 
-            decoder_block = LoihiBlock(2 * d, label="%s" % conn)
+            decoder_block = LoihiBlock(2 * d, label=f"{conn}")
             decoder_block.compartment.configure_nonspiking(
                 dt=model.dt, vth=model.vth_nonspiking
             )
@@ -572,7 +572,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
 
             target_encoders = "decode_neuron_encoders"
             decoder_block, dec_syn = model.decode_neurons.get_block(
-                loihi_weights, block_label="%s" % conn, syn_label="decoders"
+                loihi_weights, block_label=f"{conn}", syn_label="decoders"
             )
 
             model.add_block(decoder_block)
@@ -686,7 +686,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
         # loihi encoders don't include radius, so handle scaling here
         loihi_weights = scale_matrix(loihi_weights, 1.0 / conn.post_obj.radius)
 
-        syn = Synapse(n1, label="%s::decoder_weights" % conn)
+        syn = Synapse(n1, label=f"{conn}::decoder_weights")
         syn.set_weights(loihi_weights)
         post_obj.add_synapse(syn)
         model.objs[conn]["weights"] = syn

@@ -38,7 +38,7 @@ def test_build_callback(Simulator):
         pass
 
     for obj in (a, b, c):
-        assert obj in objs, "%s not in objs" % obj
+        assert obj in objs, f"{obj} not in objs"
 
 
 def test_probemap_bad_type_error(Simulator, monkeypatch):

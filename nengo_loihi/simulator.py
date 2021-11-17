@@ -115,7 +115,7 @@ class Simulator:
             warnings.warn("nengo-loihi does not support progress bars")
 
         if model is None:
-            self.model = Model(dt=float(dt), label="%s, dt=%f" % (network, dt))
+            self.model = Model(dt=float(dt), label=f"{network}, dt={dt:f}")
         else:
             assert isinstance(
                 model, Model
@@ -310,7 +310,7 @@ class Simulator:
         """
         if time_in_seconds < 0:
             raise ValidationError(
-                "Must be positive (got %g)" % (time_in_seconds,), attr="time_in_seconds"
+                f"Must be positive (got {time_in_seconds:g})", attr="time_in_seconds"
             )
 
         steps = int(np.round(float(time_in_seconds) / self.dt))

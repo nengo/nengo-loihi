@@ -85,7 +85,7 @@ def test_probedict_interface(Simulator):
         if o in objs:
             objs.remove(o)
     assert len(sim.data) == count
-    assert len(objs) == 0, "Objects did not appear in probedict: %s" % objs
+    assert len(objs) == 0, f"Objects did not appear in probedict: {objs}"
 
 
 @pytest.mark.xfail
@@ -783,7 +783,7 @@ def test_input_node_precompute(allclose, Simulator, plt):
             nengo.Connection(inp, a)
 
         with Simulator(model, precompute=True, target=target) as sim:
-            print("Running in {}".format(target))
+            print(f"Running in {target}")
             sim.run(simtime)
 
         synapse = nengo.synapses.Lowpass(0.03)

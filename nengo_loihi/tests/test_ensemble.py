@@ -38,7 +38,7 @@ def test_lif_response_curves(tau_ref, Simulator, plt):
     upper_bound = rates(tau_ref=tau_ref)
     lower_bound = rates(tau_ref=tau_ref + dt)
     mid = rates(tau_ref=tau_ref + 0.5 * dt)
-    plt.title("tau_ref=%.3f" % tau_ref)
+    plt.title(f"tau_ref={tau_ref:.3f}")
     plt.plot(bias, upper_bound, "k")
     plt.plot(bias, lower_bound, "k")
     plt.plot(bias, mid, "b")

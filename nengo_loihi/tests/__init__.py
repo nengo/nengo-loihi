@@ -41,7 +41,7 @@ def set_partition_env(
 
 
 def has_partition(partition):
-    return os.popen("sinfo -h --partition=%s" % (partition,)).read().find("idle") > 0
+    return os.popen(f"sinfo -h --partition={partition}").read().find("idle") > 0
 
 
 def require_partition(partition, request, action="return", **kwargs):
@@ -55,7 +55,7 @@ def require_partition(partition, request, action="return", **kwargs):
             return False
         else:  # pragma: no cover
             (pytest.fail if action == "fail" else pytest.skip)(
-                "Partition %r is unavailable" % (partition,)
+                f"Partition {partition!r} is unavailable"
             )
 
     return True

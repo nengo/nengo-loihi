@@ -146,7 +146,7 @@ class LoihiLIF(LIF):
         min_voltage=0,
         amplitude=1,
         nengo_dl_noise=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             tau_rc=tau_rc,
@@ -162,7 +162,7 @@ class LoihiLIF(LIF):
     def _argreprs(self):
         args = super()._argreprs
         if self.nengo_dl_noise is not None:
-            args.append("nengo_dl_noise=%s" % self.nengo_dl_noise)
+            args.append(f"nengo_dl_noise={self.nengo_dl_noise}")
         return args
 
     def rates(self, x, gain, bias, dt=0.001):
@@ -254,7 +254,7 @@ class LowpassRCNoise(NeuronOutputNoise):
         self.tau_s = tau_s
 
     def __repr__(self):
-        return "%s(tau_s=%s)" % (type(self).__name__, self.tau_s)
+        return f"{type(self).__name__}(tau_s={self.tau_s})"
 
 
 class AlphaRCNoise(NeuronOutputNoise):
@@ -286,4 +286,4 @@ class AlphaRCNoise(NeuronOutputNoise):
         self.tau_s = tau_s
 
     def __repr__(self):
-        return "%s(tau_s=%s)" % (type(self).__name__, self.tau_s)
+        return f"{type(self).__name__}(tau_s={self.tau_s})"

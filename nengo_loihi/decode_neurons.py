@@ -26,7 +26,7 @@ class DecodeNeurons:
         self.dt = dt
 
     def __str__(self):
-        return "%s(dt=%0.3g)" % (type(self).__name__, self.dt)
+        return f"{type(self).__name__}(dt={self.dt:0.3g})"
 
     def get_block(self, weights, block_label=None, syn_label=None):
         """Get a LoihiBlock for implementing neurons on the chip.
@@ -280,7 +280,7 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
         # ^ repeat for on/off neurons
 
     def __str__(self):
-        return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)
+        return f"{type(self).__name__}(dt={self.dt:0.3g}, rate={self.rate:0.3g})"
 
 
 class Preset10DecodeNeurons(OnOffDecodeNeurons):
@@ -310,4 +310,4 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
         # ^ repeat for on/off neurons
 
     def __str__(self):
-        return "%s(dt=%0.3g, rate=%0.3g)" % (type(self).__name__, self.dt, self.rate)
+        return f"{type(self).__name__}(dt={self.dt:0.3g}, rate={self.rate:0.3g})"

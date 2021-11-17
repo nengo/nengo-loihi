@@ -93,7 +93,7 @@ def build_ensemble(model, ens):
     # Build the neurons
     gain, bias, max_rates, intercepts = get_gain_bias(ens, rng, model.intercept_limit)
 
-    block = LoihiBlock(ens.n_neurons, label="%s" % ens)
+    block = LoihiBlock(ens.n_neurons, label=f"{ens}")
     block.compartment.bias[:] = bias
 
     # build the neuron_type (see builders below)

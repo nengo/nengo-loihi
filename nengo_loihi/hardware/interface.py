@@ -402,7 +402,7 @@ class Snips:
 
     @classmethod
     def render_template(cls, template, path, **template_data):
-        template = cls.env.get_template("{}.template".format(template))
+        template = cls.env.get_template(f"{template}.template")
         code = template.render(obfs=cls.obfs, **template_data)
         with open(path, "w") as f:
             f.write(code)

@@ -88,7 +88,7 @@ def test_decay_magnitude(offset, plt):
     rms_ref = rms(ref - emp) / rms(emp)
     rms_est = rms(est - emp) / rms(emp)
     logging.info(
-        "Ref rel RMSE: %0.3e, decay_magnitude rel RMSE: %0.3e" % (rms_ref, rms_est)
+        f"Ref rel RMSE: {rms_ref:0.3e}, decay_magnitude rel RMSE: {rms_est:0.3e}"
     )
 
     abs_ref = np.abs(ref - emp)

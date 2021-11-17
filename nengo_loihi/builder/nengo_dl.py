@@ -74,7 +74,7 @@ class NoiseBuilder:
         def register_builder(build_cls):
             if noise_builder in cls.builders:
                 warnings.warn(
-                    "Type '%s' already has a builder. Overwriting." % noise_builder
+                    f"Type '{noise_builder}' already has a builder. Overwriting."
                 )
             cls.builders[noise_builder] = build_cls
             return build_cls

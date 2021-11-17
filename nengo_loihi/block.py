@@ -52,7 +52,7 @@ class LoihiBlock:
         self.named_synapses = {}
 
     def __str__(self):
-        return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
+        return f"{type(self).__name__}({self.label if self.label else ''})"
 
     def add_synapse(self, synapse, name=None):
         self.synapses.append(synapse)
@@ -179,7 +179,7 @@ class Compartment:
         self.noise_at_membrane = 0
 
     def __str__(self):
-        return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
+        return f"{type(self).__name__}({self.label if self.label else ''})"
 
     def configure_default_filter(self, tau_s, dt=0.001):
         """Set the default Lowpass synaptic input filter for compartments.
@@ -353,7 +353,7 @@ class Axon:
         self.compartment_atoms = None
 
     def __str__(self):
-        return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
+        return f"{type(self).__name__}({self.label if self.label else ''})"
 
     @property
     def pop_type(self):
@@ -515,7 +515,7 @@ class SynapseConfig(Config):
         elif self.compression == d(b"Mw==", int):
             pass
         else:
-            raise NotImplementedError("Compression %s" % (self.compression,))
+            raise NotImplementedError(f"Compression {self.compression}")
 
         synapse_idx_bits = d(b"NA==", int)
         n_synapses_bits = d(b"Ng==", int)
@@ -588,7 +588,7 @@ class Synapse:
         self.pop_type = 0  # one of (0, 16, 32) for discrete, pop16, pop32
 
     def __str__(self):
-        return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
+        return f"{type(self).__name__}({self.label if self.label else ''})"
 
     def atom_bits(self):
         """Number of bits needed to represent the atom for incoming spikes."""

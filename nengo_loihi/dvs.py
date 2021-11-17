@@ -65,7 +65,7 @@ class DVSFileChipProcess(ChipProcess):
         channels_last=True,
         dvs_height=180,
         dvs_width=240,
-        **kwargs
+        **kwargs,
     ):
         self.file_path = file_path
         self.file_fmt = file_fmt
@@ -233,7 +233,7 @@ class DVSEvents:
         rel_time : bool, optional
             Whether timestamps should be relative to the first event, or absolute.
         """
-        assert os.path.exists(file_path), "File does not exist: %r" % (file_path,)
+        assert os.path.exists(file_path), f"File does not exist: {file_path!r}"
 
         if file_fmt is None:
             file_fmt = self._get_extension(file_path)
@@ -252,7 +252,7 @@ class DVSEvents:
             io.read_events(dvs_events=self, rel_time=rel_time)
         else:
             raise ValueError(
-                "Unrecognized file format %r for file %r" % (file_fmt, file_path)
+                f"Unrecognized file format {file_fmt!r} for file {file_path!r}"
             )
 
     def write_file(self, file_path):
@@ -278,7 +278,7 @@ class DVSEvents:
             io.write_events(self)
         else:
             raise ValueError(
-                "Unsupported file format %r for writing events files" % (file_fmt,)
+                f"Unsupported file format {file_fmt!r} for writing events files"
             )
 
     def _get_extension(self, file_path):
@@ -340,7 +340,7 @@ class AEDatFileIO(DVSFileIO):
             if len(buf) == 0 or end < 0:
                 buf = buf + fh.read(1024)
 
-        assert len(header) > 0, "AEDat missing header in file %r" % self.file_path
+        assert len(header) > 0, f"AEDat missing header in file {self.file_path!r}"
         header0 = header[0].decode("ascii").strip()
         assert header0.startswith("!AER-DAT")
 
@@ -366,7 +366,7 @@ class AEDatFileIO(DVSFileIO):
                     buf = buf + fh.read(1024)
 
         if len(buf) > 0:
-            warnings.warn("Mangled event at end of %r" % (self.file_path,))
+            warnings.warn(f"Mangled event at end of {self.file_path!r}")
 
         etuple = lambda e: (e.y, e.x, e.polarity, e.trigger, e.t)
         dvs_events = DVSEvents() if dvs_events is None else dvs_events

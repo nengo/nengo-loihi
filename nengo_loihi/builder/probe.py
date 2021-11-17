@@ -19,7 +19,7 @@ def conn_probe(model, nengo_probe):
     # get any extra arguments if this probe was created to send data
     #  to an off-chip Node via the splitter
 
-    conn_label = None if nengo_probe.label is None else "%s_conn" % nengo_probe.label
+    conn_label = None if nengo_probe.label is None else f"{nengo_probe.label}_conn"
     kwargs = model.chip2host_params.get(nengo_probe, None)
     if kwargs is not None:
         # this probe is for sending data to a Node
@@ -151,7 +151,7 @@ def build_probe(model, probe):
         if isinstance(probe.obj, nengotype):
             break
     else:
-        raise BuildError("Type %r is not probeable" % type(probe.obj).__name__)
+        raise BuildError(f"Type {type(probe.obj).__name__!r} is not probeable")
 
     key = probeables[probe.attr] if probe.attr in probeables else probe.attr
     if key is None:

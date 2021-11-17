@@ -77,9 +77,9 @@ if HAS_NXSDK:  # noqa: C901
                 src = f0.read()
                 dst = f1.read()
                 if src != dst:  # pragma: no cover
-                    print("=== SOURCE: %s" % (c_file,))
+                    print(f"=== SOURCE: {c_file}")
                     print(src)
-                    print("\n=== DEST: %s" % (new_c_file,))
+                    print(f"\n=== DEST: {new_c_file}")
                     print(dst)
                     raise ValueError("Snip file not copied correctly")
 
@@ -88,9 +88,7 @@ if HAS_NXSDK:  # noqa: C901
                 # Also copy all the include files
                 new_include_dir = os.path.join(tmp.name, name, "include")
                 shutil.copytree(include_dir, new_include_dir)
-                assert os.path.isdir(new_include_dir), (
-                    "Copy failed %s" % new_include_dir
-                )
+                assert os.path.isdir(new_include_dir), f"Copy failed {new_include_dir}"
 
             return new_c_file, new_include_dir
 

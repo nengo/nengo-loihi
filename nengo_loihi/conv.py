@@ -29,7 +29,7 @@ class ImageSlice:
     ):
         if not (isinstance(full_shape, ChannelShape) and full_shape.dimensions == 2):
             raise ValidationError(
-                "must be 2-D ChannelShape (got %r)" % full_shape,
+                f"must be 2-D ChannelShape (got {full_shape!r})",
                 attr="full_shape",
                 obj=self,
             )

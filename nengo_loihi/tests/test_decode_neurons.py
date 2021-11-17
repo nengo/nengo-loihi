@@ -77,7 +77,7 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
     plt.plot(t, target)
     plt.plot(t, sim.data[p_c])
     plt.ylim([-1.1, 1.1])
-    plt.title("error = %0.2e" % error)
+    plt.title(f"error = {error:0.2e}")
 
     assert error < tolerance
 
@@ -111,7 +111,7 @@ def test_node_neurons(decode_neurons, tolerance, Simulator, seed, plt):
     plt.plot(t, target)
     plt.plot(t, sim.data[p_a])
     plt.ylim([-1.1, 1.1])
-    plt.title("error = %0.2e" % error)
+    plt.title(f"error = {error:0.2e}")
 
     assert error < tolerance
 

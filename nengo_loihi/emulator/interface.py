@@ -272,7 +272,7 @@ class CompartmentState(IterableState):
             def overflow(x, bits, name=None):
                 _, o = overflow_signed(x, bits=bits, out=x)
                 if np.any(o):
-                    self.error("Overflow" + (" in %s" % name if name else ""))
+                    self.error("Overflow" + (f" in {name}" if name else ""))
 
         elif self.dtype == np.float32:
 
@@ -291,7 +291,7 @@ class CompartmentState(IterableState):
 
         else:
             raise ValidationError(
-                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+                f"dtype {self.dtype!r} not supported", attr="dtype", obj=block_info
             )
 
         self._overflow = overflow
@@ -366,7 +366,7 @@ class NoiseState(IterableState):
 
         else:
             raise ValidationError(
-                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+                f"dtype {self.dtype!r} not supported", attr="dtype", obj=block_info
             )
 
         assert not np.any(np.isnan(self.enabled))
@@ -435,7 +435,7 @@ class SynapseState(IterableState):
                 if clip is not None:
                     q = y > clip
                     if np.any(q):
-                        warnings.warn("Clipping %s" % name)
+                        warnings.warn(f"Clipping {name}")
                     y[q] = clip
                 return x_sign * y
 
@@ -472,7 +472,7 @@ class SynapseState(IterableState):
 
         else:
             raise ValidationError(
-                "dtype %r not supported" % self.dtype, attr="dtype", obj=block_info
+                f"dtype {self.dtype!r} not supported", attr="dtype", obj=block_info
             )
 
         self._trace_round = trace_round

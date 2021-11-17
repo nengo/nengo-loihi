@@ -56,7 +56,7 @@ all_examples.sort()
 def execexample(fname):
     example = os.path.join(examples_dir, fname)
     if not os.path.exists(example):
-        msg = "Cannot find examples/{}".format(fname)
+        msg = f"Cannot find examples/{fname}"
         warnings.warn(msg)
         pytest.skip(msg)
     example_ns = {}
@@ -68,7 +68,7 @@ def execexample(fname):
 def test_no_outputs(nb_file):
     """Ensure that no cells have output."""
     pytest.importorskip("IPython", minversion="3.0")
-    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+    nb = load_notebook(os.path.join(examples_dir, f"{nb_file}.ipynb"))
     for cell in iter_cells(nb):
         assert cell.outputs == [], "Cell outputs not cleared"
         assert cell.execution_count is None, "Execution count not cleared"
@@ -77,14 +77,14 @@ def test_no_outputs(nb_file):
 @pytest.mark.parametrize("nb_file", all_examples)
 def test_version_4(nb_file):
     pytest.importorskip("IPython", minversion="3.0")
-    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+    nb = load_notebook(os.path.join(examples_dir, f"{nb_file}.ipynb"))
     assert nb.nbformat == 4
 
 
 @pytest.mark.parametrize("nb_file", all_examples)
 def test_minimal_metadata(nb_file):
     pytest.importorskip("IPython", minversion="3.0")
-    nb = load_notebook(os.path.join(examples_dir, "%s.ipynb" % nb_file))
+    nb = load_notebook(os.path.join(examples_dir, f"{nb_file}.ipynb"))
 
     assert "kernelspec" not in nb.metadata
     assert "signature" not in nb.metadata

@@ -380,7 +380,7 @@ def split_block(old_block, block_shapes):
                 if len(ind_array) == 1
                 else str(k)
             )
-            new_block.label = "%s[%s]" % (old_block.label, indstr)
+            new_block.label = f"{old_block.label}[{indstr}]"
 
         for attr in (
             "decay_u",
