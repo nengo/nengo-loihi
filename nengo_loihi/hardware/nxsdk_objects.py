@@ -3,11 +3,10 @@ import collections
 import numpy as np
 
 from nengo_loihi.block import Config
-from nengo_loihi.nxsdk_obfuscation import d, d_get
 
-MAX_COMPARTMENT_CFGS = d(b"MzI=", int)
-MAX_VTH_CFGS = d(b"OA==", int)
-MAX_SYNAPSE_CFGS = d(b"OA==", int)
+MAX_COMPARTMENT_CFGS = 32
+MAX_VTH_CFGS = 8
+MAX_SYNAPSE_CFGS = 8
 
 
 class Board:
@@ -277,31 +276,25 @@ class LoihiSpikeInput:
     @classmethod
     def add_spikes_to_generator(cls, t, spikes, basic_spike_generator):
         methods = {
-            0: getattr(basic_spike_generator, d(b"YWRkU3Bpa2U=")),
-            16: getattr(basic_spike_generator, d(b"YWRkUG9wMTZTcGlrZQ==")),
-            32: getattr(basic_spike_generator, d(b"YWRkUG9wMzJTcGlrZQ==")),
+            0: basic_spike_generator.addSpike,
+            16: basic_spike_generator.addPop16Spike,
+            32: basic_spike_generator.addPop32Spike,
         }
-        time = d(b"dGltZQ==")
-        chip_id = d(b"Y2hpcElk")
-        core_id = d(b"Y29yZUlk")
-        axon_id = d(b"YXhvbklk")
-        atom = d(b"c3JjQXRvbQ==")
-        atom_bits_extra = d(b"YXRvbUJpdHM=")
 
         for spike in spikes:
             axon_type = int(spike["axon_type"])
-            kwargs = {
-                time: t,
-                chip_id: spike["chip_id"].item(),
-                core_id: spike["core_id"].item(),
-                axon_id: spike["axon_id"].item(),
-            }
+            kwargs = dict(
+                time=t,
+                chipId=spike["chip_id"].item(),
+                coreId=spike["core_id"].item(),
+                axonId=spike["axon_id"].item(),
+            )
             if axon_type == 0:
                 assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
             else:
-                kwargs[atom] = spike["atom"]
+                kwargs["srcAtom"] = spike["atom"]
                 if axon_type == 16:
-                    kwargs[atom_bits_extra] = spike["atom_bits_extra"]
+                    kwargs["atomBits"] = spike["atom_bits_extra"]
 
             methods[axon_type](**kwargs)
 
@@ -327,8 +320,8 @@ class LoihiSpikeInput:
             synapse = axon.target
             atom_bits_extra = synapse.atom_bits_extra()
             tchip_idx, tcore_idx, taxon_ids = board.find_synapse(synapse)
-            tchip = d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx]
-            tcore = d_get(tchip, b"bjJDb3Jlcw==")[tcore_idx]
+            tchip = nxsdk_board.n2Chips[tchip_idx]
+            tcore = tchip.n2Cores[tcore_idx]
             spikes = axon.map_spikes(input_idxs)
             for input_idx, spike in zip(input_idxs, spikes):
                 self.axon_map.setdefault(input_idx, [])
@@ -369,9 +362,9 @@ class LoihiSpikeInput:
 
 
 class CompartmentConfig(Config):
-    DECAY_U_MAX = d(b"NDA5NQ==", int)
-    DECAY_V_MAX = d(b"NDA5NQ==", int)
-    REFRACT_DELAY_MAX = d(b"NjM=", int)
+    DECAY_U_MAX = 4095
+    DECAY_V_MAX = 4095
+    REFRACT_DELAY_MAX = 63
 
     params = ("decay_u", "decay_v", "refract_delay", "enable_noise")
 

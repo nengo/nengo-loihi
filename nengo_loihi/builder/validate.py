@@ -8,7 +8,6 @@ from nengo_loihi.block import (
     MAX_SYNAPSE_BITS,
     Synapse,
 )
-from nengo_loihi.nxsdk_obfuscation import d
 
 
 def validate_model(model):
@@ -78,8 +77,8 @@ def validate_axon(axon):
 def validate_synapse(synapse):
     validate_synapse_cfg(synapse.synapse_cfg)
     if synapse.axon_compartment_bases is not None:
-        min_base = d(b"LTE=", int)
-        max_base = d(b"MjU2", int)
+        min_base = -1
+        max_base = 256
         assert all(min_base <= b < max_base for b in synapse.axon_compartment_bases), (
             f"{synapse}: compartment base must be >= {min_base} and < {max_base} "
             "(-1 indicating unused)"
@@ -97,14 +96,14 @@ def validate_synapse_cfg(synapse_cfg):
         "Synapse idx_bits is < 0. This likely indicates the target compartment is "
         "too large to fit on a core."
     )
-    assert d(b"LTc=", int) <= synapse_cfg.weight_exp <= d(b"Nw==", int)
-    assert d(b"MA==", int) <= synapse_cfg.tag_bits < d(b"NA==", int)
-    assert d(b"MA==", int) <= synapse_cfg.delay_bits < d(b"OA==", int)
-    assert d(b"MQ==", int) <= synapse_cfg.weight_bits < d(b"OA==", int)
-    assert d(b"MA==", int) <= synapse_cfg.idx_offset < d(b"MTY=", int)
-    assert d(b"MA==", int) <= synapse_cfg.idx_mult < d(b"MTY=", int)
-    assert d(b"MA==", int) <= synapse_cfg.idx_bits < d(b"OA==", int)
-    assert d(b"MQ==", int) <= synapse_cfg.fanout_type < d(b"NA==", int)
+    assert -7 <= synapse_cfg.weight_exp <= 7
+    assert 0 <= synapse_cfg.tag_bits < 4
+    assert 0 <= synapse_cfg.delay_bits < 8
+    assert 1 <= synapse_cfg.weight_bits < 8
+    assert 0 <= synapse_cfg.idx_offset < 16
+    assert 0 <= synapse_cfg.idx_mult < 16
+    assert 0 <= synapse_cfg.idx_bits < 8
+    assert 1 <= synapse_cfg.fanout_type < 4
 
 
 def validate_probe(probe):

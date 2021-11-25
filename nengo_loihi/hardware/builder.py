@@ -17,7 +17,6 @@ from nengo_loihi.hardware.nxsdk_shim import (
     micro_gen,
 )
 from nengo_loihi.inputs import SpikeInput
-from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get, d_set
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +46,9 @@ def build_board(board, use_snips=False, seed=None):
         build_input(nxsdk_board, board, input)
 
     # build all chips
-    assert len(board.chips) == len(d_get(nxsdk_board, b"bjJDaGlwcw=="))
+    assert len(board.chips) == len(nxsdk_board.n2Chips)
     rng = np.random.RandomState(seed)
-    for chip, nxsdk_chip in zip(board.chips, d_get(nxsdk_board, b"bjJDaGlwcw==")):
+    for chip, nxsdk_chip in zip(board.chips, nxsdk_board.n2Chips):
         logger.debug("Building chip %s", chip)
         seed = rng.randint(npext.maxint)
         build_chip(nxsdk_chip, chip, seed=seed)
@@ -63,11 +62,11 @@ def build_board(board, use_snips=False, seed=None):
 
 
 def build_chip(nxsdk_chip, chip, seed=None):
-    assert len(chip.cores) == len(d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA=="))
+    assert len(chip.cores) == len(nxsdk_chip.n2CoresAsList)
 
     # build cores
     rng = np.random.RandomState(seed)
-    for core, nxsdk_core in zip(chip.cores, d_get(nxsdk_chip, b"bjJDb3Jlc0FzTGlzdA==")):
+    for core, nxsdk_core in zip(chip.cores, nxsdk_chip.n2CoresAsList):
         logger.debug("Building core %s", core)
         seed = rng.randint(npext.maxint)
         build_core(nxsdk_core, core, seed=seed)
@@ -109,66 +108,53 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
 
     logger.debug("- Configuring compartments")
     for i, cfg in enumerate(core.compartment_cfgs):
-        d_func(
-            d_get(nxsdk_core, b"Y3hQcm9maWxlQ2Zn")[i],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"ZGVjYXlW": cfg.decay_v,
-                b"ZGVjYXlV": cfg.decay_u,
-                b"cmVmcmFjdERlbGF5": cfg.refract_delay,
-                b"ZW5hYmxlTm9pc2U=": cfg.enable_noise,
-                b"YmFwQWN0aW9u": 1,
-            },
+        nxsdk_core.cxProfileCfg[i].configure(
+            decayV=cfg.decay_v,
+            decayU=cfg.decay_u,
+            refractDelay=cfg.refract_delay,
+            enableNoise=cfg.enable_noise,
+            bapAction=1,
         )
 
     logger.debug("- Configuring vth_cfgs")
     for i, cfg in enumerate(core.vth_cfgs):
-        d_func(
-            d_get(nxsdk_core, b"dnRoUHJvZmlsZUNmZw==")[i],
-            b"c3RhdGljQ2Zn",
-            b"Y29uZmlndXJl",
-            kwargs={b"dnRo": cfg.vth},
-        )
+        nxsdk_core.vthProfileCfg[i].staticCfg.configure(vth=cfg.vth)
 
     logger.debug("- Configuring synapse_cfgs")
     for i, cfg in enumerate(core.synapse_cfgs):
         if cfg is None:
             continue
 
-        obj = d_get(nxsdk_core, b"c3luYXBzZUZtdA==")[i]
-        d_set(obj, b"d2d0TGltaXRNYW50", val=cfg.weight_limit_mant)
-        d_set(obj, b"d2d0TGltaXRFeHA=", val=cfg.weight_limit_exp)
-        d_set(obj, b"d2d0RXhw", val=cfg.weight_exp)
-        d_set(obj, b"ZGlzY01heFdndA==", val=cfg.disc_max_weight)
-        d_set(obj, b"bGVhcm5pbmdDZmc=", val=cfg.learning_cfg)
-        d_set(obj, b"dGFnQml0cw==", val=cfg.tag_bits)
-        d_set(obj, b"ZGx5Qml0cw==", val=cfg.delay_bits)
-        d_set(obj, b"d2d0Qml0cw==", val=cfg.weight_bits)
-        d_set(obj, b"cmV1c2VTeW5EYXRh", val=cfg.reuse_synapse_data)
-        d_set(obj, b"bnVtU3luYXBzZXM=", val=cfg.n_synapses)
-        d_set(obj, b"Y0lkeE9mZnNldA==", val=cfg.idx_offset)
-        d_set(obj, b"Y0lkeE11bHQ=", val=cfg.idx_mult)
-        d_set(obj, b"c2tpcEJpdHM=", val=cfg.skip_bits)
-        d_set(obj, b"aWR4Qml0cw==", val=cfg.idx_bits)
-        d_set(obj, b"c3luVHlwZQ==", val=cfg.synapse_type)
-        d_set(obj, b"ZmFub3V0VHlwZQ==", val=cfg.fanout_type)
-        d_set(obj, b"Y29tcHJlc3Npb24=", val=cfg.compression)
-        d_set(obj, b"c3RkcFByb2ZpbGU=", val=cfg.stdp_cfg)
-        d_set(obj, b"aWdub3JlRGx5", val=cfg.ignore_delay)
+        obj = nxsdk_core.synapseFmt[i]
+        obj.wgtLimitMant = cfg.weight_limit_mant
+        obj.wgtLimitExp = cfg.weight_limit_exp
+        obj.wgtExp = cfg.weight_exp
+        obj.discMaxWgt = cfg.disc_max_weight
+        obj.learningCfg = cfg.learning_cfg
+        obj.tagBits = cfg.tag_bits
+        obj.dlyBits = cfg.delay_bits
+        obj.wgtBits = cfg.weight_bits
+        obj.reuseSynData = cfg.reuse_synapse_data
+        obj.numSynapses = cfg.n_synapses
+        obj.cIdxOffset = cfg.idx_offset
+        obj.cIdxMult = cfg.idx_mult
+        obj.skipBits = cfg.skip_bits
+        obj.idxBits = cfg.idx_bits
+        obj.synType = cfg.synapse_type
+        obj.fanoutType = cfg.fanout_type
+        obj.compression = cfg.compression
+        obj.stdpProfile = cfg.stdp_cfg
+        obj.ignoreDly = cfg.ignore_delay
 
     logger.debug("- Configuring stdp_pre_cfgs")
     for i, trace_cfg in enumerate(core.stdp_pre_cfgs):
         tcg = TraceConfigGenerator()
-        tc = d_func(
-            tcg,
-            b"Z2VuVHJhY2VDZmc=",
-            kwargs={
-                b"dGF1": trace_cfg.tau,
-                b"c3Bpa2VMZXZlbEludA==": trace_cfg.spike_int,
-                b"c3Bpa2VMZXZlbEZyYWM=": trace_cfg.spike_frac,
-            },
+        tc = tcg.genTraceCfg(
+            tau=trace_cfg.tau,
+            spikeLevelInt=trace_cfg.spike_int,
+            spikeLevelFrac=trace_cfg.spike_frac,
         )
-        d_get(tc, b"d3JpdGVUb1JlZ2lzdGVy")(d_get(nxsdk_core, b"c3RkcFByZUNmZw==")[i])
+        tc.writeToRegister(nxsdk_core.stdpPreCfg[i])
 
     # --- seed randomness
     def seed_trace(trace_random, rng):
@@ -182,28 +168,23 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
     # d_set (nxsdk_core, b'ZGVuZHJpdGVSYW5kb20=', b'd29yZA==',
     #        val=rng.randint(2 ** 32))
     # pre trace rounding
-    seed_trace(d_get(nxsdk_core, b"c3RkcFByZVJhbmRvbQ=="), rng)
+    seed_trace(nxsdk_core.stdpPreRandom, rng)
     # post trace rounding
-    seed_trace(d_get(nxsdk_core, b"c3RkcFBvc3RSYW5kb20="), rng)
+    seed_trace(nxsdk_core.stdpPostRandom, rng)
     # soma activity trace rounding
-    seed_trace(d_get(nxsdk_core, b"c29tYVJhbmRvbQ=="), rng)
+    seed_trace(nxsdk_core.somaRandom, rng)
     # synaptic rounding
-    d_set(
-        nxsdk_core,
-        b"c3luYXBzZVJlcGFja1JhbmRvbQ==",
-        b"d29yZA==",
-        val=rng.randint(2 ** 32),
-    )
+    nxsdk_core.synapseRepackRandom.word = rng.randint(2 ** 32)
 
     # --- learning
     first_learning_index = None
     for synapse in core.iterate_synapses():
         if synapse.learning and first_learning_index is None:
             first_learning_index = core.synapse_axons[synapse][0]
-            core.learning_coreid = d_get(nxsdk_core, b"aWQ=")
+            core.learning_coreid = nxsdk_core.id
             break
 
-    num_stdp = 0
+    n_stdp = 0
     if first_learning_index is not None:
         for synapse in core.iterate_synapses():
             assert (
@@ -212,93 +193,48 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
 
             axons = np.array(core.synapse_axons[synapse])
             if synapse.learning:
-                num_stdp += len(axons)
+                n_stdp += len(axons)
                 assert np.all(axons >= first_learning_index)
 
-    if num_stdp > 0:
+    if n_stdp > 0:
         logger.debug("- Configuring PES learning")
         # add configurations tailored to PES learning
-        d_func(
-            nxsdk_core,
-            b"c3RkcENmZw==",
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"Zmlyc3RMZWFybmluZ0luZGV4": first_learning_index,
-                b"bnVtUmV3YXJkQXhvbnM=": 0,
-            },
+        nxsdk_core.stdpCfg.configure(
+            firstLearningIndex=first_learning_index, numRewardAxons=0
         )
 
         assert core.stdp_pre_cfg_idx is None
         assert core.stdp_cfg_idx is None
         core.stdp_pre_cfg_idx = 0  # hard-code for now
         core.stdp_cfg_idx = 0  # hard-code for now (also in synapse_cfg)
-        d_func(
-            d_get(nxsdk_core, b"c3RkcFByZVByb2ZpbGVDZmc=")[0],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"dXBkYXRlQWx3YXlz": 1,
-                b"bnVtVHJhY2Vz": 0,
-                b"bnVtVHJhY2VIaXN0": 0,
-                b"c3RkcFByb2ZpbGU=": 0,
-            },
+        nxsdk_core.stdpPreProfileCfg[0].configure(
+            updateAlways=1, numTraces=0, numTraceHist=0, stdpProfile=0
         )
 
         # stdp config for positive error
-        d_func(
-            d_get(nxsdk_core, b"c3RkcFByb2ZpbGVDZmc=")[0],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"dUNvZGVQdHI=": 0,
-                b"ZGVjaW1hdGVFeHA=": 0,
-                b"bnVtUHJvZHVjdHM=": 1,
-                b"cmVxdWlyZVk=": 1,
-                b"dXNlc1hlcG9jaA==": 1,
-            },
+        nxsdk_core.stdpProfileCfg[0].configure(
+            uCodePtr=0, decimateExp=0, numProducts=1, requireY=1, usesXepoch=1
         )
 
         # Microcode for the learning rule. `u1` evaluates the learning rule
         # every 2**1 timesteps, `x1` is the pre-trace, `y1` is the post-trace,
         # and 2^-7 is the learning rate.
-        ucode = d_get(micro_gen, b"cnVsZVRvVUNvZGU=")(
-            [d(b"ZHcgPSB1MSp4MSp5MSooMl4tNyk=")], **{d(b"ZG9PcHRpbWl6ZQ=="): False}
-        )
-        assert d_get(ucode, b"bnVtVUNvZGVz") == 1
-        d_set(
-            d_get(nxsdk_core, b"c3RkcFVjb2RlTWVt")[0],
-            b"d29yZA==",
-            val=d_get(ucode, b"dUNvZGVz")[0],
-        )
+        ucode = micro_gen.ruleToUCode(["dw = u1*x1*y1*(2^-7)"], doOptimize=False)
+        assert ucode.numUCodes == 1
+        nxsdk_core.stdpUcodeMem[0].word = ucode.uCodes[0]
 
         # stdp config for negative error
-        d_func(
-            d_get(nxsdk_core, b"c3RkcFByb2ZpbGVDZmc=")[1],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"dUNvZGVQdHI=": 1,
-                b"ZGVjaW1hdGVFeHA=": 0,
-                b"bnVtUHJvZHVjdHM=": 1,
-                b"cmVxdWlyZVk=": 1,
-                b"dXNlc1hlcG9jaA==": 1,
-            },
+        nxsdk_core.stdpProfileCfg[1].configure(
+            uCodePtr=1, decimateExp=0, numProducts=1, requireY=1, usesXepoch=1
         )
         # use negative version of above microcode rule
-        ucode = d_get(micro_gen, b"cnVsZVRvVUNvZGU=")(
-            [d(b"ZHcgPSAtdTEqeDEqeTEqKDJeLTcp")], **{d(b"ZG9PcHRpbWl6ZQ=="): False}
-        )
-        assert d_get(ucode, b"bnVtVUNvZGVz") == 1
-        d_set(
-            d_get(nxsdk_core, b"c3RkcFVjb2RlTWVt")[1],
-            b"d29yZA==",
-            val=d_get(ucode, b"dUNvZGVz")[0],
-        )
+        ucode = micro_gen.ruleToUCode(["dw = -u1*x1*y1*(2^-7)"], doOptimize=False)
+        assert ucode.numUCodes == 1
+        nxsdk_core.stdpUcodeMem[1].word = ucode.uCodes[0]
 
         tcg = TraceConfigGenerator()
-        tc = d_func(
-            tcg,
-            b"Z2VuVHJhY2VDZmc=",
-            kwargs={b"dGF1": 0, b"c3Bpa2VMZXZlbEludA==": 0, b"c3Bpa2VMZXZlbEZyYWM=": 0},
-        )
-        d_get(tc, b"d3JpdGVUb1JlZ2lzdGVy")(d_get(nxsdk_core, b"c3RkcFBvc3RDZmc=")[0])
+        tc = tcg.genTraceCfg(tau=0, spikeLevelInt=0, spikeLevelFrac=0)
+        tc.writeToRegister(nxsdk_core.stdpPostCfg[0])
 
     # TODO: allocator should be checking that vmin, vmax are the same
     #   for all blocks on a core
@@ -325,47 +261,33 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
             for block in core.blocks
         )
 
-        if noise_exp < d(b"Nw==", int):
+        if noise_exp < 7:
             # unexpected shifting: exp less than threshold acts as exp + 1
             noise_exp = noise_exp - 1
 
-        d_func(
-            nxsdk_core,
-            b"ZGVuZHJpdGVTaGFyZWRDZmc=",
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"cG9zVm1MaW1pdA==": int(pos_limit),
-                b"bmVnVm1MaW1pdA==": int(neg_limit),
-                b"bm9pc2VFeHAw": noise_exp,
-                b"bm9pc2VNYW50T2Zmc2V0MA==": noise_offset,
-                b"bm9pc2VBdERlbmRPclZt": noise_at_membrane,
-            },
+        nxsdk_core.dendriteSharedCfg.configure(
+            posVmLimit=int(pos_limit),
+            negVmLimit=int(neg_limit),
+            noiseExp0=noise_exp,
+            noiseMantOffset0=noise_offset,
+            noiseAtDendOrVm=noise_at_membrane,
         )
 
-        d_func(
-            nxsdk_core,
-            b"ZGVuZHJpdGVBY2N1bUNmZw==",
-            b"Y29uZmlndXJl",
-            kwargs={b"ZGVsYXlCaXRz": 3},
-        )
+        nxsdk_core.dendriteAccumCfg.configure(delayBits=3)
 
         for block, compartment_idxs, ax_range in core.iterate_blocks():
             build_block(nxsdk_core, core, block, compartment_idxs, ax_range)
             n_compartments = max(max(compartment_idxs) + 1, n_compartments)
 
-    logger.debug("- Configuring n_updates=%d", ceil_div(n_compartments, 4))
-    d_func(
-        nxsdk_core,
-        b"bnVtVXBkYXRlcw==",
-        b"Y29uZmlndXJl",
-        kwargs={
-            b"bnVtVXBkYXRlcw==": ceil_div(n_compartments, 4),
-            b"bnVtU3RkcA==": num_stdp,
-        },
+    n_updates = ceil_div(n_compartments, 4)
+    logger.debug("- Configuring n_updates=%d, n_stdp=%d", n_updates, n_stdp)
+    nxsdk_core.numUpdates.configure(
+        numUpdates=n_updates,
+        numStdp=n_stdp,
     )
 
-    d_set(d_get(nxsdk_core, b"ZGVuZHJpdGVUaW1lU3RhdGU=")[0], b"dGVwb2No", val=2)
-    d_set(d_get(nxsdk_core, b"dGltZVN0YXRl")[0], b"dGVwb2No", val=2)
+    nxsdk_core.dendriteTimeState[0].tepoch = 2
+    nxsdk_core.timeState[0].tepoch = 2
 
 
 def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
@@ -380,21 +302,12 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
         ivth = core.vth_cfg_idxs[block][i]
 
         ii = compartment_idxs[i]
-        d_func(
-            d_get(nxsdk_core, b"Y3hDZmc=")[ii],
-            b"Y29uZmlndXJl",
-            kwargs={
-                b"Ymlhcw==": bman,
-                b"Ymlhc0V4cA==": bexp,
-                b"dnRoUHJvZmlsZQ==": ivth,
-                b"Y3hQcm9maWxl": icomp,
-            },
+        nxsdk_core.cxCfg[ii].configure(
+            bias=bman, biasExp=bexp, vthProfile=ivth, cxProfile=icomp
         )
 
-        phasex = d(b"cGhhc2UlZA==") % (ii % 4,)
-        d_get(d_get(nxsdk_core, b"Y3hNZXRhU3RhdGU=")[ii // 4], b"Y29uZmlndXJl")(
-            **{phasex: 2}
-        )
+        phasex = "phase%d" % (ii % 4,)
+        nxsdk_core.cxMetaState[ii // 4].configure(**{phasex: 2})
 
     logger.debug("- Building %d synapses", len(block.synapses))
     for synapse in block.synapses:
@@ -407,27 +320,7 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
 
 
 def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C901
-    # pre-decode some things for speed
-    nxsdk_synapses = d_get(nxsdk_core, b"c3luYXBzZXM=")
-    d_set_synapse = d(b"Y29uZmlndXJl")
-    d_compartment_idx = d(b"Q0lkeA==")
-    d_weight = d(b"V2d0")
-    d_synapse_cfg_idx = d(b"c3luRm10SWQ=")
-    d_is_learning = d(b"THJuRW4=")
-
-    nxsdk_synapse_map = d_get(nxsdk_core, b"c3luYXBzZU1hcA==")
-    d_synapse_ptr = d(b"c3luYXBzZVB0cg==")
-    d_synapse_len = d(b"c3luYXBzZUxlbg==")
-    d_pop_size = d(b"cG9wU2l6ZQ==")
-
-    max_compartment_offset = d(b"MjU2", int)
-    d_discrete_map = d(b"ZGlzY3JldGVNYXBFbnRyeQ==")
-    d_pop16_map = d(b"cG9wdWxhdGlvbjE2TWFwRW50cnk=")
-    d_pop32_map = d(b"cG9wdWxhdGlvbjMyTWFwRW50cnk=")
-    d_set_map = d(b"Y29uZmlndXJl")
-    d_compartment_offset = d(b"Y3hCYXNl")
-    d_atom_bits_extra = d(b"YXRvbUJpdHM=")
-
+    max_compartment_offset = 256
     axon_ids = core.synapse_axons[synapse]
 
     synapse_cfg_idx = core.synapse_cfg_idxs[synapse]
@@ -466,13 +359,11 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
             for p in range(n_atoms):
                 for q in range(n_compartments):
                     compartment_idx = compartment_idxs[indices[p, q]]
-                    getattr(nxsdk_synapses[total_synapse_ptr], d_set_synapse)(
-                        **{
-                            d_compartment_idx: compartment_idx,
-                            d_weight: weights[p, q],
-                            d_synapse_cfg_idx: synapse_cfg_idx,
-                            d_is_learning: int(synapse.learning),
-                        }
+                    nxsdk_core.synapses[total_synapse_ptr].configure(
+                        CIdx=compartment_idx,
+                        Wgt=weights[p, q],
+                        synFmtId=synapse_cfg_idx,
+                        LrnEn=int(synapse.learning),
                     )
                     target_compartments.add(compartment_idx)
                     total_synapse_ptr += 1
@@ -487,38 +378,29 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
 
         # base = int(base)
         assert base <= max_compartment_offset, "Currently limited by hardware"
-        setattr(nxsdk_synapse_map[axon_id], d_synapse_ptr, synapse_ptr)
-        setattr(nxsdk_synapse_map[axon_id], d_synapse_len, n_compartments)
+        nxsdk_core.synapseMap[axon_id].synapsePtr = synapse_ptr
+        nxsdk_core.synapseMap[axon_id].synapseLen = n_compartments
         if synapse.pop_type == 0:  # discrete
             assert n_atoms == 1
-            getattr(getattr(nxsdk_synapse_map[axon_id], d_discrete_map), d_set_map)(
-                **{d_compartment_offset: base}
-            )
+            nxsdk_core.synapseMap[axon_id].discreteMapEntry.configure(cxBase=base)
         elif synapse.pop_type == 16:  # pop16
-            setattr(nxsdk_synapse_map[axon_id], d_pop_size, n_atoms)
+            nxsdk_core.synapseMap[axon_id].popSize = n_atoms
             assert base % 4 == 0
-            getattr(getattr(nxsdk_synapse_map[axon_id], d_pop16_map), d_set_map)(
-                **{d_compartment_offset: base // 4, d_atom_bits_extra: atom_bits_extra},
+            nxsdk_core.synapseMap[axon_id].population16MapEntry.configure(
+                cxBase=base // 4,
+                atomBits=atom_bits_extra,
             )
         elif synapse.pop_type == 32:  # pop32
-            setattr(nxsdk_synapse_map[axon_id], d_pop_size, n_atoms)
-            getattr(getattr(nxsdk_synapse_map[axon_id], d_pop32_map), d_set_map)(
-                **{d_compartment_offset: base}
-            )
+            nxsdk_core.synapseMap[axon_id].popSize = n_atoms
+            nxsdk_core.synapseMap[axon_id].population32MapEntry.configure(cxBase=base)
         else:
             raise BuildError(f"{synapse}: unrecognized pop_type: {synapse.pop_type}")
 
         if synapse.learning:
             assert core.stdp_pre_cfg_idx is not None
             assert stdp_pre_cfg_idx is not None
-            d_func(
-                nxsdk_synapse_map[axon_id + 1],
-                b"c2luZ2xlVHJhY2VFbnRyeQ==",
-                b"Y29uZmlndXJl",
-                kwargs={
-                    b"cHJlUHJvZmlsZQ==": core.stdp_pre_cfg_idx,
-                    b"dGNz": stdp_pre_cfg_idx,
-                },
+            nxsdk_core.synapseMap[axon_id + 1].singleTraceEntry.configure(
+                preProfile=core.stdp_pre_cfg_idx, tcs=stdp_pre_cfg_idx
             )
 
     assert (
@@ -529,27 +411,17 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
         assert core.stdp_cfg_idx is not None
         for compartment in target_compartments:
             # TODO: check that no compartment configured by multiple synapses
-            d_func(
-                d_get(nxsdk_core, b"c3RkcFBvc3RTdGF0ZQ==")[compartment],
-                b"Y29uZmlndXJl",
-                kwargs={
-                    b"c3RkcFByb2ZpbGU=": core.stdp_cfg_idx,
-                    b"dHJhY2VQcm9maWxl": 3,  # TODO: why this value
-                },
+            nxsdk_core.stdpPostState[compartment].configure(
+                stdpProfile=core.stdp_cfg_idx, traceProfile=3
             )
 
 
 def build_axon(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
     synapse = axon.target
     tchip_idx, tcore_idx, taxon_ids = core.board.find_synapse(synapse)
-    nxsdk_board = d_get(nxsdk_core, b"cGFyZW50", b"cGFyZW50")
-    tchip_id = d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"aWQ=")
-    tcore_id = d_get(
-        d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[tchip_idx], b"bjJDb3Jlc0FzTGlzdA==")[
-            tcore_idx
-        ],
-        b"aWQ=",
-    )
+    nxsdk_board = nxsdk_core.parent.parent
+    tchip_id = nxsdk_board.n2Chips[tchip_idx].id
+    tcore_id = nxsdk_board.n2Chips[tchip_idx].n2CoresAsList[tcore_idx].id
 
     compartment_idxs = np.arange(len(compartment_ids))
     spikes = axon.map_spikes(compartment_idxs)
@@ -569,15 +441,11 @@ def build_axon(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
         if synapse.pop_type == 0:  # discrete
             assert atom == 0
             assert n_atoms == 1
-            d_func(
-                nxsdk_core,
-                b"Y3JlYXRlRGlzY3JldGVBeG9u",
-                kwargs={
-                    b"c3JjQ3hJZA==": compartment_id,
-                    b"ZHN0Q2hpcElk": tchip_id,
-                    b"ZHN0Q29yZUlk": tcore_id,
-                    b"ZHN0U3luTWFwSWQ=": taxon_id,
-                },
+            nxsdk_core.createDiscreteAxon(
+                srcCxId=compartment_id,
+                dstChipId=tchip_id,
+                dstCoreId=tcore_id,
+                dstSynMapId=taxon_id,
             )
 
         elif synapse.pop_type in (16, 32):
@@ -598,18 +466,18 @@ def build_axon(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
                 pop_id_map[compartment_id] = pop_id_map[pop_key]
             pop_id = pop_id_map[compartment_id]
 
-            kwargs = {
-                b"cG9wSWQ=": pop_id,
-                b"c3JjQ3hJZA==": compartment_id,
-                b"c3JjUmVsQ3hJZA==": atom,
-                b"ZHN0Q2hpcElk": tchip_id,
-                b"ZHN0Q29yZUlk": tcore_id,
-                b"ZHN0U3luTWFwSWQ=": taxon_id,
-            }
+            create_axon_kwargs = dict(
+                popId=pop_id,
+                srcCxId=compartment_id,
+                srcRelCxId=atom,
+                dstChipId=tchip_id,
+                dstCoreId=tcore_id,
+                dstSynMapId=taxon_id,
+            )
             if synapse.pop_type == 16:
-                d_func(nxsdk_core, b"Y3JlYXRlUG9wMTZBeG9u", kwargs=kwargs)
+                nxsdk_core.createPop16Axon(**create_axon_kwargs)
             else:
-                d_func(nxsdk_core, b"Y3JlYXRlUG9wMzJBeG9u", kwargs=kwargs)
+                nxsdk_core.createPop32Axon(**create_axon_kwargs)
         else:
             raise BuildError(f"{synapse}: unrecognized pop_type: {synapse.pop_type}")
 
@@ -631,18 +499,16 @@ def build_probe(nxsdk_board, board, probe, use_snips):
         chip_idx, core_idx, block_idx, compartment_idxs, _ = board.find_block(target)
         assert chip_idx is not None, "Could not find probe target on board"
 
-        nxsdk_chip = d_get(nxsdk_board, b"bjJDaGlwcw==")[chip_idx]
-        nxsdk_core = d_get(nxsdk_chip, b"bjJDb3Jlcw==")[core_idx]
+        nxsdk_chip = nxsdk_board.n2Chips[chip_idx]
+        nxsdk_core = nxsdk_chip.n2Cores[core_idx]
 
         r = compartment_idxs[probe.slice[k]]
         if use_snips:
             probe_snip.chip_idx.append(chip_idx)
-            probe_snip.core_id.append(d_get(nxsdk_core, b"aWQ="))
+            probe_snip.core_id.append(nxsdk_core.id)
             probe_snip.compartment_idxs.append(r)
         else:
-            nxsdk_probe = d_get(nxsdk_board, b"bW9uaXRvcg==", b"cHJvYmU=")(
-                d_get(nxsdk_core, b"Y3hTdGF0ZQ=="), r, key
-            )
+            nxsdk_probe = nxsdk_board.monitor.probe(nxsdk_core.cxState, r, key)
             board.probe_map[probe].append(nxsdk_probe)
 
 

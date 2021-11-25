@@ -36,6 +36,7 @@ Release history
 **Changed**
 
 - Build errors specify the associated objects, making them easier to debug. (`#289`_)
+- Deobfuscated NxSDK API calls. (`#320`_)
 
 **Fixed**
 
@@ -49,6 +50,7 @@ Release history
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
+.. _#320: https://github.com/nengo/nengo-loihi/pull/320
 
 1.0.0 (January 20, 2021)
 ========================

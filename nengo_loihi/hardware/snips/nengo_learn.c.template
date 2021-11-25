@@ -30,26 +30,72 @@ int guard_learn(runState *s) {
 void nengo_learn(runState *s) {
     int offset = 1;
     int error;
-    {{ obfs.int_type }} n_errors = s->{{ obfs.s_data }} [0];
-    {{ obfs.int_type }} compartment_idx;
-    {{ obfs.int_type }} core;
-    {{ obfs.int_type }} n_vals;
-    {{ obfs.core_class }} *neuron;
+    int32_t n_errors = s->userData[0];
+    int32_t compartment_idx;
+    int32_t core;
+    int32_t n_vals;
+    NeuronCore *neuron;
 
     for (int error_index=0; error_index < n_errors; error_index++) {
-        core = s->{{ obfs.s_data }}[offset];
-        n_vals = s->{{ obfs.s_data }}[offset+1];
+        core = s->userData[offset];
+        n_vals = s->userData[offset+1];
 
-        neuron = {{ obfs.neuron }}(({{ obfs.id_class }}){.id = core});
+        neuron = NEURON_PTR((CoreId){.id = core});
 
         for (int i = 0; i < n_vals; i++) {
-            error = (signed char)s->{{ obfs.s_data }}[offset + 2 + i];
+            error = (signed char)s->userData[offset + 2 + i];
             compartment_idx = i;
 
+            // Since the error value must be positive, we swap the StdpProfiles
+            // depending on the sign of the error. The other parameters are the same.
+            // Search for `stdpProfileCfg` in `hardware/builder.py` to see
+            // where these `StdpProfile` configurations are defined.
             if (error > 0) {
-                {{ obfs.pos_pes_cfg }}
+                neuron->stdp_post_state[compartment_idx] = (PostTraceEntry) {
+                        .Yspike0      = 0,
+                        .Yspike1      = 0,
+                        .Yspike2      = 0,
+                        .Yepoch0      = abs(error),
+                        .Yepoch1      = 0,
+                        .Yepoch2      = 0,
+                        .Tspike       = 0,
+                        .TraceProfile = 3,
+                        .StdpProfile  = 1  // profile for negative error
+                    };
+                neuron->stdp_post_state[compartment_idx+n_vals] = (PostTraceEntry) {
+                        .Yspike0      = 0,
+                        .Yspike1      = 0,
+                        .Yspike2      = 0,
+                        .Yepoch0      = abs(error),
+                        .Yepoch1      = 0,
+                        .Yepoch2      = 0,
+                        .Tspike       = 0,
+                        .TraceProfile = 3,
+                        .StdpProfile  = 0  // profile for positive error
+                    };
             } else {
-                {{ obfs.neg_pes_cfg }}
+                neuron->stdp_post_state[compartment_idx] = (PostTraceEntry) {
+                        .Yspike0      = 0,
+                        .Yspike1      = 0,
+                        .Yspike2      = 0,
+                        .Yepoch0      = abs(error),
+                        .Yepoch1      = 0,
+                        .Yepoch2      = 0,
+                        .Tspike       = 0,
+                        .TraceProfile = 3,
+                        .StdpProfile  = 0  // profile for positive error
+                    };
+                neuron->stdp_post_state[compartment_idx+n_vals] = (PostTraceEntry) {
+                        .Yspike0      = 0,
+                        .Yspike1      = 0,
+                        .Yspike2      = 0,
+                        .Yepoch0      = abs(error),
+                        .Yepoch1      = 0,
+                        .Yepoch2      = 0,
+                        .Tspike       = 0,
+                        .TraceProfile = 3,
+                        .StdpProfile  = 1  // profile for negative error
+                    };
             }
         }
         offset += 2 + n_vals;

@@ -10,7 +10,6 @@ from nengo_loihi.hardware.nxsdk_objects import (
     TraceConfig,
     VthConfig,
 )
-from nengo_loihi.nxsdk_obfuscation import d
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +97,7 @@ class Allocator:
         chip : Chip
             The chip from which to obtain a new core.
         """
-        if block.compartment.n_compartments > d(b"MTAyNA==", int):
+        if block.compartment.n_compartments > 1024:
             raise ValidationError("Segment does not fit on one core", "n_neurons")
 
         core = chip.new_core()

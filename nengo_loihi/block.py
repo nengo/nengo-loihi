@@ -5,12 +5,10 @@ import numpy as np
 import scipy.sparse
 from nengo.exceptions import BuildError
 
-from nengo_loihi.nxsdk_obfuscation import d
-
-MAX_COMPARTMENTS = d(b"MTAyNA==", int)
-MAX_IN_AXONS = d(b"NDA5Ng==", int)
-MAX_OUT_AXONS = d(b"NDA5Ng==", int)
-MAX_SYNAPSE_BITS = d(b"MTA0ODU3Ng==", int)
+MAX_COMPARTMENTS = 1024
+MAX_IN_AXONS = 4096
+MAX_OUT_AXONS = 4096
+MAX_SYNAPSE_BITS = 16384 * 64
 
 
 class LoihiBlock:
@@ -151,7 +149,7 @@ class Compartment:
     """
 
     # threshold at which U/V scaling is allowed
-    DECAY_SCALE_TH = 0.5 / d(b"NDA5Ng==", int)  # half of decay scaling unit
+    DECAY_SCALE_TH = 0.5 / 2 ** 12  # half of decay scaling unit
 
     def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
@@ -407,8 +405,8 @@ class Axon:
 
 
 class SynapseConfig(Config):
-    INDEX_BITS_MAP = d(b"WzAsIDYsIDcsIDgsIDksIDEwLCAxMSwgMTJd", "list_int")
-    WEIGHT_BITS_MAP = d(b"WzAsIDEsIDIsIDMsIDQsIDUsIDYsIDhd", "list_int")
+    INDEX_BITS_MAP = [0, 6, 7, 8, 9, 10, 11, 12]
+    WEIGHT_BITS_MAP = [0, 1, 2, 3, 4, 5, 6, 8]
 
     params = (
         "weight_limit_mant",
@@ -476,7 +474,7 @@ class SynapseConfig(Config):
 
     @classmethod
     def get_real_weight_exp(cls, weight_exp):
-        return d(b"Ng==", int) + weight_exp
+        return 6 + weight_exp
 
     @classmethod
     def get_scale(cls, weight_exp):
@@ -505,27 +503,27 @@ class SynapseConfig(Config):
     @property
     def shift_bits(self):
         """Number of bits the weight is right-shifted by."""
-        return d(b"OA==", int) - self.real_weight_bits + self.is_mixed
+        return 8 - self.real_weight_bits + self.is_mixed
 
     def bits_per_axon(self, n_weights):
         """For an axon with n weights, compute the weight memory bits used"""
         bits_per_weight = self.real_weight_bits + self.delay_bits + self.tag_bits
-        if self.compression == d(b"MA==", int):
+        if self.compression == 0:
             bits_per_weight += self.real_idx_bits
-        elif self.compression == d(b"Mw==", int):
+        elif self.compression == 3:
             pass
         else:
             raise NotImplementedError("Compression %s" % (self.compression,))
 
-        synapse_idx_bits = d(b"NA==", int)
-        n_synapses_bits = d(b"Ng==", int)
+        synapse_idx_bits = 4
+        n_synapses_bits = 6
         bits = 0
         synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
             bits_i = n * bits_per_weight + synapse_idx_bits + n_synapses_bits
             # round up to nearest memory unit
-            bits_i = -d(b"NjQ=", int) * (-bits_i // d(b"NjQ=", int))
+            bits_i = -64 * (-bits_i // 64)
             bits += bits_i
 
         return bits
@@ -599,17 +597,17 @@ class Synapse:
         """Number of extra bits needed for the atom for incoming pop16 spikes."""
         if self.pop_type == 16:
             atom_bits = self.atom_bits()
-            assert atom_bits <= d(b"OQ==", int), "Too many atom bits"
-            return max(atom_bits - d(b"NQ==", int), 0)
+            assert atom_bits <= 9, "Too many atom bits"
+            return max(atom_bits - 5, 0)
         else:
             return 0  # meaningless if pop_type != 16
 
     def axon_bits(self):
         """Number of bits available to represent the target axon on incoming spikes."""
         if self.pop_type == 16:
-            return d(b"MTA=", int) - self.atom_bits_extra()
+            return 10 - self.atom_bits_extra()
         else:
-            return d(b"MTI=", int)
+            return 12
 
     def axon_compartment_base(self, axon_idx):
         """Offset for compartment indices for a particular axon.
@@ -667,7 +665,7 @@ class Synapse:
 
     def idxs_per_synapse(self):
         """The number of axon indices (slots) required for each incoming axon."""
-        return d(b"Mg==", int) if self.learning else d(b"MQ==", int)
+        return 2 if self.learning else 1
 
     def max_abs_weight(self):
         """The maximum absolute value of all the weights in this Synapse."""
@@ -685,7 +683,7 @@ class Synapse:
         weights,
         indices=None,
         weight_dtype=np.float32,
-        compression=d(b"MA==", int),
+        compression=0,
     ):
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
@@ -717,9 +715,9 @@ class Synapse:
         self.format(
             compression=compression,
             idx_bits=self.idx_bits(),
-            fanout_type=d(b"MQ==", int),
-            n_synapses=d(b"NjM=", int),
-            weight_bits=d(b"Nw==", int),
+            fanout_type=1,
+            n_synapses=63,
+            weight_bits=7,
         )
 
     def set_weights(self, weights):
@@ -740,7 +738,7 @@ class Synapse:
             indices = None
 
         assert len(weights) == self.n_axons, "Must have different weights for each axon"
-        self._set_weights_indices(weights, indices=indices, compression=d(b"Mw==", int))
+        self._set_weights_indices(weights, indices=indices, compression=3)
 
     def set_learning(
         self, learning_rate=1.0, tracing_tau=2, tracing_mag=1.0, wgt_exp=4
@@ -752,7 +750,7 @@ class Synapse:
         self.tracing_tau = int(tracing_tau)
         self.tracing_mag = tracing_mag
         # stdp_cfg hard-coded for now (see hardware.builder)
-        self.format(learning_cfg=d(b"MQ==", int), stdp_cfg=d(b"MA==", int))
+        self.format(learning_cfg=1, stdp_cfg=0)
 
         self.train_epoch = 2
         self.learn_epoch_k = 1
@@ -769,7 +767,7 @@ class Synapse:
         self.axon_compartment_bases = compartment_bases
         self.pop_type = 16 if pop_type is None else pop_type
 
-        self._set_weights_indices(weights, indices=indices, compression=d(b"MA==", int))
+        self._set_weights_indices(weights, indices=indices, compression=0)
 
     def size(self):
         return sum(w.size for w in self.weights)

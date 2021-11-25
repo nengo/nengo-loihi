@@ -24,7 +24,6 @@ from nengo_loihi.hardware.nxsdk_shim import (
     parse_nxsdk_version,
 )
 from nengo_loihi.hardware.validate import validate_board
-from nengo_loihi.nxsdk_obfuscation import d, d_func, d_get
 from nengo_loihi.probe import LoihiProbe, ProbeFilter
 
 logger = logging.getLogger(__name__)
@@ -82,7 +81,7 @@ class HardwareInterface:
         self.check_nxsdk_version()
 
         # clear cached content from SpikeProbe class attribute
-        d_func(SpikeProbe, b"cHJvYmVEaWN0", b"Y2xlYXI=")
+        SpikeProbe.probeDict.clear()
 
         # --- allocate
         allocator = Greedy() if allocator is None else allocator
@@ -146,9 +145,7 @@ class HardwareInterface:
 
     @property
     def connected(self):
-        return self.nxsdk_board is not None and d_func(
-            self.nxsdk_board, b"ZXhlY3V0b3I=", b"aGFzU3RhcnRlZA=="
-        )
+        return self.nxsdk_board is not None and self.nxsdk_board.executor.hasStarted()
 
     def clear_probes(self):
         # Probe data in `self.probes` is cleared after it is retrieved by a
@@ -162,7 +159,7 @@ class HardwareInterface:
             self.snips.close()
 
         if self.nxsdk_board is not None:
-            d_func(self.nxsdk_board, b"ZGlzY29ubmVjdA==")
+            self.nxsdk_board.disconnect()
             self.nxsdk_board = None
 
         self.closed = True
@@ -181,7 +178,7 @@ class HardwareInterface:
         last_exception = None
         for i in range(self.connection_retries):
             try:
-                d_func(self.nxsdk_board, b"c3RhcnQ=")
+                self.nxsdk_board.start()
                 if self.connected:
                     break
             except Exception as e:
@@ -219,14 +216,14 @@ class HardwareInterface:
         assert self.connected, "Interface is not built"
 
         # start the board running the desired number of steps
-        d_get(self.nxsdk_board, b"cnVu")(steps, **{d(b"YVN5bmM="): not blocking})
+        self.nxsdk_board.run(steps, aSync=not blocking)
 
         # connect snips
         if self.use_snips and not self.snips.connected:
             self.snips.connect(self.nxsdk_board)
 
     def wait_for_completion(self):
-        d_func(self.nxsdk_board, b"ZmluaXNoUnVu")
+        self.nxsdk_board.finishRun()
 
 
 class NoSnips:
@@ -241,15 +238,13 @@ class NoSnips:
         nxsdk_probes = self.probe_map[probe]
         for nxsdk_probe in nxsdk_probes:
             for p in nxsdk_probe:
-                data = d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==")
+                data = p.timeSeries.data
                 data.clear()
 
     def collect_probe_output(self, probe):
         nxsdk_probes = self.probe_map[probe]
         outputs = [
-            np.column_stack(
-                [d_get(p, b"dGltZVNlcmllcw==", b"ZGF0YQ==") for p in nxsdk_probe]
-            )
+            np.column_stack([p.timeSeries.data for p in nxsdk_probe])
             for nxsdk_probe in nxsdk_probes
         ]
         self.clear_probe(probe)
@@ -292,42 +287,13 @@ class Snips:
     channel_packet_elements = 64  # size of channel packets in int32s
     channel_bytes_per_element = 4  # bytes per int32 (channel packets element size)
     packet_bytes = channel_packet_elements * channel_bytes_per_element
+    error_info_size = 2  # size of returned error info (other sizes not implemented)
 
     snips_dir = os.path.join(os.path.dirname(__file__), "snips")
     env = jinja2.Environment(
         trim_blocks=True,
         loader=jinja2.FileSystemLoader(snips_dir),
         keep_trailing_newline=True,
-    )
-
-    # obfuscated strings used in templates
-    obfs = dict(
-        core_class=d(b"TmV1cm9uQ29yZQ=="),
-        id_class=d(b"Q29yZUlk"),
-        get_channel=d(b"Z2V0Q2hhbm5lbElE"),
-        int_type=d(b"aW50MzJfdA=="),
-        spike_size=d(b"Mg=="),
-        error_info_size=d(b"Mg==", int),
-        s_data=d(b"dXNlckRhdGE="),
-        s_step=d(b"dGltZV9zdGVw"),
-        s_n_steps=d(b"dG90YWxfc3RlcHM="),
-        read=d(b"cmVhZENoYW5uZWw="),
-        write=d(b"d3JpdGVDaGFubmVs"),
-        spike_shift=d(b"MTY="),
-        spike_mask=d(b"MHgwMDAwRkZGRg=="),
-        do_axon_type_0=d(b"bnhfc2VuZF9kaXNjcmV0ZV9zcGlrZQ=="),
-        do_axon_type_16=d(b"bnhfc2VuZF9wb3AxNl9zcGlrZQ=="),
-        do_axon_type_32=d(b"bnhfc2VuZF9wb3AzMl9zcGlrZQ=="),
-        comp_state=d(b"Y3hfc3RhdGU="),
-        neuron=d(b"TkVVUk9OX1BUUg=="),
-        # pylint: disable=line-too-long
-        pos_pes_cfg=d(
-            b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDEKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAwCiAgICAgICAgICAgICAgICAgICAgfTs="
-        ),
-        # pylint: disable=line-too-long
-        neg_pes_cfg=d(
-            b"bmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4XSA9ICAgICAgICAgICAgICAgICAgICAgKFBvc3RUcmFjZUVudHJ5KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UwICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gwICAgICAgPSBhYnMoZXJyb3IpLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMSAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDIgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Uc3Bpa2UgICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHJhY2VQcm9maWxlID0gMywKICAgICAgICAgICAgICAgICAgICAgICAgLlN0ZHBQcm9maWxlICA9IDAKICAgICAgICAgICAgICAgICAgICB9OwogICAgICAgICAgICAgICAgbmV1cm9uLT5zdGRwX3Bvc3Rfc3RhdGVbY29tcGFydG1lbnRfaWR4K25fdmFsc10gPSAgICAgICAgICAgICAgICAgICAgIChQb3N0VHJhY2VFbnRyeSkgewogICAgICAgICAgICAgICAgICAgICAgICAuWXNwaWtlMCAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLllzcGlrZTEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5Zc3Bpa2UyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuWWVwb2NoMCAgICAgID0gYWJzKGVycm9yKSwKICAgICAgICAgICAgICAgICAgICAgICAgLlllcG9jaDEgICAgICA9IDAsCiAgICAgICAgICAgICAgICAgICAgICAgIC5ZZXBvY2gyICAgICAgPSAwLAogICAgICAgICAgICAgICAgICAgICAgICAuVHNwaWtlICAgICAgID0gMCwKICAgICAgICAgICAgICAgICAgICAgICAgLlRyYWNlUHJvZmlsZSA9IDMsCiAgICAgICAgICAgICAgICAgICAgICAgIC5TdGRwUHJvZmlsZSAgPSAxCiAgICAgICAgICAgICAgICAgICAgfTs="
-        ),
     )
 
     def __init__(self, model, board, nxsdk_board, max_spikes_per_step):
@@ -372,12 +338,8 @@ class Snips:
         self.host_snip.create(nxsdk_board, self.chip_snips)
 
         for chip_snip in self.chip_snips:
-            d_get(chip_snip.input_channel, b"Y29ubmVjdA==")(
-                self.host_snip.snip, chip_snip.io_snip
-            )
-            d_get(chip_snip.output_channel, b"Y29ubmVjdA==")(
-                chip_snip.io_snip, self.host_snip.snip
-            )
+            chip_snip.input_channel.connect(self.host_snip.snip, chip_snip.io_snip)
+            chip_snip.output_channel.connect(chip_snip.io_snip, self.host_snip.snip)
 
         self.bytes_per_step = self.packet_bytes * sum(
             chip_snip.n_output_packets for chip_snip in self.chip_snips
@@ -386,7 +348,7 @@ class Snips:
     @classmethod
     def render_template(cls, template, path, **template_data):
         template = cls.env.get_template("{}.template".format(template))
-        code = template.render(obfs=cls.obfs, **template_data)
+        code = template.render(error_info_size=cls.error_info_size, **template_data)
         with open(path, "w", encoding="utf-8") as f:
             f.write(code)
 
@@ -599,12 +561,12 @@ class ChipSnips:
         return "nengo_io_c2h_chip_%d" % self.idx
 
     def create(self, nxsdk_board, max_spikes_per_step):
-        self.chip_id = d_get(d_get(nxsdk_board, b"bjJDaGlwcw==")[self.idx], b"aWQ=")
+        self.chip_id = nxsdk_board.n2Chips[self.idx].id
         chip_buffer_size = roundup(
             max(
                 self.n_outputs,  # currently, buffer needs to hold all outputs
                 Snips.channel_packet_elements
-                + max(SpikePacker.size, Snips.obfs["error_info_size"]),
+                + max(SpikePacker.size, Snips.error_info_size),
             ),
             Snips.channel_packet_elements,
         )
@@ -641,18 +603,14 @@ class ChipSnips:
 
         # create SNIP process
         logger.debug("Creating nengo_io chip %d process", self.idx)
-        self.io_snip = d_func(
-            nxsdk_board,
-            b"Y3JlYXRlU25pcA==",
-            kwargs={
-                b"bmFtZQ==": "nengo_io_chip" + str(self.chip_id),
-                b"Y0ZpbGVQYXRo": c_path,
-                b"aW5jbHVkZURpcg==": self.tmp_snip_dir,
-                b"ZnVuY05hbWU=": "nengo_io",
-                b"Z3VhcmROYW1l": "guard_io",
-                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfTUdNVA=="),
-                b"Y2hpcElk": self.chip_id,
-            },
+        self.io_snip = nxsdk_board.createSnip(
+            name="nengo_io_chip" + str(self.chip_id),
+            cFilePath=c_path,
+            includeDir=self.tmp_snip_dir,
+            funcName="nengo_io",
+            guardName="guard_io",
+            phase=SnipPhase.EMBEDDED_MGMT,
+            chipId=self.chip_id,
         )
 
         # --- create learning snip
@@ -669,18 +627,14 @@ class ChipSnips:
 
         # create SNIP process
         logger.debug("Creating nengo_learn chip %d process", self.idx)
-        self.learn_snip = d_func(
-            nxsdk_board,
-            b"Y3JlYXRlU25pcA==",
-            kwargs={
-                b"bmFtZQ==": "nengo_learn",
-                b"Y0ZpbGVQYXRo": c_path,
-                b"aW5jbHVkZURpcg==": self.tmp_snip_dir,
-                b"ZnVuY05hbWU=": "nengo_learn",
-                b"Z3VhcmROYW1l": "guard_learn",
-                b"cGhhc2U=": d_get(SnipPhase, b"RU1CRURERURfUFJFTEVBUk5fTUdNVA=="),
-                b"Y2hpcElk": self.chip_id,
-            },
+        self.learn_snip = nxsdk_board.createSnip(
+            name="nengo_learn",
+            cFilePath=c_path,
+            includeDir=self.tmp_snip_dir,
+            funcName="nengo_learn",
+            guardName="guard_learn",
+            phase=SnipPhase.EMBEDDED_PRELEARN_MGMT,
+            chipId=self.chip_id,
         )
 
         # --- create channels
@@ -692,30 +646,20 @@ class ChipSnips:
         logger.debug(
             "Creating %s channel (%d)", self.input_channel_name, input_channel_size
         )
-        self.input_channel = d_get(nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+        self.input_channel = nxsdk_board.createChannel(
             self.input_channel_name.encode(),
-            **{
-                # channel size (in elements)
-                d(b"bnVtRWxlbWVudHM="): input_channel_size,
-                # size of one packet (in bytes)
-                d(b"bWVzc2FnZVNpemU="): Snips.packet_bytes,
-                # size of send/receive buffer on chip/host (in packets)
-                d(b"c2xhY2s="): 16,
-            },
+            numElements=input_channel_size,  # channel size (in elements)
+            messageSize=Snips.packet_bytes,  # size of one packet (in bytes)
+            slack=16,  # size of send/receive buffer on chip/host (in packets)
         )
         logger.debug(
             "Creating %s channel (%d)", self.output_channel_name, self.n_outputs
         )
-        self.output_channel = d_get(nxsdk_board, b"Y3JlYXRlQ2hhbm5lbA==")(
+        self.output_channel = nxsdk_board.createChannel(
             self.output_channel_name.encode(),
-            **{
-                # channel size (in elements)
-                d(b"bnVtRWxlbWVudHM="): self.n_outputs,
-                # size of one packet (in bytes)
-                d(b"bWVzc2FnZVNpemU="): Snips.packet_bytes,
-                # size of send/receive buffer on chip/host (in packets)
-                d(b"c2xhY2s="): 16,
-            },
+            numElements=self.n_outputs,  # channel size (in elements)
+            messageSize=Snips.packet_bytes,  # size of one packet (in bytes)
+            slack=16,  # size of send/receive buffer on chip/host (in packets)
         )
 
     def prepare_for_probe(self, block, pinfo, target_idx):
@@ -729,7 +673,7 @@ class ChipSnips:
         if key == "spike":
             refract_delay = block.compartment.refract_delay[0]
             assert np.all(block.compartment.refract_delay == refract_delay)
-            key = refract_delay * d(b"MTI4", int)
+            key = refract_delay * 128
 
         n_comps = len(compartment_idxs)
         logger.info(n_comps)
@@ -773,12 +717,7 @@ class HostSnip:
         # pause to allow host snip to start and listen for connection
         time.sleep(0.1)
 
-        host_address = d_get(
-            nxsdk_board,
-            b"ZXhlY3V0b3I==",
-            b"X2hvc3RfY29vcmRpbmF0b3I==",
-            b"aG9zdEFkZHI=",
-        )
+        host_address = nxsdk_board.executor._host_coordinator.hostAddr
         logger.info("Connecting to host socket at (%s, %s)", host_address, self.port)
         self.socket.connect((host_address, self.port))
         self.connected = True
@@ -820,13 +759,8 @@ class HostSnip:
         )
 
         # make process
-        self.snip = d_func(
-            nxsdk_board,
-            b"Y3JlYXRlU25pcA==",
-            kwargs={
-                b"cGhhc2U=": SnipPhase.HOST_CONCURRENT_EXECUTION,
-                b"Y3BwRmlsZQ==": cpp_path,
-            },
+        self.snip = nxsdk_board.createSnip(
+            phase=SnipPhase.HOST_CONCURRENT_EXECUTION, cppFile=cpp_path
         )
 
     def recv_bytes(self, bytes_expected):

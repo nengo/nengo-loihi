@@ -12,7 +12,6 @@ from nengo_loihi.hardware import interface as hardware_interface
 from nengo_loihi.hardware.allocators import Greedy
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_shim import NxsdkBoard
-from nengo_loihi.nxsdk_obfuscation import d
 
 
 class MockNxsdk:
@@ -156,7 +155,7 @@ def test_interface_connection_errors(Simulator, monkeypatch):
     def start(*args, **kwargs):
         raise Exception("Mock failure to connect")
 
-    monkeypatch.setattr(NxsdkBoard, d(b"c3RhcnQ="), start)
+    monkeypatch.setattr(NxsdkBoard, "start", start)
 
     with pytest.raises(SimulationError, match="Mock failure to connect"):
         with Simulator(net):
