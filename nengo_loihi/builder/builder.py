@@ -171,6 +171,7 @@ class Model:
         self.host2chip_senders = OrderedDict()
         self.host2chip_pes_senders = OrderedDict()
         self.needs_sender = {}
+        self.spike_targets = {}
 
     def __getstate__(self):
         raise NotImplementedError("Can't pickle nengo_loihi.builder.Model")

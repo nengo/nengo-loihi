@@ -1,39 +1,76 @@
 import numpy as np
-from nengo import Node
+from nengo import Node, Process
 from nengo.exceptions import SimulationError
 from nengo.params import Default
+
+
+class HostSendProcess(Process):
+    class FillQueueStep:
+        """Fill a simple queue to be processed externally"""
+
+        def __init__(self):
+            self.queue = []
+
+        def __call__(self, t, x):
+            assert len(self.queue) == 0 or t > self.queue[-1][0]
+            self.queue.append((t, np.copy(x)))
+
+    def make_step(self, shape_in, shape_out, dt, rng, state):
+        assert shape_out == (0,)
+        return self.FillQueueStep()
 
 
 class HostSendNode(Node):
     """For sending host->chip messages"""
 
     def __init__(self, dimensions, label=Default):
-        self.queue = []
-        super().__init__(self.update, size_in=dimensions, size_out=0, label=label)
+        super().__init__(HostSendProcess(), size_in=dimensions, size_out=0, label=label)
 
-    def update(self, t, x):
-        assert len(self.queue) == 0 or t > self.queue[-1][0]
-        self.queue.append((t, x))
+
+class HostReceiveProcess(Process):
+    class EmptyQueueStep:
+        """Empty a queue that is filled externally"""
+
+        def __init__(self, size_out):
+            self.size_out = size_out
+            self.queue = [(0, np.zeros(self.size_out))]
+            self.queue_index = 0
+
+        def __call__(self, t):
+            while (
+                len(self.queue) > self.queue_index + 1
+                and self.queue[self.queue_index][0] < t
+            ):
+                self.queue_index += 1
+            return self.queue[self.queue_index][1]
+
+        def receive(self, t, x):
+            self.queue.append((t, x))
+
+    def make_step(self, shape_in, shape_out, dt, rng, state):
+        assert shape_in == (0,)
+        return self.EmptyQueueStep(shape_out)
 
 
 class HostReceiveNode(Node):
     """For receiving chip->host messages"""
 
     def __init__(self, dimensions, label=Default):
-        self.queue = [(0, np.zeros(dimensions))]
-        self.queue_index = 0
-        super().__init__(self.update, size_in=0, size_out=dimensions, label=label)
+        super().__init__(
+            HostReceiveProcess(), size_in=0, size_out=dimensions, label=label
+        )
 
-    def update(self, t):
-        while (
-            len(self.queue) > self.queue_index + 1
-            and self.queue[self.queue_index][0] < t
-        ):
-            self.queue_index += 1
-        return self.queue[self.queue_index][1]
 
-    def receive(self, t, x):
-        self.queue.append((t, x))
+class ChipReceiveProcess(Process):
+    class RaiseSimErrorStep:
+        def __init__(self, message):
+            self.message = message
+
+        def __call__(self, t):
+            raise SimulationError(self.message)
+
+    def make_step(self, shape_in, shape_out, dt, rng, state):
+        return self.RaiseSimErrorStep("ChipReceiveProcess should not be run")
 
 
 class ChipReceiveNode(Node):
@@ -43,17 +80,15 @@ class ChipReceiveNode(Node):
 
     Attributes
     ----------
-    spike_target : SpikeInput
-        Spike input that will inject the spikes from the sender onto the chip.
+    raw_dimensions : int
+        Number of dimensions originally passed in.
     """
 
     def __init__(self, dimensions, size_out, label=Default):
         self.raw_dimensions = dimensions
-        self.spike_target = None
-        super().__init__(self.update, size_in=0, size_out=size_out, label=label)
-
-    def update(self, t):
-        raise SimulationError("{} should not be run".format(type(self).__name__))
+        super().__init__(
+            ChipReceiveProcess(), size_in=0, size_out=size_out, label=label
+        )
 
 
 class ChipReceiveNeurons(ChipReceiveNode):
@@ -63,8 +98,8 @@ class ChipReceiveNeurons(ChipReceiveNode):
 
     Attributes
     ----------
-    spike_target : SpikeInput
-        Spike input that will inject the spikes from the sender onto the chip.
+    neuron_type : NeuronType
+       NeuronType object that is used to generate spikes.
     """
 
     def __init__(self, dimensions, neuron_type=None, label=Default):

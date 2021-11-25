@@ -12,7 +12,7 @@ def build_chip_receive_node(model, node):
     spike_input = SpikeInput(node.raw_dimensions, label=node.label)
     model.add_input(spike_input)
     model.objs[node]["out"] = spike_input
-    node.spike_target = spike_input
+    model.spike_targets[node] = spike_input
 
 
 @Builder.register(nengo.Node)

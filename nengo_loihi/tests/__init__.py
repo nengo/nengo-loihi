@@ -51,7 +51,7 @@ def require_partition(partition, request, action="return", **kwargs):
         if has_partition(partition):
             request.addfinalizer(set_partition_env)
             set_partition_env(partition=partition, **kwargs)
-        elif action == "return":
+        elif action == "return":  # pragma: no cover
             return False
         else:  # pragma: no cover
             (pytest.fail if action == "fail" else pytest.skip)(

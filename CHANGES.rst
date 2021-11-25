@@ -30,6 +30,12 @@ Release history
 
 - Added support for NxSDK 1.0.0. (`#317`_)
 
+**Fixed**
+
+- Fixed several issues to ensure that memory is freed when a ``Simulator``
+  is deleted. (`#312`_)
+
+.. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 
 1.0.0 (January 20, 2021)

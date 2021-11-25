@@ -1,3 +1,5 @@
+import inspect
+import itertools
 import logging
 import warnings
 from collections import OrderedDict
@@ -7,6 +9,7 @@ from timeit import default_timer
 import nengo
 import nengo.utils.numpy as npext
 import numpy as np
+from nengo.builder.processes import SimProcess
 from nengo.exceptions import ReadonlyError, SimulatorClosed, ValidationError
 from nengo.simulator import SimulationData as NengoSimulationData
 
@@ -376,6 +379,9 @@ class StepRunner:
         self.emulator = sims.get("emulator", None)
         self.loihi = sims.get("loihi", None)
 
+        self.queues = self._extract_queues()
+        self.probes_receivers = self._extract_probes_receivers()
+
         run_steps = {
             (
                 True,
@@ -405,24 +411,63 @@ class StepRunner:
         self.run_steps = run_steps[run_config]
 
     def _chip2host(self, sim):
-        probes_receivers = OrderedDict(  # map probes to receivers
-            (self.model.objs[probe]["out"], receiver)
-            for probe, receiver in self.model.chip2host_receivers.items()
-        )
-        sim.chip2host(probes_receivers)
+        sim.chip2host(self.probes_receivers)
+
+    @staticmethod
+    def _get_step_f(op, sim):
+        """Returns a Process's step function given the SimProcess op and Simulator"""
+        step_ix = sim._step_order.index(op)
+        step_f = sim._steps[step_ix]
+        return inspect.getclosurevars(step_f).nonlocals["step_f"]
+
+    @staticmethod
+    def _get_simprocess_op_dict(ops):
+        return {id(op.process): op for op in ops if isinstance(op, SimProcess)}
+
+    def _extract_probes_receivers(self):
+        host_simprocess = self._get_simprocess_op_dict(self.model.host.operators)
+        probes_receivers = OrderedDict()
+        for probe, receiver in self.model.chip2host_receivers.items():
+            op = host_simprocess.get(id(receiver.output), None)
+            assert (
+                op is not None and op.process is receiver.output
+            ), f"Could not find op for receiver: {receiver}"
+            receiver_step = self._get_step_f(op, self.host)
+            probes_receivers[self.model.objs[probe]["out"]] = receiver_step
+        return probes_receivers
+
+    def _extract_queues(self):
+        host_simprocess = self._get_simprocess_op_dict(self.model.host.operators)
+        hostpre_simprocess = self._get_simprocess_op_dict(self.model.host_pre.operators)
+        queues = {}
+        for sender in itertools.chain(
+            self.model.host2chip_senders, self.model.host2chip_pes_senders
+        ):
+            sender_id = id(sender.output)
+            op = None
+            if sender_id in host_simprocess:
+                op, sim = host_simprocess[sender_id], self.host
+            elif sender_id in hostpre_simprocess:
+                op, sim = hostpre_simprocess[sender_id], self.host_pre
+            assert (
+                op is not None and op.process is sender.output
+            ), f"Could not find op for sender: {sender}"
+            queues[sender] = self._get_step_f(op, sim).queue
+        return queues
 
     def _host2chip(self, sim):
         # Handle ChipReceiveNode and ChipReceiveNeurons
         spikes = []
         for sender, receiver in self.model.host2chip_senders.items():
-            spike_target = receiver.spike_target
+            spike_target = self.model.spike_targets[receiver]
             assert spike_target is not None
 
-            for t, x in sender.queue:
+            queue = self.queues[sender]
+            for t, x in queue:
                 ti = round(t / self.model.dt)
                 spike_idxs = x.nonzero()[0]
                 spikes.append((spike_target, ti, spike_idxs))
-            sender.queue.clear()
+            queue.clear()
 
         # Handle PESModulatoryTarget
         errors = OrderedDict()
@@ -434,7 +479,8 @@ class StepRunner:
             error_synapse = self.model.objs[conn]["decoders"]
             assert error_synapse.learning
 
-            for t, x in sender.queue:
+            queue = self.queues[sender]
+            for t, x in queue:
                 ti = round(t / self.model.dt)
 
                 errors_ti = errors.get(ti, None)
@@ -446,7 +492,7 @@ class StepRunner:
                     errors_ti[error_synapse] += x
                 else:
                     errors_ti[error_synapse] = x.copy()
-            sender.queue.clear()
+            queue.clear()
 
         errors = [
             (synapse, ti, e) for ti, ee in errors.items() for synapse, e in ee.items()

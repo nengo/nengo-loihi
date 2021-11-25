@@ -916,7 +916,7 @@ def test_network_unchanged(Simulator):
         nengo.Ensemble(100, 1)
         with Simulator(model):
             pass
-        assert model.all_networks == []
+        assert not model.all_networks
 
 
 def test_timers():
