@@ -29,8 +29,6 @@ try:
     nxsdk_dir = os.path.realpath(os.path.join(os.path.dirname(nxsdk.__file__), ".."))
     nxsdk_version = parse_nxsdk_version(nxsdk)
 
-    import nxsdk.graph.graph as snip_maker
-
     def assert_nxsdk():
         pass
 
@@ -39,7 +37,6 @@ except ImportError:
     nxsdk = None
     nxsdk_dir = None
     nxsdk_version = None
-    snip_maker = None
 
     exception = sys.exc_info()[1]
 
@@ -48,6 +45,29 @@ except ImportError:
 
 
 if HAS_NXSDK:  # noqa: C901
+    import nxsdk.compiler.microcodegen.interface as micro_gen
+    import nxsdk.graph.graph as snip_maker
+    from nxsdk.graph.nxinputgen.nxinputgen import BasicSpikeGenerator as SpikeGen
+    from nxsdk.graph.nxprobes import N2SpikeProbe as SpikeProbe
+    from nxsdk.graph.processes.phase_enums import Phase as SnipPhase
+
+    try:
+        # try new location (nxsdk > 0.9.0)
+        from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import (
+            TraceCfgGen as TraceConfigGenerator,
+        )
+    except ImportError:  # pragma: no cover
+        # try old location (nxsdk <= 0.9.0)
+        from nxsdk.compiler.tracecfggen.tracecfggen import (
+            TraceCfgGen as TraceConfigGenerator,
+        )
+
+    try:
+        # try new location (nxsdk >= 1.0.0)
+        from nxsdk.arch.n2a.n2board import N2Board as NxsdkBoard
+    except ImportError:  # pragma: no cover
+        # try old location (nxsdk < 1.0.0)
+        from nxsdk.graph.nxboard import N2Board as NxsdkBoard
 
     class SnipMaker(snip_maker.Graph):
         """Patch of the snip process manager that is multiprocess safe."""
@@ -114,30 +134,6 @@ if HAS_NXSDK:  # noqa: C901
             return super().createSnip(phase, *args, **kwargs)
 
     snip_maker.Graph = SnipMaker
-
-    import nxsdk.compiler.microcodegen.interface as micro_gen
-
-    try:
-        # try new location (nxsdk > 0.9.0)
-        from nxsdk.arch.n2a.compiler.tracecfggen.tracecfggen import (
-            TraceCfgGen as TraceConfigGenerator,
-        )
-    except ImportError:  # pragma: no cover
-        # try old location (nxsdk <= 0.9.0)
-        from nxsdk.compiler.tracecfggen.tracecfggen import (
-            TraceCfgGen as TraceConfigGenerator,
-        )
-
-    try:
-        # try new location (nxsdk >= 1.0.0)
-        from nxsdk.arch.n2a.n2board import N2Board as NxsdkBoard
-    except ImportError:  # pragma: no cover
-        # try old location (nxsdk < 1.0.0)
-        from nxsdk.graph.nxboard import N2Board as NxsdkBoard
-
-    from nxsdk.graph.nxinputgen.nxinputgen import BasicSpikeGenerator as SpikeGen
-    from nxsdk.graph.nxprobes import N2SpikeProbe as SpikeProbe
-    from nxsdk.graph.processes.phase_enums import Phase as SnipPhase
 else:
     SnipMaker = None
     micro_gen = None

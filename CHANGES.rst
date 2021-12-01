@@ -46,10 +46,12 @@ Release history
 - Fixed probe filters such that multiple ``Simulator.run`` calls now results in
   the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
 - Convolution with 1 x 1 kernels now works as expected. (`#297`_)
+- Fixed a bug preventing targeting Loihi even if NxSDK is installed. (`#300`_)
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
 .. _#289: https://github.com/nengo/nengo-loihi/pull/289
 .. _#297: https://github.com/nengo/nengo-loihi/pull/297
+.. _#300: https://github.com/nengo/nengo-loihi/pull/300
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
