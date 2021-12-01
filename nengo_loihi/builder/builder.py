@@ -44,6 +44,9 @@ class Model:
 
     Attributes
     ----------
+    connection_decode_neurons : dict of {Connection: Ensemble}
+        Map of each `nengo.Connection` that requires DecodeNeurons, to the
+        `nengo.Ensemble` that implements said DecodeNeurons.
 
     Build parameters
 
@@ -126,13 +129,14 @@ class Model:
         self.blocks = OrderedDict()
         self.block_shapes = {}
         self.probes = []
+        self.block_comp_map = {}
 
-        # Will be filled in by the simulator __init__
-        self.split = None
+        self.connection_decode_neurons = {}
 
         # Will be filled in by the network builder
         self.toplevel = None
         self.config = None
+        self.split = None
 
         # Resources used by the build process
         self.objs = defaultdict(dict)  # maps Nengo objects to Loihi objects

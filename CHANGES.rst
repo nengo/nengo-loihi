@@ -32,11 +32,25 @@ Release history
 - Added ``Simulator.clear_probes`` to clear probe histories. This can help reduce memory
   usage during long runs, by running for a segment of the full run time, recording the
   relevant outputs, calling ``clear_probes``, and resuming the run. (`#303`_)
+- ``Block`` now has a ``.discretize_info`` attribute that stores parameters used
+  for discretizing that block. (`#309`_)
+- ``Model`` now has a ``connection_decode_neurons`` attribute that maps ``Connection``
+  objects that require decode neurons to the corresponding ``Ensemble`` objects
+  implementing them. (`#309`_)
+- Added the ``LoihiRectifiedLinear`` neuron type to train deep networks for Loihi using
+  Nengo or NengoDL. It is a rate neuron type and thus must ultimitely be swapped for
+  ``LoihiSpikingRectifiedLinear`` to run on Loihi. (`#309`_)
+- Added the ``GreedyComms`` and ``PartitionComms`` allocators, which reduce inter-chip
+  communication, speeding up networks with high traffic between chips.
+  ``PartitionComms`` typically finds a more optimal partitioning than ``GreedyComms``,
+  but does require the ``nxmetis`` package. (`#309`_)
 
 **Changed**
 
 - Build errors specify the associated objects, making them easier to debug. (`#289`_)
 - Deobfuscated NxSDK API calls. (`#320`_)
+- The builder now respects the `precision.bits`_ attribute in ``nengorc`` files,
+  allowing for reduced-precision builds to save memory. (`#309`_)
 
 **Fixed**
 
@@ -44,13 +58,16 @@ Release history
   is deleted. (`#312`_)
 - Fixed probe filters such that multiple ``Simulator.run`` calls now results in
   the same probe data as a single call of equivalent length. (`#271`_, `#303`_)
+- Fixed handling of ``dt`` within ``DecodeNeurons`` for ``dt != 0.001``. (`#309`_)
 
 .. _#271: https://github.com/nengo/nengo-loihi/issues/271
 .. _#289: https://github.com/nengo/nengo-loihi/pull/289
 .. _#303: https://github.com/nengo/nengo-loihi/pull/303
+.. _#309: https://github.com/nengo/nengo-loihi/pull/309
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 .. _#320: https://github.com/nengo/nengo-loihi/pull/320
+.. _precision.bits: https://www.nengo.ai/nengo/nengorc.html#configuration-options
 
 1.0.0 (January 20, 2021)
 ========================

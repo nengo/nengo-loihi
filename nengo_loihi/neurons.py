@@ -184,6 +184,19 @@ class LoihiLIF(LIF):
         refractory_time[spikes_mask] = tau_ref + dt
 
 
+class LoihiRectifiedLinear(RectifiedLinear):
+    def __init__(self, amplitude=1, **kwargs):
+        super().__init__(amplitude=amplitude, **kwargs)
+        _install_dl_builders()
+
+    def rates(self, x, gain, bias, dt=0.001):
+        return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
+
+    def step(self, dt, J, output):
+        output[:] = 0
+        output[J > 0] = (self.amplitude / dt) / np.ceil(np.reciprocal(dt * J[J > 0]))
+
+
 class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
     """Simulate spiking rectified linear neurons as done by Loihi.
 

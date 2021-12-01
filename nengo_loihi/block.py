@@ -154,19 +154,21 @@ class Compartment:
     def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
         self.label = label
+        # dtype must be float32, because of how we discretize in place to int32
+        self.dtype = np.float32
 
         # parameters specific to compartments/block
-        self.decay_u = np.ones(n_compartments, dtype=np.float32)
+        self.decay_u = np.ones(n_compartments, dtype=self.dtype)
         # ^ default to no filter
-        self.decay_v = np.zeros(n_compartments, dtype=np.float32)
+        self.decay_v = np.zeros(n_compartments, dtype=self.dtype)
         # ^ default to integration
         self.tau_s = None
         self.scale_u = True
         self.scale_v = False
 
         self.refract_delay = np.zeros(n_compartments, dtype=np.int32)
-        self.vth = np.zeros(n_compartments, dtype=np.float32)
-        self.bias = np.zeros(n_compartments, dtype=np.float32)
+        self.vth = np.zeros(n_compartments, dtype=self.dtype)
+        self.bias = np.zeros(n_compartments, dtype=self.dtype)
         self.enable_noise = np.zeros(n_compartments, dtype=bool)
 
         # parameters common to core
@@ -175,6 +177,8 @@ class Compartment:
         self.noise_offset = 0
         self.noise_exp = 0
         self.noise_at_membrane = 0
+
+        self.discretize_info = None
 
     def __str__(self):
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
@@ -517,13 +521,14 @@ class SynapseConfig(Config):
 
         synapse_idx_bits = 4
         n_synapses_bits = 6
+        bits_per_memunit = 64
         bits = 0
         synapses_per_block = self.n_synapses + 1
         for i in range(0, n_weights, synapses_per_block):
             n = min(n_weights - i, synapses_per_block)
             bits_i = n * bits_per_weight + synapse_idx_bits + n_synapses_bits
             # round up to nearest memory unit
-            bits_i = -64 * (-bits_i // 64)
+            bits_i = -bits_per_memunit * (-bits_i // bits_per_memunit)
             bits += bits_i
 
         return bits
@@ -682,9 +687,11 @@ class Synapse:
         self,
         weights,
         indices=None,
-        weight_dtype=np.float32,
+        weight_dtype=None,
         compression=0,
     ):
+        # must be float32, because of how we discretize in place to int32
+        weight_dtype = np.float32 if weight_dtype is None else weight_dtype
         weights = [
             np.array(w, copy=False, dtype=weight_dtype, ndmin=2) for w in weights
         ]

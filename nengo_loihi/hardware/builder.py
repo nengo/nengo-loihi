@@ -296,14 +296,14 @@ def build_block(nxsdk_core, core, block, compartment_idxs, ax_range):
 
     logger.debug("Building %s on core.id=%d", block, nxsdk_core.id)
 
-    for i, bias in enumerate(block.compartment.bias):
-        bman, bexp = bias_to_manexp(bias)
+    bman, bexp = bias_to_manexp(block.compartment.bias)
+    for i, _ in enumerate(bman):
         icomp = core.compartment_cfg_idxs[block][i]
         ivth = core.vth_cfg_idxs[block][i]
 
         ii = compartment_idxs[i]
         nxsdk_core.cxCfg[ii].configure(
-            bias=bman, biasExp=bexp, vthProfile=ivth, cxProfile=icomp
+            bias=bman[i], biasExp=bexp[i], vthProfile=ivth, cxProfile=icomp
         )
 
         phasex = "phase%d" % (ii % 4,)

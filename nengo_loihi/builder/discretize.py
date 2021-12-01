@@ -146,7 +146,7 @@ def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
 
         x_i = floor(r x_{i-1})
 
-    where ``r = (2**bits - offset - decay)``.
+    where ``r = (2**bits - offset - decay) / 2**bits``.
 
     To simulate the effects of rounding in decay, we subtract an expected loss
     due to rounding (``q``) each iteration. Our estimated series is therefore::
@@ -242,10 +242,11 @@ def discretize_block(block):
     w_maxs = [s.max_abs_weight() for s in block.synapses]
     w_max = max(w_maxs) if len(w_maxs) > 0 else 0
 
-    p = discretize_compartment(block.compartment, w_max)
+    info = discretize_compartment(block.compartment, w_max)
     for synapse in block.synapses:
-        discretize_synapse(synapse, w_max, p["w_scale"], p["w_exp"])
-    return p["v_scale"]
+        discretize_synapse(synapse, w_max, info["w_scale"], info["w_exp"])
+
+    return info["v_scale"]
 
 
 def discretize_compartment(comp, w_max):
@@ -363,7 +364,12 @@ def discretize_compartment(comp, w_max):
     vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
     comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
-    return dict(w_max=w_max, w_scale=w_scale, w_exp=w_exp, v_scale=v_scale)
+    info = dict(
+        w_max=w_max, w_exp=w_exp, v_scale=v_scale, b_scale=b_scale, w_scale=w_scale
+    )
+    comp.discretize_info = info
+
+    return info
 
 
 def discretize_synapse(synapse, w_max, w_scale, w_exp):
