@@ -7,14 +7,16 @@ from nengo import Ensemble
 from nengo.builder.ensemble import BuiltEnsemble, gen_eval_points
 from nengo.dists import Distribution, get_samples
 from nengo.exceptions import BuildError
+from nengo.rc import rc
 
 from nengo_loihi.block import LoihiBlock
 from nengo_loihi.builder.builder import Builder
 
 
-def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
+def get_gain_bias(ens, rng=np.random, intercept_limit=1.0, dtype=None):
     # Modified from the Nengo version to handle `intercept_limit`
 
+    dtype = rc.float_dtype if dtype is None else dtype
     if ens.gain is not None and ens.bias is not None:
         gain = get_samples(ens.gain, ens.n_neurons, rng=rng)
         bias = get_samples(ens.bias, ens.n_neurons, rng=rng)
@@ -60,6 +62,11 @@ def get_gain_bias(ens, rng=np.random, intercept_limit=1.0):
                 "by reducing the maximum intercept value to below 1."
             )
 
+    dtype = rc.float_dtype
+    gain = gain.astype(dtype) if gain is not None else gain
+    bias = bias.astype(dtype) if bias is not None else bias
+    max_rates = max_rates.astype(dtype) if max_rates is not None else max_rates
+    intercepts = intercepts.astype(dtype) if intercepts is not None else intercepts
     return gain, bias, max_rates, intercepts
 
 
@@ -71,13 +78,14 @@ def build_ensemble(model, ens):
     # Create random number generator
     rng = np.random.RandomState(model.seeds[ens])
 
-    eval_points = gen_eval_points(ens, ens.eval_points, rng=rng)
+    eval_points = gen_eval_points(ens, ens.eval_points, rng=rng, dtype=rc.float_dtype)
 
     # Set up encoders
     if isinstance(ens.encoders, Distribution):
         encoders = get_samples(ens.encoders, ens.n_neurons, ens.dimensions, rng=rng)
+        encoders = np.asarray(encoders, dtype=rc.float_dtype)
     else:
-        encoders = npext.array(ens.encoders, min_dims=2, dtype=np.float64)
+        encoders = npext.array(ens.encoders, min_dims=2, dtype=rc.float_dtype)
 
     if ens.normalize_encoders:
         encoders /= npext.norm(encoders, axis=1, keepdims=True)
@@ -90,7 +98,9 @@ def build_ensemble(model, ens):
         )
 
     # Build the neurons
-    gain, bias, max_rates, intercepts = get_gain_bias(ens, rng, model.intercept_limit)
+    gain, bias, max_rates, intercepts = get_gain_bias(
+        ens, rng, intercept_limit=model.intercept_limit, dtype=rc.float_dtype
+    )
 
     block = LoihiBlock(ens.n_neurons, label="%s" % ens)
     block.compartment.bias[:] = bias

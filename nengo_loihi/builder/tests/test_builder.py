@@ -57,3 +57,28 @@ def test_probemap_bad_type_error(Simulator, monkeypatch):
 def test_builder_strings():
     model = Model(label="myModel")
     assert str(model) == "Model(myModel)"
+
+
+@pytest.mark.parametrize("a_on_chip", [True, False])
+def test_connection_decode_neurons(a_on_chip, Simulator):
+    with nengo.Network() as net:
+        nengo_loihi.add_params(net)
+
+        u = nengo.Node([1], label="u")
+        a = nengo.Ensemble(100, 1, label="a")
+        net.config[a].on_chip = a_on_chip
+        b = nengo.Ensemble(100, 1, label="b")
+        probe1 = nengo.Probe(b)
+        nengo.Probe(b.neurons)
+        conn1 = nengo.Connection(u, a)
+        conn2 = nengo.Connection(a, b)
+
+    with Simulator(net) as sim:
+        dic = sim.model.connection_decode_neurons
+        assert isinstance(dic.pop(conn1 if a_on_chip else conn2), nengo.Ensemble)
+        if a_on_chip:
+            assert isinstance(dic.pop(conn2), nengo_loihi.block.LoihiBlock)
+
+        conn3, dec3 = dic.popitem()
+        assert conn3.pre == b and conn3.post == probe1
+        assert len(dic) == 0
