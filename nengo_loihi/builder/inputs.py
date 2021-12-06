@@ -34,17 +34,14 @@ class HostReceiveProcess(Process):
         def __init__(self, size_out):
             self.size_out = size_out
             self.queue = [(0, np.zeros(self.size_out))]
-            self.queue_index = 0
 
         def __call__(self, t):
-            while (
-                len(self.queue) > self.queue_index + 1
-                and self.queue[self.queue_index][0] < t
-            ):
-                self.queue_index += 1
-            return self.queue[self.queue_index][1]
+            while len(self.queue) > 1 and self.queue[0][0] < t:
+                self.queue.pop(0)
+            return self.queue[0][1]
 
         def receive(self, t, x):
+            assert not self.queue or t >= self.queue[0][0]
             self.queue.append((t, x))
 
     def make_step(self, shape_in, shape_out, dt, rng, state):
