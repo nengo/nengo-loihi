@@ -54,7 +54,7 @@ def test_negative_base(request, seed):
     model = Model()
 
     input = SpikeInput(n_axons)
-    input.add_spikes(1, list(range(n_axons)))
+    input.add_spikes(1, list(range(n_axons)), permanent=True)
     model.add_input(input)
 
     axon = Axon(n_axons)

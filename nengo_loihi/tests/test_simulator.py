@@ -689,7 +689,7 @@ def test_population_input(request, allclose):
             y = sim.collect_probe_output(probe)
     else:
         for inp, ti, inds in spikes:
-            inp.add_spikes(ti, inds)
+            inp.add_spikes(ti, inds, permanent=True)
 
         with EmulatorInterface(model) as sim:
             sim.run_steps(steps)
