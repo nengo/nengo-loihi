@@ -30,7 +30,7 @@ class SpikeInput(LoihiInput):
         return sorted(self.spikes)
 
     def spike_idxs(self, ti):
-        return self.spikes.get(ti, [])
+        return self.spikes.pop(ti, [])
 
 
 class ChipProcess(Process, metaclass=ABCMeta):
