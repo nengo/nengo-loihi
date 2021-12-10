@@ -22,7 +22,6 @@ from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
 from nengo_loihi.neurons import LoihiLIF, LoihiSpikingRectifiedLinear, loihi_rates
 from nengo_loihi.probe import LoihiProbe
-from nengo_loihi.tests import require_partition
 
 home_dir = os.path.dirname(nengo_loihi.__file__)
 test_dir = os.path.join(home_dir, "tests")
@@ -256,15 +255,8 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 
 @pytest.mark.parametrize("channels_last", (True, False))
 @pytest.mark.parametrize("padding", ("valid", "same"))
+@pytest.mark.requires_multichip_snips
 def test_conv2d_weights(padding, channels_last, request, plt, seed, rng, allclose):
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-        action="fail" if nengo_loihi.version.dev is None else "skip",
-    )
-
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
         """Compute Loihi rates on higher dimensional inputs"""
         y = x.reshape((-1, x.shape[-1]))
@@ -626,6 +618,7 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
 @pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
 @pytest.mark.parametrize("padding", ["valid", "same"])
 @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
+@pytest.mark.requires_multichip_snips
 def test_conv_deepnet(
     channels_last,
     pop_type,
@@ -643,29 +636,6 @@ def test_conv_deepnet(
     Checks that network with block splitting on the target matches one without
     on the emulator.
     """
-
-    # if request.config.getoption("--target") == "loihi":
-    #     if (
-    #         pop_type == 32
-    #         and nxsdk_version is not None
-    #         and nxsdk_version < parse_version("0.9.5.dev0")
-    #     ):
-    #         pytest.skip("Pop32 multichip test requires NxSDK >= 0.9.5")
-    #     elif pop_type == 16:
-    #         # multichip pop_type = 16 works only on nahuku32 board currently
-    #         require_partition(
-    #             "nahuku32",
-    #             lmt_options="--skip-power=1",
-    #             action="fail" if nengo_loihi.version.dev is None else "skip",
-    #         )
-
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-        action="fail" if nengo_loihi.version.dev is None else "skip",
-    )
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args

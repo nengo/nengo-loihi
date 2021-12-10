@@ -1,6 +1,7 @@
-from distutils.version import LooseVersion
-from functools import partial
+import os
 import shlex
+import warnings
+from distutils.version import LooseVersion
 
 import matplotlib as mpl
 import nengo
@@ -26,6 +27,11 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         "markers", "hang: mark test as hanging indefinitely on hardware"
+    )
+    config.addinivalue_line(
+        "markers",
+        "requires_multichip_snips: "
+        "mark test as requiring boards that can run multichip Snips",
     )
 
     # add unsupported attribute to Simulator (for compatibility with nengo<3.0)
@@ -126,6 +132,44 @@ def pytest_collection_modifyitems(session, config, items):
         if "hang" in item.keywords or item.nodeid in hanging_nengo_tests:
             # pragma: no cover, because we may find no hanging tests
             item.add_marker(skip_hanging)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    set_partition = False
+    set_lmtoptions = False
+    if item.get_closest_marker(name="requires_multichip_snips") is not None:
+        partition = os.getenv("PARTITION")
+        good_partitions = [
+            None,
+            "nahuku32",
+            "pohoiki",
+            "nahuku32,pohoiki",
+            "pohoiki,nahuku32",
+        ]
+        if partition not in good_partitions:
+            warnings.warn(
+                f"{item.nodeid} requires nahuku32 or pohoiki partition. You set "
+                f"PARTITION={partition} which will likely hang"
+            )
+        if partition is None:
+            os.environ["PARTITION"] = "pohoiki"  # TODO: nahuku32,pohoiki when it works
+
+        lmtoptions = os.getenv("LMTOPTIONS")
+        if lmtoptions is None:
+            os.environ["LMTOPTIONS"] = "--skip-power=1"
+        elif "--skip-power=1" not in lmtoptions:
+            warnings.warn(
+                f"Tests may hang if LMTOPTIONS does not contain --skip-power=1. "
+                f"You set LMTOPTIONS={lmtoptions}"
+            )
+
+    yield
+
+    if set_partition:
+        del os.environ["PARTITION"]
+    if set_lmtoptions:
+        del os.environ["LMTOPTIONS"]
 
 
 if LooseVersion(nengo.__version__) < "3.0.0":

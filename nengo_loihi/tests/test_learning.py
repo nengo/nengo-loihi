@@ -4,10 +4,8 @@ import pytest
 from nengo.exceptions import SimulationError, ValidationError
 from nengo.utils.numpy import rms
 
-import nengo_loihi
 from nengo_loihi.builder import Model
-from nengo_loihi.hardware.allocators import Greedy, RoundRobin
-from nengo_loihi.tests import require_partition
+from nengo_loihi.hardware.allocators import RoundRobin
 
 
 def pes_network(
@@ -53,9 +51,9 @@ def pes_network(
     return model, probes
 
 
-@pytest.mark.xfail(reason="Multi-chip learning fails intermittently due to timeout")
 @pytest.mark.parametrize("dims", (1, 3))
-def test_pes_comm_channel(dims, request, allclose, plt, seed, Simulator):
+@pytest.mark.requires_multichip_snips
+def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
     n_per_dim = 300
     tau = 0.01
     simtime = 1.5
@@ -68,18 +66,10 @@ def test_pes_comm_channel(dims, request, allclose, plt, seed, Simulator):
         period=simtime / 2,
     )
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    success = require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-    )
-    allocator = RoundRobin() if success else Greedy()
-
     with nengo.Simulator(model) as nengo_sim:
         nengo_sim.run(simtime)
 
-    with Simulator(model, hardware_options={"allocator": allocator}) as loihi_sim:
+    with Simulator(model, hardware_options={"allocator": RoundRobin()}) as loihi_sim:
         loihi_sim.run(simtime)
 
     with Simulator(model, target="simreal") as real_sim:
@@ -118,8 +108,8 @@ def test_pes_comm_channel(dims, request, allclose, plt, seed, Simulator):
     assert allclose(y_real, y_nengo, atol=0.2, rtol=0.2)
 
 
-@pytest.mark.xfail(reason="Multi-chip learning fails intermittently due to timeout")
-def test_pes_overflow(request, plt, seed, Simulator):
+@pytest.mark.requires_multichip_snips
+def test_pes_overflow(plt, seed, Simulator):
     dims = 3
     n_per_dim = 300
     tau = 0.01
@@ -138,16 +128,8 @@ def test_pes_overflow(request, plt, seed, Simulator):
     # set learning_wgt_exp low to create overflow in weight values
     loihi_model.pes_wgt_exp = -2
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    success = require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-    )
-    allocator = RoundRobin() if success else Greedy()
-
     with Simulator(
-        model, model=loihi_model, hardware_options={"allocator": allocator}
+        model, model=loihi_model, hardware_options={"allocator": RoundRobin()}
     ) as loihi_sim:
         loihi_sim.run(simtime)
 
@@ -201,16 +183,8 @@ def test_pes_error_clip(request, plt, seed, Simulator):
         period=simtime,
     )
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    success = require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-    )
-    allocator = RoundRobin() if success else Greedy()
-
     with pytest.warns(UserWarning, match=r".*PES error.*pes_error_scale.*"):
-        with Simulator(model, hardware_options={"allocator": allocator}) as loihi_sim:
+        with Simulator(model) as loihi_sim:
             loihi_sim.run(simtime)
 
     t = loihi_sim.trange()
@@ -232,8 +206,8 @@ def test_pes_error_clip(request, plt, seed, Simulator):
     # ^ error on emulator vs chip is quite different, hence large tolerances
 
 
-@pytest.mark.xfail(reason="Multi-chip learning fails intermittently due to timeout")
 @pytest.mark.parametrize("init_function", [None, lambda x: 0])
+@pytest.mark.requires_multichip_snips
 def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
     n_errors = 5
     targets = np.linspace(-0.9, 0.9, n_errors)
@@ -255,16 +229,8 @@ def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
 
         probe = nengo.Probe(output, synapse=0.1)
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    success = require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-    )
-    allocator = RoundRobin() if success else Greedy()
-
     simtime = 0.6
-    with Simulator(model, hardware_options={"allocator": allocator}) as sim:
+    with Simulator(model, hardware_options={"allocator": RoundRobin()}) as sim:
         sim.run(simtime)
 
     t = sim.trange()
@@ -280,9 +246,8 @@ def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
         )
 
 
-# TODO: Revisit when we can blacklist boards
-@pytest.mark.xfail
-def test_pes_deterministic(request, Simulator, seed, allclose):
+@pytest.mark.requires_multichip_snips
+def test_pes_deterministic(Simulator, seed, allclose):
     """Ensure that learning output is the same between runs"""
     # Make a network with lots of objects, so dictionary order has an effect
     n_errors = 3
@@ -304,14 +269,6 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
 
         probe = nengo.Probe(output, synapse=0.005)
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    success = require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-    )
-    allocator = RoundRobin() if success else Greedy()
-
     # some random aspects (e.g. dictionary order) only have a few combinations,
     # so more sims makes it less likely we'll get the same order by chance,
     # if things are truly non-deterministic
@@ -319,7 +276,7 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
     simtime = 0.1
     sims = []
     for _ in range(n_sims):
-        with Simulator(model, hardware_options={"allocator": allocator}) as sim:
+        with Simulator(model, hardware_options={"allocator": RoundRobin()}) as sim:
             sim.run(simtime)
         sims.append(sim)
 
@@ -328,17 +285,8 @@ def test_pes_deterministic(request, Simulator, seed, allclose):
         assert allclose(sim.data[probe], sim0.data[probe])
 
 
-# TODO: Revisit when we can blacklist boards
-@pytest.mark.xfail
-def test_learning_seed(Simulator, request, seed):
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-        action="fail" if nengo_loihi.version.dev is None else "skip",
-    )
-
+@pytest.mark.requires_multichip_snips
+def test_learning_seed(Simulator, seed):
     n_per_dim = 120
     dims = 1
     tau = 0.005

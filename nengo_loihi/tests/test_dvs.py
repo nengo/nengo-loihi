@@ -76,6 +76,7 @@ def generate_sinusoidal_spikes(
     return dvs_events
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "dvs_shape, pool, channels_last",
     [
