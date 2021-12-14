@@ -524,25 +524,16 @@ def test_conv_connection(channels, channels_last, Simulator, seed, rng, plt, all
 
         bp = nengo.Probe(b.neurons)
 
-    with nengo.Simulator(model, optimize=False) as sim_nengo:
-        sim_nengo.run(pres_time)
-    ref_out = sim_nengo.data[bp].mean(axis=0).reshape(output_shape.shape)
+    def run_sim(sim):
+        with sim:
+            sim.run(pres_time)
+        out = sim.data[bp].mean(axis=0).reshape(output_shape.shape)
+        return out if output_shape.channels_last else np.transpose(out, (1, 2, 0))
 
-    with Simulator(model, target="simreal") as sim_emu:
-        sim_emu.run(pres_time)
-    emu_out = sim_emu.data[bp].mean(axis=0).reshape(output_shape.shape)
-
-    with Simulator(
-        model, hardware_options={"snip_max_spikes_per_step": 800}
-    ) as sim_loihi:
-        sim_loihi.run(pres_time)
-    sim_out = sim_loihi.data[bp].mean(axis=0).reshape(output_shape.shape)
-
-    if not output_shape.channels_last:
-        ref_out = np.transpose(ref_out, (1, 2, 0))
-        emu_out = np.transpose(emu_out, (1, 2, 0))
-        sim_out = np.transpose(sim_out, (1, 2, 0))
-
+    ref_out = run_sim(nengo.Simulator(model, optimize=False))
+    emu_out = run_sim(Simulator(model, target="simreal"))
+    hw_opts = {"snip_max_spikes_per_step": 800}
+    sim_out = run_sim(Simulator(model, hardware_options=hw_opts))
     out_max = max(ref_out.max(), emu_out.max(), sim_out.max())
 
     # --- plot results
@@ -622,25 +613,32 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
         nengo.Connection(b.neurons, c.neurons, transform=transform)
         output_shape = transform.output_shape
 
-        p = nengo.Probe(c.neurons)
+        probe = nengo.Probe(c.neurons)
 
-    with nengo.Simulator(net, optimize=False) as sim:
-        sim.run(1.0)
+    def run_sim(sim):
+        with sim:
+            sim.run(1.0)
 
-    with Simulator(net, seed=seed) as sim_loihi:
-        sim_loihi.run(1.0)
+        y = np.sum(sim.data[probe] > 0, axis=0).reshape(output_shape.shape)
+        if not channels_last:
+            y = np.transpose(y, (1, 2, 0))
 
-    p0 = np.sum(sim.data[p] > 0, axis=0).reshape(output_shape.shape)
-    p1 = np.sum(sim_loihi.data[p] > 0, axis=0).reshape(output_shape.shape)
-    if not channels_last:
-        p0 = np.transpose(p0, (1, 2, 0))
-        p1 = np.transpose(p1, (1, 2, 0))
+        return sim, y
 
-    plt.plot(p0.ravel(), "k")
-    plt.plot(p1.ravel(), "b--")
+    _, y_ref = run_sim(nengo.Simulator(net, optimize=False))
+    sim_loihi, y_loihi = run_sim(Simulator(net, seed=seed))
+
+    plt.plot(y_ref.ravel(), "k")
+    plt.plot(y_loihi.ravel(), "b--")
+
+    assert (y_ref > 10).sum() > 0.5 * y_ref.size, "Test neurons are not spiking enough"
 
     # loihi spikes are not exactly the same, but should be close-ish
-    assert allclose(p0, p1, rtol=0.15, atol=1)
+    assert allclose(y_loihi, y_ref, rtol=0.15, atol=1)
+
+    if sim_loihi.target == "loihi":
+        _, y_sim = run_sim(Simulator(net, seed=seed, target="sim"))
+        assert allclose(y_loihi, y_sim, rtol=0.01, atol=1)
 
 
 @pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
