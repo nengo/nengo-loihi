@@ -156,10 +156,12 @@ def pytest_runtest_call(item):
             )
         if partition is None:
             os.environ["PARTITION"] = "pohoiki"  # TODO: nahuku32,pohoiki when it works
+            set_partition = True
 
         lmtoptions = os.getenv("LMTOPTIONS")
         if lmtoptions is None:
             os.environ["LMTOPTIONS"] = "--skip-power=1"
+            set_lmtoptions = True
         elif "--skip-power=1" not in lmtoptions:
             warnings.warn(
                 f"Tests may hang if LMTOPTIONS does not contain --skip-power=1. "
