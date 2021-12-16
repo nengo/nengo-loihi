@@ -201,6 +201,8 @@ setup_cfg:
         no ensembles onchip
       test_processes.py::TestPiecewise*:
         no ensembles onchip
+      test_processes.py::test_x_copy:
+        no ensembles onchip
       test_simulator.py::test_steps:
         no ensembles onchip
       test_simulator.py::test_sim_reopen:
