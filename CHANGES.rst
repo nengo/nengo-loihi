@@ -51,6 +51,7 @@ Release history
 - Deobfuscated NxSDK API calls. (`#320`_)
 - The builder now respects the `precision.bits`_ attribute in ``nengorc`` files,
   allowing for reduced-precision builds to save memory. (`#309`_)
+- The new ``GreedyInterchip`` allocator is now the default allocator. (`#309`_)
 
 **Fixed**
 

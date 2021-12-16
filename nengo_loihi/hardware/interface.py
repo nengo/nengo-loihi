@@ -13,7 +13,7 @@ import numpy as np
 from nengo.exceptions import SimulationError
 
 from nengo_loihi.builder.discretize import scale_pes_errors
-from nengo_loihi.hardware.allocators import Greedy
+from nengo_loihi.hardware.allocators import GreedyInterchip
 from nengo_loihi.hardware.builder import build_board
 from nengo_loihi.hardware.nxsdk_objects import LoihiSpikeInput
 from nengo_loihi.hardware.nxsdk_shim import (
@@ -53,7 +53,7 @@ class HardwareInterface:
         timestep if ``.use_snips`` is True.
     n_chips : int, optional (Default: 2)
         The number of chips on the board.
-    allocator : Allocator, optional (Default: ``Greedy()``)
+    allocator : Allocator, optional (Default: ``GreedyInterchip()``)
         Callable object that allocates the board's devices to given models.
         Defaults to one block and one input per core on a single chip.
     """
@@ -84,7 +84,7 @@ class HardwareInterface:
         SpikeProbe.probeDict.clear()
 
         # --- allocate
-        allocator = Greedy() if allocator is None else allocator
+        allocator = GreedyInterchip() if allocator is None else allocator
         self.board = allocator(self.model, n_chips=n_chips)
 
         # --- validate
