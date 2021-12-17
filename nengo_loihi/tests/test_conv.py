@@ -564,8 +564,10 @@ def test_conv_input(channels_last, Simulator, plt, allclose):
     assert allclose(p0, p1, rtol=0.15, atol=1)
 
 
-@pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
-@pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
+# @pytest.mark.parametrize("precompute", [False, True])  # noqa: C901
+# @pytest.mark.parametrize("channels_last, pop_type", [(True, 16), (False, 32)])
+@pytest.mark.parametrize("precompute", [False])  # noqa: C901
+@pytest.mark.parametrize("channels_last, pop_type", [(False, 32)])
 def test_conv_deepnet(
     channels_last, pop_type, precompute, Simulator, request, rng, seed, plt, allclose
 ):
@@ -590,13 +592,13 @@ def test_conv_deepnet(
     #             action="fail" if nengo_loihi.version.dev is None else "skip",
     #         )
 
-    # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
-    require_partition(
-        "nahuku32",
-        request=request,
-        lmt_options="--skip-power=1",
-        action="fail" if nengo_loihi.version.dev is None else "skip",
-    )
+    # # with NxSDK 0.9.8, only Nahuku32 is working with multi-chip SNIPs
+    # require_partition(
+    #     "nahuku32",
+    #     request=request,
+    #     lmt_options="--skip-power=1",
+    #     action="fail" if nengo_loihi.version.dev is None else "skip",
+    # )
 
     def conv_layer(
         x, input_shape, array_init=None, label=None, conn_args=None, **conv_args
