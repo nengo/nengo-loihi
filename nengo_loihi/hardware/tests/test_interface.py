@@ -129,11 +129,11 @@ def test_host_snip_recv_bytes():
     data[-1] = -1
     host_snip.send_all(data)
     with pytest.raises(RuntimeError, match="shutdown signal from chip"):
-        # With proper amount received
         host_snip.recv_bytes(1100 * 4)
+
+    # Too little data with shutdown signal still raises too little data
     host_snip.send_all(data)
-    with pytest.raises(RuntimeError, match="shutdown signal from chip"):
-        # With early stop
+    with pytest.raises(RuntimeError, match="less than expected"):
         host_snip.recv_bytes(2048 * 4)
 
 

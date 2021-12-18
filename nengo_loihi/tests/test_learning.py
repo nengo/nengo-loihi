@@ -51,7 +51,7 @@ def pes_network(
     return model, probes
 
 
-@pytest.mark.parametrize("dims", (1, 3))
+@pytest.mark.parametrize("dims", (1, pytest.param(3, marks=pytest.mark.slow)))
 @pytest.mark.requires_multichip_snips
 def test_pes_comm_channel(dims, allclose, plt, seed, Simulator):
     n_per_dim = 300
@@ -206,7 +206,9 @@ def test_pes_error_clip(request, plt, seed, Simulator):
     # ^ error on emulator vs chip is quite different, hence large tolerances
 
 
-@pytest.mark.parametrize("init_function", [None, lambda x: 0])
+@pytest.mark.parametrize(
+    "init_function", [None, pytest.param(lambda x: 0, marks=pytest.mark.slow)]
+)
 @pytest.mark.requires_multichip_snips
 def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
     n_errors = 5
@@ -246,6 +248,7 @@ def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
         )
 
 
+@pytest.mark.slow
 @pytest.mark.requires_multichip_snips
 def test_pes_deterministic(Simulator, seed, allclose):
     """Ensure that learning output is the same between runs"""
@@ -285,6 +288,7 @@ def test_pes_deterministic(Simulator, seed, allclose):
         assert allclose(sim.data[probe], sim0.data[probe])
 
 
+@pytest.mark.slow
 @pytest.mark.requires_multichip_snips
 def test_learning_seed(Simulator, seed):
     n_per_dim = 120

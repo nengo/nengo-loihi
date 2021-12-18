@@ -31,3 +31,11 @@
       && ./codecov -f coverage.xml
 {{ super() }}
 {% endblock %}
+
+{% block remote_cleanup %}
+    mkdir -p emptydir
+    ls -tp | grep '{{ pkg }}-' | tail -n +3 \
+      | xargs -I {} sh -c \
+      'rsync -av --delete emptydir/ {} | tqdm --unit files --unit_scale | wc -l && rmdir {}'
+    rmdir emptydir || true
+{% endblock %}

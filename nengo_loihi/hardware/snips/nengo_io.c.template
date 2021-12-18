@@ -233,6 +233,11 @@ void nengo_io(runState *s) {
 #if DEBUG > 0
     printf("Sending %d packet(s)\n", N_OUTPUT_PACKETS);
 #endif
+#if DEBUG > 2
+    for (int i = 0; i < N_OUTPUT_PACKETS; i++) {
+        printf("Packet %d: 0x%X = %d\n", i, buffer[i], buffer[i]);
+    }
+#endif
     writeChannel(out_channel, buffer, N_OUTPUT_PACKETS);
 
     if (s->total_steps > 0 && s->time_step >= s->total_steps) {

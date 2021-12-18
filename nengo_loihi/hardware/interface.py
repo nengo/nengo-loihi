@@ -774,13 +774,15 @@ class HostSnip:
             else:  # pragma: no cover
                 n_retries += 1
 
-        if np.frombuffer(data[-4:], np.int32) == -1:
-            raise RuntimeError("Received shutdown signal from chip")
-
         if len(data) < bytes_expected:
             raise RuntimeError(
                 "Received (%d) less than expected (%d)" % (len(data), bytes_expected)
             )
+
+        last_val = np.frombuffer(data[-4:], np.int32).item()
+        logger.debug("Received %d bytes, last_val=%d", len(data), last_val)
+        if last_val == -1:
+            raise RuntimeError("Received shutdown signal from chip")
 
         return np.frombuffer(data, dtype=np.int32)
 

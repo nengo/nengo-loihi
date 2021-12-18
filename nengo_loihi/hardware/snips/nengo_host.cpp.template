@@ -105,6 +105,12 @@ class NengoHostProcess : public ConcurrentHostSnip {
             ssize_t n_read = recv(client_socket, buffer, 4 * READ_SIZE, 0);
             int buffer_len = n_read / 4;
             int buffer_pos = 0;
+#if DEBUG > 0
+            msg("Read %zu bytes", n_read);
+#endif
+#if DEBUG > 2
+            msg("buffer[0]: 0x%X = %d", buffer[0], buffer[0]);
+#endif
             if (buffer[0] < 0) {
                 msg("Received shutdown signal: %d", buffer[0]);
                 shutdown();
@@ -115,9 +121,6 @@ class NengoHostProcess : public ConcurrentHostSnip {
                 shutdown();
                 return;
             }
-#if DEBUG > 0
-            msg("Read %zu bytes", n_read);
-#endif
 
             // process header
             if (n_read < 4 * N_CHIPS) {
@@ -152,8 +155,8 @@ class NengoHostProcess : public ConcurrentHostSnip {
 
                     // subsequent reads are non-blocking, so we just read what's there
                     while (buffer_len < required_size) {
-                        if (i_wait > 100) {
-                            msg("Waited too long for socket read");
+                        if (i_wait > 1000) {
+                            msg("ERROR: Timed out waiting for chips to write back output. Increasing i_wait might help?");
                             shutdown();
                             return;
                         }
@@ -167,6 +170,7 @@ class NengoHostProcess : public ConcurrentHostSnip {
 #if DEBUG > 0
                             msg("Read %zu bytes", n_read);
 #endif
+                            i_wait = 0;
                             buffer_len += n_read / 4;
                         } else {
                             i_wait++;
