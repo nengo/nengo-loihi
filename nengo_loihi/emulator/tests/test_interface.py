@@ -50,7 +50,8 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     # n_axons controls number of input spikes and thus amount of overflow
     input = SpikeInput(n_axons)
     for t in np.arange(1, nt + 1):
-        input.add_spikes(t, np.arange(n_axons))  # send spikes to all axons
+        # send spikes to all axons
+        input.add_spikes(t, np.arange(n_axons), permanent=True)
     model.add_input(input)
 
     block = LoihiBlock(1)

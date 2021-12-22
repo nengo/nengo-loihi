@@ -39,7 +39,9 @@ def build_dvs_file_chip_process(model, process, node=None):
         t += dt_us
         image_idx += 1
         new_event_idx = event_idx + np.searchsorted(e_t[event_idx:], t)
-        spike_input.add_spikes(image_idx, e_idx[event_idx:new_event_idx])
+        spike_input.add_spikes(
+            image_idx, e_idx[event_idx:new_event_idx], permanent=True
+        )
         event_idx = new_event_idx
 
     model.add_input(spike_input)

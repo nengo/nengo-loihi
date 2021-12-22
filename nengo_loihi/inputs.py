@@ -18,19 +18,25 @@ class SpikeInput(LoihiInput):
         super().__init__(label=label)
         self.n_neurons = n_neurons
         self.spikes = {}  # map sim timestep index to list of spike inds
+        self.permanent = set()  # spike times that are added during build, do not clear
 
-    def add_spikes(self, ti, spike_idxs):
+    def add_spikes(self, ti, spike_idxs, permanent=False):
         assert is_integer(ti)
         ti = int(ti)
         assert ti > 0, "Spike times must be >= 1 (got %d)" % ti
         assert ti not in self.spikes
         self.spikes[ti] = spike_idxs
+        if permanent:
+            self.permanent.add(ti)
 
     def spike_times(self):
         return sorted(self.spikes)
 
     def spike_idxs(self, ti):
-        return self.spikes.pop(ti, [])
+        if ti in self.permanent:
+            return self.spikes.get(ti, [])
+        else:
+            return self.spikes.pop(ti, [])
 
 
 class ChipProcess(Process, metaclass=ABCMeta):
