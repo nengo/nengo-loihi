@@ -1,5 +1,8 @@
+import logging
+
 import numpy as np
 from nengo.dists import Choice
+from nengo.exceptions import BuildError
 from nengo.neurons import (
     LIF,
     LIFRate,
@@ -8,16 +11,48 @@ from nengo.neurons import (
     SpikingRectifiedLinear,
 )
 
-from nengo_loihi.compat import HAS_TF, tf
+from nengo_loihi.compat import HAS_DL, HAS_TF, nengo_dl, tf
 
-
-def _install_dl_builders():
-    # avoid circular import by doing import in here
-    from nengo_loihi.builder.nengo_dl import (  # pylint: disable=import-outside-toplevel
-        install_dl_builders,
+try:
+    from nengo_extras.loihi_training import (
+        LoihiLIFBuilder,
+        LoihiSpikingRectifiedLinearBuilder,
     )
 
-    install_dl_builders()
+except ImportError:  # pragma: no cover
+
+    class ErrorBuilder:
+        def __init__(self, ops):
+            raise BuildError(
+                "Building Loihi neuron types in nengo-dl requires nengo-extras>=0.5. "
+                "Please install or upgrade nengo-extras."
+            )
+
+    LoihiLIFBuilder = LoihiSpikingRectifiedLinearBuilder = ErrorBuilder
+
+
+logger = logging.getLogger(__name__)
+
+
+class Installer:
+    def __init__(self):
+        self.installed = False
+
+    def __call__(self):
+        if self.installed or not HAS_DL:
+            pass
+        else:
+            logger.info("Installing NengoDL neuron builders")
+            nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
+                LoihiLIF
+            ] = LoihiLIFBuilder
+            nengo_dl.neuron_builders.SimNeuronsBuilder.TF_NEURON_IMPL[
+                LoihiSpikingRectifiedLinear
+            ] = LoihiSpikingRectifiedLinearBuilder
+            self.installed = True
+
+
+install_dl_builders = Installer()
 
 
 def discretize_tau_rc(tau_rc, dt):
@@ -129,7 +164,7 @@ class LoihiLIF(LIF):
 
     Parameters
     ----------
-    nengo_dl_noise : NeuronOutputNoise
+    nengo_dl_noise : `nengo_extras.loihi_training.NeuronOutputNoise`
         Noise added to the rate-neuron output when training with this neuron
         type in ``nengo_dl``.
     """
@@ -156,7 +191,7 @@ class LoihiLIF(LIF):
             **kwargs,
         )
         self.nengo_dl_noise = nengo_dl_noise
-        _install_dl_builders()
+        install_dl_builders()
 
     @property
     def _argreprs(self):
@@ -199,7 +234,7 @@ class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
 
     def __init__(self, amplitude=1, **kwargs):
         super().__init__(amplitude=amplitude, **kwargs)
-        _install_dl_builders()
+        install_dl_builders()
 
     def rates(self, x, gain, bias, dt=0.001):
         return loihi_spikingrectifiedlinear_rates(self, x, gain, bias, dt)
@@ -212,78 +247,3 @@ class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
 
         voltage[voltage < 0] = 0
         voltage[spikes_mask] = 0
-
-
-class NeuronOutputNoise:
-    """Noise added to the output of a rate neuron.
-
-    Often used when training deep networks with rate neurons for final
-    implementation in spiking neurons to simulate the variability
-    caused by spiking.
-    """
-
-    pass
-
-
-class LowpassRCNoise(NeuronOutputNoise):
-    """Noise model combining Lowpass synapse and neuron membrane filters.
-
-    Samples "noise" (i.e. variability) from a regular spike train filtered
-    by the following transfer function, where :math:`\\tau_{rc}` is the
-    membrane time constant and :math:`\\tau_s` is the synapse time constant:
-
-    .. math::
-
-        H(s) = [(\\tau_s s + 1) (\\tau_{rc} s + 1)]^{-1}
-
-    See [1]_ for background and derivations.
-
-    Attributes
-    ----------
-    tau_s : float
-        Time constant for Lowpass synaptic filter.
-
-    References
-    ----------
-    .. [1] E. Hunsberger (2018) "Spiking Deep Neural Networks: Engineered and
-       Biological Approaches to Object Recognition." PhD thesis. pp. 106--113.
-       (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)
-    """
-
-    def __init__(self, tau_s):
-        self.tau_s = tau_s
-
-    def __repr__(self):
-        return "%s(tau_s=%s)" % (type(self).__name__, self.tau_s)
-
-
-class AlphaRCNoise(NeuronOutputNoise):
-    """Noise model combining Alpha synapse and neuron membrane filters.
-
-    Samples "noise" (i.e. variability) from a regular spike train filtered
-    by the following transfer function, where :math:`\\tau_{rc}` is the
-    membrane time constant and :math:`\\tau_s` is the synapse time constant:
-
-    .. math::
-
-        H(s) = [(\\tau_s s + 1)^2 (\\tau_{rc} s + 1)]^{-1}
-
-    See [1]_ for background and derivations.
-
-    Attributes
-    ----------
-    tau_s : float
-        Time constant for Alpha synaptic filter.
-
-    References
-    ----------
-    .. [1] E. Hunsberger (2018) "Spiking Deep Neural Networks: Engineered and
-       Biological Approaches to Object Recognition." PhD thesis. pp. 106--113.
-       (http://compneuro.uwaterloo.ca/publications/hunsberger2018.html)
-    """
-
-    def __init__(self, tau_s):
-        self.tau_s = tau_s
-
-    def __repr__(self):
-        return "%s(tau_s=%s)" % (type(self).__name__, self.tau_s)

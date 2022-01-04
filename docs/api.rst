@@ -29,19 +29,10 @@ Neurons
 
    nengo_loihi.neurons.LoihiLIF
    nengo_loihi.neurons.LoihiSpikingRectifiedLinear
-   nengo_loihi.neurons.NeuronOutputNoise
-   nengo_loihi.neurons.LowpassRCNoise
-   nengo_loihi.neurons.AlphaRCNoise
 
 .. autoclass:: nengo_loihi.neurons.LoihiLIF
 
 .. autoclass:: nengo_loihi.neurons.LoihiSpikingRectifiedLinear
-
-.. autoclass:: nengo_loihi.neurons.NeuronOutputNoise
-
-.. autoclass:: nengo_loihi.neurons.LowpassRCNoise
-
-.. autoclass:: nengo_loihi.neurons.AlphaRCNoise
 
 Decode neurons
 ==============

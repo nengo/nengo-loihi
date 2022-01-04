@@ -40,6 +40,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "python": ("https://docs.python.org/3", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference", None),
+    "nengo_extras": ("https://www.nengo.ai/nengo-extras", None),
 }
 
 # -- sphinx.ext.todo

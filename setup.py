@@ -42,18 +42,18 @@ docs_req = [
     "nbsphinx",
     "nbconvert",
     "nengo-dl>=3.4.0",
-    "nengo-extras",
     "nengo_sphinx_theme>=0.7",
     "numpydoc>=0.6",
     "sphinx>=1.8",
     "tensorflow-probability>=0.8.0",
 ]
 optional_req = [
+    "nengo-extras>=0.5",
     "networkx-metis>=1.0",
 ]
 tests_req = [
     "coverage>=4.3",
-    "nengo-extras",
+    "nengo-extras>=0.5",
     "pytest>=5.0.0",
     "pytest-allclose>=1.0.0",
     "pytest-cov>=2.6.0",

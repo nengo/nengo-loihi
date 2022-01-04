@@ -52,6 +52,8 @@ Release history
 - The builder now respects the `precision.bits`_ attribute in ``nengorc`` files,
   allowing for reduced-precision builds to save memory. (`#309`_)
 - The new ``GreedyInterchip`` allocator is now the default allocator. (`#309`_)
+- ``NeuronOutputNoise`` classes and NengoDL builders for ``LoihiLIF`` and
+  ``LoihiSpikingRectifiedLinear`` have been moved to NengoExtras. (`#325`_)
 
 **Fixed**
 
@@ -72,6 +74,7 @@ Release history
 .. _#312: https://github.com/nengo/nengo-loihi/pull/312
 .. _#317: https://github.com/nengo/nengo-loihi/pull/317
 .. _#320: https://github.com/nengo/nengo-loihi/pull/320
+.. _#325: https://github.com/nengo/nengo-loihi/pull/325
 .. _precision.bits: https://www.nengo.ai/nengo/nengorc.html#configuration-options
 
 1.0.0 (January 20, 2021)
