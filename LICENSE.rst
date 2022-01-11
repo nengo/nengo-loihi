@@ -4,7 +4,7 @@
 NengoLoihi license
 ******************
 
-Copyright (c) 2018-2021 Applied Brain Research
+Copyright (c) 2018-2022 Applied Brain Research
 
 NengoLoihi is made available under a proprietary license
 that permits using, copying, sharing, and making derivative works from

@@ -77,7 +77,7 @@ user_agent = "nengo_loihi"
 
 project = "NengoLoihi"
 authors = "Applied Brain Research"
-copyright = "2018-2021 Applied Brain Research"
+copyright = "2018-2022 Applied Brain Research"
 version = ".".join(nengo_loihi.__version__.split(".")[:2])  # Short X.Y version
 release = nengo_loihi.__version__  # Full version, with tags
 
