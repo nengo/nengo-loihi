@@ -37,16 +37,9 @@ setup_py:
     - packaging
     - scipy>=1.2.1
   docs_req:
-    - abr_control
-    - jupyter
-    - matplotlib>=2.0
-    - nbsphinx
-    - nbconvert
-    - nengo-dl>=3.4.0
     - nengo_sphinx_theme>=0.7
     - numpydoc>=0.6
     - sphinx>=1.8
-    - tensorflow-probability>=0.8.0
   optional_req:
     - nengo-extras>=0.5  # optional nengo-dl builders for neurons
     - networkx-metis>=1.0
@@ -490,20 +483,57 @@ setup_cfg:
 docs_conf_py:
   intersphinx_mapping:
     scipy: https://docs.scipy.org/doc/scipy/reference
+    nengo_extras: https://www.nengo.ai/nengo-extras
   nengo_logo: nengo-loihi-full-light.svg
   nengo_logo_color: "#127bc1"
   tagmanager_id: GTM-KWCR2HN
   doctest_setup:
     - import nengo
   html_redirects:
-    examples/adaptive_motor_control.html: examples/adaptive-motor-control.html
-    examples/communication_channel.html: examples/communication-channel.html
-    examples/integrator_multi_d.html: examples/integrator-multi-d.html
-    examples/keyword_spotting.html: examples/keyword-spotting.html
-    examples/learn_communication_channel.html: examples/learn-communication-channel.html
-    examples/mnist_convnet.html: examples/mnist-convnet.html
-    examples/neuron_to_neuron.html: examples/neuron-to-neuron.html
-    examples/oscillator_nonlinear.html: examples/oscillator-nonlinear.html
+    examples/index.html: https://www.nengo.ai/nengo-examples/loihi/
+    examples/adaptive_motor_control.html:
+      https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
+    examples/adaptive-motor-control.html:
+      https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
+    examples/cifar10-convnet.html:
+      https://www.nengo.ai/nengo-examples/loihi/cifar10-convnet.html
+    examples/communication_channel.html:
+      https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
+    examples/communication-channel.html:
+      https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
+    examples/dvs-from-file.html:
+      https://www.nengo.ai/nengo-examples/loihi/dvs-from-file.html
+    examples/integrator.html:
+      https://www.nengo.ai/nengo-examples/loihi/integrator.html
+    examples/integrator_multi_d.html:
+      https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
+    examples/integrator-multi-d.html:
+      https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
+    examples/keras-to-loihi.html:
+      https://www.nengo.ai/nengo-examples/loihi/keras-to-loihi.html
+    examples/keyword_spotting.html:
+      https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
+    examples/keyword-spotting.html:
+      https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
+    examples/learn_communication_channel.html:
+      https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
+    examples/learn-communication-channel.html:
+      https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
+    examples/lmu.html: https://www.nengo.ai/nengo-examples/loihi/lmu.html
+    examples/mnist_convnet.html:
+      https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
+    examples/mnist-convnet.html:
+      https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
+    examples/neuron_to_neuron.html:
+      https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
+    examples/neuron-to-neuron.html:
+      https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
+    examples/oscillator.html:
+      https://www.nengo.ai/nengo-examples/loihi/oscillator.html
+    examples/oscillator_nonlinear.html:
+      https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
+    examples/oscillator-nonlinear.html:
+      https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
 
 travis_yml:
   python: 3.6
@@ -525,9 +555,6 @@ travis_yml:
         NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git"
     - script: docs
       python: 3.7
-      apt_install:
-      - pandoc
-      - ffmpeg  # ffmpeg required for matplotlib's `to_html5_video`
   pypi_user: __token__
   deploy_dists:
     - sdist
@@ -560,11 +587,6 @@ ci_scripts:
     pip_install:
       - coverage
   - template: docs
-    pip_install:
-      - git+https://github.com/abr/abr_control.git
-      - $NENGO_VERSION
-      - $NENGO_DL_VERSION
-      - cython
   - template: deploy
 
 codecov_yml: {}

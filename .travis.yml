@@ -52,7 +52,6 @@ jobs:
       apt:
         packages:
           - pandoc
-          - ffmpeg
     python: 3.7
   - stage: deploy
     if: branch =~ ^release-candidate-* OR tag =~ ^v[0-9]*

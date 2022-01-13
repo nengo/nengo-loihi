@@ -18,7 +18,7 @@ with::
    overview
    installation
    configuration
-   examples
+   Examples <https://www.nengo.ai/nengo-examples/loihi/>
    api
    tips
    setup/index

@@ -97,15 +97,90 @@ html_theme_options = {
     "tagmanager_id": "GTM-KWCR2HN",
 }
 html_redirects = [
-    ("examples/adaptive_motor_control.html", "examples/adaptive-motor-control.html"),
-    ("examples/communication_channel.html", "examples/communication-channel.html"),
-    ("examples/integrator_multi_d.html", "examples/integrator-multi-d.html"),
-    ("examples/keyword_spotting.html", "examples/keyword-spotting.html"),
+    ("examples/index.html", "https://www.nengo.ai/nengo-examples/loihi/"),
+    (
+        "examples/adaptive_motor_control.html",
+        "https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html",
+    ),
+    (
+        "examples/adaptive-motor-control.html",
+        "https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html",
+    ),
+    (
+        "examples/cifar10-convnet.html",
+        "https://www.nengo.ai/nengo-examples/loihi/cifar10-convnet.html",
+    ),
+    (
+        "examples/communication_channel.html",
+        "https://www.nengo.ai/nengo-examples/loihi/communication-channel.html",
+    ),
+    (
+        "examples/communication-channel.html",
+        "https://www.nengo.ai/nengo-examples/loihi/communication-channel.html",
+    ),
+    (
+        "examples/dvs-from-file.html",
+        "https://www.nengo.ai/nengo-examples/loihi/dvs-from-file.html",
+    ),
+    (
+        "examples/integrator.html",
+        "https://www.nengo.ai/nengo-examples/loihi/integrator.html",
+    ),
+    (
+        "examples/integrator_multi_d.html",
+        "https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html",
+    ),
+    (
+        "examples/integrator-multi-d.html",
+        "https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html",
+    ),
+    (
+        "examples/keras-to-loihi.html",
+        "https://www.nengo.ai/nengo-examples/loihi/keras-to-loihi.html",
+    ),
+    (
+        "examples/keyword_spotting.html",
+        "https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html",
+    ),
+    (
+        "examples/keyword-spotting.html",
+        "https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html",
+    ),
     (
         "examples/learn_communication_channel.html",
-        "examples/learn-communication-channel.html",
+        "https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html",
     ),
-    ("examples/mnist_convnet.html", "examples/mnist-convnet.html"),
-    ("examples/neuron_to_neuron.html", "examples/neuron-to-neuron.html"),
-    ("examples/oscillator_nonlinear.html", "examples/oscillator-nonlinear.html"),
+    (
+        "examples/learn-communication-channel.html",
+        "https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html",
+    ),
+    ("examples/lmu.html", "https://www.nengo.ai/nengo-examples/loihi/lmu.html"),
+    (
+        "examples/mnist_convnet.html",
+        "https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html",
+    ),
+    (
+        "examples/mnist-convnet.html",
+        "https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html",
+    ),
+    (
+        "examples/neuron_to_neuron.html",
+        "https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html",
+    ),
+    (
+        "examples/neuron-to-neuron.html",
+        "https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html",
+    ),
+    (
+        "examples/oscillator.html",
+        "https://www.nengo.ai/nengo-examples/loihi/oscillator.html",
+    ),
+    (
+        "examples/oscillator_nonlinear.html",
+        "https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html",
+    ),
+    (
+        "examples/oscillator-nonlinear.html",
+        "https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html",
+    ),
 ]

@@ -36,16 +36,9 @@ install_req = [
     "scipy>=1.2.1",
 ]
 docs_req = [
-    "abr_control",
-    "jupyter",
-    "matplotlib>=2.0",
-    "nbsphinx",
-    "nbconvert",
-    "nengo-dl>=3.4.0",
     "nengo_sphinx_theme>=0.7",
     "numpydoc>=0.6",
     "sphinx>=1.8",
-    "tensorflow-probability>=0.8.0",
 ]
 optional_req = [
     "nengo-extras>=0.5",
