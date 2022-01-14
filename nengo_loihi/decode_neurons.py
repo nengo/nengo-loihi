@@ -261,9 +261,12 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
     """
 
-    # TODO: why does this scale factor help? Found it empirically in
-    # test_decode_neurons.test_add_inputs (see there for a description)
-    scale_factor = 1.05
+    # `scale_factor`: Factor by which to scale up the outputs. For a simple
+    # communication channel between neurons (see e.g. `test_basic.test_ens_ens`),
+    # it appears best to have this at 1.00 (which is what one would naively assume
+    # is best). However, when adding inputs (e.g. `test_decode_neurons.test_add_inputs`)
+    # a value of 1.05 appears best. We use 1.02 for good performance in both cases.
+    scale_factor = 1.02
 
     def __init__(self, dt=0.001, rate=None):
         super().__init__(pairs_per_dim=5, dt=dt, rate=rate)
@@ -292,9 +295,12 @@ class Preset10DecodeNeurons(OnOffDecodeNeurons):
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
     """
 
-    # TODO: why does this scale factor help? Found it empirically in
-    # test_decode_neurons.test_add_inputs (see there for a description)
-    scale_factor = 1.05
+    # `scale_factor`: Factor by which to scale up the outputs. For a simple
+    # communication channel between neurons (see e.g. `test_basic.test_ens_ens`),
+    # it appears best to have this at 1.00 (which is what one would naively assume
+    # is best). However, when adding inputs (e.g. `test_decode_neurons.test_add_inputs`)
+    # a value of 1.05 appears best. We use 1.02 for good performance in both cases.
+    scale_factor = 1.02
 
     def __init__(self, dt=0.001, rate=None):
         super().__init__(pairs_per_dim=10, dt=dt, rate=rate)
