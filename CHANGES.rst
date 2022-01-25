@@ -19,10 +19,10 @@ Release history
    - Removed
    - Fixed
 
-1.1.0 (unreleased)
-==================
+1.1.0 (January 25, 2022)
+========================
 
-*Compatible with Nengo 3.1.0*
+*Compatible with Nengo 3.1.0 - 3.2.0*
 
 *Compatible with NxSDK 0.9.0 - 1.0.0*
 

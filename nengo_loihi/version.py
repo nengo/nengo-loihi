@@ -30,7 +30,7 @@ def info2string(info):
 
 name = "nengo_loihi"
 version_info = (1, 1, 0)  # (major, minor, patch)
-dev = 0
+dev = None
 
 version = "{v}{dev}".format(
     v=info2string(version_info), dev=(".dev%d" % dev) if dev is not None else ""
