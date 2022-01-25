@@ -1,0 +1,860 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NengoLoihi &#8212; NengoLoihi 1.1.0 docs</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600|Rajdhani:700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+  body .title-bar,
+  body .documentation-source h1:after {
+    background-color: #127bc1;
+  }
+</style>
+<!-- Google Tag Manager -->
+<script>
+ (function (w, d, s, l, i) {
+   w[l] = w[l] || [];
+   w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+   var f = d.getElementsByTagName(s)[0],
+       j = d.createElement(s),
+       dl = l != "dataLayer" ? "&l=" + l : "";
+   j.async = true;
+   j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+   f.parentNode.insertBefore(j, f);
+ })(window, document, "script", "dataLayer", "GTM-KWCR2HN");
+</script>
+<!-- End Google Tag Manager -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+  
+<script src="_static/underscore.js"></script>
+  
+  
+<script src="_static/doctools.js"></script>
+  
+  
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="overview.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">NengoGUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">NengoDL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">NengoSPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">NengoExtras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/keras-spiking">KerasSpiking</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/pytorch-spiking">PyTorchSpiking</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">NengoFPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">NengoLoihi</a>
+            <a class="dropdown-item" href="https://labs.nengo.ai/nengo-ocl/">NengoOCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">NengoSpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo-labs/nengo-mpi">NengoMPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+            >Getting started</a
+          >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="#">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="NengoLoihi"
+      />
+    </a>
+  </h3>
+<form class="px-5 py-3 my-0 border-bottom" action="search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form><div class="p-5 toctree">
+  
+    <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://www.nengo.ai/nengo-examples/loihi/">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+  
+  </div>
+  
+  <form class="p-5 my-0 border-top">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option value="../index.html">latest</option>
+        
+        
+          
+        <option selected>v1.1.0</option>
+          
+        
+          
+        <option value="../v1.0.0/index.html">
+          v1.0.0
+        </option>
+          
+        
+          
+        <option value="../v0.10.0/index.html">
+          v0.10.0
+        </option>
+          
+        
+          
+        <option value="../v0.9.0/index.html">
+          v0.9.0
+        </option>
+          
+        
+          
+        <option value="../v0.8.0/index.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="../v0.7.0/index.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+</div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+              
+  <div class="section" id="nengoloihi">
+<h1>NengoLoihi<a class="headerlink" href="#nengoloihi" title="Permalink to this headline">¶</a></h1>
+<p>A backend for running Nengo models on Intel’s Loihi architecture.</p>
+<p>To use the backend, simply replace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nengo</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">nengo_loihi</span><span class="o">.</span><span class="n">Simulator</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#software">Software</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#running-models">Running models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#inrc-superhost">INRC/Superhost</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#developer-install">Developer install</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#config-system-parameters">Config system parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#build-parameters">Build parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#loihi-parameters">Loihi parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://www.nengo.ai/nengo-examples/loihi/">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#main">Main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#neurons">Neurons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#decode-neurons">Decode neurons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#builder">Builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#emulator">Emulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#hardware">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#dvs">DVS</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tips.html">Tips and tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#making-models-fit-on-loihi">Making models fit on Loihi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#local-machine">Local machine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tips.html#superhost">Superhost</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="setup/host-board.html">Board and host</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup/superhost.html">Superhost</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="release-history">
+<h1>Release history<a class="headerlink" href="#release-history" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="january-25-2022">
+<h2>1.1.0 (January 25, 2022)<a class="headerlink" href="#january-25-2022" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 3.1.0 - 3.2.0</em></p>
+<p><em>Compatible with NxSDK 0.9.0 - 1.0.0</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Added support for NxSDK 1.0.0. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/317">#317</a>)</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">Simulator.clear_probes</span></code> to clear probe histories. This can help reduce memory
+usage during long runs, by running for a segment of the full run time, recording the
+relevant outputs, calling <code class="docutils literal notranslate"><span class="pre">clear_probes</span></code>, and resuming the run. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/303">#303</a>)</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">padding='same'</span></code> on <code class="docutils literal notranslate"><span class="pre">nengo.Convolution</span></code> transforms. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/297">#297</a>)</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">nengo.transforms.ConvolutionTranspose</span></code>. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/300">#300</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Block</span></code> and <code class="docutils literal notranslate"><span class="pre">Compartment</span></code> now have <code class="docutils literal notranslate"><span class="pre">.discretize_info</span></code> attributes that store
+parameters used for discretizing that block and compartment. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Model</span></code> now has a <code class="docutils literal notranslate"><span class="pre">connection_decode_neurons</span></code> attribute that maps <code class="docutils literal notranslate"><span class="pre">Connection</span></code>
+objects that require decode neurons to the corresponding <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> objects
+implementing them. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">GreedyInterchip</span></code> allocator, which reduces inter-chip communication,
+speeding up networks with high traffic between chips. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">PartitionInterchip</span></code> allocator, which reduces inter-chip communication
+with better partitioning than <code class="docutils literal notranslate"><span class="pre">GreedyInterchip</span></code>. Requires the <code class="docutils literal notranslate"><span class="pre">nxmetis</span></code>
+package. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Build errors specify the associated objects, making them easier to debug. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/289">#289</a>)</p></li>
+<li><p>Deobfuscated NxSDK API calls. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/320">#320</a>)</p></li>
+<li><p>The builder now respects the <a class="reference external" href="https://www.nengo.ai/nengo/nengorc.html#configuration-options">precision.bits</a> attribute in <code class="docutils literal notranslate"><span class="pre">nengorc</span></code> files,
+allowing for reduced-precision builds to save memory. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+<li><p>The new <code class="docutils literal notranslate"><span class="pre">GreedyInterchip</span></code> allocator is now the default allocator. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NeuronOutputNoise</span></code> classes and NengoDL builders for <code class="docutils literal notranslate"><span class="pre">LoihiLIF</span></code> and
+<code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code> have been moved to NengoExtras. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/325">#325</a>)</p></li>
+<li><p>Examples have been moved to <a class="reference external" href="https://www.nengo.ai/nengo-examples/loihi">NengoExamples</a>. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/325">#325</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>Fixed several issues to ensure that memory is freed when a <code class="docutils literal notranslate"><span class="pre">Simulator</span></code>
+is deleted. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/312">#312</a>)</p></li>
+<li><p>Fixed probe filters such that multiple <code class="docutils literal notranslate"><span class="pre">Simulator.run</span></code> calls now results in
+the same probe data as a single call of equivalent length. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/271">#271</a>, <a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/303">#303</a>)</p></li>
+<li><p>Convolution with 1 x 1 kernels now works as expected. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/297">#297</a>)</p></li>
+<li><p>Fixed a bug preventing targeting Loihi even if NxSDK is installed. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/300">#300</a>)</p></li>
+<li><p>Fixed how <code class="docutils literal notranslate"><span class="pre">DecodeNeurons</span></code> handles <code class="docutils literal notranslate"><span class="pre">dt</span> <span class="pre">!=</span> <span class="pre">0.001</span></code>. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/309">#309</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="january-20-2021">
+<h2>1.0.0 (January 20, 2021)<a class="headerlink" href="#january-20-2021" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 3.1.0</em></p>
+<p><em>Compatible with NxSDK 0.9.0 - 0.9.9</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Added Legendre Memory Unit example.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/267">#267</a>)</p></li>
+<li><p>Added a <code class="docutils literal notranslate"><span class="pre">timers</span></code> attribute to <code class="docutils literal notranslate"><span class="pre">Simulator</span></code> that tracks the wall time
+taken by various parts of the model, including build time and run time.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/260">#260</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">pop_type</span></code> configuration option to the <code class="docutils literal notranslate"><span class="pre">Connection</span></code> config.
+See <a class="reference external" href="https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params">nengo_loihi.add_params</a>
+for details. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/261">#261</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">block_shape</span></code> configuration option to the <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> config,
+and added the <code class="docutils literal notranslate"><span class="pre">nengo_loihi.BlockShape</span></code> class to set that option.
+See <a class="reference external" href="https://www.nengo.ai/nengo-loihi/api.html#nengo_loihi.add_params">nengo_loihi.add_params</a>
+for details. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">Greedy</span></code> allocator, which uses all cores on one chip before
+proceeding to the next chip. <code class="docutils literal notranslate"><span class="pre">Greedy</span></code> is now the default allocator.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">n_chips</span></code> parameter to <code class="docutils literal notranslate"><span class="pre">HardwareInterface</span></code> for specifying
+the number of chips on the board.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">Model.utilization_summary</span></code> to provide a summary of how much of
+the various resources of each block are utilized.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/279">#279</a>)</p></li>
+<li><p>Added some <a class="reference external" href="https://www.nengo.ai/nengo-loihi/tips">new documentation</a> focused on
+mapping large models onto Loihi.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/279">#279</a>)</p></li>
+<li><p>Added a
+<a class="reference external" href="https://www.nengo.ai/nengo-loihi/examples/cifar10-convnet.html">new example</a>
+showing how to map larger convolutional networks to Loihi (applied to CIFAR-10
+dataset). (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/282">#282</a>)</p></li>
+<li><p>Added a
+<a class="reference external" href="https://www.nengo.ai/nengo-loihi/examples/keras-to-loihi.html">Keras example</a>
+showing how to directly convert a Keras convolutional network to run on Loihi
+using the NengoDL Keras Converter.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/281">#281</a>)</p></li>
+<li><p>Added support for NxSDK 0.9.8 and 0.9.9.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/296">#296</a>)</p></li>
+<li><p>Added support for the <code class="docutils literal notranslate"><span class="pre">nengo.RegularSpiking</span></code> neuron type, when using <code class="docutils literal notranslate"><span class="pre">LIFRate</span></code>
+or <code class="docutils literal notranslate"><span class="pre">RectifiedLinear</span></code> as the base type (these are equivalent to <code class="docutils literal notranslate"><span class="pre">LIF</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SpikingRectifiedLinear</span></code>, respectively).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/296">#296</a>)</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">nengo_loihi.dvs.DVSFileChipProcess</span></code>, for getting input from a pre-recorded
+DVS file and sending it to the Loihi board.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/306">#306</a>)</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>We improved performance when <code class="docutils literal notranslate"><span class="pre">precompute=False</span></code> through better spike packing,
+larger packets, and communicating to the host over a socket.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/260">#260</a>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">precompute</span></code> argument of <code class="docutils literal notranslate"><span class="pre">Simulator</span></code> now defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>
+and will be automatically set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if the model can be precomputed.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/260">#260</a>)</p></li>
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">add_to_container</span></code> argument to <code class="docutils literal notranslate"><span class="pre">DecodeNeurons.get_ensemble</span></code>,
+which makes it easier to add a decode neurons ensemble to a network.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/260">#260</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Convolution</span></code> transforms with <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code> now work with outputs
+up to 1024 neurons.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/261">#261</a>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">Probe</span></code> has been renamed to <code class="docutils literal notranslate"><span class="pre">LoihiProbe</span></code> to mirror the <code class="docutils literal notranslate"><span class="pre">LoihiBlock</span></code>
+and <code class="docutils literal notranslate"><span class="pre">LoihiInput</span></code> classes, which are conceptually very similar.
+It has also been moved from <code class="docutils literal notranslate"><span class="pre">nengo_loihi.block</span></code> to <code class="docutils literal notranslate"><span class="pre">nengo_loihi.probe</span></code>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>We now raise a more informative error if connecting to Loihi hardware fails.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>It is now possible to build models with larger ensembles because
+the builder can now split large Loihi blocks into smaller ones.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>Modules for discretizing and validating models have been moved to the
+<code class="docutils literal notranslate"><span class="pre">builder</span></code> directory.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>It is now possible to use multi-chip allocators with all models,
+including those that cannot be precomputed.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+<li><p>Allocators like <code class="docutils literal notranslate"><span class="pre">RoundRobin</span></code> no longer accept the <code class="docutils literal notranslate"><span class="pre">n_chips</span></code> parameter.
+Instead, the <code class="docutils literal notranslate"><span class="pre">__call__</span></code> method accepts <code class="docutils literal notranslate"><span class="pre">n_chips</span></code>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+<li><p>NengoLoihi now supports NxSDK version 0.9.5.rc1.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/272">#272</a>)</p></li>
+<li><p>NengoLoihi now supports Nengo version 3.1. Support for Nengo 3.0 has been dropped.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/296">#296</a>)</p></li>
+<li><p>Minimum NengoDL version is now 3.4.0.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/296">#296</a>)</p></li>
+</ul>
+<p><strong>Removed</strong></p>
+<ul class="simple">
+<li><p>Removed the <code class="docutils literal notranslate"><span class="pre">OneToOne</span></code> allocator, which only worked for one chip.
+The <code class="docutils literal notranslate"><span class="pre">Greedy</span></code> allocator is identical for models that fit on one chip.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>We no longer create a spike generator if we are communicating through Snips.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/260">#260</a>)</p></li>
+<li><p>Fixed an issue in which ignored axons were still having an effect in
+convolutional networks where not all input pixels are used in the output.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/261">#261</a>)</p></li>
+<li><p>Fixed an issue that prevented population spikes to be sent to the chip when
+<code class="docutils literal notranslate"><span class="pre">precompute=True</span></code>. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/261">#261</a>)</p></li>
+<li><p>Fixed a bug preventing making sparse connections to an ensemble.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/245">#245</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/246">#246</a>)</p></li>
+<li><p>We now ignore TensorFlow and NengoDL if an incompatible version is installed
+rather than exiting with an exception.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/264">#264</a>)</p></li>
+<li><p>We now shut down the connection to the board more reliably, which should
+reduce the number of cases in which a model hangs indefinitely.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/266">#266</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LoihiLIF</span></code> neurons now round <code class="docutils literal notranslate"><span class="pre">tau_rc</span></code> to mimic the discretization that occurs on
+Loihi, for more accurate simulation in Nengo (this was already done in the rate
+equation and NengoDL implementation of this neuron).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/275">#275</a>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LoihiLIF</span></code> and <code class="docutils literal notranslate"><span class="pre">LoihiSpikingRectifiedLinear</span></code> now add the appropriate NengoDL
+builders when instantiated, so they work properly if used in NengoDL without making
+a NengoLoihi simulator.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/248">#248</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/275">#275</a>)</p></li>
+<li><p>Fixed bug when probing sliced objects.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/284">#284</a>)</p></li>
+<li><p>Fixed bug when connecting to a single neuron ensemble with a single scalar
+weight. (<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/287">#287</a>)</p></li>
+<li><p>Added an error if more than 32 “populations” (e.g. convolutional filters) are used
+with <code class="docutils literal notranslate"><span class="pre">pop_type=16</span></code> axons, since this is not yet supported by NxSDK.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/286">#286</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="november-25-2019">
+<h2>0.10.0 (November 25, 2019)<a class="headerlink" href="#november-25-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 3.0.0</em></p>
+<p><em>Compatible with NxSDK 0.8.7 - 0.9.0</em></p>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Nengo Loihi now requires NxSDK version 0.8.7 and supports NxSDK version 0.9.0.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/255">#255</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="november-20-2019">
+<h2>0.9.0 (November 20, 2019)<a class="headerlink" href="#november-20-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 3.0.0</em></p>
+<p><em>Compatible with NxSDK 0.8.5</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>It is now possible to slice the <code class="docutils literal notranslate"><span class="pre">pre</span></code> neurons in a neuron-&gt;neuron
+connection.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/226">#226</a>)</p></li>
+<li><p>Connections now support <code class="docutils literal notranslate"><span class="pre">Sparse</span></code> transforms.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/240">#240</a>)</p></li>
+<li><p>A more informative error message is raised if any encoders contain NaNs.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/251">#251</a>)</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Connections from neurons with scalar transforms are now sparse internally.
+This allows much larger neuron-&gt;neuron connections with scalar transforms.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/226">#226</a>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">scipy</span></code> package is now required to run Nengo Loihi.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/240">#240</a>)</p></li>
+<li><p>Increased minimum NengoDL version to 3.0 (and this transitively increases the minimum
+TensorFlow version to 2.0).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/259">#259</a>)</p></li>
+<li><p>Nengo Loihi is now compatible with Nengo version 3.0.0.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/259">#259</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>Fixed a bug in which <code class="docutils literal notranslate"><span class="pre">scipy</span></code> was not imported properly in some situations.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/252">#252</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/258">#258</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="june-23-2019">
+<h2>0.8.0 (June 23, 2019)<a class="headerlink" href="#june-23-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 2.8.0</em></p>
+<p><em>Compatible with NxSDK 0.8.5</em></p>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Nengo Loihi now requires NxSDK version 0.8.5.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/225">#225</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="june-21-2019">
+<h2>0.7.0 (June 21, 2019)<a class="headerlink" href="#june-21-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with Nengo 2.8.0</em></p>
+<p><em>Compatible with NxSDK 0.8.0 - 0.8.1</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">RoundRobin</span></code> allocator, which allows networks to be run across
+multiple chips (multi-chip) by assigning each ensemble to a different chip
+in a round-robin format. This allocator can be selected using the
+<code class="docutils literal notranslate"><span class="pre">hardware_options</span></code> argument when creating <code class="docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/197">#197</a>)</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">Ensemble.neurons</span> <span class="pre">-&gt;</span> <span class="pre">Ensemble</span></code> connections.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/156">#156</a>)</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Switched to nengo-bones templating system for TravisCI config/scripts.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/204">#204</a>)</p></li>
+<li><p>It is no longer possible to pass <code class="docutils literal notranslate"><span class="pre">network=None</span></code> to <code class="docutils literal notranslate"><span class="pre">Simulator</span></code>.
+Previously this was possible, but unlikely to work as expected.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/202">#202</a>)</p></li>
+<li><p>Better error messages are raised when attempting to simulate networks
+in which certain objects participating in a learning rule are on-chip.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/202">#202</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/208">#208</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/209">#209</a>)</p></li>
+<li><p>Nengo Loihi now requires at least NxSDK version 0.8.0.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/218">#218</a>)</p></li>
+<li><p>The default intercept range set by <code class="docutils literal notranslate"><span class="pre">nengo_loihi.set_defaults()</span></code> is now
+(-1, 0.5), instead of (-0.5, 0.5).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/126">#126</a>)</p></li>
+<li><p>Obfuscated non-public information related to Intel’s NxSDK.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/228">#228</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>The splitting and passthrough removal procedures were significantly
+refactored, which fixed an issue in which networks could be modified
+in the splitting process.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/202">#202</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/211">#211</a>)</p></li>
+<li><p>It is now possible to make connections and probes with object slices
+(e.g., <code class="docutils literal notranslate"><span class="pre">nengo.Probe(my_ensemble[0])</span></code>).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/202">#202</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/205">#205</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/206">#206</a>)</p></li>
+<li><p>We no longer disable the Nengo decoder cache for all models.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/202">#202</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/207">#207</a>)</p></li>
+<li><p>Transforms to on-chip neurons are now applied on-chip,
+which avoids scaling issues and large off-chip transforms.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/126">#126</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="february-22-2019">
+<h2>0.6.0 (February 22, 2019)<a class="headerlink" href="#february-22-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with NxSDK 0.7.0 - 0.8.0</em></p>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>New Nengo transforms are supported, including <code class="docutils literal notranslate"><span class="pre">nengo.Convolution</span></code>. Many of
+the classes previously in <code class="docutils literal notranslate"><span class="pre">conv.py</span></code> have been moved to Nengo as part of
+this transition. The MNIST convnet example demonstrates the new syntax.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/142">#142</a>)</p></li>
+<li><p>Emulator now fails for any cx_base &lt; 0, except -1 which indicates
+an unused axon.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/185">#185</a>)</p></li>
+<li><p>Noise now works correctly with small exponents on both the chip and
+emulator. Previously, the emulator did not allow very small exponents, and
+such exponents produced noise with the wrong magnitude on the chip.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/185">#185</a>)</p></li>
+<li><p>Models trained using NengoDL use tuning curves more similar to those
+of neuron on the chip, improving the accuracy of these model.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/140">#140</a>)</p></li>
+</ul>
+<p><strong>Removed</strong></p>
+<ul class="simple">
+<li><p>Removed the <code class="docutils literal notranslate"><span class="pre">NIF</span></code> and <code class="docutils literal notranslate"><span class="pre">NIFRate</span></code> neuron types. These types were only used
+for encoding node values in spikes to send to the chip, which can be done
+just as well with <code class="docutils literal notranslate"><span class="pre">nengo.SpikingRectifiedLinear</span></code> neurons.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/185">#185</a>)</p></li>
+<li><p>Removed the unused/untested <code class="docutils literal notranslate"><span class="pre">Synapse.set_diagonal_weights</span></code>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/185">#185</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>Objects in nengo-loihi will have the same random seeds as in
+nengo core (and therefore any randomly generated parameters, such as
+ensemble encoders, will be generated in the same way).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/70">#70</a>)</p></li>
+<li><p>Seeded networks that have learning are now deterministic on both
+emulator and hardware.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/140">#140</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="february-12-2019">
+<h2>0.5.0 (February 12, 2019)<a class="headerlink" href="#february-12-2019" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with NxSDK 0.7.0 - 0.8.0</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Allow <code class="docutils literal notranslate"><span class="pre">LIF.min_voltage</span></code> to have effect. The exact minimum voltage on the
+chip is highly affected by discritization (since the chip only allows
+minimum voltages in powers of two), but this will at least provide something
+in the ballpark.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/169">#169</a>)</p></li>
+<li><p>Population spikes can now be used to send information more efficiently
+to the chip. Population spikes are necessary for larger models
+like those using CIFAR-10 data.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/161">#161</a>)</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>PES learning in Nengo Loihi more closely matches learning in core Nengo.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/139">#139</a>)</p></li>
+<li><p>Learning in the emulator more closely matches learning on hardware.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/139">#139</a>)</p></li>
+<li><p>The neurons used to transmit decoded values on-chip can be configured.
+By default, we use ten pairs of heterogeneous neurons per dimension.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/132">#132</a>)</p></li>
+<li><p>Internal classes and functions have been reorganized and refactored.
+See the pull request for more details.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/159">#159</a>)</p></li>
+<li><p>Simulator now gives a warning if the user requests a progress bar, instead
+of an error. This avoids potential problems in <code class="docutils literal notranslate"><span class="pre">nengo_gui</span></code> and elsewhere.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/187">#187</a>)</p></li>
+<li><p>Nengo Loihi now supports NxSDK version 0.8.0.
+Versions 0.7.0 and 0.7.5 are still supported.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/188">#188</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>We integrate current (U) and voltage (V) more accurately now by accounting
+for rounding during the decay process. This integral is used when
+discretizing weights and firing thresholds. This change significantly
+improves accuracy for many networks, but in particular dynamical systems
+like integrators.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#124</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/114">#114</a>)</p></li>
+<li><p>Ensure things in the build and execution happen in a consistent order from
+one build/run to the next (by using <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code>, which is deterministic,
+instead of <code class="docutils literal notranslate"><span class="pre">dict</span></code>, which is not). This makes debugging easier and seeding
+consistent.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/151">#151</a>)</p></li>
+<li><p>Probes that use snips on the chip (when running with <code class="docutils literal notranslate"><span class="pre">precompute=False</span></code>)
+now deal with negative values correctly.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#169</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/141">#141</a>)</p></li>
+<li><p>Filtering for probes on the chip
+is guaranteed to use floating-point now (so that the filtered output
+is correct, even if the underlying values are integers).
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/124">#169</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/141">#141</a>)</p></li>
+<li><p>Neuron (spike) probes can now be filtered with <code class="docutils literal notranslate"><span class="pre">synapse</span></code> objects.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/182">#182</a>,
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/180">#183</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="december-6-2018">
+<h2>0.4.0 (December 6, 2018)<a class="headerlink" href="#december-6-2018" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with NxSDK 0.7.0</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Added version tracking to documentation.</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>An error is now raised if
+a learning rule is applied to a non-decoded connection.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/103">#103</a>)</p></li>
+<li><p>Switched documentation to new
+<a class="reference external" href="https://github.com/nengo/nengo-sphinx-theme">nengo-sphinx-theme</a>.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/143">#143</a>)</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>Snips directory included when pip installing nengo-loihi.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/pull/134">#134</a>)</p></li>
+<li><p>Closing <code class="docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code> will now close all the inner
+sub-simulators as well.
+(<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues/102">#102</a>)</p></li>
+</ul>
+</div>
+<div class="section" id="september-28-2018">
+<h2>0.3.0 (September 28, 2018)<a class="headerlink" href="#september-28-2018" title="Permalink to this headline">¶</a></h2>
+<p><em>Compatible with NxSDK 0.7.0</em></p>
+<p><strong>Added</strong></p>
+<ul class="simple">
+<li><p>Models can now use the <code class="docutils literal notranslate"><span class="pre">nengo.SpikingRectifiedLinear</span></code> neuron model
+on both the emulator and hardware backends.</p></li>
+<li><p>Models can now run with different <code class="docutils literal notranslate"><span class="pre">dt</span></code> values
+(the default is 0.001, or 1 millisecond).</p></li>
+<li><p>Added support for Distributions on Connection transforms.</p></li>
+</ul>
+<p><strong>Changed</strong></p>
+<ul class="simple">
+<li><p>Now compatible with NxSDK 0.7. We are currently not supporting
+older versions of NxSDK, but may in the future.</p></li>
+<li><p>Models will not be precomputed by default. To precompute models,
+you must explicitly pass <code class="docutils literal notranslate"><span class="pre">precompute=True</span></code> to <code class="docutils literal notranslate"><span class="pre">nengo_loihi.Simulator</span></code>.</p></li>
+<li><p>Models that do not run any objects on Loihi will raise an error.</p></li>
+<li><p>Ensemble intercept values are capped to 0.95 to fix issues with
+the current discretization method.</p></li>
+</ul>
+<p><strong>Fixed</strong></p>
+<ul class="simple">
+<li><p>Tuning curves now take into account the Loihi discretization,
+improving accuracy on most models.</p></li>
+<li><p>PES learning can now be done with multidimensional error signals.</p></li>
+<li><p>Manually reset spike probes when Simulator is initialized.</p></li>
+<li><p>Several fixes to filtering and connecting
+between objects on and off chip.</p></li>
+</ul>
+</div>
+<div class="section" id="august-27-2018">
+<h2>0.2.0 (August 27, 2018)<a class="headerlink" href="#august-27-2018" title="Permalink to this headline">¶</a></h2>
+<p>First public alpha release of Nengo Loihi!
+If you have any questions,
+please <a class="reference external" href="https://forum.nengo.ai/c/backends/loihi">ask on our forum</a>
+and if you run into any issues
+<a class="reference external" href="https://github.com/nengo/nengo-loihi/issues">let us know</a>.</p>
+</div>
+<div class="section" id="july-4-2018">
+<h2>0.1.0 (July 4, 2018)<a class="headerlink" href="#july-4-2018" title="Permalink to this headline">¶</a></h2>
+<p>Pre-alpha release of Nengo Loihi for testing at the
+2018 Telluride neuromorphic engineering conference.
+Thanks to all participants who tried out
+this early version of Nengo Loihi
+and provided feedback.</p>
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom">
+  <p class="small text-center mb-0">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        src="https://appliedbrainresearch.com/img/logo-blue-notext.svg"
+        height="48"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>
