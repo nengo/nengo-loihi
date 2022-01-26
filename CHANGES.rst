@@ -19,6 +19,15 @@ Release history
    - Removed
    - Fixed
 
+1.1.1 (unreleased)
+==================
+
+*Compatible with Nengo 3.1.0 - 3.2.0*
+
+*Compatible with NxSDK 0.9.0 - 1.0.0*
+
+
+
 1.1.0 (January 25, 2022)
 ========================
 
@@ -55,6 +64,7 @@ Release history
 - ``NeuronOutputNoise`` classes and NengoDL builders for ``LoihiLIF`` and
   ``LoihiSpikingRectifiedLinear`` have been moved to NengoExtras. (`#325`_)
 - Examples have been moved to `NengoExamples`_. (`#325`_)
+- NengoLoihi is now licensed with the Apache 2.0 license. (`#325`_)
 
 **Fixed**
 
