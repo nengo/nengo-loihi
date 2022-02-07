@@ -4,9 +4,9 @@ repo_name: nengo/nengo-loihi
 
 copyright_start: 2018
 description: Run Nengo models on the Loihi chip
+license: apache
 
-license_rst:
-  type: apache
+license_rst: {}
 
 contributing_rst: {}
 
@@ -32,7 +32,6 @@ setup_py:
     nengo_loihi:
       - nengo_loihi/snips/*
   include_package_data: True
-  license: Apache 2.0 license
   install_req:
     - jinja2
     - nengo>=3.1.0
