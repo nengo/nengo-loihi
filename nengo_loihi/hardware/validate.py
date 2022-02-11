@@ -36,7 +36,7 @@ def validate_core(core):
         idxbits = cfg.real_idx_bits
         for i in synapse.indices:
             assert np.all(i >= 0)
-            assert np.all(i < 2 ** idxbits)
+            assert np.all(i < 2**idxbits)
 
 
 def validate_compartment_cfg(cfg):

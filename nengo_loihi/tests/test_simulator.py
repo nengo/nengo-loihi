@@ -161,7 +161,7 @@ def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
         b = nengo.Ensemble(50, 1)
         nengo.Connection(u, a)
         nengo.Connection(
-            a, b, function=lambda x: x ** 2, solver=nengo.solvers.LstsqL2(weights=True)
+            a, b, function=lambda x: x**2, solver=nengo.solvers.LstsqL2(weights=True)
         )
 
         ap = nengo.Probe(a, synapse=nengo.synapses.Alpha(0.02))
@@ -608,7 +608,7 @@ def test_simulator_noise(exp, request, plt, seed, allclose):
 
     t = np.arange(1, n_steps + 1)
     bias = offset2 * 2.0 ** (exp2 - 1)
-    std = 2.0 ** exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
+    std = 2.0**exp2 / np.sqrt(3)  # divide by sqrt(3) for std of uniform -1..1
     rmean = t * bias
     rstd = np.sqrt(t) * std
     rerr = rstd / np.sqrt(n_compartments)

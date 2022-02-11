@@ -158,9 +158,9 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
 
     # --- seed randomness
     def seed_trace(trace_random, rng):
-        trace_random.random0 = rng.randint(2 ** 32)
-        trace_random.random1 = rng.randint(2 ** 32)
-        trace_random.random2 = rng.randint(2 ** 32)
+        trace_random.random0 = rng.randint(2**32)
+        trace_random.random1 = rng.randint(2**32)
+        trace_random.random2 = rng.randint(2**32)
 
     rng = np.random.RandomState(seed)
     # neuron noise
@@ -174,7 +174,7 @@ def build_core(nxsdk_core, core, seed=None):  # noqa: C901
     # soma activity trace rounding
     seed_trace(nxsdk_core.somaRandom, rng)
     # synaptic rounding
-    nxsdk_core.synapseRepackRandom.word = rng.randint(2 ** 32)
+    nxsdk_core.synapseRepackRandom.word = rng.randint(2**32)
 
     # --- learning
     first_learning_index = None
@@ -339,7 +339,7 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
     synapse_map = {}  # map weight_idx to (ptr, pop_size, len)
     total_synapse_ptr = int(core.synapse_entries[synapse][0])
     for axon_idx, axon_id in enumerate(axon_ids):
-        assert axon_id is None or axon_id <= 2 ** axon_bits
+        assert axon_id is None or axon_id <= 2**axon_bits
 
         weight_idx = synapse.axon_weight_idx(axon_idx)
         base = synapse.axon_compartment_base(axon_idx)
@@ -369,7 +369,7 @@ def build_synapse(nxsdk_core, core, block, synapse, compartment_idxs):  # noqa C
                     total_synapse_ptr += 1
 
         synapse_ptr, n_atoms, n_compartments = synapse_map[weight_idx]
-        assert n_atoms <= 2 ** atom_bits
+        assert n_atoms <= 2**atom_bits
 
         if axon_id is None:  # pragma: no cover
             # This is a dummy axon with no base or no weights, so skip it

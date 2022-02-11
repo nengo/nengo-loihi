@@ -68,7 +68,7 @@ def discretize_tau_rc(tau_rc, dt):
     lib = tf.math if HAS_TF and isinstance(tau_rc, tf.Tensor) else np
 
     decay_rc = -(lib.expm1(-dt / tau_rc))
-    decay_rc = lib.round(decay_rc * (2 ** 12 - 1)) / (2 ** 12 - 1)
+    decay_rc = lib.round(decay_rc * (2**12 - 1)) / (2**12 - 1)
     return -dt / lib.log1p(-decay_rc)
 
 

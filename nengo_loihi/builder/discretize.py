@@ -7,13 +7,13 @@ from nengo.utils.numpy import is_iterable
 
 from nengo_loihi.block import SynapseConfig
 
-VTH_MAN_MAX = 2 ** 17 - 1
+VTH_MAN_MAX = 2**17 - 1
 VTH_EXP = 6
-VTH_MAX = VTH_MAN_MAX * 2 ** VTH_EXP
+VTH_MAX = VTH_MAN_MAX * 2**VTH_EXP
 
-BIAS_MAN_MAX = 2 ** 12 - 1
-BIAS_EXP_MAX = 2 ** 3 - 1
-BIAS_MAX = BIAS_MAN_MAX * 2 ** BIAS_EXP_MAX
+BIAS_MAN_MAX = 2**12 - 1
+BIAS_EXP_MAX = 2**3 - 1
+BIAS_MAX = BIAS_MAN_MAX * 2**BIAS_EXP_MAX
 
 # number of bits for synapse accumulator
 Q_BITS = 21
@@ -94,7 +94,7 @@ def overflow_signed(x, bits=7, out=None):
 
 def vth_to_manexp(vth):
     exp = VTH_EXP * np.ones(vth.shape, dtype=np.int32)
-    man = np.round(vth / 2 ** exp).astype(np.int32)
+    man = np.round(vth / 2**exp).astype(np.int32)
     assert (man > 0).all()
     assert (man <= VTH_MAN_MAX).all()
     return man, exp
@@ -103,7 +103,7 @@ def vth_to_manexp(vth):
 def bias_to_manexp(bias):
     r = np.maximum(np.abs(bias) / BIAS_MAN_MAX, 1)
     exp = np.ceil(np.log2(r)).astype(np.int32)
-    man = np.round(bias / 2 ** exp).astype(np.int32)
+    man = np.round(bias / 2**exp).astype(np.int32)
     assert (exp >= 0).all()
     assert (exp <= BIAS_EXP_MAX).all()
     assert (np.abs(man) <= BIAS_MAN_MAX).all()
@@ -128,12 +128,12 @@ def decay_int(x, decay, bits=None, offset=0, out=None):
         out = np.zeros_like(x)
     if bits is None:
         bits = 12
-    r = (2 ** bits - offset - np.asarray(decay)).astype(np.int64)
+    r = (2**bits - offset - np.asarray(decay)).astype(np.int64)
     np.right_shift(np.abs(x) * r, bits, out=out)
     return np.sign(x) * out
 
 
-def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
+def decay_magnitude(decay, x0=2**21, bits=12, offset=0):
     """Estimate the sum of the series of rounded integer decays of ``x0``.
 
     This can be used to estimate the total input current or voltage (summed
@@ -160,7 +160,7 @@ def decay_magnitude(decay, x0=2 ** 21, bits=12, offset=0):
     # case and this value is better (see `test_decay_magnitude`).
     q = 0.494
 
-    r = (2 ** bits - offset - np.asarray(decay)) / 2 ** bits  # decay ratio
+    r = (2**bits - offset - np.asarray(decay)) / 2**bits  # decay ratio
     n = -(np.log1p(x0 * (1 - r) / q)) / np.log(r)  # solve y_n = 0 for n
 
     # principal_sum = (1./x0) sum_i^n x0 * r^i
@@ -266,7 +266,7 @@ def discretize_compartment(comp, w_max):
 
     # --- discretize decay_u and decay_v
     # subtract 1 from decay_u here because it gets added back by the chip
-    MAX_DECAY = 2 ** 12 - 1
+    MAX_DECAY = 2**12 - 1
     decay_u = comp.decay_u * MAX_DECAY - 1
     array_to_int(comp.decay_u, np.clip(decay_u, 0, MAX_DECAY))
     array_to_int(comp.decay_v, comp.decay_v * MAX_DECAY)
@@ -329,7 +329,7 @@ def discretize_compartment(comp, w_max):
     else:
         # reduce vth_max in this case to avoid overflow since we're setting
         # all vth to vth_max (esp. in learning with zeroed initial weights)
-        vth_max = min(vth_max, 2 ** Q_BITS - 1)
+        vth_max = min(vth_max, 2**Q_BITS - 1)
         v_scale = np.array([vth_max / (comp.vth.max() + 1)])
         vth = np.round(comp.vth * v_scale)
         b_scale = v_scale * v_infactor
@@ -337,17 +337,17 @@ def discretize_compartment(comp, w_max):
         w_scale = v_scale * v_infactor * u_infactor / SynapseConfig.get_scale(w_exp)
 
     vth_man, vth_exp = vth_to_manexp(vth)
-    array_to_int(comp.vth, vth_man * 2 ** vth_exp)
+    array_to_int(comp.vth, vth_man * 2**vth_exp)
 
     bias_man, bias_exp = bias_to_manexp(bias)
-    array_to_int(comp.bias, bias_man * 2 ** bias_exp)
+    array_to_int(comp.bias, bias_man * 2**bias_exp)
 
     assert (v_scale[0] == v_scale).all()
     v_scale = v_scale[0]
 
     # --- noise
     enable_noise = np.any(comp.enable_noise)
-    noise_exp = np.round(np.log2(10.0 ** comp.noise_exp * v_scale))
+    noise_exp = np.round(np.log2(10.0**comp.noise_exp * v_scale))
     if enable_noise and noise_exp < 1:
         warnings.warn("Noise amplitude falls below lower limit")
         enable_noise = False
@@ -359,9 +359,9 @@ def discretize_compartment(comp, w_max):
     # --- vmin and vmax
     vmin = v_scale * comp.vmin
     vmax = v_scale * comp.vmax
-    vmine = np.clip(np.round(np.log2(-vmin + 1)), 0, 2 ** 5 - 1)
-    comp.vmin = -(2 ** vmine) + 1
-    vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2 ** 3 - 1)
+    vmine = np.clip(np.round(np.log2(-vmin + 1)), 0, 2**5 - 1)
+    comp.vmin = -(2**vmine) + 1
+    vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2**3 - 1)
     comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
     comp.discretize_info = dict(
@@ -404,7 +404,7 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
     synapse.format(weight_exp=w_exp2)
     for w, idxs in zip(synapse.weights, synapse.indices):
         ws = w_scale[idxs] if is_iterable(w_scale) else w_scale
-        array_to_int(w, discretize_weights(synapse.synapse_cfg, w * ws * 2 ** dw_exp))
+        array_to_int(w, discretize_weights(synapse.synapse_cfg, w * ws * 2**dw_exp))
 
     # discretize learning
     if synapse.learning:
@@ -416,7 +416,7 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
 
         # incorporate weight scale and difference in weight exponents
         # to learning rate, since these affect speed at which we learn
-        ws = w_scale_i * 2 ** dw_exp
+        ws = w_scale_i * 2**dw_exp
         synapse.learning_rate *= ws
 
         # Loihi down-scales learning factors based on the number of
@@ -425,14 +425,14 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
 
         # TODO: Currently, Loihi learning rate fixed at 2**-7.
         # We should explore adjusting it for better performance.
-        lscale = 2 ** -7 / synapse.learning_rate
+        lscale = 2**-7 / synapse.learning_rate
         synapse.learning_rate *= lscale
         synapse.tracing_mag /= lscale
 
         # discretize learning rate into mantissa and exponent
         lr_exp = int(np.floor(np.log2(synapse.learning_rate)))
         lr_int = int(np.round(synapse.learning_rate * 2 ** (-lr_exp)))
-        synapse.learning_rate = lr_int * 2 ** lr_exp
+        synapse.learning_rate = lr_int * 2**lr_exp
         synapse._lr_int = lr_int
         synapse._lr_exp = lr_exp
         assert lr_exp >= -7
@@ -473,7 +473,7 @@ def discretize_weights(
     s = synapse_cfg.shift_bits
     m = 2 ** (8 - s) - 1
 
-    w = np.round(w / 2.0 ** s).clip(-m, m).astype(dtype)
+    w = np.round(w / 2.0**s).clip(-m, m).astype(dtype)
     s2 = s + synapse_cfg.weight_exp
 
     if lossy_shift:
@@ -482,7 +482,7 @@ def discretize_weights(
 
             # Round before `s2` right shift. Just shifting would floor
             # everything resulting in weights biased towards being smaller.
-            w = (np.round(w * 2.0 ** s2) / 2 ** s2).clip(-m, m).astype(dtype)
+            w = (np.round(w * 2.0**s2) / 2**s2).clip(-m, m).astype(dtype)
 
         shift(w, s2, out=w)
         np.left_shift(w, 6, out=w)

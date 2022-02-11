@@ -77,7 +77,7 @@ def test_uv_overflow(n_axons, plt, allclose, monkeypatch):
     discretize_model(model)
 
     # must set these after `discretize` to specify discretized values
-    block.compartment.vmin = -(2 ** 22) + 1
+    block.compartment.vmin = -(2**22) + 1
     block.compartment.vth[:] = VTH_MAX
 
     assert EmulatorInterface.strict  # Tests should be run in strict mode

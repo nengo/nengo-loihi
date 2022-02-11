@@ -153,7 +153,7 @@ class Compartment:
     """
 
     # threshold at which U/V scaling is allowed
-    DECAY_SCALE_TH = 0.5 / 2 ** 12  # half of decay scaling unit
+    DECAY_SCALE_TH = 0.5 / 2**12  # half of decay scaling unit
 
     def __init__(self, n_compartments, label=None):
         self.n_compartments = n_compartments
@@ -765,7 +765,7 @@ class Synapse:
 
         self.train_epoch = 2
         self.learn_epoch_k = 1
-        self.learn_epoch = self.train_epoch * 2 ** self.learn_epoch_k
+        self.learn_epoch = self.train_epoch * 2**self.learn_epoch_k
 
         self.learning_rate = learning_rate * self.learn_epoch
         self.learning_wgt_exp = wgt_exp

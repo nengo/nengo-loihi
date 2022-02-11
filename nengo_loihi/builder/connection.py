@@ -639,7 +639,7 @@ def build_full_chip_connection(model, conn):  # noqa: C901
                 # is independent of the pre tau. `dt` factor accounts for
                 # Nengo's `dt` spike scaling. Where is the second `dt` from?
                 # Maybe the fact that post decode neurons have `vth = 1/dt`?
-                tracing_mag = -np.expm1(-1.0 / tracing_tau) / model.dt ** 2
+                tracing_mag = -np.expm1(-1.0 / tracing_tau) / model.dt**2
 
                 # learning weight exponent controls the maximum weight
                 # magnitude/weight resolution

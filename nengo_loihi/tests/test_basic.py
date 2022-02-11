@@ -88,7 +88,7 @@ def test_ens_ens_slice(allclose, plt, seed, Simulator, weights):
 @pytest.mark.parametrize("weights", [True, False])
 def test_node_ens_ens(allclose, plt, seed, Simulator, dims, weights):
     runtime = 1.0
-    function = lambda x: x ** 2
+    function = lambda x: x**2
 
     with nengo.Network(seed=seed) as model:
         # fix the seed of the input process to compare fairly between parametrizations

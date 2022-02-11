@@ -37,7 +37,7 @@ class EmulatorInterface:
         self.closed = True
 
         if seed is None:
-            seed = np.random.randint(2 ** 31 - 1)
+            seed = np.random.randint(2**31 - 1)
         self.seed = seed
         logger.debug("EmulatorInterface seed: %d", seed)
         self.rng = np.random.RandomState(self.seed)
@@ -363,7 +363,7 @@ class NoiseState(IterableState):
                 return rng.randint(-127, 128, size=n, dtype=np.int32)
 
         elif self.dtype == np.float32:
-            self.mult = np.where(self.enabled, 10.0 ** self.exp, 0)
+            self.mult = np.where(self.enabled, 10.0**self.exp, 0)
 
             def uniform(rng, n=self.n_compartments):
                 return rng.uniform(-1, 1, size=n).astype(np.float32)

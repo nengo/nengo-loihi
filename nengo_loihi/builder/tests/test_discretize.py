@@ -28,7 +28,7 @@ def test_overflow_signed(b, rng):
     # x = np.arange(-2 ** (b + 2), 2 ** (b + 2), dtype=np.int32)
 
     # compute check values
-    b2 = 2 ** b
+    b2 = 2**b
     z = x % b2
     zmask = np.right_shift(x, b) % 2  # sign bit, the b-th bit
 
@@ -46,7 +46,7 @@ def test_overflow_signed(b, rng):
 @pytest.mark.parametrize("offset", (0, 1))
 def test_decay_magnitude(offset, plt):
     bits = 12
-    decays = np.arange(1, 2 ** bits, 7)
+    decays = np.arange(1, 2**bits, 7)
     ref = []
     emp = []
     est = []
@@ -67,14 +67,14 @@ def test_decay_magnitude(offset, plt):
 
             return y_sum / x0
 
-        x0 = np.arange(2 ** 21 - 1000, 2 ** 21, step=41, dtype=np.int32)
+        x0 = np.arange(2**21 - 1000, 2**21, step=41, dtype=np.int32)
 
         m = empirical_decay_magnitude(decay * np.ones_like(x0), x0)
         m0 = m.mean()
         emp.append(m0)
 
         # reference (naive) method, not accounting for truncation loss
-        r = (2 ** bits - offset - decay) / 2 ** bits
+        r = (2**bits - offset - decay) / 2**bits
         Sx1 = (1 - r / x0) / (1 - r)  # sum_i^n x_i/x_0, where x_n = r**n*x_0 = 1
         ref.append(Sx1.mean())
 
@@ -116,7 +116,7 @@ def test_lossy_shift(lossy_shift, rng):
 
     w2 = discretize_weights(fmt, w, lossy_shift=lossy_shift)
 
-    clipped = np.round(w / 4).clip(-(2 ** wgt_bits), 2 ** wgt_bits).astype(np.int32)
+    clipped = np.round(w / 4).clip(-(2**wgt_bits), 2**wgt_bits).astype(np.int32)
 
     assert np.allclose(w2, np.left_shift(clipped, 8))
 

@@ -97,7 +97,7 @@ def test_full_array(n_ensembles, ens_dimensions):
 
     split = PassthroughSplit(net, HostChipSplit(net))
 
-    assert len(split.to_add) == n_ensembles ** 2
+    assert len(split.to_add) == n_ensembles**2
 
     pairs = set()
     for conn in split.to_add:
@@ -107,7 +107,7 @@ def test_full_array(n_ensembles, ens_dimensions):
             conn.transform.init, np.ones((ens_dimensions, ens_dimensions))
         )
         pairs.add((conn.pre, conn.post))
-    assert len(pairs) == n_ensembles ** 2
+    assert len(pairs) == n_ensembles**2
 
 
 def test_synapse_merging(Simulator, seed):

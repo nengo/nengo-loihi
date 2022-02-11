@@ -12,7 +12,7 @@ import nengo_loihi
 
 
 def test_split_ensembles(Simulator, seed, rng, plt, allclose):
-    b_fn = lambda x: x ** 2
+    b_fn = lambda x: x**2
 
     with nengo.Network(seed=seed) as net:
         nengo_loihi.add_params(net)

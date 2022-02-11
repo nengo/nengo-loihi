@@ -1344,14 +1344,14 @@ def test_conv_non_lowpass(Simulator):
     k = 10
     d = 5
     with nengo.Network() as model:
-        a = nengo.Ensemble(n_neurons=k ** 2, dimensions=k)
+        a = nengo.Ensemble(n_neurons=k**2, dimensions=k)
 
         x = nengo.Ensemble(n_neurons=d, dimensions=d, gain=np.ones(d), bias=np.ones(d))
 
         conv = nengo.Convolution(
             n_filters=d, input_shape=(k, k, 1), strides=(1, 1), kernel_size=(k, k)
         )
-        assert conv.size_in == k ** 2
+        assert conv.size_in == k**2
         assert conv.size_out == d
 
         nengo.Connection(
