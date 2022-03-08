@@ -278,7 +278,7 @@ class Model:
         .. testoutput::
             :options: +NORMALIZE_WHITESPACE
 
-            LoihiBlock(<Ensemble "MyEnsemble">): 97.7% compartments, 0.0% in-axons,
+            LoihiBlock(<Ensemble 'MyEnsemble'>): 97.7% compartments, 0.0% in-axons,
               0.0% out-axons, 0.0% synapses
             Average (1 blocks): 97.7% compartments, 0.0% in-axons, 0.0% out-axons,
               0.0% synapses
