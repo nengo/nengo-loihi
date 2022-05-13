@@ -155,7 +155,7 @@ def pytest_runtest_call(item):
                 f"PARTITION={partition} which will likely hang"
             )
         if partition is None:
-            os.environ["PARTITION"] = "pohoiki"  # TODO: nahuku32,pohoiki when it works
+            os.environ["PARTITION"] = "nahuku32,pohoiki"
             set_partition = True
 
         lmtoptions = os.getenv("LMTOPTIONS")
