@@ -5,7 +5,6 @@ import nengo
 import numpy as np
 import pytest
 import scipy.signal
-from nengo._vendor.npconv2d.conv2d import conv2d as np_conv2d
 from nengo.dists import Choice, Uniform
 from nengo.exceptions import BuildError, ValidationError
 from nengo_extras.matplotlib import imshow, tile
@@ -17,6 +16,7 @@ from nengo_loihi import conv
 from nengo_loihi.block import Axon, LoihiBlock, Synapse
 from nengo_loihi.builder import Model
 from nengo_loihi.builder.discretize import discretize_model
+from nengo_loihi.compat import np_conv2d
 from nengo_loihi.emulator import EmulatorInterface
 from nengo_loihi.hardware import HardwareInterface
 from nengo_loihi.hardware.allocators import RoundRobin
@@ -78,7 +78,7 @@ def test_conv2d_loihi_weights(
             init=kernel,
         )
         out_space = transform.output_shape.spatial_shape
-        ref_out = nengo._vendor.npconv2d.conv2d.conv2d_gradx(
+        ref_out = np_conv2d.conv2d_gradx(
             kernel, inp[None, ...], xsize=out_space, pad=padding.upper(), stride=strides
         )[0]
     else:
@@ -91,7 +91,7 @@ def test_conv2d_loihi_weights(
             channels_last=channels_last,
             init=kernel,
         )
-        ref_out = np_conv2d(
+        ref_out = np_conv2d.conv2d(
             inp[None, ...], kernel, pad=padding.upper(), stride=strides
         )[0]
 
@@ -962,8 +962,6 @@ def test_conv_split(Simulator, rng, plt, allclose):
 
 @pytest.mark.parametrize("on_chip", [True, False])
 def test_conv_preslice(on_chip, Simulator, plt):
-    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
-
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
@@ -988,7 +986,7 @@ def test_conv_preslice(on_chip, Simulator, plt):
     layer0_neuron = loihi_neuron if on_chip else neuron_type
 
     y_ref = layer0_neuron.rates(image.ravel(), input_gain, 0)
-    y_ref = conv2d.conv2d(
+    y_ref = np_conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = loihi_neuron.rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
@@ -1041,8 +1039,6 @@ def test_conv_preslice(on_chip, Simulator, plt):
 
 def test_conv_onchip(Simulator, plt):
     """Tests a fully on-chip conv connection."""
-    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
-
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
@@ -1064,7 +1060,7 @@ def test_conv_onchip(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d.conv2d(
+    y_ref = np_conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))
@@ -1111,8 +1107,6 @@ def test_conv_onchip(Simulator, plt):
 
 def test_conv_overlap_input(Simulator, plt):
     """Tests a fully on-chip conv connection."""
-    conv2d = pytest.importorskip("nengo._vendor.npconv2d.conv2d")
-
     kernel = np.array([[-1, 2, -1], [-1, 2, -1], [-1, 2, -1]], dtype=float)
     kernel /= kernel.max()
 
@@ -1134,7 +1128,7 @@ def test_conv_overlap_input(Simulator, plt):
     neuron_type = nengo.SpikingRectifiedLinear()
 
     y_ref = LoihiSpikingRectifiedLinear().rates(image.ravel(), input_scale, 0)
-    y_ref = conv2d.conv2d(
+    y_ref = np_conv2d.conv2d(
         y_ref.reshape((1, 5, 5, 1)), kernel.reshape((3, 3, 1, 1)), pad="VALID"
     )
     y_ref = LoihiSpikingRectifiedLinear().rates(y_ref.ravel(), 1.0, 0.0).reshape((3, 3))

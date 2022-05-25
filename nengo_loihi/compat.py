@@ -26,6 +26,12 @@ except Exception as err:  # pragma: no cover
     logger.debug("Error importing NengoDL:\n%s", err)
 
 
+if nengo.version.version_info <= (3, 2, 0):
+    from nengo._vendor.npconv2d import conv2d as np_conv2d
+else:
+    from nengo.builder import transforms as np_conv2d
+
+
 def is_transform_type(transform, types):
     types = (types,) if isinstance(types, str) else types
     types = tuple(
