@@ -194,6 +194,7 @@ class OnOffDecodeNeurons(DecodeNeurons):
             gain=self.gain.repeat(dim),
             bias=self.bias.repeat(dim),
             add_to_container=add_to_container,
+            label="OnOffDecodeNeurons",
         )
 
     def get_post_encoders(self, encoders):

@@ -95,6 +95,9 @@ def conn_probe(model, nengo_probe):
     # Build the connection (sets probe targets, adds probe)
     model.build(conn)
 
+    # add label to target node (for debugging)
+    target.label = f"Probe"#{conn.pre_obj} -> {str(nengo_probe)}"
+
 
 def signal_probe(model, key, probe):
     kwargs = model.chip2host_params.get(probe, None)
