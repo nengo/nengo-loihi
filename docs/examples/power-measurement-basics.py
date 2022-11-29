@@ -122,7 +122,7 @@ seed = 0
 np.random.seed(seed)
 
 dt = 0.001
-sim_t = 5
+sim_t = 25
 steps = int(sim_t / dt)
 
 num_ensemble = 50
@@ -159,8 +159,8 @@ if 0:
 
 sim_power = compute_power_metrics(energy_probe)
 dyn_power = sim_power["power"] - idle_power["power"]
-dyn_energy = dyn_power * (energy_probe.totalExecutionTime * 1e-6)
-print(f"Idle power ({idle_power['time']} s): {idle_power['power']}")
-print(f"Sim power ({sim_power['time']} s): {sim_power['power']}")
-print(f"Dynamic Power: {dyn_power}")
-print(f"Dynamic Energy: {dyn_energy}")
+dyn_energy = dyn_power * sim_power["time"]
+print(f"Idle power ({idle_power['time']:0.3f} s): {idle_power['power']:0.3f} W")
+print(f"Sim power ({sim_power['time']:0.3f} s): {sim_power['power']:0.3f} W")
+print(f"Dynamic Power: {dyn_power * 1e3:0.2f} mW")
+print(f"Dynamic Energy: {dyn_energy * 1e3:0.2f} mJ")
