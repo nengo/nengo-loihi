@@ -62,9 +62,10 @@ def measure_idle_power_n2n(run_time=10.0, multichip=False):
         args["hardware_options"]["allocator"] = RoundRobin()
         args["hardware_options"]["n_chips"] = 2
 
-    with nengo_loihi.Simulator(net, precompute=True, dt=dt, seed=0, **args) as sim:
-        probe = add_energy_probe(sim, steps)
+    sim = nengo_loihi.Simulator(net, precompute=True, dt=dt, seed=0, **args)
+    probe = add_energy_probe(sim, steps)
 
+    with sim:
         sim.run_steps(steps)
 
     return compute_power_metrics(probe)
@@ -104,8 +105,7 @@ with sim:
     data = {}
 
     sim_power = compute_power_metrics(energy_probe)
-    dyn_power = sim_power["power"]
-    # dyn_power = sim_power["power"] - idle_power["power"]
+    dyn_power = sim_power["power"] - idle_power["power"]
     dyn_energy = dyn_power * (energy_probe.totalExecutionTime * 1e-6)
     n_inferences = n_steps
     energy_inference = dyn_energy / n_inferences
@@ -114,7 +114,7 @@ with sim:
     data["N_inferences"] = n_inferences
     data["N_inferences/s"] = n_inferences / (energy_probe.totalExecutionTime * 1e-6)
 
-    # data["Idle (W)"] = idle_power["power"]
+    data["Idle (W)"] = idle_power["power"]
     data["Running (W)"] = sim_power["power"]
     data["Dynamic (J)"] = dyn_energy
     data["Dynamic J/inf"] = energy_inference
