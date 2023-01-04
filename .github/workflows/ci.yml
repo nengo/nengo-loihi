@@ -1,0 +1,107 @@
+name: CI testing
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+      - release-candidate-*
+    tags:
+      - v*
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: Run the build with SSH debugging enabled
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  basic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - script: static
+          - script: emulator
+            coverage-name: emu
+          - script: emulator
+            coverage-name: emu-nengo-master
+            nengo-version: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
+      fail-fast: false
+    env:
+      NENGO_VERSION: ${{ matrix.nengo-version || 'nengo[tests]' }}
+      NENGO_DL_VERSION: nengo-dl
+    steps:
+      - uses: nengo/nengo-bones/actions/setup@main
+        with:
+          python-version: "3.8"
+      - uses: nengo/nengo-bones/actions/generate-and-check@main
+      - uses: nengo/nengo-bones/actions/run-script@main
+        with:
+          name: ${{ matrix.script }}
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() && matrix.coverage-name }}
+        with:
+          name: coverage-${{ matrix.coverage-name }}
+          path: .coverage
+  advanced:
+    needs:
+      - basic
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          # - script: hardware
+          #   coverage-name: hardware
+          #   nxsdk-version: 1.0.0
+          #   nengo-version: git+https://github.com/nengo/nengo.git#egg=nengo[tests]
+          - script: docs
+      fail-fast: false
+    env:
+      NENGO_VERSION: ${{ matrix.nengo-version || 'nengo[tests]' }}
+      NENGO_DL_VERSION: nengo-dl
+      NXSDK_VERSION: ${{ matrix.nxsdk-version || '' }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+      SSH_CONFIG: ${{ secrets.SSH_CONFIG }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - uses: nengo/nengo-bones/actions/setup@main
+        with:
+          python-version: "3.8"
+      - uses: nengo/nengo-bones/actions/generate-and-check@main
+      - uses: nengo/nengo-bones/actions/run-script@main
+        with:
+          name: ${{ matrix.script }}
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() && matrix.coverage-name }}
+        with:
+          name: coverage-${{ matrix.coverage-name }}
+          path: .coverage
+  # coverage:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 10
+  #   needs:
+  #     - advanced
+  #   if: ${{ always() }}
+  #   steps:
+  #     - uses: nengo/nengo-bones/actions/coverage-report@main
+  deploy:
+    needs:
+      - advanced
+    if: >-
+      startsWith(github.ref_name, 'release-candidate-') ||
+      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Write .pypirc to file
+        run: |
+          echo '${{ secrets.PYPIRC_FILE }}' > ~/.pypirc
+      - uses: actions/checkout@v3
+      - uses: nengo/nengo-bones/actions/setup@main
+      - uses: nengo/nengo-bones/actions/generate-and-check@main
+      - uses: nengo/nengo-bones/actions/run-script@main
+        with:
+          name: deploy

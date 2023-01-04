@@ -42,4 +42,3 @@ recursive-include nengo_loihi *.c
 recursive-include nengo_loihi *.h
 recursive-include nengo_loihi *.template
 include pytest.ini
-exclude .ci/travis_rsa.enc

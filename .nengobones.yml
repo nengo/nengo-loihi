@@ -5,6 +5,7 @@ repo_name: nengo/nengo-loihi
 copyright_start: 2018
 description: Run Nengo models on the Loihi chip
 license: apache
+main_branch: main
 
 license_rst: {}
 
@@ -21,8 +22,6 @@ manifest_in:
     - nengo_loihi *.template
   include:
     - pytest.ini
-  exclude:
-    - .ci/travis_rsa.enc
 
 setup_py:
   entry_points:
@@ -42,7 +41,7 @@ setup_py:
     - numpydoc>=0.6
     - sphinx>=1.8
   optional_req:
-    - nengo-extras>=0.5  # optional nengo-dl builders for neurons
+    - nengo-extras>=0.5 # optional nengo-dl builders for neurons
     - networkx-metis>=1.0
   tests_req:
     - coverage>=4.3
@@ -116,367 +115,208 @@ setup_cfg:
     nengo_simloader: nengo_loihi.tests.make_test_sim
     nengo_test_unsupported:
       # no ensembles on chip
-      test_circularconv.py::*:
-        no ensembles onchip
-      test_product.py::test_direct_mode_with_single_neuron:
-        no ensembles onchip
-      test_connection.py::test_neuron_slicing:
-        no ensembles onchip
-      test_connection.py::test_boolean_indexing:
-        no ensembles onchip
-      test_learning_rules.py::test_pes_synapse*:
-        no ensembles onchip
-      test_learning_rules.py::test_pes_recurrent_slice*:
-        no ensembles onchip
-      test_neurons.py::test_amplitude[LIFRate]:
-        no ensembles onchip
-      test_neurons.py::test_amplitude[RectifiedLinear]:
-        no ensembles onchip
-      test_neurons.py::test_alif_rate:
-        no ensembles onchip
-      test_neurons.py::test_izhikevich:
-        no ensembles onchip
-      test_neurons.py::test_sigmoid_response_curves*:
-        no ensembles onchip
-      test_node.py::test_time:
-        no ensembles onchip
-      test_node.py::test_simple:
-        no ensembles onchip
-      test_node.py::test_connected:
-        no ensembles onchip
-      test_node.py::test_passthrough:
-        no ensembles onchip
-      test_node.py::test_passthrough_filter:
-        no ensembles onchip
-      test_node.py::test_circular:
-        no ensembles onchip
-      test_node.py::test_outputparam_errors:
-        no ensembles onchip
-      test_node.py::test_none:
-        no ensembles onchip
-      test_node.py::test_unconnected_node:
-        no ensembles onchip
-      test_node.py::test_set_arraylike_output:
-        no ensembles onchip
-      test_node.py::test_set_callable_output:
-        no ensembles onchip
-      test_node.py::test_set_output:
-        no ensembles onchip
-      test_node.py::test_delay:
-        no ensembles onchip
-      test_node.py::test_args:
-        no ensembles onchip
-      test_node.py::test_node_with_offset_array_view:
-        no ensembles onchip
-      test_node.py::test_node_with_unusual_strided_view:
-        no ensembles onchip
-      test_probe.py::test_multirun:
-        no ensembles onchip
-      test_probe.py::test_dts:
-        no ensembles onchip
-      test_probe.py::test_large:
-        no ensembles onchip
-      test_probe.py::test_conn_output:
-        no ensembles onchip
-      test_processes.py::test_time:
-        no ensembles onchip
-      test_processes.py::test_brownnoise:
-        no ensembles onchip
-      test_processes.py::test_gaussian_white*:
-        no ensembles onchip
-      test_processes.py::test_whitesignal*:
-        no ensembles onchip
-      test_processes.py::test_reset:
-        no ensembles onchip
-      test_processes.py::test_seed:
-        no ensembles onchip
-      test_processes.py::test_present_input:
-        no ensembles onchip
-      test_processes.py::TestPiecewise*:
-        no ensembles onchip
-      test_processes.py::test_x_copy:
-        no ensembles onchip
-      test_simulator.py::test_steps:
-        no ensembles onchip
-      test_simulator.py::test_sim_reopen:
-        no ensembles onchip
-      test_simulator.py::test_time_absolute:
-        no ensembles onchip
-      test_simulator.py::test_trange*:
-        no ensembles onchip
-      test_simulator.py::test_probe_cache:
-        no ensembles onchip
-      test_simulator.py::test_sim_seed_set_by_network_seed:
-        no ensembles onchip
-      test_simulator.py::test_invalid_run_time:
-        no ensembles onchip
-      test_simulator.py::test_sample_every*:
-        no ensembles onchip
-      test_synapses.py::test_lowpass:
-        no ensembles onchip
-      test_synapses.py::test_alpha:
-        no ensembles onchip
-      test_synapses.py::test_triangle:
-        no ensembles onchip
-      test_synapses.py::test_linearfilter:
-        no ensembles onchip
-      test_synapses.py::test_synapse_subclass:
-        no ensembles onchip
-      utils/*test_ensemble.py::test_*_curves_direct_mode*:
-        no ensembles onchip
-      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule1*:
-        no ensembles onchip
-      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule2*:
-        no ensembles onchip
-      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule3*:
-        no ensembles onchip
-      utils/*test_neurons.py::test_rates_*:
-        no ensembles onchip
-      test_transforms.py::test_convolution*:
-        no ensembles onchip
-      test_transforms_conv.py::test_convolution[*:
-        no ensembles onchip
-      test_transforms_conv.py::test_convolution_groups[*:
-        no ensembles onchip
-      test_synapses.py::test_combined_delay:
-        no ensembles onchip
-      test_synapses.py::test_direct:
-        no ensembles onchip
+      test_circularconv.py::*: no ensembles onchip
+      test_product.py::test_direct_mode_with_single_neuron: no ensembles onchip
+      test_connection.py::test_neuron_slicing: no ensembles onchip
+      test_connection.py::test_boolean_indexing: no ensembles onchip
+      test_learning_rules.py::test_pes_synapse*: no ensembles onchip
+      test_learning_rules.py::test_pes_recurrent_slice*: no ensembles onchip
+      test_neurons.py::test_amplitude[LIFRate]: no ensembles onchip
+      test_neurons.py::test_amplitude[RectifiedLinear]: no ensembles onchip
+      test_neurons.py::test_alif_rate: no ensembles onchip
+      test_neurons.py::test_izhikevich: no ensembles onchip
+      test_neurons.py::test_sigmoid_response_curves*: no ensembles onchip
+      test_node.py::test_time: no ensembles onchip
+      test_node.py::test_simple: no ensembles onchip
+      test_node.py::test_connected: no ensembles onchip
+      test_node.py::test_passthrough: no ensembles onchip
+      test_node.py::test_passthrough_filter: no ensembles onchip
+      test_node.py::test_circular: no ensembles onchip
+      test_node.py::test_outputparam_errors: no ensembles onchip
+      test_node.py::test_none: no ensembles onchip
+      test_node.py::test_unconnected_node: no ensembles onchip
+      test_node.py::test_set_arraylike_output: no ensembles onchip
+      test_node.py::test_set_callable_output: no ensembles onchip
+      test_node.py::test_set_output: no ensembles onchip
+      test_node.py::test_delay: no ensembles onchip
+      test_node.py::test_args: no ensembles onchip
+      test_node.py::test_node_with_offset_array_view: no ensembles onchip
+      test_node.py::test_node_with_unusual_strided_view: no ensembles onchip
+      test_probe.py::test_multirun: no ensembles onchip
+      test_probe.py::test_dts: no ensembles onchip
+      test_probe.py::test_large: no ensembles onchip
+      test_probe.py::test_conn_output: no ensembles onchip
+      test_processes.py::test_time: no ensembles onchip
+      test_processes.py::test_brownnoise: no ensembles onchip
+      test_processes.py::test_gaussian_white*: no ensembles onchip
+      test_processes.py::test_whitesignal*: no ensembles onchip
+      test_processes.py::test_reset: no ensembles onchip
+      test_processes.py::test_seed: no ensembles onchip
+      test_processes.py::test_present_input: no ensembles onchip
+      test_processes.py::TestPiecewise*: no ensembles onchip
+      test_processes.py::test_x_copy: no ensembles onchip
+      test_simulator.py::test_steps: no ensembles onchip
+      test_simulator.py::test_sim_reopen: no ensembles onchip
+      test_simulator.py::test_time_absolute: no ensembles onchip
+      test_simulator.py::test_trange*: no ensembles onchip
+      test_simulator.py::test_probe_cache: no ensembles onchip
+      test_simulator.py::test_sim_seed_set_by_network_seed: no ensembles onchip
+      test_simulator.py::test_invalid_run_time: no ensembles onchip
+      test_simulator.py::test_sample_every*: no ensembles onchip
+      test_synapses.py::test_lowpass: no ensembles onchip
+      test_synapses.py::test_alpha: no ensembles onchip
+      test_synapses.py::test_triangle: no ensembles onchip
+      test_synapses.py::test_linearfilter: no ensembles onchip
+      test_synapses.py::test_synapse_subclass: no ensembles onchip
+      utils/*test_ensemble.py::test_*_curves_direct_mode*: no ensembles onchip
+      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule1*: no ensembles onchip
+      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule2*: no ensembles onchip
+      utils/*test_network.py::test_activate_direct_mode_learning[learning_rule3*: no ensembles onchip
+      utils/*test_neurons.py::test_rates_*: no ensembles onchip
+      test_transforms.py::test_convolution*: no ensembles onchip
+      test_transforms_conv.py::test_convolution[*: no ensembles onchip
+      test_transforms_conv.py::test_convolution_groups[*: no ensembles onchip
+      test_synapses.py::test_combined_delay: no ensembles onchip
+      test_synapses.py::test_direct: no ensembles onchip
 
       # accuracy
-      test_actionselection.py::test_basic:
-        inaccurate
-      test_actionselection.py::test_thalamus:
-        inaccurate
-      test_assoc_mem.py::test_am_threshold:
-        integrator instability
-      test_assoc_mem.py::test_am_wta:
-        integrator instability
-      test_assoc_mem.py::test_am_basic:
-        integrator instability
-      test_assoc_mem.py::test_am_complex:
-        integrator instability
-      test_ensemblearray.py::test_matrix_mul:
-        inaccurate
-      test_product.py::test_sine_waves:
-        inaccurate
-      test_workingmemory.py::test_inputgatedmemory:
-        inaccurate
-      test_cortical.py::test_convolution:
-        inaccurate
-      test_thalamus.py::test_routing:
-        inaccurate
-      test_thalamus.py::test_nondefault_routing:
-        inaccurate
-      test_connection.py::test_node_to_ensemble*:
-        inaccurate
-      test_connection.py::test_neurons_to_node*:
-        inaccurate
-      test_connection.py::test_function_and_transform:
-        inaccurate
-      test_connection.py::test_weights*:
-        inaccurate
-      test_connection.py::test_slicing*:
-        inaccurate
-      test_connection.py::test_function_output_size:
-        inaccurate
-      test_connection.py::test_function_points:
-        inaccurate
-      test_ensemble.py::test_scalar*:
-        inaccurate
-      test_ensemble.py::test_vector*:
-        inaccurate
-      test_learning_rules.py::test_pes_transform:
-        inaccurate
-      test_learning_rules.py::test_slicing:
-        inaccurate
-      test_neurons.py::test_alif:
-        inaccurate
-      test_neurons.py::test_amplitude[LIF]:
-        inaccurate
-      test_neurons.py::test_amplitude[SpikingRectifiedLinear]:
-        inaccurate
-      test_presets.py::test_thresholding_preset:
-        inaccurate
-      test_synapses.py::test_decoders:
-        inaccurate
+      test_actionselection.py::test_basic: inaccurate
+      test_actionselection.py::test_thalamus: inaccurate
+      test_assoc_mem.py::test_am_threshold: integrator instability
+      test_assoc_mem.py::test_am_wta: integrator instability
+      test_assoc_mem.py::test_am_basic: integrator instability
+      test_assoc_mem.py::test_am_complex: integrator instability
+      test_ensemblearray.py::test_matrix_mul: inaccurate
+      test_product.py::test_sine_waves: inaccurate
+      test_workingmemory.py::test_inputgatedmemory: inaccurate
+      test_cortical.py::test_convolution: inaccurate
+      test_thalamus.py::test_routing: inaccurate
+      test_thalamus.py::test_nondefault_routing: inaccurate
+      test_connection.py::test_node_to_ensemble*: inaccurate
+      test_connection.py::test_neurons_to_node*: inaccurate
+      test_connection.py::test_function_and_transform: inaccurate
+      test_connection.py::test_weights*: inaccurate
+      test_connection.py::test_slicing*: inaccurate
+      test_connection.py::test_function_output_size: inaccurate
+      test_connection.py::test_function_points: inaccurate
+      test_ensemble.py::test_scalar*: inaccurate
+      test_ensemble.py::test_vector*: inaccurate
+      test_learning_rules.py::test_pes_transform: inaccurate
+      test_learning_rules.py::test_slicing: inaccurate
+      test_neurons.py::test_alif: inaccurate
+      test_neurons.py::test_amplitude[LIF]: inaccurate
+      test_neurons.py::test_amplitude[SpikingRectifiedLinear]: inaccurate
+      test_presets.py::test_thresholding_preset: inaccurate
+      test_synapses.py::test_decoders: inaccurate
 
       # builder inconsistencies
-      test_connection.py::test_transform_probe:
-        transform shape not implemented
-      test_connection.py::test_list_indexing*:
-        indexing bug?
-      test_ensemble.py::test_gain_bias_warning:
-        warning not raised
-      test_ensemble.py::*invalid_intercepts*:
-        BuildError not raised
-      test_learning_rules.py::test_pes_ens_*:
-        learning bug?
-      test_learning_rules.py::test_pes_weight_solver:
-        learning bug?
-      test_learning_rules.py::test_pes_neuron_*:
-        learning bug?
-      test_learning_rules.py::test_pes_multidim_error:
-        dict of learning rules not handled
-      test_learning_rules.py::test_reset*:
-        learning bug?
-      test_neurons.py::test_lif_min_voltage[-1]:
-        min voltage bug?
-      test_neurons.py::test_lif_zero_tau_ref:
-        lif.tau_ref ignored
-      test_probe.py::test_input_probe:
-        shape mismatch
-      test_probe.py::test_slice:
-        ObjView not handled properly
-      test_probe.py::test_update_timing:
-        probe bug?
-      test_solvers.py::test_nosolver[*:
-        NoSolver bug
-      test_learning_rules.py::test_bad_learning_rule_modifies:
-        Exception not implemented
+      test_connection.py::test_transform_probe: transform shape not implemented
+      test_connection.py::test_list_indexing*: indexing bug?
+      test_ensemble.py::test_gain_bias_warning: warning not raised
+      test_ensemble.py::*invalid_intercepts*: BuildError not raised
+      test_learning_rules.py::test_pes_ens_*: learning bug?
+      test_learning_rules.py::test_pes_weight_solver: learning bug?
+      test_learning_rules.py::test_pes_neuron_*: learning bug?
+      test_learning_rules.py::test_pes_multidim_error: dict of learning rules not handled
+      test_learning_rules.py::test_reset*: learning bug?
+      test_neurons.py::test_lif_min_voltage[-1]: min voltage bug?
+      test_neurons.py::test_lif_zero_tau_ref: lif.tau_ref ignored
+      test_probe.py::test_input_probe: shape mismatch
+      test_probe.py::test_slice: ObjView not handled properly
+      test_probe.py::test_update_timing: probe bug?
+      test_solvers.py::test_nosolver[*: NoSolver bug
+      test_learning_rules.py::test_bad_learning_rule_modifies: Exception not implemented
 
       # reference builder only (often checks signals)
-      test_neurons.py::test_bad_initial_state:
-        No exception for state clobbering 'in' signal
-      test_learning_rules.py::test_pes_pre_post_varieties[*:
-        Model does not have operators
+      test_neurons.py::test_bad_initial_state: No exception for state clobbering 'in' signal
+      test_learning_rules.py::test_pes_pre_post_varieties[*: Model does not have operators
 
       # reset bugs
-      test_neurons.py::test_reset*:
-        sim.reset not working correctly
+      test_neurons.py::test_reset*: sim.reset not working correctly
 
       # PES limitations
-      test_learning_rules.py::test_pes_adv_idx:
-        PES does not support connections from Neurons
+      test_learning_rules.py::test_pes_adv_idx: PES does not support connections from Neurons
 
       # non-PES learning rules
-      test_connection.py::test_learning_transform_shape_error:
-        non-PES learning rules not implemented
-      test_learning_rules.py::test_unsupervised*:
-        non-PES learning rules not implemented
-      test_learning_rules.py::test_dt_dependence*:
-        non-PES learning rules not implemented
-      test_voja*:
-        voja not implemented
-      test_learning_rules.py::test_custom_type:
-        non-PES learning rules not implemented
-      test_learning_rules.py::test_rls_*:
-        non-PES learning rules not implemented
+      test_connection.py::test_learning_transform_shape_error: non-PES learning rules not implemented
+      test_learning_rules.py::test_unsupervised*: non-PES learning rules not implemented
+      test_learning_rules.py::test_dt_dependence*: non-PES learning rules not implemented
+      test_voja*: voja not implemented
+      test_learning_rules.py::test_custom_type: non-PES learning rules not implemented
+      test_learning_rules.py::test_rls_*: non-PES learning rules not implemented
 
       # Nengo bug
-      test_simulator.py::test_entry_point:
-        logic should be more flexible
+      test_simulator.py::test_entry_point: logic should be more flexible
 
       # ensemble noise
-      test_ensemble.py::test_noise*:
-        ensemble.noise not implemented
+      test_ensemble.py::test_noise*: ensemble.noise not implemented
 
       # probe types
-      test_connection.py::test_dist_transform:
-        probe type not implemented
-      test_connection.py::test_decoder_probe:
-        probe type not implemented
-      test_probe.py::test_defaults:
-        probe type not implemented
-      test_probe.py::test_ensemble_encoders:
-        probe type not implemented
+      test_connection.py::test_dist_transform: probe type not implemented
+      test_connection.py::test_decoder_probe: probe type not implemented
+      test_probe.py::test_defaults: probe type not implemented
+      test_probe.py::test_ensemble_encoders: probe type not implemented
 
       # probe.sample_every
-      test_integrator.py::test_integrator:
-        probe.sample_every not implemented
-      test_oscillator.py::test_oscillator:
-        probe.sample_every not implemented
-      test_ensemble.py::test_product*:
-        probe.sample_every not implemented
-      test_neurons.py::test_dt_dependence*:
-        probe.sample_every not implemented
-      test_probe.py::test_multiple_probes:
-        probe.sample_every not implemented
+      test_integrator.py::test_integrator: probe.sample_every not implemented
+      test_oscillator.py::test_oscillator: probe.sample_every not implemented
+      test_ensemble.py::test_product*: probe.sample_every not implemented
+      test_neurons.py::test_dt_dependence*: probe.sample_every not implemented
+      test_probe.py::test_multiple_probes: probe.sample_every not implemented
 
       # needs better place and route
-      test_ensemble.py::test_eval_points_heuristic[1290-4]:
-        max number of compartments exceeded
-      test_ensemble.py::test_eval_points_heuristic[2108-1]:
-        max number of compartments exceeded
-      test_neurons.py::test_lif[*:
-        idx_bits out of range
-      test_basalganglia.py::test_basal_ganglia:
-        output_axons exceeded max
-      test_cortical.py::test_connect:
-        total synapse bits exceeded max
-      test_cortical.py::test_transform:
-        total synapse bits exceeded max
-      test_cortical.py::test_translate:
-        total synapse bits exceeded max
-      test_memory.py::test_run:
-        total synapse bits exceeded max
-      test_memory.py::test_run_decay:
-        total synapse bits exceeded max
-      test_state.py::test_memory_run:
-        total synapse bits exceeded max
-      test_state.py::test_memory_run_decay:
-        total synapse bits exceeded max
-      test_bind.py::test_run:
-        exceeded max cores per chip on loihi
+      test_ensemble.py::test_eval_points_heuristic[1290-4]: max number of compartments exceeded
+      test_ensemble.py::test_eval_points_heuristic[2108-1]: max number of compartments exceeded
+      test_neurons.py::test_lif[*: idx_bits out of range
+      test_basalganglia.py::test_basal_ganglia: output_axons exceeded max
+      test_cortical.py::test_connect: total synapse bits exceeded max
+      test_cortical.py::test_transform: total synapse bits exceeded max
+      test_cortical.py::test_translate: total synapse bits exceeded max
+      test_memory.py::test_run: total synapse bits exceeded max
+      test_memory.py::test_run_decay: total synapse bits exceeded max
+      test_state.py::test_memory_run: total synapse bits exceeded max
+      test_state.py::test_memory_run_decay: total synapse bits exceeded max
+      test_bind.py::test_run: exceeded max cores per chip on loihi
 
       # serialization / deserialization
-      test_cache.py::*:
-        model pickling not implemented
-      test_copy.py::test_pickle_model:
-        model pickling not implemented
-      test_copy.py::test_pickle_sim[*:
-        simulator pickling not implemented
-      test_simulator.py::test_signal_init_values:
-        nengo.builder.Model instances not handled
+      test_cache.py::*: model pickling not implemented
+      test_copy.py::test_pickle_model: model pickling not implemented
+      test_copy.py::test_pickle_sim[*: simulator pickling not implemented
+      test_simulator.py::test_signal_init_values: nengo.builder.Model instances not handled
 
       # progress bars
-      test_simulator.py::test_simulator_progress_bars:
-        progress bars not implemented
+      test_simulator.py::test_simulator_progress_bars: progress bars not implemented
 
       # utils.connection.target_function (deprecated)
-      utils/tests/test_connection.py*:
-        target_function (deprecated) not working
+      utils/tests/test_connection.py*: target_function (deprecated) not working
 
       # removing passthroughs changes test behaviour
-      test_connection.py::test_zero_activities_error:
-        decoded connection optimized away
-      test_connection.py::test_function_returns_none_error:
-        decoded connection optimized away
+      test_connection.py::test_zero_activities_error: decoded connection optimized away
+      test_connection.py::test_function_returns_none_error: decoded connection optimized away
 
       # unsupported neuron types
-      test_neurons.py::test_sigmoid_invalid:
-        Sigmoid neurons unsupported
-      test_neurons.py::test_spiking_types[base_type0]:
-        LIFRate neurons unsupported
-      test_neurons.py::test_spiking_types[base_type1]:
-        RectifiedLinear neurons unsupported
-      test_neurons.py::test_spiking_types[base_type2]:
-        Tanh neurons unsupported
+      test_neurons.py::test_sigmoid_invalid: Sigmoid neurons unsupported
+      test_neurons.py::test_spiking_types[base_type0]: LIFRate neurons unsupported
+      test_neurons.py::test_spiking_types[base_type1]: RectifiedLinear neurons unsupported
+      test_neurons.py::test_spiking_types[base_type2]: Tanh neurons unsupported
 
       # unsupported convolution features
-      test_solvers.py::test_non_compositional_solver_transform_error:
-        1D convolution not supported
-      test_transforms_conv.py::test_convolution_nef[*:
-        non-identical neuron gains not supported for convolution
+      test_solvers.py::test_non_compositional_solver_transform_error: 1D convolution not supported
+      test_transforms_conv.py::test_convolution_nef[*: non-identical neuron gains not supported for convolution
 
       # sparse transforms not supported
-      test_transforms.py::test_sparse[*:
-        sparse transforms not supported on host-chip connections
+      test_transforms.py::test_sparse[*: sparse transforms not supported on host-chip connections
       # neuron advanced indexing not yet supported
-      test_connection.py::test_neuron_advanced_indexing:
-        neuron advanced indexing not yet supported
+      test_connection.py::test_neuron_advanced_indexing: neuron advanced indexing not yet supported
 
       # dtype not supported
-      test_simulator.py::test_dtype[*:
-        dtype option not supported
+      test_simulator.py::test_dtype[*: dtype option not supported
 
       # negative activities not supported
-      test_solvers.py::test_all_negative_activities[*:
-        Negative activities not supported
+      test_solvers.py::test_all_negative_activities[*: Negative activities not supported
 
       # non-zero initial voltages not supported
-      test_neurons.py::test_initial_state[*:
-        Non-zero initial voltages not supported
+      test_neurons.py::test_initial_state[*: Non-zero initial voltages not supported
 
     allclose_tolerances:
       - tests/test_solvers.py::test_non_compositional_solver[solver0] atol=0.15
@@ -488,88 +328,32 @@ docs_conf_py:
     nengo_extras: https://www.nengo.ai/nengo-extras
   nengo_logo: nengo-loihi-full-light.svg
   nengo_logo_color: "#127bc1"
-  tagmanager_id: GTM-KWCR2HN
   doctest_setup:
     - import nengo
   html_redirects:
     examples/index.html: https://www.nengo.ai/nengo-examples/loihi/
-    examples/adaptive_motor_control.html:
-      https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
-    examples/adaptive-motor-control.html:
-      https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
-    examples/cifar10-convnet.html:
-      https://www.nengo.ai/nengo-examples/loihi/cifar10-convnet.html
-    examples/communication_channel.html:
-      https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
-    examples/communication-channel.html:
-      https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
-    examples/dvs-from-file.html:
-      https://www.nengo.ai/nengo-examples/loihi/dvs-from-file.html
-    examples/integrator.html:
-      https://www.nengo.ai/nengo-examples/loihi/integrator.html
-    examples/integrator_multi_d.html:
-      https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
-    examples/integrator-multi-d.html:
-      https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
-    examples/keras-to-loihi.html:
-      https://www.nengo.ai/nengo-examples/loihi/keras-to-loihi.html
-    examples/keyword_spotting.html:
-      https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
-    examples/keyword-spotting.html:
-      https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
-    examples/learn_communication_channel.html:
-      https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
-    examples/learn-communication-channel.html:
-      https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
+    examples/adaptive_motor_control.html: https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
+    examples/adaptive-motor-control.html: https://www.nengo.ai/nengo-examples/loihi/adaptive-motor-control.html
+    examples/cifar10-convnet.html: https://www.nengo.ai/nengo-examples/loihi/cifar10-convnet.html
+    examples/communication_channel.html: https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
+    examples/communication-channel.html: https://www.nengo.ai/nengo-examples/loihi/communication-channel.html
+    examples/dvs-from-file.html: https://www.nengo.ai/nengo-examples/loihi/dvs-from-file.html
+    examples/integrator.html: https://www.nengo.ai/nengo-examples/loihi/integrator.html
+    examples/integrator_multi_d.html: https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
+    examples/integrator-multi-d.html: https://www.nengo.ai/nengo-examples/loihi/integrator-multi-d.html
+    examples/keras-to-loihi.html: https://www.nengo.ai/nengo-examples/loihi/keras-to-loihi.html
+    examples/keyword_spotting.html: https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
+    examples/keyword-spotting.html: https://www.nengo.ai/nengo-examples/loihi/keyword-spotting.html
+    examples/learn_communication_channel.html: https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
+    examples/learn-communication-channel.html: https://www.nengo.ai/nengo-examples/loihi/learn-communication-channel.html
     examples/lmu.html: https://www.nengo.ai/nengo-examples/loihi/lmu.html
-    examples/mnist_convnet.html:
-      https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
-    examples/mnist-convnet.html:
-      https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
-    examples/neuron_to_neuron.html:
-      https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
-    examples/neuron-to-neuron.html:
-      https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
-    examples/oscillator.html:
-      https://www.nengo.ai/nengo-examples/loihi/oscillator.html
-    examples/oscillator_nonlinear.html:
-      https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
-    examples/oscillator-nonlinear.html:
-      https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
-
-travis_yml:
-  python: 3.6
-  global_vars:
-    NENGO_VERSION: nengo[tests]
-    NENGO_DL_VERSION: nengo-dl
-  jobs:
-    - stage: basic
-      script: emulator
-    - script: emulator
-      env:
-        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git"
-    - script: static
-    - stage: advanced
-      script: hardware
-      python: 3.6.8
-      env:
-        NXSDK_VERSION: 1.0.0
-        NENGO_VERSION: "nengo[tests] @ git+https://github.com/nengo/nengo.git"
-    - script: docs
-      python: 3.7
-  pypi_user: __token__
-  deploy_dists:
-    - sdist
-    - bdist_wheel
-  slack_notifications: "NuL1Gqw6idGR0MQEVGFTVaP8uadrPBUwN3DDL5i6HTxXlXu+qjUgtexap4Mil9\
-    aOI5g+3KosULAHQrIsYZ+YX5CDrKFksbchItvRBznvcJxqZaitX5Oma+9ezecwpU8oUMjE3DatvNkTVnm8\
-    NozxtlovLzBecnJcKwopNqX7wNkU5x0iByvfo/NR3rufCvDEatclv9jzHtlq6rUSBRZ7fLL0EmEGfmojyp\
-    oUm0/9ezU9qALorywNlwvjGcxEFiV7CXeK2/TLKG/TrQxRwdK2XczuY8EivpyfZ+z8UJnRcUAnyp+upOPV\
-    DFXS7mfJZw2FuY5Z3s/gpvO3R/VdJjo10zw/kl9Put+BFkyrAyejNJzrEtrbOC/5tbAEO6sYtkQwTyZWLD\
-    FMCMiD3aIgDdS2gWlsuSUFTxpGuvN/6MQNRgteagQ6Wo9wyd7BE3K1QAnCtFeSwDh7TNKgKxwOrtK1qhpE\
-    nyVhxhRieVwkZXfJW/BnZcg7F2a9cmKmhef48k0acynf3OQVP9VH1/d7IxtbWRE4ehrUS83ijUCkW+4CK3\
-    1L5w7ORRe2tF2L09VnSjsjaOHXDHV7T+dSojDhV/C3izvgb1ttEsLAA8ICKib51183jFdZegl84gF9aq21\
-    8Y28iBxOfONyQXkWiis4D8481SLKx5Jf8wfdnbMN0hkmQ9w="
+    examples/mnist_convnet.html: https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
+    examples/mnist-convnet.html: https://www.nengo.ai/nengo-examples/loihi/mnist-convnet.html
+    examples/neuron_to_neuron.html: https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
+    examples/neuron-to-neuron.html: https://www.nengo.ai/nengo-examples/loihi/neuron-to-neuron.html
+    examples/oscillator.html: https://www.nengo.ai/nengo-examples/loihi/oscillator.html
+    examples/oscillator_nonlinear.html: https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
+    examples/oscillator-nonlinear.html: https://www.nengo.ai/nengo-examples/loihi/oscillator-nonlinear.html
 
 ci_scripts:
   - template: test
@@ -578,20 +362,18 @@ ci_scripts:
       - $NENGO_VERSION
       - $NENGO_DL_VERSION
       - jupyter
-      - numpy>=1.14  # avoid the default-installed 1.13 on TravisCI
+      - numpy
     coverage: true
     nengo_tests: true
   - template: static
   - template: hardware
-    travis_var_key: 2895d60e3414
     coverage: true
     host: loihihost
     pip_install:
       - coverage
   - template: docs
   - template: deploy
-
-codecov_yml: {}
+    wheel: true
 
 pre_commit_config_yaml: {}
 
