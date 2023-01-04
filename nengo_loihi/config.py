@@ -32,7 +32,8 @@ class BlockShapeParam(Parameter):
 
 
 class BlockShape:
-    """Specifies how an ensemble should be split across Loihi neuron cores.
+    """
+    Specifies how an ensemble should be split across Loihi neuron cores.
 
     Each neuron core can have, at most, 1024 compartments. Ensembles with more
     than 1024 neurons are automatically split such that they will be distributed
@@ -128,7 +129,8 @@ class BlockShape:
 
 
 def add_params(network):
-    """Add nengo_loihi config option to *network*.
+    """
+    Add nengo_loihi config option to *network*.
 
     The following options will be added:
 
@@ -157,7 +159,6 @@ def add_params(network):
     ...     nengo_loihi.add_params(model)
     ...     model.config[ens].on_chip = False
     ...     # Now it will be simulated with Nengo
-
     """
     config = network.config
 
@@ -175,7 +176,8 @@ def add_params(network):
 
 
 def set_defaults():
-    """Modify Nengo's default parameters for better performance with Loihi.
+    """
+    Modify Nengo's default parameters for better performance with Loihi.
 
     The following defaults will be modified:
 

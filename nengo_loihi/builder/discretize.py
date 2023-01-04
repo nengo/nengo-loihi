@@ -35,7 +35,8 @@ def array_to_int(array, value):
 
 
 def learn_overflow_bits(n_factors):
-    """Compute number of bits with which learning will overflow.
+    """
+    Compute number of bits with which learning will overflow.
 
     Parameters
     ----------
@@ -48,7 +49,8 @@ def learn_overflow_bits(n_factors):
 
 
 def overflow_signed(x, bits=7, out=None):
-    """Compute overflow on an array of signed integers.
+    """
+    Compute overflow on an array of signed integers.
 
     For example, the Loihi chip uses 23 bits plus sign to represent U.
     We can store them as 32-bit integers, and use this function to compute
@@ -111,14 +113,15 @@ def bias_to_manexp(bias):
 
 
 def tracing_mag_int_frac(mag):
-    """Split trace magnitude into integer and fractional components for chip"""
+    """Split trace magnitude into integer and fractional components for chip."""
     mag_int = int(mag)
     mag_frac = int(128 * (mag - mag_int))
     return mag_int, mag_frac
 
 
 def decay_int(x, decay, bits=None, offset=0, out=None):
-    """Decay integer values using a decay constant.
+    """
+    Decay integer values using a decay constant.
 
     The decayed value is given by::
 
@@ -134,7 +137,8 @@ def decay_int(x, decay, bits=None, offset=0, out=None):
 
 
 def decay_magnitude(decay, x0=2**21, bits=12, offset=0):
-    """Estimate the sum of the series of rounded integer decays of ``x0``.
+    """
+    Estimate the sum of the series of rounded integer decays of ``x0``.
 
     This can be used to estimate the total input current or voltage (summed
     over time) caused by an input of magnitude ``x0``. In real values, this is
@@ -208,7 +212,8 @@ def shift(x, s, **kwargs):
 
 
 def discretize_model(model):
-    """Discretize a `.Model` in-place.
+    """
+    Discretize a `.Model` in-place.
 
     Turns a floating-point `.Model` into a discrete (integer) model
     appropriate for Loihi.
@@ -229,7 +234,8 @@ def discretize_model(model):
 
 
 def discretize_block(block):
-    """Discretize a `.LoihiBlock` in-place.
+    """
+    Discretize a `.LoihiBlock` in-place.
 
     Turns a floating-point `.LoihiBlock` into a discrete (integer)
     block appropriate for Loihi.
@@ -250,7 +256,8 @@ def discretize_block(block):
 
 
 def discretize_compartment(comp, w_max):
-    """Discretize a `.Compartment` in-place.
+    """
+    Discretize a `.Compartment` in-place.
 
     Turns a floating-point `.Compartment` into a discrete (integer)
     block appropriate for Loihi.
@@ -371,7 +378,8 @@ def discretize_compartment(comp, w_max):
 
 
 def discretize_synapse(synapse, w_max, w_scale, w_exp):
-    """Discretize a `.Synapse` in-place.
+    """
+    Discretize a `.Synapse` in-place.
 
     Turns a floating-point `.Synapse` into a discrete (integer)
     block appropriate for Loihi.
@@ -452,7 +460,8 @@ def discretize_synapse(synapse, w_max, w_scale, w_exp):
 def discretize_weights(
     synapse_cfg, w, dtype=np.int32, lossy_shift=True, check_result=True
 ):
-    """Takes weights and returns their quantized values with weight_exp.
+    """
+    Takes weights and returns their quantized values with weight_exp.
 
     The actual weight to be put on the chip is this returned value
     divided by the ``scale`` attribute.

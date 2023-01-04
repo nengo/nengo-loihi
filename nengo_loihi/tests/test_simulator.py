@@ -92,7 +92,9 @@ def test_probedict_interface(Simulator):
     "dt, pre_on_chip", [(2e-4, True), (3e-4, False), (4e-4, True), (2e-3, True)]
 )
 def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
-    function = lambda x: -x
+    def function(x):
+        return -x
+
     simtime = 0.2
 
     probe_synapse = nengo.Alpha(0.01)
@@ -151,7 +153,9 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
 @pytest.mark.parametrize("simtype", ["simreal", None])
 def test_nengo_comm_channel_compare(simtype, Simulator, seed, plt, allclose):
     if simtype == "simreal":
-        Simulator = lambda *args: nengo_loihi.Simulator(*args, target="simreal")
+
+        def Simulator(*args):  # pylint: disable=function-redefined
+            return nengo_loihi.Simulator(*args, target="simreal")
 
     simtime = 0.6
 
@@ -239,7 +243,8 @@ class TestRunSteps:
             assert sim._runner.run_steps.__name__.endswith("_only")
 
     def test_all_precomputable(self, Simulator):
-        """One precomputable host object.
+        """
+        One precomputable host object.
 
         We should have either a host or host_pre, but not both.
         """
@@ -268,7 +273,8 @@ class TestRunSteps:
             assert sim._runner.run_steps.__name__.endswith("_precomputed_host_pre_only")
 
     def test_precomputable_and_not(self, Simulator):
-        """One precomputable host object and one non-precomputable host object.
+        """
+        One precomputable host object and one non-precomputable host object.
 
         We will have host and host_pre, unless we request no host_pre.
         """
@@ -305,7 +311,8 @@ class TestRunSteps:
             )
 
     def test_all_non_precomputable(self, Simulator):
-        """One non-precomputable host object.
+        """
+        One non-precomputable host object.
 
         We will always have a host and never a host_pre.
         """
@@ -336,7 +343,8 @@ class TestRunSteps:
             assert sim._runner.run_steps.__name__.endswith("_precomputed_host_only")
 
     def test_feedback_loop(self, Simulator):
-        """Chip input depends on output, nothing is precomputable.
+        """
+        Chip input depends on output, nothing is precomputable.
 
         We will never have a host_pre.
         """
@@ -489,7 +497,7 @@ def test_seeds(precompute, Simulator, seed):
 
 
 def test_interface(Simulator, allclose):
-    """Tests for the Simulator API for things that aren't covered elsewhere"""
+    """Tests for the Simulator API for things that aren't covered elsewhere."""
     # test sim.time
     with nengo.Network() as model:
         nengo.Ensemble(2, 1)
@@ -522,7 +530,7 @@ def test_interface(Simulator, allclose):
 
 @pytest.mark.target_loihi
 def test_loihi_simulation_exception(Simulator):
-    """Test that Loihi shuts down properly after exception during simulation"""
+    """Test that Loihi shuts down properly after exception during simulation."""
 
     def node_fn(t):
         if t < 0.002:
@@ -778,8 +786,10 @@ def test_precompute(allclose, Simulator, seed, plt):
 
 @pytest.mark.target_loihi
 def test_input_node_precompute(allclose, Simulator, plt):
+    def input_fn(t):
+        return np.sin(6 * np.pi * t / simtime)
+
     simtime = 1.0
-    input_fn = lambda t: np.sin(6 * np.pi * t / simtime)
     targets = ["sim", "loihi"]
     x = {}
     u = {}
@@ -885,7 +895,6 @@ def test_simulator_passthrough(remove_passthrough, Simulator):
 
 
 def test_slicing_bugs(Simulator, seed):
-
     n = 50
     with nengo.Network() as model:
         a = nengo.Ensemble(n, 1, label="a")

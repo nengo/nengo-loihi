@@ -8,7 +8,8 @@ from nengo_loihi.inputs import ChipProcess
 
 
 class DVSFileChipProcess(ChipProcess):
-    """Process for DVS input to Loihi chip from a pre-recorded file.
+    """
+    Process for DVS input to Loihi chip from a pre-recorded file.
 
     Parameters
     ----------
@@ -86,7 +87,8 @@ class DVSFileChipProcess(ChipProcess):
         super().__init__(default_size_in=0, default_size_out=self.size, **kwargs)
 
     def make_step(self, shape_in, shape_out, dt, rng, state):
-        """Make the step function to display the DVS events as image frames.
+        """
+        Make the step function to display the DVS events as image frames.
 
         This step function is only called when using this process in a
         `nengo.Simulator`. When using it in a `nengo_loihi.Simulator`, the events
@@ -143,7 +145,8 @@ class DVSFileChipProcess(ChipProcess):
 
 
 class DVSEvents:
-    """A group of events from a Dynamic Vision Sensor (DVS) spiking camera.
+    """
+    A group of events from a Dynamic Vision Sensor (DVS) spiking camera.
 
     Attributes
     ----------
@@ -174,7 +177,8 @@ class DVSEvents:
 
     @staticmethod
     def from_file(file_path, **kwargs):
-        """Create a new `.DVSEvents` object with events from a file.
+        """
+        Create a new `.DVSEvents` object with events from a file.
 
         Parameters
         ----------
@@ -188,7 +192,8 @@ class DVSEvents:
         return events
 
     def init_events(self, event_data=None, n_events=None):
-        """Initialize ``events`` array.
+        """
+        Initialize ``events`` array.
 
         Only required if configuring events manually (i.e. not reading from a file).
 
@@ -221,7 +226,8 @@ class DVSEvents:
             self.events = np.zeros(n_events, dtype=self.events_dtype)
 
     def read_file(self, file_path, file_fmt=None, rel_time=None):
-        """Read events from a file.
+        """
+        Read events from a file.
 
         Parameters
         ----------
@@ -256,7 +262,8 @@ class DVSEvents:
             )
 
     def write_file(self, file_path):
-        """Write events to a file.
+        """
+        Write events to a file.
 
         Currently only supports the ``.events`` file format.
 
@@ -305,7 +312,8 @@ class AEDatFileIO(DVSFileIO):
     """Reader for events files using the AEDat file format."""
 
     class AEDatEvent(ctypes.BigEndianStructure):
-        """Class for parsing AEDat event entries.
+        """
+        Class for parsing AEDat event entries.
 
         Based on the format spec [1]_.
 
@@ -368,7 +376,9 @@ class AEDatFileIO(DVSFileIO):
         if len(buf) > 0:
             warnings.warn("Mangled event at end of %r" % (self.file_path,))
 
-        etuple = lambda e: (e.y, e.x, e.polarity, e.trigger, e.t)
+        def etuple(e):
+            return (e.y, e.x, e.polarity, e.trigger, e.t)
+
         dvs_events = DVSEvents() if dvs_events is None else dvs_events
         dvs_events.init_events(event_data=[etuple(e) for e in raw_events])
 

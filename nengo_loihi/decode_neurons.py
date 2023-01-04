@@ -8,7 +8,8 @@ from nengo_loihi.neurons import LoihiSpikingRectifiedLinear
 
 
 class DecodeNeurons:
-    """Defines parameters for a group of decode neurons.
+    """
+    Defines parameters for a group of decode neurons.
 
     DecodeNeurons are used on the chip to facilitate NEF-style connections,
     where activities from a neural ensemble are first transformed into a
@@ -29,7 +30,8 @@ class DecodeNeurons:
         return "%s(dt=%0.3g)" % (type(self).__name__, self.dt)
 
     def get_block(self, weights, block_label=None, syn_label=None):
-        """Get a LoihiBlock for implementing neurons on the chip.
+        """
+        Get a LoihiBlock for implementing neurons on the chip.
 
         Parameters
         ----------
@@ -52,7 +54,8 @@ class DecodeNeurons:
         raise NotImplementedError()
 
     def get_ensemble(self, dim, add_to_container=True):
-        """Get a Nengo Ensemble for implementing neurons on the host.
+        """
+        Get a Nengo Ensemble for implementing neurons on the host.
 
         Parameters
         ----------
@@ -69,7 +72,8 @@ class DecodeNeurons:
         raise NotImplementedError()
 
     def get_post_encoders(self, encoders):
-        """Encoders for post population that these neurons connect in to.
+        """
+        Encoders for post population that these neurons connect in to.
 
         Parameters
         ----------
@@ -89,7 +93,8 @@ class DecodeNeurons:
         raise NotImplementedError()
 
     def get_post_inds(self, inds, d):
-        """Indices for mapping neurons to post-encoder dimensions.
+        """
+        Indices for mapping neurons to post-encoder dimensions.
 
         Parameters
         ----------
@@ -105,7 +110,8 @@ class DecodeNeurons:
 
 
 class OnOffDecodeNeurons(DecodeNeurons):
-    """One or more pairs of on/off neurons per dimension.
+    """
+    One or more pairs of on/off neurons per dimension.
 
     In this class itself, all the pairs in a dimension are identical. It can
     still be advantageous to have more than one pair per dimension, though,
@@ -205,7 +211,8 @@ class OnOffDecodeNeurons(DecodeNeurons):
 
 
 class NoisyDecodeNeurons(OnOffDecodeNeurons):
-    """Uses multiple on/off neuron pairs per dimension, plus noise.
+    """
+    Uses multiple on/off neuron pairs per dimension, plus noise.
 
     The noise allows each on-off neuron pair to do something different. The
     population average is a better representation of the encoded value
@@ -255,7 +262,8 @@ class NoisyDecodeNeurons(OnOffDecodeNeurons):
 
 
 class Preset5DecodeNeurons(OnOffDecodeNeurons):
-    """Uses five heterogeneous on/off pairs with pre-set values per dimension.
+    """
+    Uses five heterogeneous on/off pairs with pre-set values per dimension.
 
     The script for configuring these values can be found at:
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py
@@ -289,7 +297,8 @@ class Preset5DecodeNeurons(OnOffDecodeNeurons):
 
 
 class Preset10DecodeNeurons(OnOffDecodeNeurons):
-    """Uses ten heterogeneous on/off pairs with pre-set values per dimension.
+    """
+    Uses ten heterogeneous on/off pairs with pre-set values per dimension.
 
     The script for configuring these values can be found at:
         nengo-loihi-sandbox/utils/interneuron_unidecoder_design.py

@@ -2,7 +2,8 @@ import nengo_loihi
 
 
 def make_test_sim(request):
-    """A Simulator factory to be used in tests.
+    """
+    A Simulator factory to be used in tests.
 
     The factory allows simulator arguments to be controlled via pytest command line
     arguments.
@@ -14,7 +15,7 @@ def make_test_sim(request):
     target = request.config.getoption("--target")
 
     def TestSimulator(net, *args, **kwargs):
-        """Simulator constructor to be used in tests"""
+        """Simulator constructor to be used in tests."""
         kwargs.setdefault("target", target)
         return nengo_loihi.Simulator(net, *args, **kwargs)
 

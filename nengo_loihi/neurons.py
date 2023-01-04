@@ -56,7 +56,8 @@ install_dl_builders = Installer()
 
 
 def discretize_tau_rc(tau_rc, dt):
-    """Discretize tau_rc as per discretize_compartment.
+    """
+    Discretize tau_rc as per discretize_compartment.
 
     Parameters
     ----------
@@ -73,7 +74,8 @@ def discretize_tau_rc(tau_rc, dt):
 
 
 def discretize_tau_ref(tau_ref, dt):
-    """Discretize tau_ref as per Compartment.configure_lif.
+    """
+    Discretize tau_ref as per Compartment.configure_lif.
 
     Parameters
     ----------
@@ -141,7 +143,7 @@ def loihi_rates(neuron_type, x, gain, bias, dt):
 
 
 def nengo_rates(neuron_type, x, gain, bias):
-    """Call NeuronType.rates with Nengo 3.0 broadcasting rules"""
+    """Call NeuronType.rates with Nengo 3.0 broadcasting rules."""
     x, gain, bias = _broadcast_rates_inputs(x, gain, bias)
     return neuron_type.rates(x, gain, bias)
 
@@ -154,7 +156,8 @@ loihi_rate_functions = {
 
 
 class LoihiLIF(LIF):
-    """Simulate LIF neurons as done by Loihi.
+    """
+    Simulate LIF neurons as done by Loihi.
 
     On Loihi, the inter-spike interval has to be an integer. This causes
     aliasing the firing rates where a wide variety of inputs can produce the
@@ -220,12 +223,13 @@ class LoihiLIF(LIF):
 
 
 class LoihiSpikingRectifiedLinear(SpikingRectifiedLinear):
-    """Simulate spiking rectified linear neurons as done by Loihi.
+    """
+    Simulate spiking rectified linear neurons as done by Loihi.
 
-    On Loihi, the inter-spike interval has to be an integer. This causes
-    aliasing in the firing rates such that a wide variety of inputs produce the
-    same output firing rate. This class reproduces this effect. It can be used
-    in e.g. ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.
+    On Loihi, the inter-spike interval has to be an integer. This causes aliasing
+    in the firing rates such that a wide variety of inputs produce the same
+    output firing rate. This class reproduces this effect. It can be used in e.g.
+    ``nengo`` or ``nengo_dl`` to reproduce these unique Loihi effects.
     """
 
     state = {

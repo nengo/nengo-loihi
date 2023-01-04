@@ -286,7 +286,7 @@ def test_pop_tiny(pop_type, channels_last, nc, request, plt, seed, allclose):
 @pytest.mark.requires_multichip_snips
 def test_conv2d_weights(padding, channels_last, request, plt, seed, rng, allclose):
     def loihi_rates_n(neuron_type, x, gain, bias, dt):
-        """Compute Loihi rates on higher dimensional inputs"""
+        """Compute Loihi rates on higher dimensional inputs."""
         y = x.reshape((-1, x.shape[-1]))
         gain = np.asarray(gain)
         bias = np.asarray(bias)
@@ -657,10 +657,11 @@ def test_conv_deepnet(
     plt,
     allclose,
 ):
-    """Run a convolutional network with two layers on the chip.
+    """
+    Run a convolutional network with two layers on the chip.
 
-    Checks that network with block splitting on the target matches one without
-    on the emulator.
+    Checks that network with block splitting on the target matches one without on
+    the emulator.
     """
 
     def conv_layer(
@@ -1204,9 +1205,11 @@ def test_conv_overlap_input(Simulator, plt):
 def test_chip_population_axons(
     on_chip, precompute, pop_type, channels_last, n_filters0, n_filters1, Simulator, rng
 ):
-    """Check that all types of population axons work as inputs or between cores.
+    """
+    Check that all types of population axons work as inputs or between cores.
 
-    Also, on the chip, dummy axons were still having an effect. Check this is fixed.
+    Also, on the chip, dummy axons were still having an effect. Check this is
+    fixed.
     """
 
     def conv_layer(input=None, label=None, **kwargs):
@@ -1293,7 +1296,8 @@ def test_chip_population_axons(
 
 
 def test_pop16_extra_atom_bits_error(request, Simulator):
-    """pop16 extra atom bits currently not supported on NxSDK (current as of 0.9.8)
+    """
+    pop16 extra atom bits currently not supported on NxSDK (current as of 0.9.8)
 
     When this feature is enabled on NxSDK, testing for this should be enabled in
     ``test_chip_population_axons``.
@@ -1435,7 +1439,7 @@ def test_conv_chip2host(Simulator):
 @pytest.mark.parametrize("channels_last", [True, False])
 @pytest.mark.parametrize("padding", ["valid", "same"])
 def test_upsample22(padding, channels_last, Simulator, rng, plt, allclose):
-    """Basic test of ConvolutionTranspose on Loihi"""
+    """Basic test of ConvolutionTranspose on Loihi."""
 
     a_max_rate = b_max_rate = 50.0
     a_neuron_type = b_neuron_type = nengo_loihi.LoihiSpikingRectifiedLinear()

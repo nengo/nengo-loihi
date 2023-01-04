@@ -3,10 +3,11 @@ import scipy.sparse
 
 
 def expand_matrix(matrix, shape):
-    """Ensure matrix is 2-D of the given shape, make it sparse diagonal if not.
+    """
+    Ensure matrix is 2-D of the given shape, make it sparse diagonal if not.
 
-    If the matrix is 0-D or 1-D, ensure it's square and make it a diagonal
-    sparse matrix. Otherwise, just check the shape.
+    If the matrix is 0-D or 1-D, ensure it's square and make it a diagonal sparse
+    matrix. Otherwise, just check the shape.
     """
     if matrix.ndim < 2:
         assert shape[0] == shape[1]

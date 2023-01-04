@@ -1,4 +1,4 @@
-"""Break apart LoihiBlocks too large to fit on a single core. """
+"""Break apart LoihiBlocks too large to fit on a single core."""
 
 import itertools
 import logging
@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class IndicesList(Sequence):
-    """A list that uses an equivalent set for fast existence checking.
+    """
+    A list that uses an equivalent set for fast existence checking.
 
     This class is typically used for lists of integer indices. It makes some
     assumptions based on this use case, specifically that ``values`` is ordered
@@ -72,7 +73,8 @@ def ceil_div(a, b):
 
 
 def split_model(model):  # noqa: C901
-    """Split blocks in the given model that exceed the hardware constraints.
+    """
+    Split blocks in the given model that exceed the hardware constraints.
 
     Will split any block that has more than the allowable number of compartments,
     input or output axons, or weight memory usage.
@@ -151,7 +153,7 @@ def split_model(model):  # noqa: C901
 
 
 def split_probe(probe, block_map, synapse_map, validate=ValidationLevel.MINIMAL):
-    """Modify probe in place to target new blocks"""
+    """Modify probe in place to target new blocks."""
     assert len(probe.target) == len(probe.slice) == len(probe.weights) == 1
     old_block = probe.target[0]
     old_weights = probe.weights[0]
@@ -262,7 +264,8 @@ def split_input_axons(input, block_map, synapse_map):
 
 
 def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
-    """Split one old axon into multiple axons, each going to one of the new synapses.
+    """
+    Split one old axon into multiple axons, each going to one of the new synapses.
 
     Parameters
     ----------
@@ -326,7 +329,7 @@ def split_axon(old_axon, old_axon_idxs, old_atoms, new_synapses):
 
 
 def split_block(old_block, block_shapes, validate=ValidationLevel.MINIMAL):
-    """Break a block apart into smaller blocks, each able to fit on one core"""
+    """Break a block apart into smaller blocks, each able to fit on one core."""
     n_compartments = old_block.compartment.n_compartments
     n_in_axons = sum(synapse.n_axons for synapse in old_block.synapses)
     n_out_axons = sum(axon.axon_slots() for axon in old_block.axons)
@@ -429,7 +432,8 @@ def split_block(old_block, block_shapes, validate=ValidationLevel.MINIMAL):
 
 
 def split_synapse(old_block, old_synapse, new_blocks, validate=ValidationLevel.MINIMAL):
-    """Break a synapse apart to work with new blocks
+    """
+    Break a synapse apart to work with new blocks.
 
     Parameters
     ----------

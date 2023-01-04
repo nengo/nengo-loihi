@@ -23,13 +23,15 @@ from nengo_loihi.decode_neurons import (
     ],
 )
 def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
-    """Test the addition of two inputs with DecodeNeurons.
+    """
+    Test the addition of two inputs with DecodeNeurons.
 
-    This test forms the basis for the scale factors for Preset5DecodeNeurons
-    and Preset10DecodeNeurons. It is unclear exactly why these scale factors help.
-    The best values depend on the exact inputs below, as well as the seed used for
-    this test. More testing is needed to find optimal scale factors, or (ideally)
-    get rid of them completely if we can better understand the underlying mechanics.
+    This test forms the basis for the scale factors for Preset5DecodeNeurons and
+    Preset10DecodeNeurons. It is unclear exactly why these scale factors help.
+    The best values depend on the exact inputs below, as well as the seed used
+    for this test. More testing is needed to find optimal scale factors, or
+    (ideally) get rid of them completely if we can better understand the
+    underlying mechanics.
     """
 
     sim_time = 2.0
@@ -97,7 +99,9 @@ def test_add_inputs(decode_neurons, tolerance, Simulator, seed, plt):
 def test_node_neurons(decode_neurons, tolerance, Simulator, seed, plt):
     sim_time = 0.2
 
-    stim_fn = lambda t: 0.9 * np.sin(2 * np.pi * t / sim_time)
+    def stim_fn(t):
+        return 0.9 * np.sin(2 * np.pi * t / sim_time)
+
     out_synapse = nengo.Alpha(0.03)
     stim_synapse = out_synapse.combine(nengo.Alpha(0.005))
 

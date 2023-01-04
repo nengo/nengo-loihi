@@ -199,7 +199,7 @@ def test_transform_errors(Simulator):
 
 @pytest.mark.slow
 def test_cluster_errors(Simulator, seed, plt):
-    """Test that situations with ClusterErrors keep passthrough nodes"""
+    """Test that situations with ClusterErrors keep passthrough nodes."""
     simtime = 0.2
 
     def make_net(learn_error=False, loop=False):

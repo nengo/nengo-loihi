@@ -1,7 +1,8 @@
-"""Test block splitting (``split_blocks.py``).
+"""
+Test block splitting (``split_blocks.py``).
 
-See ``test_conv.py:test_conv_deepnet`` for a test with block splitting
-in a deep convnet.
+See ``test_conv.py:test_conv_deepnet`` for a test with block splitting in a deep
+convnet.
 """
 
 import nengo
@@ -12,7 +13,8 @@ import nengo_loihi
 
 
 def test_split_ensembles(Simulator, seed, rng, plt, allclose):
-    b_fn = lambda x: x**2
+    def b_fn(x):
+        return x**2
 
     with nengo.Network(seed=seed) as net:
         nengo_loihi.add_params(net)
@@ -80,17 +82,18 @@ def test_split_ensembles(Simulator, seed, rng, plt, allclose):
 
 @pytest.mark.parametrize("n_neurons", [8, 40, 200])
 def test_split_probe(allclose, n_neurons, plt, seed, Simulator):
-    """Tests combining "transformed" probes that are split across multiple blocks.
+    """
+    Tests combining "transformed" probes that are split across multiple blocks.
 
-    "Transformed" probes occur when probing decoded values from an ensemble.
-    The values that are actually probed are the voltages from two compartments
-    per dimensions on a block, one tuned positively and one negatively for each
+    "Transformed" probes occur when probing decoded values from an ensemble. The
+    values that are actually probed are the voltages from two compartments per
+    dimensions on a block, one tuned positively and one negatively for each
     dimension. Therefore, in order to split the decoded values across two blocks,
-    we need to probe an ensemble with more than 512 dimensions, since a block
-    can contain 1024 compartments. A real ensemble (i.e., one that would represent
-    a 513-dimensional signal reliably) would take a long time to build and simulate,
-    so we instead use an undersized ensemble and expect it to do a poor job
-    representing its input. To ensure the behavior is approximately correct,
+    we need to probe an ensemble with more than 512 dimensions, since a block can
+    contain 1024 compartments. A real ensemble (i.e., one that would represent a
+    513-dimensional signal reliably) would take a long time to build and
+    simulate, so we instead use an undersized ensemble and expect it to do a poor
+    job representing its input. To ensure the behavior is approximately correct,
     we compare it to the same network simulated with Nengo core.
     """
 

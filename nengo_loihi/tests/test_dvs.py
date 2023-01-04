@@ -178,7 +178,8 @@ def test_dvs_file_chip_node(
             image += sim.data[p1][m].sum(axis=0).reshape(h, w) * sim.dt
             images_sim[sim_name].append(image)
 
-    normalized_image = lambda image: image / np.abs(image).max()
+    def normalized_image(image):
+        return image / np.abs(image).max()
 
     rows, cols = 1 + len(sims), len(images_ref)
     for j in range(len(images_ref)):
@@ -279,7 +280,8 @@ def test_dvs_errors(tmpdir):
 
 
 def write_aedat_file(file_path, dvs_events, random_header=True, mangle_last=False):
-    """Write a basic AEDat file with the given events.
+    """
+    Write a basic AEDat file with the given events.
 
     This is not a valid AEDat file, but just the most basic that will work with
     ``AEDatFileIO.read_events``.

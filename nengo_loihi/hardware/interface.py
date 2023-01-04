@@ -38,7 +38,8 @@ def roundup(a, b):
 
 
 class HardwareInterface:
-    """Place a Model onto a Loihi board and run it.
+    """
+    Place a Model onto a Loihi board and run it.
 
     Parameters
     ----------
@@ -165,7 +166,7 @@ class HardwareInterface:
         self.closed = True
 
     def collect_probe_output(self, probe):
-        """Get and clear output from a particular probe"""
+        """Get and clear output from a particular probe."""
         assert isinstance(probe, LoihiProbe)
         communicator = self.snips if self.use_snips else self.no_snips
         out = communicator.collect_probe_output(probe)
@@ -283,7 +284,6 @@ class NoSnips:
 
 
 class Snips:
-
     channel_packet_elements = 64  # size of channel packets in int32s
     channel_bytes_per_element = 4  # bytes per int32 (channel packets element size)
     packet_bytes = channel_packet_elements * channel_bytes_per_element
@@ -470,7 +470,8 @@ class Snips:
 
 
 class ChipSnips:
-    """Track information for creating Snips for each chip.
+    """
+    Track information for creating Snips for each chip.
 
     Attributes
     ----------
@@ -792,7 +793,8 @@ class HostSnip:
 
 
 class SpikePacker:
-    """Packs spikes for sending to chip
+    """
+    Packs spikes for sending to chip.
 
     Currently represents a spike as two int32s.
     """
@@ -801,7 +803,8 @@ class SpikePacker:
 
     @classmethod
     def pack(cls, spikes):
-        """Pack the spike into a tuple of 32-bit integers.
+        """
+        Pack the spike into a tuple of 32-bit integers.
 
         Parameters
         ----------

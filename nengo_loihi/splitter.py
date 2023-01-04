@@ -11,7 +11,8 @@ from nengo_loihi.passthrough import PassthroughSplit, base_obj
 
 
 class PrecomputableSplit:
-    """Find all objects that send data to chip, directly or indirectly.
+    """
+    Find all objects that send data to chip, directly or indirectly.
 
     To find these objects, we compute the transitive closure on all host objects
     that send data to chip, looking for objects that receive output from the chip,
@@ -144,7 +145,8 @@ class HostChipSplit:
         self._place_probes(network)
 
     def _place_nodes(self, network):
-        """Place nodes.
+        """
+        Place nodes.
 
         Nodes go on the host, unless they are `.ChipReceiveNode` or have a
         `.ChipProcess` output.
@@ -159,7 +161,8 @@ class HostChipSplit:
                 self.host_objs.add(node)
 
     def _place_ensembles(self, network):
-        """Place ensembles.
+        """
+        Place ensembles.
 
         Ensembles should go on the chip, unless:
 
@@ -211,7 +214,11 @@ class HostChipSplit:
                 self.chip_objs.remove(pre)
 
     def _place_probes(self, network):
-        """Place probes. Probes go where their probed object is."""
+        """
+        Place probes.
+
+        Probes go where their probed object is.
+        """
 
         for probe in network.all_probes:
             obj = base_obj(probe.target)
@@ -236,7 +243,8 @@ class HostChipSplit:
 
 
 class Split:
-    """Creates a set of directives to guide the builder.
+    """
+    Creates a set of directives to guide the builder.
 
     Parameters
     ----------

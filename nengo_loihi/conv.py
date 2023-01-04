@@ -8,7 +8,8 @@ from nengo_loihi.compat import is_transform_type
 
 
 class ImageSlice:
-    """Represents a slice of a larger image across rows/columns/channels.
+    """
+    Represents a slice of a larger image across rows/columns/channels.
 
     Parameters
     ----------
@@ -107,7 +108,8 @@ def split_channels(shape, max_size=None, max_channels=1024):
 
 
 def channel_idxs(shape):
-    """Return the channel indices (atoms) for this image shape.
+    """
+    Return the channel indices (atoms) for this image shape.
 
     Parameters
     ----------
@@ -123,7 +125,8 @@ def channel_idxs(shape):
 
 
 def pixel_idxs(shape):
-    """Return the pixel indices for this image shape.
+    """
+    Return the pixel indices for this image shape.
 
     Parameters
     ----------

@@ -23,7 +23,8 @@ def pes_network(
         input_scale = np.linspace(1, 0, dims + 1)[:-1]
     assert input_scale.size == dims
 
-    input_fn = lambda t: np.sin(t * 2 * np.pi / period) * input_scale
+    def input_fn(t):
+        return np.sin(t * 2 * np.pi / period) * input_scale
 
     probes = {}
     with nengo.Network(seed=seed) as model:
@@ -251,7 +252,7 @@ def test_multiple_pes(init_function, request, allclose, plt, seed, Simulator):
 @pytest.mark.slow
 @pytest.mark.requires_multichip_snips
 def test_pes_deterministic(Simulator, seed, allclose):
-    """Ensure that learning output is the same between runs"""
+    """Ensure that learning output is the same between runs."""
     # Make a network with lots of objects, so dictionary order has an effect
     n_errors = 3
     targets = np.linspace(-0.8, 0.95, n_errors)

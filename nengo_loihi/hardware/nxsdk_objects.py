@@ -10,7 +10,7 @@ MAX_SYNAPSE_CFGS = 8
 
 
 class Board:
-    """An entire Loihi Board, with multiple Chips"""
+    """An entire Loihi Board, with multiple Chips."""
 
     def __init__(self, board_id=1):
         self.board_id = board_id
@@ -228,7 +228,8 @@ class Core:
 
 
 class LoihiSpikeInput:
-    """Stores information needed to send spikes to the actual chip.
+    """
+    Stores information needed to send spikes to the actual chip.
 
     This acts as a bridge between a SpikeInput and the actual chip.
     It maps positions in the spike input to actual locations on the chip.
@@ -302,7 +303,8 @@ class LoihiSpikeInput:
         self.axon_map = {}  # maps spike_input idx to axon in self.axons
 
     def set_axons(self, board, nxsdk_board, spike_input):
-        """Initialize the axon map for this object.
+        """
+        Initialize the axon map for this object.
 
         Parameters
         ----------
@@ -346,7 +348,8 @@ class LoihiSpikeInput:
                 )
 
     def spikes_to_loihi(self, input_idxs):
-        """Map spike input indices to axons targeting chip locations.
+        """
+        Map spike input indices to axons targeting chip locations.
 
         Parameters
         ----------
@@ -377,7 +380,8 @@ class CompartmentConfig(Config):
 
 
 class VthConfig(Config):
-    """Represents the Vth config information of a compartment.
+    """
+    Represents the Vth config information of a compartment.
 
     Attributes
     ----------

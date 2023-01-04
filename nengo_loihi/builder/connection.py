@@ -93,7 +93,7 @@ def build_connection(model, conn):
 
 
 def build_host_neurons_to_chip(model, conn):
-    """Send spikes over and do the rest of the connection on-chip"""
+    """Send spikes over and do the rest of the connection on-chip."""
 
     assert not isinstance(conn.post, LearningRule)
     dim = conn.size_in
@@ -429,7 +429,7 @@ def build_chip_connection(model, conn):
 
 
 def build_full_chip_connection(model, conn):  # noqa: C901
-    """Build dense or sparse connections on-chip"""
+    """Build dense or sparse connections on-chip."""
 
     # Create random number generator
     rng = np.random.RandomState(model.seeds[conn])

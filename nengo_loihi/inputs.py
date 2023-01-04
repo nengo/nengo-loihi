@@ -40,7 +40,9 @@ class SpikeInput(LoihiInput):
 
 
 class ChipProcess(Process, metaclass=ABCMeta):
-    """Abstract base class for Node processes to be placed on the Loihi board.
+    """
+    Abstract base class for Node processes to be placed on the Loihi board.
 
-    Such processes must then have a NengoLoihi builder to put them on the Loihi board.
+    Such processes must then have a NengoLoihi builder to put them on the Loihi
+    board.
     """

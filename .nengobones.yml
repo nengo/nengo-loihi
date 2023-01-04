@@ -79,7 +79,6 @@ setup_cfg:
       - compat.py
     disable:
       # TODO: fix these and start checking for them
-      - bad-continuation
       - broad-except
       - cell-var-from-loop
       - consider-using-enumerate

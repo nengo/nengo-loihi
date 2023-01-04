@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class Simulator:
-    """NengoLoihi simulator for Loihi hardware and emulator.
+    """
+    NengoLoihi simulator for Loihi hardware and emulator.
 
     The simulator takes a `nengo.Network` and builds internal data structures
     to run the model defined by that network on Loihi emulator or hardware.
@@ -96,7 +97,6 @@ class Simulator:
         When *precompute* is False, the simulator will be run one step
         at a time in order to use model outputs as inputs in other parts
         of the model.
-
     """
 
     def __init__(  # noqa: C901
@@ -259,11 +259,12 @@ class Simulator:
         self.data.reset()  # clear probe cache
 
     def close(self):
-        """Closes the simulator.
+        """
+        Closes the simulator.
 
-        Any call to `.Simulator.run`, `.Simulator.run_steps`,
-        `.Simulator.step`, and `.Simulator.reset` on a closed simulator raises
-        a ``SimulatorClosed`` exception.
+        Any call to `.Simulator.run`, `.Simulator.run_steps`, `.Simulator.step`,
+        and `.Simulator.reset` on a closed simulator raises a ``SimulatorClosed``
+        exception.
         """
 
         for sim in self.sims.values():
@@ -291,7 +292,8 @@ class Simulator:
         self._time = self._n_steps * self.dt
 
     def reset(self, seed=None):
-        """Reset the simulator state.
+        """
+        Reset the simulator state.
 
         Parameters
         ----------
@@ -311,7 +313,8 @@ class Simulator:
         raise NotImplementedError()
 
     def run(self, time_in_seconds):
-        """Simulate for the given length of time.
+        """
+        Simulate for the given length of time.
 
         If the given length of time is not a multiple of ``dt``,
         it will be rounded to the nearest ``dt``. For example, if ``dt``
@@ -349,7 +352,8 @@ class Simulator:
             self.run_steps(steps)
 
     def run_steps(self, steps):
-        """Simulate for the given number of ``dt`` steps.
+        """
+        Simulate for the given number of ``dt`` steps.
 
         Parameters
         ----------
@@ -369,7 +373,8 @@ class Simulator:
         self.run_steps(1)
 
     def trange(self, sample_every=None, dt=None):
-        """Create a vector of times matching probed data.
+        """
+        Create a vector of times matching probed data.
 
         Note that the range does not start at 0 as one might expect, but at
         the first timestep (i.e., ``dt``).
@@ -431,7 +436,7 @@ class StepRunner:
 
     @staticmethod
     def _get_step_f(op, sim):
-        """Returns a Process's step function given the SimProcess op and Simulator"""
+        """Returns a Process's step function given the SimProcess op and Simulator."""
         step_ix = sim._step_order.index(op)
         step_f = sim._steps[step_ix]
         return inspect.getclosurevars(step_f).nonlocals["step_f"]
@@ -634,12 +639,13 @@ class Timers(Mapping):
 
 
 class SimulationData(NengoSimulationData):  # pylint: disable=too-many-ancestors
-    """Map from Probe -> ndarray
+    """
+    Map from Probe -> ndarray.
 
-    This is more like a view on the dict that the simulator manipulates.
-    However, for speed reasons, the simulator uses Python lists,
-    and we want to return NumPy arrays. Additionally, this mapping
-    is readonly, which is more appropriate for its purpose.
+    This is more like a view on the dict that the simulator manipulates. However,
+    for speed reasons, the simulator uses Python lists, and we want to return
+    NumPy arrays. Additionally, this mapping is readonly, which is more
+    appropriate for its purpose.
     """
 
     def __init__(self, raw):

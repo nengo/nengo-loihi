@@ -12,7 +12,8 @@ MAX_SYNAPSE_BITS = 16384 * 64
 
 
 class LoihiBlock:
-    """Class holding Loihi objects that can be placed on the chip.
+    """
+    Class holding Loihi objects that can be placed on the chip.
 
     This class can be thought of as a block of the Loihi board, and is how
     NengoLoihi keeps track of how Loihi Neuron cores will be configured.
@@ -66,7 +67,8 @@ class LoihiBlock:
         self.axons.append(axon)
 
     def utilization(self):
-        """Measure utilization of core resources by the block.
+        """
+        Measure utilization of core resources by the block.
 
         Returns
         -------
@@ -101,7 +103,8 @@ class Config:
 
 
 class Compartment:
-    """Stores information for configuring Loihi compartments.
+    """
+    Stores information for configuring Loihi compartments.
 
     The information stored here will be associated with some block,
     and all compartments will share certain information.
@@ -188,7 +191,8 @@ class Compartment:
         return "%s(%s)" % (type(self).__name__, self.label if self.label else "")
 
     def configure_default_filter(self, tau_s, dt=0.001):
-        """Set the default Lowpass synaptic input filter for compartments.
+        """
+        Set the default Lowpass synaptic input filter for compartments.
 
         Parameters
         ----------
@@ -201,7 +205,8 @@ class Compartment:
             self._configure_filter(tau_s, dt=dt)
 
     def configure_filter(self, tau_s, dt=0.001):
-        """Set Lowpass synaptic input filter for compartments.
+        """
+        Set Lowpass synaptic input filter for compartments.
 
         Parameters
         ----------
@@ -235,7 +240,8 @@ class Compartment:
             )
 
     def configure_lif(self, tau_rc=0.02, tau_ref=0.001, vth=1, dt=0.001, min_voltage=0):
-        """Configure these compartments as individual LIF neurons.
+        """
+        Configure these compartments as individual LIF neurons.
 
         Parameters
         ----------
@@ -264,7 +270,8 @@ class Compartment:
             )
 
     def configure_nonspiking(self, tau_ref=0.0, vth=1, dt=0.001):
-        """Configure these compartments as individual non-spiking neurons.
+        """
+        Configure these compartments as individual non-spiking neurons.
 
         Parameters
         ----------
@@ -284,7 +291,8 @@ class Compartment:
         self.scale_v = False
 
     def configure_relu(self, tau_ref=0.0, vth=1, dt=0.001):
-        """Configure these compartments as individual Rectified Linear neurons.
+        """
+        Configure these compartments as individual Rectified Linear neurons.
 
         These are also known as non-leaky integrate-and-fire neurons. The
         voltage is the integral of the input current.
@@ -308,7 +316,8 @@ class Compartment:
 
 
 class Axon:
-    """A group of axons targeting a specific Synapse object.
+    """
+    A group of axons targeting a specific Synapse object.
 
     Attributes
     ----------
@@ -323,7 +332,8 @@ class Axon:
     """
 
     class Spike:
-        """A spike targeting a particular axon within a Synapse object.
+        """
+        A spike targeting a particular axon within a Synapse object.
 
         The Synapse target is implicit, given by the Axon object that
         creates this Spike.
@@ -397,7 +407,8 @@ class Axon:
         ]
 
     def set_compartment_axon_map(self, target_axons, atoms=None):
-        """Set mapping from compartments to axons in target.
+        """
+        Set mapping from compartments to axons in target.
 
         Parameters
         ----------
@@ -514,7 +525,7 @@ class SynapseConfig(Config):
         return 8 - self.real_weight_bits + self.is_mixed
 
     def bits_per_axon(self, n_weights):
-        """For an axon with n weights, compute the weight memory bits used"""
+        """For an axon with n weights, compute the weight memory bits used."""
         bits_per_weight = self.real_weight_bits + self.delay_bits + self.tag_bits
         if self.compression == 0:
             bits_per_weight += self.real_idx_bits
@@ -544,7 +555,8 @@ class SynapseConfig(Config):
 
 
 class Synapse:
-    """A group of Loihi synapses that share some properties.
+    """
+    A group of Loihi synapses that share some properties.
 
     Attributes
     ----------
@@ -619,7 +631,8 @@ class Synapse:
             return 12
 
     def axon_compartment_base(self, axon_idx):
-        """Offset for compartment indices for a particular axon.
+        """
+        Offset for compartment indices for a particular axon.
 
         A return value of ``None`` indicates the axon is unused.
         """
@@ -681,7 +694,8 @@ class Synapse:
         return max(np.abs(w).max() if w.size > 0 else -np.inf for w in self.weights)
 
     def max_ind(self):
-        """The maximum compartment index in weight memory.
+        """
+        The maximum compartment index in weight memory.
 
         Does not include ``axon_compartment_base``.
         """

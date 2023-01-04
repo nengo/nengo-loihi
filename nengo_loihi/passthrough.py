@@ -29,14 +29,15 @@ class ClusterError(NengoException):
 
 
 class Cluster:
-    """A collection of passthrough Nodes directly connected to each other.
+    """
+    A collection of passthrough Nodes directly connected to each other.
 
     When removing passthrough Nodes, we often have large chains of Nodes that
     should be removed together. That is, we tend to have a directed graph,
     starting with inputs coming from Ensembles and non-passthrough Nodes, and
-    ending in Ensembles and non-passthrough Nodes. This Cluster object
-    represents this collection of passthrough Nodes and allows us to remove
-    them all at once.
+    ending in Ensembles and non-passthrough Nodes. This Cluster object represents
+    this collection of passthrough Nodes and allows us to remove them all at
+    once.
     """
 
     def __init__(self, obj):
@@ -47,7 +48,7 @@ class Cluster:
         self.probed_objs = set()  # Nodes that have Probes on them
 
     def merge_with(self, other):
-        """Combine this Cluster with another Cluster"""
+        """Combine this Cluster with another Cluster."""
         self.objs.update(other.objs)
         self.conns_in.update(other.conns_in)
         self.conns_out.update(other.conns_out)
@@ -55,7 +56,8 @@ class Cluster:
         self.probed_objs.update(other.probed_objs)
 
     def merge_transforms(self, node, sizes, transforms, slices):
-        """Return an equivalent transform to the two provided transforms.
+        """
+        Return an equivalent transform to the two provided transforms.
 
         This is for finding a transform that converts this::
 
@@ -69,7 +71,6 @@ class Cluster:
             a = nengo.Node(size1)
             b = nengo.Node(size2)
             nengo.Connection(a, b, transform=t)
-
         """
 
         def format_transform(size, transform):
@@ -125,7 +126,8 @@ class Cluster:
             return Lowpass(syn1.tau + syn2.tau)
 
     def generate_from(self, obj, outputs, previous=None):
-        """Generates all direct Connections from obj out of the Cluster.
+        """
+        Generates all direct Connections from obj out of the Cluster.
 
         This is a recursive process, starting at this obj (a Node within the
         Cluster) and iterating to find all outputs and all probed Nodes
@@ -136,7 +138,6 @@ class Cluster:
 
             nengo.Connection(
                 obj[pre_slice], post, transform=trans, synapse=syn)
-
         """
         previous = [] if previous is None else previous
         if obj not in outputs:
@@ -170,7 +171,6 @@ class Cluster:
                 for pre_slice, transform, synapse, post in self.generate_from(
                     c.post_obj, outputs, previous=previous + [obj]
                 ):
-
                     syn = self.merge_synapses(c.synapse, synapse)
                     trans = self.merge_transforms(
                         c.post_obj,
@@ -219,12 +219,12 @@ class Cluster:
 
 
 class PassthroughSplit:
-    """Create a set of Connections that could replace the passthrough Nodes.
+    """
+    Create a set of Connections that could replace the passthrough Nodes.
 
-    This does not actually modify the Network, but instead returns the
-    set of passthrough Nodes to be removed, the Connections to be removed,
-    and the Connections that should be added to replace the Nodes and
-    Connections.
+    This does not actually modify the Network, but instead returns the set of
+    passthrough Nodes to be removed, the Connections to be removed, and the
+    Connections that should be added to replace the Nodes and Connections.
     """
 
     def __init__(self, network, hostchip):

@@ -6,7 +6,8 @@ from nengo_loihi.compat import make_process_step
 
 
 class LoihiProbe:
-    """Record data from one or more LoihiBlock target states.
+    """
+    Record data from one or more LoihiBlock target states.
 
     To get the final output of the probe:
 
@@ -117,7 +118,8 @@ class LoihiProbe:
             return sum(sizes)
 
     def weight_outputs(self, outputs):
-        """Apply weights and reindexing to the target outputs.
+        """
+        Apply weights and reindexing to the target outputs.
 
         We assume that probe slices have already been applied, since these are typically
         performed when collecting the target outputs

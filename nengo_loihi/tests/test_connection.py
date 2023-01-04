@@ -12,7 +12,9 @@ from nengo_loihi.neurons import nengo_rates
 @pytest.mark.parametrize("weight_solver", [False, True])
 @pytest.mark.parametrize("target_value", [-0.75, 0.4, 1.0])
 def test_ens_ens_constant(allclose, weight_solver, target_value, Simulator, seed, plt):
-    a_fn = lambda x: x + target_value
+    def a_fn(x):
+        return x + target_value
+
     solver = nengo.solvers.LstsqL2(weights=weight_solver)
 
     bnp = None
@@ -122,7 +124,6 @@ def test_neuron_to_neuron(Simulator, factor, do_pre_slice, sparse, seed, allclos
         transform = factor
 
     with nengo.Network(seed=seed) as net:
-
         stim = nengo.Node(lambda t: [np.sin(t * 2 * np.pi / simtime)])
         a = nengo.Ensemble(na, 1)
         nengo.Connection(stim, a)
@@ -257,7 +258,7 @@ def test_neurons_to_ensemble_transform(
 
 
 def test_dists(Simulator, seed):
-    """Check that distributions on connection transforms are handled correctly"""
+    """Check that distributions on connection transforms are handled correctly."""
 
     with nengo.Network(seed=seed) as net:
         a = nengo.Node([1])
@@ -330,8 +331,11 @@ def test_zero_activity_error(Simulator):
 
 
 def test_chip_to_host_function_points(Simulator, seed, plt, allclose):
-    """Connection from chip to host that computes a function using points"""
-    fn = lambda x: -x
+    """Connection from chip to host that computes a function using points."""
+
+    def fn(x):
+        return -x
+
     probe_syn = nengo.Lowpass(0.03)
     simtime = 0.3
 
@@ -365,7 +369,10 @@ def test_input_node(allclose, Simulator, val, type):
         if type == "array":
             input = [val]
         else:
-            input = lambda t: [val]
+
+            def input(t):
+                return [val]
+
         a = nengo.Node(input)
 
         b = nengo.Ensemble(100, 1)
@@ -651,7 +658,7 @@ def test_sparse_host_to_chip_error(Simulator):
 
 def test_chip_to_chip_transform_error(Simulator):
     class MyTransform(nengo.transforms.Transform):  # pylint: disable=abstract-method
-        """Dummy transform"""
+        """Dummy transform."""
 
         size_in = 1
         size_out = 1
@@ -716,7 +723,7 @@ def test_input_synapses(Simulator, allclose, plt):
 
 
 def test_sparse_transforms_empty_neurons(Simulator):
-    """Test that sparse transforms work properly, even if some neurons get no input"""
+    """Test that sparse transforms work properly, even if some neurons get no input."""
     n_neurons = 3
     transform = nengo.Sparse(
         shape=(n_neurons, n_neurons), indices=[(0, 0), (2, 2)], init=[1, 2]
@@ -750,7 +757,7 @@ def test_sparse_transforms_empty_neurons(Simulator):
 
 
 def test_single_neuron_connection(Simulator, allclose):
-    """Addresses https://github.com/nengo/nengo-loihi/issues/274"""
+    """Addresses https://github.com/nengo/nengo-loihi/issues/274."""
 
     max_rate = 50.0
     simtime = 0.4

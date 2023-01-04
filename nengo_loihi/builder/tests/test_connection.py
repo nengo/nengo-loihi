@@ -28,7 +28,6 @@ def test_split_conv2d_transform_error(Simulator):
 @pytest.mark.parametrize("learn", [True, False])
 @pytest.mark.parametrize("use_solver", [True, False])
 def test_manual_decoders(seed, Simulator, pre_dims, post_dims, learn, use_solver):
-
     with nengo.Network(seed=seed) as model:
         pre = nengo.Ensemble(
             50, dimensions=pre_dims, gain=np.ones(50), bias=np.ones(50) * 5

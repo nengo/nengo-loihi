@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class EmulatorInterface:
-    """Software emulator for Loihi chip behaviour.
+    """
+    Software emulator for Loihi chip behaviour.
 
     Parameters
     ----------
@@ -82,7 +83,7 @@ class EmulatorInterface:
         self.axons = None
 
     def collect_probe_output(self, probe):
-        """Collect and clear output from a particular probe"""
+        """Collect and clear output from a particular probe."""
         return self.probes.collect_probe_output(probe)
 
     def chip2host(self, probes_receivers):
@@ -99,7 +100,8 @@ class EmulatorInterface:
         self.synapses.update_pes_errors(errors)
 
     def run_steps(self, steps):
-        """Simulate for the given number of ``dt`` steps.
+        """
+        Simulate for the given number of ``dt`` steps.
 
         Parameters
         ----------
@@ -124,7 +126,8 @@ class EmulatorInterface:
 
 
 class BlockInfo:
-    """Provide information about all the LoihiBlocks in the model.
+    """
+    Provide information about all the LoihiBlocks in the model.
 
     Attributes
     ----------
@@ -163,7 +166,8 @@ class BlockInfo:
 
 
 class IterableState:
-    """Base class for aspects of the emulator state.
+    """
+    Base class for aspects of the emulator state.
 
     This class takes the name of a LoihiBlock attribute as the
     ``block_key`` and maps these objects to their parent blocks and slices.
@@ -387,7 +391,8 @@ class NoiseState(IterableState):
 
 
 class SynapseState(IterableState):
-    """State representing all synapses.
+    """
+    State representing all synapses.
 
     Attributes
     ----------
@@ -563,7 +568,8 @@ class AxonState(IterableState):
 
 
 class ProbeState:
-    """State representing all probes.
+    """
+    State representing all probes.
 
     Attributes
     ----------
@@ -596,7 +602,7 @@ class ProbeState:
         self.probe_filter = ProbeFilter(dt=dt)
 
     def collect_probe_output(self, probe):
-        """Collect and clear output from a particular probe"""
+        """Collect and clear output from a particular probe."""
         assert isinstance(probe, LoihiProbe)
         out = probe.weight_outputs(self.outputs[probe])
         out = self.probe_filter(probe, out)
@@ -608,7 +614,8 @@ class ProbeState:
             block_output.clear()
 
     def send(self, t, probe, receiver):
-        """Send probed data to the receiver node.
+        """
+        Send probed data to the receiver node.
 
         Returns
         -------

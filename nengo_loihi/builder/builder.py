@@ -23,7 +23,8 @@ class ValidationLevel(IntEnum):
 
 
 class Model:
-    """The data structure for the emulator/hardware simulator.
+    """
+    The data structure for the emulator/hardware simulator.
 
     Defines methods for adding inputs, blocks and probes. Also handles build
     functions, and information associated with building the Nengo model.
@@ -256,7 +257,8 @@ class Model:
             return self.host
 
     def utilization_summary(self):
-        r"""Summarize utilization info for all blocks.
+        r"""
+        Summarize utilization info for all blocks.
 
         Returns
         -------
@@ -300,11 +302,12 @@ class Model:
 
 
 class Builder(NengoBuilder):
-    """Fills in the Loihi Model object based on the Nengo Network.
+    """
+    Fills in the Loihi Model object based on the Nengo Network.
 
-    We cannot use the Nengo builder as is because we make normal Nengo
-    networks for host-to-chip and chip-to-host communication. To keep
-    Nengo and NengoLoihi builders separate, we make a subclass.
+    We cannot use the Nengo builder as is because we make normal Nengo networks
+    for host-to-chip and chip-to-host communication. To keep Nengo and NengoLoihi
+    builders separate, we make a subclass.
     """
 
     builders = {}

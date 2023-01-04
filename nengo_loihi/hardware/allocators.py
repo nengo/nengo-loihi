@@ -40,7 +40,7 @@ def compute_cfgs(core, list_cfgs):
 
 
 def core_compartment_cfgs(core):
-    """Compute all compartment_cfgs needed for a core"""
+    """Compute all compartment_cfgs needed for a core."""
 
     def list_compartment_cfgs(block):
         cfgs = []
@@ -60,7 +60,7 @@ def core_compartment_cfgs(core):
 
 
 def core_vth_cfgs(core):
-    """Compute all vth_cfgs needed for a core"""
+    """Compute all vth_cfgs needed for a core."""
 
     def list_vth_cfgs(block):
         cfgs = []
@@ -98,7 +98,8 @@ class Allocator:
     """Responsible for allocating the board's devices to models."""
 
     def block_to_new_core(self, block, chip):
-        """Assign a block to a new core on the chip.
+        """
+        Assign a block to a new core on the chip.
 
         Parameters
         ----------
@@ -132,7 +133,8 @@ class Allocator:
         core.stdp_cfg_idx = None  # hardware.builder will set
 
     def input_to_board(self, input, board):
-        """Assign an input to a board.
+        """
+        Assign an input to a board.
 
         Parameters
         ----------
@@ -149,7 +151,8 @@ class Allocator:
 
 
 class Greedy(Allocator):
-    """Assigns each block to distinct cores on as few chips as possible.
+    """
+    Assigns each block to distinct cores on as few chips as possible.
 
     Parameters
     ----------
@@ -195,7 +198,8 @@ class Greedy(Allocator):
 
 
 class RoundRobin(Allocator):
-    """Assigns each block to distinct cores on as many chips as possible.
+    """
+    Assigns each block to distinct cores on as many chips as possible.
 
     Each chip is used in round-robin order.
     """
@@ -227,7 +231,8 @@ class RoundRobin(Allocator):
 
 
 def ensemble_to_block_rates(model, ensemble_rates):
-    """Associates target ensemble firing rates with the correct blocks.
+    """
+    Associates target ensemble firing rates with the correct blocks.
 
     Parameters
     ----------
@@ -261,7 +266,8 @@ def ensemble_to_block_rates(model, ensemble_rates):
 
 
 def estimate_interblock_activity(block_map, block_rates=None):
-    """Estimate the amount of activity projected from one block to another.
+    """
+    Estimate the amount of activity projected from one block to another.
 
     If ``block_rates`` is not provided, we assume all axons are active.
 
@@ -315,7 +321,8 @@ def estimate_interblock_activity(block_map, block_rates=None):
 
 
 def estimate_interchip_activity(board, block_rates=None):
-    """Estimate the overall amount of interchip (and intrachip) activity.
+    """
+    Estimate the overall amount of interchip (and intrachip) activity.
 
     If ``block_rates`` is not provided, we assume all axons are active.
 
@@ -361,7 +368,8 @@ def estimate_interchip_activity(board, block_rates=None):
 
 
 class GreedyInterchip(Greedy):
-    """A variant of the `.Greedy` allocator that also minimizes interchip activity.
+    """
+    A variant of the `.Greedy` allocator that also minimizes interchip activity.
 
     Starts by arbitrarily assigning a block to a chip. Then adds the block that has the
     most communication with the first block to that same chip. Continue adding blocks
@@ -470,7 +478,8 @@ class GreedyInterchip(Greedy):
 
 
 class PartitionInterchip(Allocator):
-    """Spreads blocks equally across cores and minimizes inter-chip communication.
+    """
+    Spreads blocks equally across cores and minimizes inter-chip communication.
 
     This allocator uses the METIS partitioner, which requires
     `nxmetis <https://networkx-metis.readthedocs.io/en/latest/install.html>`_.

@@ -6,7 +6,7 @@ from nengo.params import Default
 
 class HostSendProcess(Process):
     class FillQueueStep:
-        """Fill a simple queue to be processed externally"""
+        """Fill a simple queue to be processed externally."""
 
         def __init__(self):
             self.queue = []
@@ -21,7 +21,7 @@ class HostSendProcess(Process):
 
 
 class HostSendNode(Node):
-    """For sending host->chip messages"""
+    """For sending host->chip messages."""
 
     def __init__(self, dimensions, label=Default):
         super().__init__(HostSendProcess(), size_in=dimensions, size_out=0, label=label)
@@ -29,7 +29,7 @@ class HostSendNode(Node):
 
 class HostReceiveProcess(Process):
     class EmptyQueueStep:
-        """Empty a queue that is filled externally"""
+        """Empty a queue that is filled externally."""
 
         def __init__(self, size_out):
             self.size_out = size_out
@@ -50,7 +50,7 @@ class HostReceiveProcess(Process):
 
 
 class HostReceiveNode(Node):
-    """For receiving chip->host messages"""
+    """For receiving chip->host messages."""
 
     def __init__(self, dimensions, label=Default):
         super().__init__(
@@ -71,7 +71,8 @@ class ChipReceiveProcess(Process):
 
 
 class ChipReceiveNode(Node):
-    """Represents chip end-point for host->chip encoded connections.
+    """
+    Represents chip end-point for host->chip encoded connections.
 
     This Node does not do anything, other than act as a placeholder in ``Connection``s.
 
@@ -89,7 +90,8 @@ class ChipReceiveNode(Node):
 
 
 class ChipReceiveNeurons(ChipReceiveNode):
-    """Passes spikes directly (no on-off neuron encoding).
+    """
+    Passes spikes directly (no on-off neuron encoding).
 
     This Node does not do anything, other than act as a placeholder in ``Connection``s.
 
@@ -105,7 +107,8 @@ class ChipReceiveNeurons(ChipReceiveNode):
 
 
 class PESModulatoryTarget:
-    """Represents chip end-point for host->chip messages.
+    """
+    Represents chip end-point for host->chip messages.
 
     Attributes
     ----------

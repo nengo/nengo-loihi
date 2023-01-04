@@ -95,7 +95,7 @@ def test_loihi_rates(dt, neuron_type, Simulator, plt, allclose):
     ],
 )
 def test_loihi_rates_other_type(neuron_type, allclose):
-    """Test using a neuron type that has no Loihi-specific implementation"""
+    """Test using a neuron type that has no Loihi-specific implementation."""
     x = np.linspace(-7, 10)
     gain, bias = 0.2, 0.4
     dt = 0.002

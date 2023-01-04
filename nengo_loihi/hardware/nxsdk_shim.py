@@ -12,8 +12,9 @@ def parse_nxsdk_version(nxsdk):
     """
     Modify nxsdk versions to be PEP 440 compliant.
 
-    NxSDK uses the `daily` suffix for some versions, which is not part of the PEP 440
-    specification and so does not compare correctly with other version strings.
+    NxSDK uses the `daily` suffix for some versions, which is not part of the PEP
+    440 specification and so does not compare correctly with other version
+    strings.
     """
 
     v = nxsdk if isinstance(nxsdk, str) else getattr(nxsdk, "__version__", "0.0.0")
@@ -80,10 +81,11 @@ if HAS_NXSDK:  # noqa: C901
             self.nengo_tmp_dirs = []
 
         def _make_tmp_files(self, name, c_file, include_dir=None):
-            """Copy C/C++ file, and optionally header files, to a temporary directory.
+            """
+            Copy C/C++ file, and optionally header files, to a temporary directory.
 
-            So that multiple simulations can use the same snip files without running
-            into problems.
+            So that multiple simulations can use the same snip files without
+            running into problems.
             """
             tmp = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
             self.nengo_tmp_dirs.append(tmp)

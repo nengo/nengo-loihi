@@ -13,7 +13,6 @@ from nengo_loihi.splitter import Split
 def build_network(
     model, network, precompute=None, remove_passthrough=True, discretize=True
 ):
-
     if model.toplevel is None:
         # We don't set model.toplevel to network because `nengo_build_network`
         # will do that and relies on it being `None` initially.
