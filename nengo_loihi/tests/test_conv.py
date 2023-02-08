@@ -742,7 +742,7 @@ def test_conv_deepnet(
             channels_last=channels_last,
             padding=padding,
             label="layer0",
-            conn_args=dict(synapse=None),
+            conn_args={"synapse": None},
         )
         net.config[layer0].on_chip = False
 
@@ -915,7 +915,7 @@ def test_conv_split(Simulator, rng, plt, allclose):
     with nengo.Simulator(net, optimize=False) as sim_nengo:
         sim_nengo.run(simtime)
 
-    hw_opts = dict(snip_max_spikes_per_step=100)
+    hw_opts = {"snip_max_spikes_per_step": 100}
     with Simulator(net, seed=seed, hardware_options=hw_opts) as sim_loihi:
         sim_loihi.run(simtime)
 

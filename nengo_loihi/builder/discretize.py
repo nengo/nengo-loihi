@@ -371,9 +371,13 @@ def discretize_compartment(comp, w_max):
     vmaxe = np.clip(np.round((np.log2(vmax + 1) - 9) * 0.5), 0, 2**3 - 1)
     comp.vmax = 2 ** (9 + 2 * vmaxe) - 1
 
-    comp.discretize_info = dict(
-        w_max=w_max, w_exp=w_exp, v_scale=v_scale, b_scale=b_scale, w_scale=w_scale
-    )
+    comp.discretize_info = {
+        "w_max": w_max,
+        "w_exp": w_exp,
+        "v_scale": v_scale,
+        "b_scale": b_scale,
+        "w_scale": w_scale,
+    }
     return comp.discretize_info
 
 

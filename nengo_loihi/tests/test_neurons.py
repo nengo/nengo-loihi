@@ -15,7 +15,7 @@ from nengo_loihi.neurons import (
     nengo_rates,
 )
 
-v0_arg = dict(initial_state={"voltage": nengo.dists.Choice([0])})
+v0_arg = {"initial_state": {"voltage": nengo.dists.Choice([0])}}
 
 
 @pytest.mark.parametrize("dt", [3e-4, 1e-3])

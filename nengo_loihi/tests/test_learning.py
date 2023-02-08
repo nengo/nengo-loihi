@@ -305,7 +305,7 @@ def test_learning_seed(Simulator, seed):
         period=simtime / 2,
     )
 
-    sim_args = dict(hardware_options={"allocator": RoundRobin()})
+    sim_args = {"hardware_options": {"allocator": RoundRobin()}}
 
     with Simulator(model, seed=seed, **sim_args) as sim:
         sim.run(simtime)

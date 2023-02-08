@@ -279,14 +279,14 @@ def build_chip_to_host(model, conn):
     probe = NengoProbe(
         conn.pre, synapse=None, solver=conn.solver, add_to_container=False
     )
-    model.chip2host_params[probe] = dict(
-        learning_rule_type=conn.learning_rule_type,
-        function=conn.function,
-        eval_points=conn.eval_points,
-        scale_eval_points=conn.scale_eval_points,
-        transform=transform,
-        label=None if conn.label is None else "%s_probe" % conn.label,
-    )
+    model.chip2host_params[probe] = {
+        "learning_rule_type": conn.learning_rule_type,
+        "function": conn.function,
+        "eval_points": conn.eval_points,
+        "scale_eval_points": conn.scale_eval_points,
+        "transform": transform,
+        "label": None if conn.label is None else "%s_probe" % conn.label,
+    }
     model.chip2host_receivers[probe] = receive
     _inherit_seed(model, probe, model, conn)
     model.builder.build(model, probe)

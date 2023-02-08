@@ -284,12 +284,12 @@ class LoihiSpikeInput:
 
         for spike in spikes:
             axon_type = int(spike["axon_type"])
-            kwargs = dict(
-                time=t,
-                chipId=spike["chip_id"].item(),
-                coreId=spike["core_id"].item(),
-                axonId=spike["axon_id"].item(),
-            )
+            kwargs = {
+                "time": t,
+                "chipId": spike["chip_id"].item(),
+                "coreId": spike["core_id"].item(),
+                "axonId": spike["axon_id"].item(),
+            }
             if axon_type == 0:
                 assert spike["atom"] == 0, "Atom must be zero for discrete spikes"
             else:

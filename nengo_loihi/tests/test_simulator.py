@@ -104,10 +104,10 @@ def test_dt(dt, pre_on_chip, Simulator, seed, plt, allclose):
     if pre_on_chip:
         stim_synapse = stim_synapse.combine(conn_synapse)
 
-    ens_params = dict(
-        intercepts=nengo.dists.Uniform(-0.9, 0.9),
-        max_rates=nengo.dists.Uniform(100, 120),
-    )
+    ens_params = {
+        "intercepts": nengo.dists.Uniform(-0.9, 0.9),
+        "max_rates": nengo.dists.Uniform(100, 120),
+    }
 
     with nengo.Network(seed=seed) as model:
         nengo_loihi.add_params(model)

@@ -153,7 +153,7 @@ def test_interface_connection_errors(Simulator, monkeypatch):
 
     # test failed connection error
     def start(*args, **kwargs):
-        raise Exception("Mock failure to connect")
+        raise RuntimeError("Mock failure to connect")
 
     monkeypatch.setattr(NxsdkBoard, "start", start)
 

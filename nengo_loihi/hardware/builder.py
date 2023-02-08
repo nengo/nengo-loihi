@@ -466,14 +466,14 @@ def build_axon(nxsdk_core, core, block, axon, compartment_ids, pop_id_map):
                 pop_id_map[compartment_id] = pop_id_map[pop_key]
             pop_id = pop_id_map[compartment_id]
 
-            create_axon_kwargs = dict(
-                popId=pop_id,
-                srcCxId=compartment_id,
-                srcRelCxId=atom,
-                dstChipId=tchip_id,
-                dstCoreId=tcore_id,
-                dstSynMapId=taxon_id,
-            )
+            create_axon_kwargs = {
+                "popId": pop_id,
+                "srcCxId": compartment_id,
+                "srcRelCxId": atom,
+                "dstChipId": tchip_id,
+                "dstCoreId": tcore_id,
+                "dstSynMapId": taxon_id,
+            }
             if synapse.pop_type == 16:
                 nxsdk_core.createPop16Axon(**create_axon_kwargs)
             else:
