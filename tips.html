@@ -1,0 +1,959 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tips and tricks &#8212; NengoLoihi 1.1.1.dev0 docs</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+<link rel="stylesheet" href="https://www.nengo.ai/css/bootstrap.css" type="text/css">
+<style>
+ body .title-bar,
+ body .documentation-source h1:after {
+   background-color: #127bc1;
+ }
+</style>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/scrollreveal"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stickyfill/2.1.0/stickyfill.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+<!-- From basic/layout.html -->
+<script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+
+
+<script src="_static/underscore.js"></script>
+
+
+<script src="_static/doctools.js"></script>
+
+
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-GT8XEDLTMJ"></script>
+        <script>
+         window.dataLayer = window.dataLayer || [];
+         function gtag(){dataLayer.push(arguments);}
+         gtag('js', new Date());
+         gtag('config', 'G-GT8XEDLTMJ');
+        </script>
+        <!-- End Google tag (gtag.js) -->
+        <!-- Matomo -->
+        <script>
+         var _paq = window._paq = window._paq || [];
+         _paq.push(["setDocumentTitle", document.domain + "/" + document.title]);
+         _paq.push(["setCookieDomain", "*.appliedbrainresearch.com"]);
+         _paq.push(["setDomains", ["*.appliedbrainresearch.com","*.edge.nengo.ai","*.forum.nengo.ai","*.labs.nengo.ai","*.nengo.ai"]]);
+         _paq.push(["enableCrossDomainLinking"]);
+         _paq.push(["setDoNotTrack", true]);
+         _paq.push(['trackPageView']);
+         _paq.push(['enableLinkTracking']);
+         (function() {
+           var u="https://appliedbrainresearch.matomo.cloud/";
+           _paq.push(['setTrackerUrl', u+'matomo.php']);
+           _paq.push(['setSiteId', '3']);
+           var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+           g.async=true; g.src='//cdn.matomo.cloud/appliedbrainresearch.matomo.cloud/matomo.js'; s.parentNode.insertBefore(g,s);
+         })();
+        </script>
+        <!-- End Matomo Code -->
+    
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Hardware setup" href="setup/index.html" />
+    <link rel="prev" title="API reference" href="api.html" />
+<link rel="stylesheet" type="text/css" href="_static/custom.css">
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  </head><body class="bg-dark">
+
+<header class="fixed-top header-top shadow-sm">
+  <nav class="navbar navbar-expand-md navbar-light bg-white">
+    <a class="navbar-brand" href="https://www.nengo.ai/">
+      <img
+        src="https://www.nengo.ai/design/_images/general-full-light.svg"
+        alt="Nengo"
+        class="logo"
+      />
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbar-collapse"
+      aria-controls="navbar-collapse"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbar-collapse">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/">What is Nengo?</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://www.nengo.ai/examples/">Examples</a>
+        </li>
+        <li class="nav-item dropdown active">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-docs"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Documentation</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-docs"
+          >
+            
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo/">Nengo core</a>
+            <a class="dropdown-item" href="https://github.com/nengo/nengo-gui/">NengoGUI</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-dl/">NengoDL</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-spa/">NengoSPA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-extras/">NengoExtras</a>
+            <a class="dropdown-item" href="https://arvoelke.github.io/nengolib-docs/">Nengolib</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/keras-spiking">KerasSpiking</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/pytorch-spiking">PyTorchSpiking</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-fpga/">NengoFPGA</a>
+            <a class="dropdown-item" href="https://www.nengo.ai/nengo-loihi/">NengoLoihi</a>
+            <a class="dropdown-item" href="https://labs.nengo.ai/nengo-ocl/">NengoOCL</a>
+            <a class="dropdown-item" href="https://github.com/project-rig/nengo_spinnaker">NengoSpiNNaker</a>
+            <a class="dropdown-item" href="https://github.com/nengo-labs/nengo-mpi">NengoMPI</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/documentation/"
+              >All documentation</a
+            >
+          </div>
+        </li>
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            id="navbar-dropdown-community"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            href="#"
+            >Community</a
+          >
+          <div
+            class="dropdown-menu shadow-lg border-0"
+            aria-labelledby="navbar-dropdown-community"
+          >
+            <a class="dropdown-item" href="https://forum.nengo.ai">Forum</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="https://www.nengo.ai/people/"
+              >People</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/summer-school/"
+              >Summer school</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/contributing/"
+              >Contributing</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/publications/"
+              >Publications</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/videos/"
+              >Videos</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/conduct/"
+              >Code of conduct</a
+            >
+            <a class="dropdown-item" href="https://www.nengo.ai/caa/">CAA</a>
+          </div>
+        </li>
+      </ul>
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/getting-started/"
+          >Getting started</a
+        >
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link btn btn-success btn-sm text-white"
+            href="https://www.nengo.ai/store/"
+          >Store</a
+        >
+        </li>
+      </ul>
+    </div>
+  </nav>
+</header>
+<div class="main-content gradient-top">
+  <div class="container-fluid">
+    <div class="row"><a class="toggle-sidenav d-block d-md-none" href="#"
+  ><i class="icon-close fa fa-fw fa-arrow-left"></i
+  ><i class="icon-open fa fa-fw fa-arrow-right"></i
+></a>
+<div role="complementary" class="sidenav col-4 col-xl-3 p-0 border-right">
+  <h3 class="pt-5 px-5">
+    <a href="index.html">
+      <img
+        class="img-fluid documentation-image"
+        src="https://www.nengo.ai/design/_images/nengo-loihi-full-light.svg"
+        alt="NengoLoihi"
+      />
+    </a>
+  </h3>
+<form class="px-5 py-3 my-0 border-bottom" action="search.html" method="get">
+  <div class="form-group form-group-single">
+    <input type="text" name="q" class="form-control" placeholder="Search" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+    <button type="submit" class="btn btn-link">
+      <img src="https://www.nengo.ai/img/icon-search.svg" alt="Go" />
+    </button>
+  </div>
+</form><div class="p-5 toctree">
+  
+    <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://www.nengo.ai/nengo-examples/loihi/">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tips and tricks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#making-models-fit-on-loihi">Making models fit on Loihi</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#splitting-large-ensembles">Splitting large Ensembles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#measuring-utilization-of-chip-resources">Measuring utilization of chip resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reducing-axons-by-changing-pop-type">Reducing axons by changing <code class="docutils literal notranslate"><span class="pre">pop_type</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reducing-synapses-and-axons-by-changing-block-shape">Reducing synapses and axons by changing block shape</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#local-machine">Local machine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-hosts">SSH hosts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ssh-keys">SSH keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-port-tunneling">Remote port tunneling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#syncing-with-rsync">Syncing with rsync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-editing-with-sshfs">Remote editing with SSHFS</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#superhost">Superhost</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plotting">Plotting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ipython-jupyter">IPython / Jupyter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#slurm-cheatsheet">Slurm cheatsheet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-slurm-by-default">Use Slurm by default</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-large-models">Running large models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="setup/index.html">Hardware setup</a></li>
+</ul>
+
+  
+  </div>
+  
+  <form class="p-5 my-0 border-top">
+    <div class="form-group">
+      <label class="text-gray">Version:</label>
+      <select class="custom-select" onchange="switchVersion(this);">
+        
+        
+        <option selected>latest</option>
+        
+        
+          
+        <option value="v1.1.0/tips.html">
+          v1.1.0
+        </option>
+          
+        
+          
+        <option value="v1.0.0/tips.html">
+          v1.0.0
+        </option>
+          
+        
+          
+        <option value="v0.10.0/tips.html">
+          v0.10.0
+        </option>
+          
+        
+          
+        <option value="v0.9.0/tips.html">
+          v0.9.0
+        </option>
+          
+        
+          
+        <option value="v0.8.0/tips.html">
+          v0.8.0
+        </option>
+          
+        
+          
+        <option value="v0.7.0/tips.html">
+          v0.7.0
+        </option>
+          
+        
+      </select>
+    </div>
+  </form>
+  
+</div>
+      
+
+      <div class="col-12 col-md-8 col-xl-9">
+        <div class="container">
+          <div class="row">
+            <div class="col-10 offset-1 pb-5 documentation-source" role="main">
+              
+              
+              <div class="admonition note">
+                  <p class="admonition-title">Note</p>
+                  <p>
+                  This documentation is for a development version.
+                  <a href="v1.1.0/tips.html">
+                  Click here for the latest stable release (v1.1.0).
+                  </a>
+                  </p>
+              </div>
+              
+              
+  <div class="section" id="tips-and-tricks">
+<h1>Tips and tricks<a class="headerlink" href="#tips-and-tricks" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="making-models-fit-on-loihi">
+<h2>Making models fit on Loihi<a class="headerlink" href="#making-models-fit-on-loihi" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="splitting-large-ensembles">
+<h3>Splitting large Ensembles<a class="headerlink" href="#splitting-large-ensembles" title="Permalink to this headline">¶</a></h3>
+<p>By default, NengoLoihi will split <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> objects
+that are too large to fit on a single Loihi core
+into smaller pieces to distribute across multiple cores.
+For some networks (e.g. most densely-connected networks),
+this can happen by itself without any guidance from the user.</p>
+<p>For networks that use <a class="reference external" href="https://www.nengo.ai/nengo/frontend-api.html#nengo.Convolution" title="(in Nengo v3.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nengo.Convolution</span></code></a> transforms, such as image processing networks,
+some assistance is usually required to tell NengoLoihi <em>how</em> to split an ensemble.
+This is because grouping the neurons sequentially is rarely ideal for such networks.
+For example, if an <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> is representing a 32 x 32 x 4 image
+(that is 32 rows, 32 columns, and 4 channels),
+we might want to split that ensemble into four 32 x 32 x 1 groups,
+or four 16 x 16 x 4 groups.
+In the first case,
+each Loihi core will contain information from all spatial locations in the image,
+but each will only contain one of the channels.
+In the second case,
+each Loihi core will represent a different spacial quadrant of the image
+(i.e., top-left, top-right, bottom-left, bottom-right),
+but each will contain all channels for its respective location.
+In neither case, though, will all cores contain solely consecutive pixels,
+assuming our pixel array is ordered by rows, then columns, then channels.
+Since the default behaviour of the system is to split into consecutive groups,
+we need to override that behaviour.</p>
+<p>To do this, we use the <a class="reference internal" href="api.html#nengo_loihi.BlockShape" title="nengo_loihi.BlockShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlockShape</span></code></a> class
+with the <code class="docutils literal notranslate"><span class="pre">block_shape</span></code> configuration option:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">image_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Network</span><span class="p">()</span> <span class="k">as</span> <span class="n">net</span><span class="p">:</span>
+     <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">add_params</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>  <span class="c1"># this gives us access to block_shape</span>
+
+     <span class="c1"># first case: splitting across channels</span>
+     <span class="n">ens1</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">image_shape</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+     <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens1</span><span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">((</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">image_shape</span><span class="p">)</span>
+
+     <span class="c1"># second case: splitting spatially</span>
+     <span class="n">ens2</span> <span class="o">=</span> <span class="n">nengo</span><span class="o">.</span><span class="n">Ensemble</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">image_shape</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+     <span class="n">net</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">ens2</span><span class="p">]</span><span class="o">.</span><span class="n">block_shape</span> <span class="o">=</span> <span class="n">nengo_loihi</span><span class="o">.</span><span class="n">BlockShape</span><span class="p">((</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">image_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We are not limited to splitting only along the spatial or channel axes.
+For example, with a 32 x 32 x 4 image we could choose a block shape of 16 x 16 x 2,
+which would result in 8 cores tiling the image both in the spatial and channel
+dimensions.
+We could also use shapes that are uneven in the spatial dimensions,
+for example 16 x 32 x 2.</p>
+<p>Furthermore, the block shape does not have to fit evenly into the image shape
+in all (or even any) of the dimensions.
+For example, with a 4 x 4 image, we could choose a block shape of 3 x 3;
+this would result in 4 blocks:
+a 3 x 3 block for the top-left of the image,
+a 3 x 1 block for the top-right,
+a 1 x 3 block for the bottom-left,
+and a 1 x 1 block for the bottom-right.
+In this case, it would be better to use a 2 x 2 block shape,
+which also results in 4 blocks,
+but uses resources more equally across all cores.
+(This assumes that resource constraints are preventing us from using
+e.g. a 2 x 4 or 4 x 4 block shape that would simply use fewer cores.)</p>
+<p>The constraints on <a class="reference internal" href="api.html#nengo_loihi.BlockShape" title="nengo_loihi.BlockShape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlockShape</span></code></a> are that each block has to fit on one Loihi core.
+The most basic resource limitation is that the number of neurons (the product of the
+shape), must be less than or equal to 1024 (the maximum number of neurons per core).
+Our two original block shapes of 32 x 32 x 1 and 16 x 16 x 4
+both equal exactly 1024 neurons per core.
+However, there are other limiting resources on Loihi cores,
+such as the numbers of input and output axons, and the amount of synapse memory.
+We therefore may not always be able to use block shapes
+that fully utilize the number of compartments, if other resources are in short supply.</p>
+</div>
+<div class="section" id="measuring-utilization-of-chip-resources">
+<h3>Measuring utilization of chip resources<a class="headerlink" href="#measuring-utilization-of-chip-resources" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference internal" href="api.html#nengo_loihi.builder.Model.utilization_summary" title="nengo_loihi.builder.Model.utilization_summary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model.utilization_summary</span></code></a> command can be used
+to get more information on the resources used by each block (i.e. Loihi core).
+This can help you to judge whether cores are being optimally utilized.
+When using this command, it is best to give all your ensembles unique labels
+(like <code class="docutils literal notranslate"><span class="pre">nengo.Ensemble(...,</span> <span class="pre">label=&quot;my_ensemble&quot;)</span></code>);
+these names will show up in the summary, allowing you to identify problematic blocks.</p>
+</div>
+<div class="section" id="reducing-axons-by-changing-pop-type">
+<h3>Reducing axons by changing <code class="docutils literal notranslate"><span class="pre">pop_type</span></code><a class="headerlink" href="#reducing-axons-by-changing-pop-type" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">pop_type</span></code> configuration option can be used
+to set the type of population axons used on convolutional connections.
+Setting this to 16 instead of 32 (the default)
+reduces the number of axons required by the model,
+but also adds some restrictions on how convolutional connections are set up.
+See <a class="reference internal" href="api.html#nengo_loihi.add_params" title="nengo_loihi.add_params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_params</span></code></a> for more details.</p>
+</div>
+<div class="section" id="reducing-synapses-and-axons-by-changing-block-shape">
+<h3>Reducing synapses and axons by changing block shape<a class="headerlink" href="#reducing-synapses-and-axons-by-changing-block-shape" title="Permalink to this headline">¶</a></h3>
+<p>In networks with convolutional connections, an inefficient parameterization can
+cause some connection weights to be copied up to four times (to work around limitations
+when mapping these connections onto Loihi).
+If you are running out of synapse memory or axons
+on convolutional connections,
+use the following guidelines to see whether restructuring could help.</p>
+<p>First, it is important to understand the difference between
+the spatial dimensions of a shape and the channel dimension.
+The channel dimension will be the first dimension of the shape
+if <code class="docutils literal notranslate"><span class="pre">channels_last=False</span></code> or the last dimension if <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code>.
+All other dimensions of the shape will be part of the spatial shape.
+For example, if <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code> and we have the shape 32 x 32 x 4,
+the <em>spatial shape</em> is 32 x 32, and the <em>spatial size</em> is <code class="docutils literal notranslate"><span class="pre">32</span> <span class="pre">*</span> <span class="pre">32</span> <span class="pre">=</span> <span class="pre">1024</span></code>.</p>
+<p>When choosing our block shape, we can trade off between spatial size and channel size.
+For example, if our image shape is 32 x 32 x 8,
+an <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> representing this will need at least 8 cores
+(since <code class="docutils literal notranslate"><span class="pre">32</span> <span class="pre">*</span> <span class="pre">32</span> <span class="pre">*</span> <span class="pre">8</span> <span class="pre">/</span> <span class="pre">1024</span> <span class="pre">==</span> <span class="pre">8</span></code>).
+Two potential block shapes to achieve these 8 cores are
+32 x 32 x 1, which has a spatial size of 1024,
+and 16 x 16 x 4, which has a spatial size of 256.
+If we wish to reduce the spatial size of our block shape,
+decreasing the spatial size per block
+while simultaneously increasing the number of channels per block
+will often let us keep the same number of neurons per core,
+but decrease other resources such as synapse memory or axon usage.</p>
+<p>If the problem is output axon usage,
+try to increase the channel size of the blocks
+on any Ensemble <em>targeted</em> by connections from the problematic Ensemble.
+Axons can be reused across channels,
+so the more channels per core,
+the fewer output axons are required to send the information to all target cores.</p>
+<p>If the problem is input axon usage,
+try to reduce the spatial size of the problematic Ensemble.
+Again, since axons are reused across channels,
+changing the channel size will have no effect
+(potentially, it can even be increased to compensate for the drop in spatial size,
+and keep the same number of compartments per core).</p>
+<p>If the problem is synapse memory usage,
+then the problem is caused by incoming Connections to the problematic Ensemble.
+The solution depends on the value of <code class="docutils literal notranslate"><span class="pre">channels_last</span></code> on the <code class="docutils literal notranslate"><span class="pre">Convolution</span></code> transform,
+and the value of <code class="docutils literal notranslate"><span class="pre">pop_type</span></code> on the Connection
+(if you have not set <code class="docutils literal notranslate"><span class="pre">pop_type</span></code>, 32 is the default value).
+The following can be applied to any or all of the incoming Connections:</p>
+<ul class="simple">
+<li><p>If the connection is using <code class="docutils literal notranslate"><span class="pre">channels_last=False</span></code> and <code class="docutils literal notranslate"><span class="pre">pop_type=32</span></code>,
+extra weights are created if the spatial size is greater than 256
+(the factor by which the size of the weights is multiplied is approximately the
+spatial size divided by 256).
+Decrease the spatial size.</p></li>
+<li><p>If the connection is using <code class="docutils literal notranslate"><span class="pre">channels_last=False</span></code> and <code class="docutils literal notranslate"><span class="pre">pop_type=16</span></code>,
+extra weights are always created.
+Consider using <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code>,
+or not using <code class="docutils literal notranslate"><span class="pre">pop_type=16</span></code> if you are using less than 50% of the available axons.</p></li>
+<li><p>If the connection is using <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code> and <code class="docutils literal notranslate"><span class="pre">pop_type=32</span></code>,
+extra weights are created if there are more than 256 neurons per core.
+Consider using <code class="docutils literal notranslate"><span class="pre">channels_last=False</span></code>.</p></li>
+<li><p>If the connection is using <code class="docutils literal notranslate"><span class="pre">channels_last=True</span></code> and <code class="docutils literal notranslate"><span class="pre">pop_type=16</span></code>,
+extra weights are created if the number of channels per block is not a multiple of 4,
+and if there are more than 256 neurons per core.
+Consider making the channels per block a multiple of 4.</p></li>
+</ul>
+<p>In all cases, decreasing the number of channels per block
+will decrease the amount of synapse memory used,
+since there is one set of weights per channel.</p>
+</div>
+</div>
+<div class="section" id="local-machine">
+<h2>Local machine<a class="headerlink" href="#local-machine" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="ssh-hosts">
+<h3>SSH hosts<a class="headerlink" href="#ssh-hosts" title="Permalink to this headline">¶</a></h3>
+<p>Adding <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">hosts</span></code> to your SSH configuration
+will make working with remote superhosts, hosts, and boards
+much quicker and easier.
+After setting them up,
+you will be able to connect to any machine
+through a single <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">&lt;machine&gt;</span></code> command.</p>
+<p>To begin, make a <code class="docutils literal notranslate"><span class="pre">~/.ssh/config</span></code> file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>touch<span class="w"> </span>~/.ssh/config
+</pre></div>
+</div>
+<p>Then open that file in a text editor
+and add a <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry
+for each machine that you want to interact with remotely.</p>
+<p>Typically machines that you can connect to directly
+will have a configuration like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  User &lt;username&gt;
+  HostName &lt;host name or IP address&gt;
+</pre></div>
+</div>
+<p>For security, the port on which ssh connections are accepted
+is often changed. To specify a port, add the following
+to the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  ...
+  Port 1234
+</pre></div>
+</div>
+<p>Finally, many machines (especially hosts and boards)
+are not accessible through the open internet
+and must instead be accessed through another machine,
+like a superhost.
+To access these with one command,
+add the following to the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry.
+<code class="docutils literal notranslate"><span class="pre">&lt;tunnel</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> refers to the <code class="docutils literal notranslate"><span class="pre">&lt;short</span> <span class="pre">name&gt;</span></code>
+of the <code class="docutils literal notranslate"><span class="pre">Host</span></code> entry through which
+you access the machine
+(e.g., the <code class="docutils literal notranslate"><span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> entry uses
+the superhost’s short name for <code class="docutils literal notranslate"><span class="pre">&lt;tunnel</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code>).</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Host &lt;short name&gt;
+  ...
+  ProxyCommand ssh &lt;tunnel short name&gt; -W %h:%p
+</pre></div>
+</div>
+<p>Once host entries are defined, you can access those machine with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>&lt;short<span class="w"> </span>name&gt;
+</pre></div>
+</div>
+<p>You can also use the short name in <code class="docutils literal notranslate"><span class="pre">rsync</span></code>, <code class="docutils literal notranslate"><span class="pre">scp</span></code>,
+and other commands that use <code class="docutils literal notranslate"><span class="pre">ssh</span></code> under the hood.</p>
+<p>For more details and options, see <a class="reference external" href="https://www.digitalocean.com/community/tutorials/how-to-configure-custom-connection-options-for-your-ssh-client">this tutorial</a>.</p>
+<p>We recommend that Loihi system administrators
+make specific host entries for their system
+available to all users.</p>
+</div>
+<div class="section" id="ssh-keys">
+<h3>SSH keys<a class="headerlink" href="#ssh-keys" title="Permalink to this headline">¶</a></h3>
+<p>SSH keys allow you to log in to remote machines
+without providing your password.
+This is especially useful when accessing
+a board through a host and superhost,
+each of which require authentication.</p>
+<p>You may already have created
+an SSH key for another purpose.
+By default, SSH keys are stored as</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">~/.ssh/id_rsa</span></code> (private key)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">~/.ssh/id_rsa.pub</span></code> (public key)</p></li>
+</ul>
+<p>If these files exist when you do <code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">~/.ssh</span></code>,
+then you already have an SSH key.</p>
+<p>If you do not have an SSH key,
+you can create one with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh-keygen
+</pre></div>
+</div>
+<p>Follow the prompts,
+using the default values when unsure.
+We recommend setting a passphrase
+in case someone obtains
+your SSH key pair.</p>
+<p>Once you have an SSH key pair,
+you will copy your public key
+to each machine you want to
+log into without a password.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh-copy-id<span class="w"> </span>&lt;host<span class="w"> </span>short<span class="w"> </span>name&gt;
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code> is the name you specified
+in your SSH config file for that host
+(e.g., <code class="docutils literal notranslate"><span class="pre">ssh-copy-id</span> <span class="pre">loihi-host</span></code>).
+You will be prompted for your password
+in order to copy the key.
+Once it is copied, try <code class="docutils literal notranslate"><span class="pre">ssh</span> <span class="pre">&lt;host</span> <span class="pre">short</span> <span class="pre">name&gt;</span></code>
+to confirm that you can log in
+without providing a password.</p>
+</div>
+<div class="section" id="remote-port-tunneling">
+<h3>Remote port tunneling<a class="headerlink" href="#remote-port-tunneling" title="Permalink to this headline">¶</a></h3>
+<p>Tunneling a remote port to your local machine
+allows you to run the Jupyter notebook server
+or the NengoGUI server on the superhost or host,
+but access the web-based interface
+on your local machine.</p>
+<p>To do this, we will
+create a new terminal window on the local machine
+that we will keep open while the tunnel is active.
+In this terminal, do</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-L<span class="w"> </span>&lt;<span class="nb">local</span><span class="w"> </span>port&gt;:localhost:&lt;remote<span class="w"> </span>port&gt;
+</pre></div>
+</div>
+<p>You will then enter an SSH session
+in which you can start the process
+that will communicate over <code class="docutils literal notranslate"><span class="pre">&lt;remote</span> <span class="pre">port&gt;</span></code>.</p>
+<p><strong>Example 1</strong>:
+Starting a NengoGUI server on port 8000
+of <code class="docutils literal notranslate"><span class="pre">superhost-1</span></code>,
+which has a <code class="docutils literal notranslate"><span class="pre">loihi</span></code> conda environment.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In a new terminal window on your local machine</span>
+ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">8000</span>:localhost:8000<span class="w"> </span>superhost-1
+<span class="c1"># We are now on superhost-1</span>
+<span class="nb">source</span><span class="w"> </span>activate<span class="w"> </span>loihi
+<span class="nb">cd</span><span class="w"> </span>~/nengo-loihi/docs/examples
+nengo<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span><span class="w"> </span>--no-browser<span class="w"> </span>--auto-shutdown<span class="w"> </span><span class="m">0</span><span class="w"> </span>--backend<span class="w"> </span>nengo_loihi
+</pre></div>
+</div>
+<p>On your local machine,
+open <code class="docutils literal notranslate"><span class="pre">http://localhost:8000/</span></code>
+and you should see the NengoGUI interface.</p>
+<p><strong>Example 2</strong>:
+Starting a Jupyter notebook server on port 8080
+of <code class="docutils literal notranslate"><span class="pre">superhost-2</span></code>,
+which has a <code class="docutils literal notranslate"><span class="pre">loihi</span></code> virtualenv environment.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In a new terminal window on your local machine</span>
+ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">8080</span>:localhost:8080<span class="w"> </span>superhost-2
+<span class="c1"># We are now on superhost-2</span>
+workon<span class="w"> </span>loihi
+<span class="nb">cd</span><span class="w"> </span>~/nengo-loihi/docs/examples
+jupyter<span class="w"> </span>notebook<span class="w"> </span>--no-browser<span class="w"> </span>--port<span class="w"> </span><span class="m">8080</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">jupyter</span></code> command should print out a URL of the form
+<code class="docutils literal notranslate"><span class="pre">http://localhost:8888/?token=&lt;long-strong&gt;</span></code>,
+which you can open on your local machine.</p>
+</div>
+<div class="section" id="syncing-with-rsync">
+<h3>Syncing with rsync<a class="headerlink" href="#syncing-with-rsync" title="Permalink to this headline">¶</a></h3>
+<p>If you work on your local machine
+and push changes to multiple remote superhosts,
+it is worth spending some time to set up
+a robust solution for syncing files
+between your local machine and the superhosts.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rsync</span></code> is a good option because it is fast
+(it detects what has changed and only sends changes)
+and can be configured to ensure that
+the files on your local machine are the canonical files
+and are not overwritten by changes made on remotes.
+<code class="docutils literal notranslate"><span class="pre">rsync</span></code> also uses SSH under the hood,
+so the SSH hosts you set up previously can be used.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rsync</span></code> is available from most package managers
+(e.g. <code class="docutils literal notranslate"><span class="pre">apt</span></code>, <code class="docutils literal notranslate"><span class="pre">brew</span></code>)
+and in many cases
+will already be installed
+on your system.</p>
+<p>The basic command that is most useful is</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rsync<span class="w"> </span>-rtuv<span class="w"> </span>--exclude<span class="o">=</span>*.pyc<span class="w"> </span>/src/folder<span class="w"> </span>/dst/folder
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-r</span></code> recurses into subdirectories</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code> copies and updates file modifications times</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-u</span></code> replaces files with the most up-to-date version
+as determined by modification time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code> adds more console output to see what has changed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--exclude=*.pyc</span></code> ensures that <code class="docutils literal notranslate"><span class="pre">*.pyc</span></code> files are not copied</p></li>
+</ul>
+<p>See also <a class="reference external" href="https://ss64.com/bash/rsync_options.html">more details and options</a>.</p>
+<p>When sending files to a remote host,
+you may also want to use the <code class="docutils literal notranslate"><span class="pre">--delete</span></code> option
+to delete files in the destination folder
+that have been removed from the source folder.</p>
+<p>To simplify <code class="docutils literal notranslate"><span class="pre">rsync</span></code> usage,
+you can make small <code class="docutils literal notranslate"><span class="pre">bash</span></code> functions
+to make your workflow explicit.</p>
+<p>For example, the following
+bash functions will sync the <code class="docutils literal notranslate"><span class="pre">NxSDK</span></code>
+and <code class="docutils literal notranslate"><span class="pre">nengo-loihi</span></code> folders
+between the local machine
+and the user’s home directory on <code class="docutils literal notranslate"><span class="pre">host-1</span></code>.
+In this example, the <code class="docutils literal notranslate"><span class="pre">--delete</span></code> flag
+is only used on pushing so that files
+are never deleted from the local machine.
+The <code class="docutils literal notranslate"><span class="pre">--exclude=*.pyc</span></code> flag
+is only used for <code class="docutils literal notranslate"><span class="pre">nengo-loihi</span></code> because
+<code class="docutils literal notranslate"><span class="pre">*.pyc</span></code> files are an important
+part of the NxSDK source tree.
+These and other options can be adapted
+based on your personal workflow.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LOIHI</span><span class="o">=</span><span class="s2">&quot;/path/to/nengo-loihi/&quot;</span>
+<span class="nv">NXSDK</span><span class="o">=</span><span class="s2">&quot;/path/to/NxSDK/&quot;</span>
+push_host1<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>rsync<span class="w"> </span>-rtuv<span class="w"> </span>--exclude<span class="o">=</span>*.pyc<span class="w"> </span>--delete<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LOIHI</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;host-1:nengo-loihi&quot;</span>
+<span class="w">    </span>rsync<span class="w"> </span>-rtuv<span class="w"> </span>--delete<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NXSDK</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;host-1:NxSDK&quot;</span>
+<span class="o">}</span>
+pull_host1<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>rsync<span class="w"> </span>-rtuv<span class="w"> </span>--exclude<span class="o">=</span>*.pyc<span class="w"> </span><span class="s2">&quot;host-1:nengo-loihi/&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$LOIHI</span><span class="s2">&quot;</span>
+<span class="w">    </span>rsync<span class="w"> </span>-rtuv<span class="w"> </span><span class="s2">&quot;host-1:NxSDK&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NXSDK</span><span class="s2">&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>These functions are placed in the <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> file
+and executed at a terminal with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>push_host1
+pull_host1
+</pre></div>
+</div>
+</div>
+<div class="section" id="remote-editing-with-sshfs">
+<h3>Remote editing with SSHFS<a class="headerlink" href="#remote-editing-with-sshfs" title="Permalink to this headline">¶</a></h3>
+<p>If you primarily work with a single remote superhost,
+SSHFS is a good option that allows you
+to mount a remote filesystem to your local machine,
+meaning that you manipulate files as you
+normally would on your local machine,
+but those files will actually exist
+on the remote machine.
+SSHFS ensures that change you make locally
+are efficiently sent to the remote.</p>
+<p>SSHFS is available from most package managers,
+including <code class="docutils literal notranslate"><span class="pre">apt</span></code> and <code class="docutils literal notranslate"><span class="pre">brew</span></code>.</p>
+<p>To mount a remote directory to your local machine,
+create a directory to mount to,
+then call <code class="docutils literal notranslate"><span class="pre">sshfs</span></code> to mount it.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>&lt;mount<span class="w"> </span>point&gt;
+sshfs<span class="w"> </span>-o<span class="w"> </span>allow_other,defer_permissions<span class="w"> </span>&lt;host<span class="w"> </span>short<span class="w"> </span>name&gt;:&lt;remote<span class="w"> </span>directory&gt;<span class="w"> </span>&lt;mount<span class="w"> </span>point&gt;
+</pre></div>
+</div>
+<p>When you are done using the remote files,
+unmount the mount point.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>fusermount<span class="w"> </span>-u<span class="w"> </span>&lt;mount<span class="w"> </span>point&gt;
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">fusermount</span></code> is not available
+and you have <code class="docutils literal notranslate"><span class="pre">sudo</span></code> access, you can also unmount with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>umount<span class="w"> </span>&lt;mount<span class="w"> </span>point&gt;
+</pre></div>
+</div>
+</div>
+<p>As with <code class="docutils literal notranslate"><span class="pre">rsync</span></code>, since you may do these commands frequently,
+it can save time to make a short bash function.
+The following example functions mount and unmount
+the <code class="docutils literal notranslate"><span class="pre">host-2</span></code> <code class="docutils literal notranslate"><span class="pre">~/loihi</span></code> directory
+to the local machine’s <code class="docutils literal notranslate"><span class="pre">~/remote/host-2</span></code> directory.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mount_host2<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/remote/host-2
+<span class="w">    </span>sshfs<span class="w"> </span>host-2:loihi<span class="w"> </span>~/remote/host-2
+<span class="o">}</span>
+unmount_host2<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>fusermount<span class="w"> </span>-u<span class="w"> </span>~/remote/host-2
+<span class="o">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="superhost">
+<h2>Superhost<a class="headerlink" href="#superhost" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="plotting">
+<h3>Plotting<a class="headerlink" href="#plotting" title="Permalink to this headline">¶</a></h3>
+<p>If you are generating plots with Matplotlib
+on the superhost or host,
+you may run into issues due to there being
+no monitor attached to those machines
+(i.e., they are “headless”).
+Rather than plotting to a screen,
+you can instead save plots as files
+with <code class="docutils literal notranslate"><span class="pre">plt.savefig</span></code>.
+You will also need to configure
+Matplotlib to use a headless backend by default.</p>
+<p>The easiest way to do this is with a <code class="docutils literal notranslate"><span class="pre">matplotlibrc</span></code> file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.config/matplotlib
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;backend: Agg&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.config/matplotlib/matplotlibrc
+</pre></div>
+</div>
+</div>
+<div class="section" id="ipython-jupyter">
+<h3>IPython / Jupyter<a class="headerlink" href="#ipython-jupyter" title="Permalink to this headline">¶</a></h3>
+<p>If you want to use the IPython interpreter
+or the Jupyter notebook on a superhost
+(e.g., the INRC superhost),
+you may run into issues due to the
+network file system (NFS),
+which does not work well
+with how IPython and Jupyter track command history.
+You can configure IPython and Jupyter
+to instead store command history to memory only.</p>
+<p>To do this, start by generating the configuration files.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jupyter<span class="w"> </span>notebook<span class="w"> </span>--generate-config
+ipython<span class="w"> </span>profile<span class="w"> </span>create
+</pre></div>
+</div>
+<p>Then add a line to three files to
+configure the command history for NFS.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;c.NotebookNotary.db_file = &#39;:memory:&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.jupyter/jupyter_notebook_config.py
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;c.HistoryAccessor.hist_file = &#39;:memory:&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.ipython/profile_default/ipython_config.py
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;c.HistoryAccessor.hist_file = &#39;:memory:&#39;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.ipython/profile_default/ipython_kernel_config.py
+</pre></div>
+</div>
+</div>
+<div class="section" id="slurm-cheatsheet">
+<h3>Slurm cheatsheet<a class="headerlink" href="#slurm-cheatsheet" title="Permalink to this headline">¶</a></h3>
+<p>Most Loihi superhosts use <a class="reference external" href="https://slurm.schedmd.com/">Slurm</a>
+to schedule and distribute jobs to Loihi hosts.
+Below are the commands that Slurm makes available
+and what they do.</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">sinfo</span></code></dt><dd><p>Check the status (availability) of connected hosts.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">squeue</span></code></dt><dd><p>Check the status of your jobs.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">scancel</span> <span class="pre">&lt;jobid&gt;</span></code></dt><dd><p>Kill one of your jobs.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">scancel</span> <span class="pre">--user=&lt;username&gt;</span></code></dt><dd><p>Kill all of your jobs.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">scontrol</span> <span class="pre">update</span> <span class="pre">nodename=&quot;&lt;nodename&gt;&quot;</span> <span class="pre">state=&quot;idle&quot;</span></code></dt><dd><p>Mark a Loihi host as “idle”,
+which places it in the pool of available hosts to be used.
+Use this when a Loihi host that was down comes back up.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be done by a system administrator.</p>
+</div>
+</dd>
+</dl>
+</div>
+<div class="section" id="use-slurm-by-default">
+<h3>Use Slurm by default<a class="headerlink" href="#use-slurm-by-default" title="Permalink to this headline">¶</a></h3>
+<p>Most superhosts use Slurm to run models on the host.
+Normally you can opt in to executing a command with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SLURM</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>my-command
+</pre></div>
+</div>
+<p>However, you will usually want to use Slurm,
+so to switch to an opt-out setup,
+open your shell configuration file
+in a text editor (usually <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code>),
+and add the following line to the end of the file.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SLURM</span><span class="o">=</span><span class="m">1</span>
+</pre></div>
+</div>
+<p>Once making this change you can opt out of using Slurm
+by executing a command with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SLURM</span><span class="o">=</span><span class="m">0</span><span class="w"> </span>my-command
+</pre></div>
+</div>
+</div>
+<div class="section" id="running-large-models">
+<h3>Running large models<a class="headerlink" href="#running-large-models" title="Permalink to this headline">¶</a></h3>
+<p>Normally you do not need to do anything
+other than setting the <code class="docutils literal notranslate"><span class="pre">SLURM</span></code> environment variable
+to run a model on Slurm.
+However, in some situation Slurm may kill your job
+due to long run times or other factors.</p>
+<p>Custom Slurm partitions can be used to run
+your job with different sets of restrictions.
+Your system administrator will have to set up the partition.
+You can see a list of all partitions and nodes with <code class="docutils literal notranslate"><span class="pre">sinfo</span></code>.</p>
+<p>To run a job with the <code class="docutils literal notranslate"><span class="pre">loihiinf</span></code> partition,
+set the environment variable <code class="docutils literal notranslate"><span class="pre">PARTITION</span></code>.
+For example, you can run <code class="docutils literal notranslate"><span class="pre">bigmodel.py</span></code>
+using this partition with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PARTITION</span><span class="o">=</span>loihiinf<span class="w"> </span>python<span class="w"> </span>bigmodel.py
+</pre></div>
+</div>
+<p>Similarly, if you wish to use
+a particular board (called a “node” in Slurm),
+set the <code class="docutils literal notranslate"><span class="pre">BOARD</span></code> environment variable.
+For example, to run <code class="docutils literal notranslate"><span class="pre">model.py</span></code> on the
+<code class="docutils literal notranslate"><span class="pre">loihimh</span></code> board, do</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">BOARD</span><span class="o">=</span>loihimh<span class="w"> </span>python<span class="w"> </span>model.py
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><footer class="text-light footer-main gradient-bottom-center">
+  <p class="text-center">
+    <a class="no-hover-line" href="https://appliedbrainresearch.com">
+      <img
+        class="abr-logo"
+        src="https://www.nengo.ai/img/abr-logo.svg"
+        height="32"
+      />
+    </a>
+    <a href="https://www.nengo.ai/">What is Nengo?</a>
+    <a href="https://www.nengo.ai/examples/">Examples</a>
+    <a href="https://www.nengo.ai/documentation/">Documentation</a>
+    <a href="https://www.nengo.ai/store/">Store</a>
+    <a href="https://www.nengo.ai/getting-started/">Getting started</a>
+    <a href="https://www.nengo.ai/privacy/">Privacy</a>
+  </p>
+  <p class="small text-center pb-0 mb-0">&copy; Applied Brain Research</p>
+</footer>
+<script>
+  function switchVersion(select) {
+    var option = select.selectedOptions[0];
+    if (option.hasAttribute("value")) {
+      window.location = option.value;
+    }
+  }
+</script>
+
+<script>
+  var elements = document.querySelectorAll('.sidenav');
+  Stickyfill.add(elements);
+</script>
+<script>
+  ScrollReveal().reveal(".fade-in", {
+      scale: 0.85,
+      duration: 1000,
+      delay: 250,
+      interval: 50
+  });
+</script>
+<script>
+  $('a.toggle-sidenav').on('click', function(e) {
+    e.preventDefault();
+    if ( $(this).hasClass('active') ) {
+      $(this).removeClass('active');
+      $('.sidenav').removeClass('open');
+    } else {
+      $(this).addClass('active');
+      $('.sidenav').addClass('open');
+    }
+  });
+</script>
+<script>
+  var lists = document.querySelectorAll('.toctree ul');
+  lists.forEach((ul) => {
+      ul.classList.add("nav");
+  });
+  var links = document.querySelectorAll('.toctree a');
+  links.forEach((link) => {
+      link.classList.add("nav-link");
+  });
+  $("body").scrollspy({target: ".sidenav"});
+</script>
+  </body>
+</html>
