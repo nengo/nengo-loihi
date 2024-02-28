@@ -4,7 +4,7 @@
 NengoLoihi license
 ******************
 
-Copyright (c) 2018-2023 Applied Brain Research
+Copyright (c) 2018-2024 Applied Brain Research
 
 **Apache License**
 
@@ -223,3 +223,4 @@ limitations under the License.
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
